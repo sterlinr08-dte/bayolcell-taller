@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261020-w14';
+  var VERSION = '20261021-w15';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -806,7 +806,7 @@
     var chips = document.getElementById('crmChipsRow');
     var viejo = chips && chips.querySelector(':scope > .bcwa-chips-etq'); if (viejo) viejo.remove();
     if (chips && etiquetas.length){
-      var btn = chips.querySelector(':scope > .bcwa-etq-filtro');
+      var btn = document.querySelector('#v-crmLinea .bcwa-etq-filtro');
       var sel = filtroEtiqueta && etiquetas.find(function(t){ return t.id === filtroEtiqueta; });
       contarEtiquetas(false);
       var nlb = conteoEtq.linea === lineaId() ? (sel ? ((conteoEtq.porEtq[sel.id] || {}).sinLeer || 0) : conteoEtq.sinLeerTotal) : 0;
@@ -814,6 +814,7 @@
         (nlb ? ' <b class="bcwa-etq-nl" title="Chats con etiqueta y mensajes sin leer">' + nlb + '</b>' : '') + ' <i class="ti ti-chevron-down"></i>';
       if (!btn){ btn = document.createElement('button'); btn.type = 'button'; btn.className = 'crm-chip bcwa-etq-filtro'; btn.setAttribute('aria-haspopup', 'menu'); chips.appendChild(btn);
         btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMenuEtiquetaFiltro(btn); }); }
+      ordenBarra();
       btn.classList.toggle('on', !!sel);
       if (btn.innerHTML !== bhtml) btn.innerHTML = bhtml;
     }
@@ -888,6 +889,27 @@
     b.addEventListener('click', abrirContactos);
     var filtros = document.getElementById('crmFiltrosBtn');
     cont.insertBefore(b, filtros || null);
+  }
+  // 21-oct-2026 (dueño: «el botón de buscador ponerlo antes de Sucursal y donde está el de búsqueda poner las etiquetas»).
+  // Solo en PC (barra en una línea). La lupa la maneja bc-busqueda.js dentro de .crm-busq-row, así que no se mueve: la
+  // fila de búsqueda pasa a la primera celda (antes de Sucursal) y Etiquetas · Contactos · Filtros van a una fila
+  // propia (#bcwaAccFila) donde antes estaba la lupa. En celular todo queda como estaba.
+  function ordenBarra(){
+    var vista = document.getElementById('v-crmLinea'); if (!vista) return;
+    var fila = vista.querySelector('.crm-busq-row'); if (!fila) return;
+    var pc = matchMedia('(min-width:1025px)').matches;
+    var etq = vista.querySelector('.bcwa-etq-filtro'), cont = document.getElementById('bcwaContactosBtn'), filt = document.getElementById('crmFiltrosBtn');
+    var chips = document.getElementById('crmChipsRow'), acc = document.getElementById('bcwaAccFila');
+    if (pc){
+      if (!acc){ acc = document.createElement('div'); acc.id = 'bcwaAccFila'; acc.className = 'bcwa-acc-fila'; }
+      if (acc.previousElementSibling !== fila) fila.parentNode.insertBefore(acc, fila.nextSibling);
+      [etq, cont, filt].forEach(function(b){ if (b && b.parentNode !== acc) acc.appendChild(b); });
+      if (etq && acc.firstElementChild !== etq) acc.insertBefore(etq, acc.firstChild);
+    } else if (acc){
+      if (cont) fila.appendChild(cont); if (filt) fila.appendChild(filt);
+      if (etq && chips) chips.appendChild(etq);
+      acc.remove();
+    }
   }
   function cerrarContactos(){ var m = document.getElementById('bcwaContactos'); if (m) m.remove(); }
   function abrirContactos(){
@@ -1059,7 +1081,7 @@
   var hiloAntes = null;
   function aplicar(){
     if (!document.getElementById('waWrap')) return;
-    envolverEnviar(); envolverMenu(); botonContactos(); envolverVincular(); envolverFiltro();
+    envolverEnviar(); envolverMenu(); botonContactos(); envolverVincular(); envolverFiltro(); ordenBarra();
     if (!etiquetasCargadas) cargarEtiquetas().then(function(){ decorarLista(); });
     if (lineaId() && extrasDeLinea !== lineaId()){ extrasDeLinea = lineaId(); modoArchivados = false; filtroEtiqueta = null; cargarExtras(); }
     var id = hiloId();

@@ -405,3 +405,18 @@ body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-etq-btn.on 
 .bcwa-etq-nl{ display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 6px; box-sizing:border-box; border-radius:999px;
   background:#25d366; color:#fff; font-size:12px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
 .bcwa-etq-filtro .bcwa-etq-nl{ margin-left:2px; }
+
+/* 21-oct-2026 · Barra del CRM en PC: lupa antes de Sucursal y Etiquetas donde estaba la lupa (ver ordenBarra en el JS). */
+.bcwa-acc-fila{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcwaAccFila{ display:none !important; }
+@media (min-width:1025px){
+  body #v-crmLinea.active[data-social-channel="whatsapp"]{ grid-template-columns:auto auto auto minmax(0,1fr) auto; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] > #bcSocialHubHead{ grid-column:1 / 5; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] .crm-tabs-row{ grid-column:5; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] .crm-busq-row{ grid-column:1; grid-row:2; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmSelectorWrap{ grid-column:2; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #bcwaAccFila{ grid-column:3; grid-row:2; margin:0; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmChipsRow{ grid-column:4 / 6; }
+  /* Con el buscador abierto, la píldora ocupa el sitio de Sucursal y Área (se esconden mientras se busca). */
+  body #v-crmLinea.active[data-social-channel="whatsapp"]:has(.crm-busq-row .bcbp-marco.open) #crmSelectorWrap{ visibility:hidden; }
+}
