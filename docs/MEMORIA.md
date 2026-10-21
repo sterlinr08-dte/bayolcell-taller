@@ -75,8 +75,8 @@ listas y sincronización.
   BayolCell RD - Cuenta Comercial y BayolCell. Plan: probar Cloud API directa con el **número de prueba gratis en Studiord** cuando el
   dueño cree la app de desarrollador. **No mover números reales**; un número está en un solo sitio a la vez (coexistencia posible).
   **Zernio se queda** hasta que cada paso esté probado.
-- Cuenta publicitaria 988971888850978 fuera de portafolio (el dueño lo dejó para después; «Aubelle» sin aclarar).
-- `reaction.received` en Zernio (lo hace el dueño). Frase «te sale» en `social-automatizaciones`.
+- Cuenta publicitaria 988971888850978 fuera de portafolio (para después).
+- `reaction.received` en Zernio (dueño). «te sale» en `social-automatizaciones`.
 - Revisar sugerencias reales de la IA (tono/largo) y el gasto diario tras el 25-oct.
 
 ## 7. Errores a no repetir
