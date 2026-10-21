@@ -66,12 +66,10 @@ listas y sincronización.
 - `whatsapp-ia-responder` v31, Claude Haiku 5.5: trata de usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, nunca «mi amor», casi sin emojis, interpreta faltas. Aprende de 42 ejemplos limpios + correcciones de los empleados (`whatsapp_ia_ejemplos`). Personalidad editable en CRM → Agente de IA. Borradores de seguimiento prendidos hasta el 24-oct (tope 400/día); desde el 25-oct se apagan solos (tope 150).
 
 ## 6. Pendientes y esperas
-- **IMEI por almacén: sin resolver.** `infoplus-imei-almacen` v1 (autenticada) prueba rutas candidatas, solo acepta IMEI que digan
-  explícitamente artículo + almacén, guarda la primera que sirva como `FUENTE_OK` en `infoplus_diagnostico`. Prueba real (artículo 2517,
-  almacén 1): ninguna ruta sirve. **Esperando a Dagoberto:** valor de `tipo` en `ListaArticulos?tipo`, si admite artículo/almacén,
-  permiso para `InventarioActual` y `TransaccionInventario`, qué ruta da seriales disponibles por almacén.
-- Dagoberto también: crédito y mínimo por nivel en `ListaArticulos` detallado; Comentarios, Atención, Cédula, Teléfono y Fecha de
-  entrega en `PreFacturaModel`; cómo interpreta `porcentaje`/`descuento`.
+- **Esperando a Dagoberto** (mensaje entregado al dueño el 21-oct; bitácoras 2026-10-20-2040 y 2026-10-19-2200): IMEI por almacén
+  (`tipo` de `ListaArticulos`, permisos `InventarioActual`/`TransaccionInventario`; `infoplus-imei-almacen` guarda la ruta que sirva
+  como `FUENTE_OK`) y Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`. También crédito/mínimo por nivel y `porcentaje`.
+- Prefactura «Limpiar sola» al guardar: rama `claude/prefactura-limpia`, sin publicar (bitácora 2026-10-21-1100).
 - Primera prefactura real con descuento y con código de empleada: revisarla en Info Plus.
 - Meta: el conector **WhatsApp Business MCP** solo ve «jose antonio peralta» y «Studiord»; el conector **Meta Ads** sí ve Bayol Cell,
   BayolCell RD - Cuenta Comercial y BayolCell. Plan: probar Cloud API directa con el **número de prueba gratis en Studiord** cuando el
