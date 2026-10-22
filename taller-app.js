@@ -30498,6 +30498,7 @@ function _waBurbujaMedia(m) {
 function _waPreviewTexto(m) {
     if(m.tipo_contenido === 'ubicacion') return '📍 Ubicación';
     if(m.tipo_contenido === 'contacto') { try { return '👤 ' + (JSON.parse(m.cuerpo).nombre || 'Contacto'); } catch(e) { return '👤 Contacto'; } }
+    if(m.estado === 'eliminado') return '🚫 Mensaje eliminado';
     return m.cuerpo || (m.tipo_contenido !== 'text' ? `[${m.tipo_contenido}]` : '');
 }
 // Ticks estilo WhatsApp real: 1 gris = enviado, 2 gris = entregado, 2 AZUL = leido.
@@ -30571,6 +30572,15 @@ function _waBurbujaRowHTML(m, nombre, porId) {
     const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
     const original = m.responde_a_id ? porId[m.responde_a_id] : null;
     const animarEnvio = esOut && m.id === _waMensajeAnimarId;
+    if(m.estado === 'eliminado') {
+        return `<div class="wa-brow ${esOut ? 'out' : 'in'}" data-msgid="${m.id}" data-estado="eliminado" data-reac="">
+        <div class="wa-bubble-wrap wa-eliminado" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+            <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
+            <div class="wa-eliminado-tx"><i class="ti ti-ban"></i> ${esOut ? 'Eliminaste este mensaje' : 'Este mensaje fue eliminado'}</div>
+            <div class="wa-tick-line" style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</div>
+        </div>
+    </div>`;
+    }
     const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
     return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`} data-estado="${esOut ? (m.estado||'') : ''}" data-reac="${escapeHtml(_waFirmaReacciones(m))}">
         ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
@@ -30624,6 +30634,7 @@ function _waActualizarChatIncremental() {
         if(m.direccion !== 'out' || !renderedIds.has(m.id)) return;
         const row = scrollContainer.querySelector(`[data-msgid="${m.id}"]`);
         if(!row || row.dataset.estado === m.estado) return;
+        if(m.estado === 'eliminado') { row.outerHTML = _waBurbujaRowHTML(m, nombre, porId); return; }
         const tickLine = row.querySelector('.wa-tick-line');
         if(tickLine) {
             const t = new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
@@ -31853,6 +31864,7 @@ function _waAsegurarMenuAcciones() {
             <button onclick="_waMenuAccion('responder')"><i class="ti ti-arrow-back-up"></i> Responder</button>
             <button onclick="_waMenuAccion('corregir')" id="waMenuCorregir"><i class="ti ti-pencil"></i> Corregir</button>
             <button onclick="_waMenuAccion('reenviar')"><i class="ti ti-arrow-forward-up"></i> Reenviar</button>
+            <button onclick="_waMenuAccion('eliminar')" id="waMenuEliminar" style="color:#b42318;"><i class="ti ti-trash"></i> Eliminar para todos</button>
         `;
         document.body.appendChild(menu);
         document.addEventListener('click', e => {
@@ -31877,6 +31889,10 @@ function _waAbrirMenuAcciones(ev, msgId) {
     const msg = _waMensajes.find(x => x.id === msgId);
     const btnCorregir = document.getElementById('waMenuCorregir');
     if(btnCorregir) btnCorregir.style.display = (msg && msg.direccion === 'out' && !msg._optimista) ? '' : 'none';
+    // «Eliminar para todos» (22-oct-2026, dueño): solo mensajes NUESTROS ya enviados y no eliminados. WhatsApp deja
+    // borrar para todos hasta ~2 días después; más viejo se esconde para no prometer lo que WhatsApp va a rechazar.
+    const btnEliminar = document.getElementById('waMenuEliminar');
+    if(btnEliminar) btnEliminar.style.display = _waSePuedeEliminar(msg) ? '' : 'none';
 
     menu.style.display = 'flex';
     const r = btn.getBoundingClientRect();
@@ -31906,6 +31922,43 @@ function _waMenuAccion(accion) {
     if(accion === 'responder') _waActivarRespuesta(msgId);
     else if(accion === 'corregir') _waCorregirMensaje(msgId);
     else if(accion === 'reenviar') _waAbrirReenviar(msgId);
+    else if(accion === 'eliminar') _waEliminarParaTodos(msgId);
+}
+const _WA_ELIMINAR_VENTANA_MS = 48 * 3600 * 1000;
+function _waSePuedeEliminar(m) {
+    if(!m || m.direccion !== 'out' || m._optimista || m.estado === 'eliminado' || m.estado === 'fallido' || !m.wa_message_id) return false;
+    const t = new Date(m.creado_en).getTime();
+    return !isNaN(t) && (Date.now() - t) < _WA_ELIMINAR_VENTANA_MS;
+}
+// Eliminar para todos (22-oct-2026): Edge whatsapp-mensaje-eliminar → Zernio DELETE. Si WhatsApp lo acepta, el
+// mensaje queda «Este mensaje fue eliminado» aquí y en el teléfono del cliente.
+async function _waEliminarParaTodos(msgId) {
+    const m = _waMensajes.find(x => x.id === msgId);
+    if(!_waSePuedeEliminar(m)) { toastError('Este mensaje ya no se puede eliminar para todos.'); return; }
+    if(!window.confirm('¿Eliminar este mensaje para todos?\n\nDesaparecerá también en el WhatsApp del cliente. No se puede deshacer.')) return;
+    const lockKey = `wa-eliminar:${msgId}`;
+    if(!_crmIniciarAccion(lockKey)) return;
+    const hiloDelMsg = _waHiloId;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-mensaje-eliminar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mensaje_id: msgId })
+        });
+        const j = await res.json().catch(() => null);
+        if(j && j.ok) {
+            m.estado = 'eliminado';
+            if(j.aviso) toast('⚠️ ' + j.aviso); else toast('🚫 Mensaje eliminado para todos.');
+            if(_waHiloId === hiloDelMsg) { try { await cargarMensajesHilo(hiloDelMsg); } catch(e) {} await _crmRepintarWhatsappSilencioso(); }
+        } else {
+            toastError((j && j.mensaje) || 'No se pudo eliminar el mensaje.');
+        }
+    } catch(e) {
+        logError('_waEliminarParaTodos', e);
+        toastError('No se pudo eliminar el mensaje.');
+    } finally { _crmFinalizarAccion(lockKey); }
 }
 
 // Corregir un mensaje ya enviado. WhatsApp no deja editarlo ni borrarlo desde

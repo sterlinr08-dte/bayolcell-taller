@@ -674,6 +674,9 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 @keyframes waEstadoEnviando { 0% { transform:rotate(-18deg); opacity:.45; } 50% { transform:rotate(10deg); opacity:1; } 100% { transform:rotate(-18deg); opacity:.45; } }
 .wa-estado-enviando { display:inline-flex; color:#667781; animation:waEstadoEnviando .72s ease-in-out infinite; transform-origin:center; }
 .wa-estado-fallido { display:inline-flex; color:#dc2626; animation:crmPildoraActiva .3s ease-out; }
+.wa-eliminado-tx { color:#667781; font-style:italic; display:flex; align-items:center; gap:5px; }
+.wa-eliminado-tx i { font-size:14px; }
+#waAccionesMenu button { min-height:44px; }
 .wa-brow { display:flex; position:relative; touch-action:pan-y; }
 .wa-brow.out { justify-content:flex-end; }
 .wa-bubble-wrap { position:relative; max-width:70%; animation:waBubbleIn .18s ease-out; transition:transform .15s ease; }
@@ -5597,7 +5600,7 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261022-p5"></script>
+<script src="taller-app.js?v=20261022-p6"></script>
 <script src="taller-recepcion.js?v=20261020-g1"></script>
 <script src="taller-prefactura.js?v=20261022-i1"></script>
 <script src="bc-prefactura-imprimir.js?v=20261021-i3"></script>

@@ -780,6 +780,22 @@ async function procesarReaccion(payload: any) {
   if (data === "sin_mensaje") console.log("reaccion a un mensaje que no esta en el CRM");
 }
 
+async function procesarEliminado(payload: any) {
+  const msg = payload.message || {};
+  const wamid = idMensaje(msg);
+  if (!wamid) return;
+  const { data: antes } = await db.from("whatsapp_mensajes").select("id, hilo_id, cuerpo, tipo_contenido, meta, estado").eq("wa_message_id", wamid).maybeSingle();
+  const { error } = await db.rpc("wa_aplicar_estado", { p_wamid: wamid, p_estado: "eliminado", p_error: null });
+  if (error) throw new Error(`marcar eliminado fallo: ${error.message}`);
+  if (antes && antes.estado !== "eliminado") {
+    const meta = (antes.meta && typeof antes.meta === "object") ? { ...antes.meta } : {};
+    meta.eliminado = { en: payload.deletedAt || new Date().toISOString(), por_tipo: "whatsapp", por_id: null, cuerpo: antes.cuerpo, tipo_contenido: antes.tipo_contenido };
+    await db.from("whatsapp_mensajes").update({ meta }).eq("id", antes.id);
+    const { data: ult } = await db.from("whatsapp_mensajes").select("id").eq("hilo_id", antes.hilo_id).order("creado_en", { ascending: false }).limit(1).maybeSingle();
+    if (ult?.id === antes.id) await db.from("whatsapp_hilos").update({ ultimo_mensaje_preview: "🚫 Mensaje eliminado", actualizado_en: new Date().toISOString() }).eq("id", antes.hilo_id);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok");
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -800,6 +816,10 @@ Deno.serve(async (req: Request) => {
       await procesarEstadoMensaje(payload, evento);
     } else if (evento === "reaction.received") {
       await procesarReaccion(payload);
+    } else if (evento === "message.deleted") {
+      // 22-oct-2026: el negocio eliminó un mensaje para todos (desde el CRM o desde la app del teléfono). Se marca
+      // «eliminado» sin borrar la fila. Zernio dice que en WhatsApp solo llega por borrados del negocio.
+      await procesarEliminado(payload);
     } else {
       console.error("Evento no manejado:", evento);
     }
