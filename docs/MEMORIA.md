@@ -69,7 +69,7 @@ listas y sincronización.
 - **IMEI por almacén:** `listaserie` filtra por `codalmacen`; Edge v9 lo usa (lista prudente por almacén) y con `{imei}` devuelve el artículo (compras → listaserie). Falta prueba real; rama `claude/imei-busca-articulo` (IMEI → artículo en el buscador) sin publicar (bit. 1740, 1830).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
 - **WA 22-oct:** plantilla v22 OK (ToNnY leyó). Publicado: «Transferido», historial en el chat, sin número → «A un empleado», respuestas rápidas (bit. 1545). Llamadas: sin rastro (coexistencia); webhook v39 avisa álbum y marca eliminados. «Eliminar para todos» publicado (bit. 1700); falta prueba real.
-- Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
+- Prefactura impresa con el Nº de Info Plus (ticket/carta, «COPIA»): rama sin publicar (bit. 21-oct 1200). IA v32 desplegada (código no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
 - Meta: conector WhatsApp MCP no ve BayolCell (reconectar marcando BayolCell); app de desarrollador bloqueada para el dueño (ESTERLIN ESPINAL con 2FA puede crearla). **Zernio se queda** hasta probar cada paso.
 - Cuenta publicitaria 988971888850978 fuera de portafolio (para después).
