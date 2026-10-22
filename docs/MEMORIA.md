@@ -68,13 +68,10 @@ listas y sincronización.
 ## 6. Pendientes y esperas
 - **IMEI por almacén:** `listaserie` (Edge v5) da {descripcion, serie, localidad} de todos los almacenes; localidad no sigue transferencias. Dagoberto (22-oct): «hay que agregar esos filtros» → esperar los nombres de parámetro (bit. 2026-10-22-1040).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
-- **WhatsApp plantillas (22-oct):** Zernio cambió el contrato de envío (`template.elements[]`); `whatsapp-enviar` v21 ya lo usa. Plantilla `bayolcell_seguimiento_consulta` (UTILITY) sometida en las 6 líneas, esperando a Meta; el CRM llena solo {{1}} nombre y {{2}} sucursal.
+- **Plantillas WA (22-oct):** Zernio usa `template.elements[]` (`whatsapp-enviar` v21). `bayolcell_seguimiento_consulta` sometida en 6 líneas, esperando a Meta; el CRM llena {{1}} nombre y {{2}} sucursal.
 - Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
-- Meta: el conector **WhatsApp Business MCP** solo ve «jose antonio peralta» y «Studiord»; el conector **Meta Ads** sí ve Bayol Cell,
-  BayolCell RD - Cuenta Comercial y BayolCell. Plan: probar Cloud API directa con el **número de prueba gratis en Studiord** cuando el
-  dueño cree la app de desarrollador. **No mover números reales**; un número está en un solo sitio a la vez (coexistencia posible).
-  **Zernio se queda** hasta que cada paso esté probado.
+- Meta: conector WhatsApp MCP no ve BayolCell (reconectar marcando BayolCell); app de desarrollador bloqueada para el dueño (ESTERLIN ESPINAL con 2FA puede crearla). **Zernio se queda** hasta probar cada paso.
 - Cuenta publicitaria 988971888850978 fuera de portafolio (para después).
 - `reaction.received` en Zernio (dueño). «te sale» en `social-automatizaciones`.
 - Revisar sugerencias reales de la IA (tono/largo) y el gasto diario tras el 25-oct.
