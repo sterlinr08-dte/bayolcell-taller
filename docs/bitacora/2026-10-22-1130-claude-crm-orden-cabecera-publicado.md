@@ -1,0 +1,1 @@
+- **Publicado** el 22-oct-2026 (dueño: «si»). Verificado en bayolcell.com: `crm-marketing-consent.js?v=20261022-u6` y `crm-wa-identico.js?v=20261022-w16` con `ordenCabecera`.
