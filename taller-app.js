@@ -17262,6 +17262,24 @@ async function _descontarPiezasAlCompletar(equipoId) {
         return { n, total: pend.length };
     } catch(e) { logError('_descontarPiezasAlCompletar', e); return { n: 0, total: 0 }; }
 }
+// 22-oct-2026 (dueño): las piezas del cuadro de costo se ven como los renglones de una factura: Pieza · Cant. · Costo · Total,
+// con cabecera, columnas alineadas y la línea del total. Editar/quitar (admin) a 44 px.
+function _piezasCostoHTML(conCosto, esAdminPiezas, total) {
+    if(!conCosto || !conCosto.length) return '';
+    const filas = conCosto.map(p => {
+        const esIP = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
+        const esExterna = !p.pieza_codigo && !p.pieza_id && !p.agregada_por_tecnico;
+        const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
+        const etiqueta = esIP ? '<span class="cbx-tag ip">INFO PLUS</span>' : (esExterna ? '<span class="cbx-tag ext">EXTERNA</span>' : '');
+        const acc = esAdminPiezas ? `<a onclick="editarPiezaInfoPlus('${p.id}')" title="Editar" aria-label="Editar" class="ed"><i class="ti ti-edit"></i></a><a onclick="eliminarPiezaInfoPlus('${p.id}')" title="Quitar" aria-label="Quitar" class="rm"><i class="ti ti-trash"></i></a>` : '';
+        return `<div class="cbx-tr"><div class="pz"><span class="nm" title="${escapeHtml(p.pieza_nombre || 'Pieza')}">${escapeHtml(p.pieza_nombre || 'Pieza')}</span>${etiqueta}</div><div class="n">${cant}</div><div class="n cu">${money(cu)}</div><div class="n t">${money(cant * cu)}</div><div class="ac">${acc}</div></div>`;
+    }).join('');
+    return `<div class="cbx-tab${esAdminPiezas ? '' : ' sin-acc'}">
+        <div class="cbx-tr cbx-th"><div>Pieza</div><div class="n">Cant.</div><div class="n cu">Costo</div><div class="n">Total</div><div></div></div>
+        ${filas}
+        <div class="cbx-tr cbx-tt"><div>Total piezas</div><div></div><div class="cu"></div><div class="n t">${money(total)}</div><div></div></div>
+    </div>`;
+}
 // HTML de la sección "Piezas de Info Plus" (descontadas / por descontar) para la caja de costo (solo admin).
 function _piezasDescuentoHTML(piezas) {
     const ip = (piezas || []).filter(p => p.pieza_codigo);
@@ -17273,15 +17291,14 @@ function _piezasDescuentoHTML(piezas) {
             ? `<span style="font-size:11px; font-weight:700; color:#166534; white-space:nowrap;">✓ descontada (Alm. ${p.infoplus_desc_almacen || 6})</span>`
             : `<button class="btn btn-light" style="padding:3px 9px; font-size:11px; color:#0369a1; border-color:#7dd3fc; white-space:nowrap;" onclick="_descontarPiezaPendiente('${p.id}')"><i class="ti ti-arrow-down-circle"></i> Descontar</button>`;
         const tag = desc ? '' : ' <span style="font-size:9px; font-weight:800; background:#fef9c3; color:#854d0e; padding:1px 6px; border-radius:7px;">⏳</span>';
-        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 0; border-bottom:1px dashed #e5e7eb;">
-            <span style="font-size:11.5px; flex:1; min-width:0;">${escapeHtml(p.pieza_nombre || 'Pieza')}${tag}</span>${right}</div>`;
+        return `<div class="cbx-tr ip2"><div class="pz"><span class="nm" title="${escapeHtml(p.pieza_nombre || 'Pieza')}">${escapeHtml(p.pieza_nombre || 'Pieza')}</span>${tag}</div><div class="n inv">${right}</div></div>`;
     }).join('');
     const todas = pendientes.length > 1
         ? `<button class="btn btn-light" style="margin-top:6px; padding:5px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc; width:100%;" onclick="descontarPiezasPendientesEquipo('${ip[0].equipo_id}')"><i class="ti ti-arrow-down-circle"></i> Confirmar y descontar todas (${pendientes.length})</button>`
         : '';
     return `<div style="margin-top:10px; padding-top:8px; border-top:1px dashed #86efac;">
         <div style="font-size:11px; font-weight:800; color:#475569; margin-bottom:4px;">🧩 PIEZAS DE INFO PLUS</div>
-        ${filas}${todas}</div>`;
+        <div class="cbx-tab ip2"><div class="cbx-tr cbx-th ip2"><div>Pieza</div><div class="n">Inventario</div></div>${filas}</div>${todas}</div>`;
 }
 async function agregarPiezaExtra(equipoId) {
     const nombre = await pedirTexto('Nombre de la pieza extra que apareció durante la reparación:');
@@ -17536,21 +17553,7 @@ async function verFichaDespacho(equipoId) {
         const esAdminPiezas = tienePermiso('piezas_aprobar_extra');
         // En el cuadro de costo solo se listan las piezas CON costo (las de las fallas, en RD$0.00, ya se ven arriba)
         const conCosto = usadas.filter(p => (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0) > 0);
-        const piezasLineas = conCosto.length ? conCosto.map(p => {
-            const esIP = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
-            const esExterna = !p.pieza_codigo && !p.pieza_id && !p.agregada_por_tecnico;
-            // Editar/borrar disponible para piezas manejadas por admin (Info Plus y externas)
-            const acc = esAdminPiezas ? `<span style="margin-left:8px; white-space:nowrap;">
-                <a onclick="editarPiezaInfoPlus('${p.id}')" title="Editar" style="cursor:pointer; color:#0369a1; font-size:13px;"><i class="ti ti-edit"></i></a>
-                <a onclick="eliminarPiezaInfoPlus('${p.id}')" title="Quitar" style="cursor:pointer; color:#b91c1c; font-size:13px; margin-left:8px;"><i class="ti ti-trash"></i></a>
-            </span>` : '';
-            const etiqueta = esIP ? ' <span class="badge" style="background:#bae6fd; color:#075985; font-size:9px;">INFO PLUS</span>'
-                : (esExterna ? ' <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:9px;">EXTERNA</span>' : '');
-            return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; gap:8px; margin-top:2px;">
-                <span style="flex:1; min-width:0;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}${etiqueta}</span>
-                <b>${money((p.cantidad || 1) * (p.costo_unitario || 0))}</b>${acc}
-            </div>`;
-        }).join('') : '';
+        const piezasLineas = _piezasCostoHTML(conCosto, esAdminPiezas, repuestos);
         const _estLab = eq.estado_evaluacion === 'vendido' ? 'DESPACHADO' : 'LISTO PARA VENTA';
         const _cpct = (x) => (final > 0 ? (x / final * 100) : 0);
         costoHtml = `<div class="cbx">
@@ -17569,7 +17572,7 @@ async function verFichaDespacho(equipoId) {
                 <div class="cbx-row"><span class="l"><span class="dot" style="background:#0f9d58;"></span>Costo de compra</span><b>${money(compra)}</b></div>
                 ${flete > 0 ? `<div class="cbx-row"><span class="l"><span class="dot" style="background:#a7f3d0;"></span>Envío <small>(proporcional)</small></span><b>${money(flete)}</b></div>` : ''}
                 <div class="cbx-row"><span class="l"><span class="dot" style="background:${repuestos > 0 ? '#fbbf24' : '#e2e8f0'};"></span>Piezas con costo <small>(${conCosto.length})</small></span><b>${money(repuestos)}</b></div>
-                ${piezasLineas ? `<div class="cbx-pzs">${piezasLineas}</div>` : '<div class="cbx-empty">Sin piezas agregadas todavía</div>'}
+                ${piezasLineas || '<div class="cbx-empty">Sin piezas agregadas todavía</div>'}
                 ${esAdminPiezas ? _piezasDescuentoHTML(piezas) : ''}
                 ${esAdminPiezas ? `<div class="cbx-acts">
                     <button class="cbx-act blue" onclick="agregarPiezaInfoPlus('${equipoId}')"><span class="ci"><i class="ti ti-search"></i></span>Agregar piezas<br>(Info Plus)</button>
@@ -17728,6 +17731,25 @@ function _cbxStyles() {
     .cbx-row .l .dot{width:8px;height:8px;border-radius:50%;flex:none;}
     .cbx-row b{font-weight:800;font-variant-numeric:tabular-nums;color:#0f172a;}
     .cbx-pzs{margin:8px 0 4px;padding:10px 12px;background:linear-gradient(180deg,#f8fafc,#fff);border-radius:12px;border:1px solid #eef2f7;}
+    .cbx-tab{margin:8px 0 4px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;font-variant-numeric:tabular-nums;}
+    .cbx-tr{display:grid;grid-template-columns:minmax(0,1fr) 44px 88px 96px 96px;align-items:center;column-gap:8px;padding:0 10px;min-height:44px;border-bottom:1px solid #f1f5f9;font-size:12.5px;color:#0f172a;}
+    .cbx-tab.sin-acc .cbx-tr{grid-template-columns:minmax(0,1fr) 44px 88px 96px 0;}
+    .cbx-tr:last-child{border-bottom:none;}
+    .cbx-tr.cbx-th{min-height:28px;background:#f8fafc;font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;}
+    .cbx-tr .n{text-align:right;white-space:nowrap;}
+    .cbx-tr .t{font-weight:800;}
+    .cbx-tr .pz{min-width:0;display:flex;align-items:center;gap:6px;}
+    .cbx-tr .pz .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+    .cbx-tag{flex:none;font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px;letter-spacing:.02em;}
+    .cbx-tag.ip{background:#bae6fd;color:#075985;} .cbx-tag.ext{background:#ede9fe;color:#6d28d9;}
+    .cbx-tr .ac{display:flex;justify-content:flex-end;gap:2px;}
+    .cbx-tr .ac a{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;font-size:15px;}
+    .cbx-tr .ac a.ed{color:#0369a1;} .cbx-tr .ac a.rm{color:#b91c1c;} .cbx-tr .ac a:hover{background:#f1f5f9;}
+    .cbx-tr.cbx-tt{background:#fffbeb;font-weight:800;border-top:1px solid #fde68a;}
+    .cbx-tab.ip2 .cbx-tr{grid-template-columns:minmax(0,1fr) auto;}
+    .cbx-tr .inv{display:flex;justify-content:flex-end;}
+    .cbx-tr .inv .btn{min-height:36px;}
+    @media(max-width:560px){.cbx-tr{grid-template-columns:minmax(0,1fr) 36px 90px 92px;column-gap:6px;padding:0 8px;}.cbx-tr .cu{display:none;}.cbx-tab.sin-acc .cbx-tr{grid-template-columns:minmax(0,1fr) 36px 90px 0;}}
     .cbx-empty{font-size:12.5px;color:#94a3b8;padding:14px 12px;background:#f8fafc;border-radius:12px;border:1px dashed rgba(226,232,240,.8);text-align:center;margin:6px 0 2px;}
     .cbx-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
     .cbx-act{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:11px;font-weight:700;color:#334155;transition:all .2s;text-align:center;line-height:1.25;font-family:inherit;}
