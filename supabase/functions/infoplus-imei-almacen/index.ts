@@ -54,11 +54,9 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true }), { headers: cors });
   }
 
-  // 22-oct-2026 · Prueba pedida por el dueño: «primero prueba si lo puedes separar por almacén». Una vez cada 10 min se
-  // pide listaserie con distintos nombres de parámetro de almacén y se anota cuántas series trae y dónde salen las de este
-  // artículo. Solo GET; la clave nunca se guarda.
-  await probarFiltros(sb, BASE, CLAVE, c, a, desc, lista.length);
-
+  // 22-oct-2026 · Se probó separar por almacén con 21 variantes (codalmacen, Codalmacen, CodAlmacen, almacen, localidad,
+  // codlocalidad, CodLocalidad, idalmacen con 1 y 6; CodArticulo, articulo, localidad=OFICINA SANTIAGO): listaserie las
+  // ignora todas y devuelve siempre las mismas 77 series. Ver bitácora 2026-10-22-1040.
   const nombres = ALMACENES[a];
   const delArticulo = lista.filter((x) => normDesc(x?.descripcion) === desc && String(x?.serie ?? '').trim());
   const imeis = [...new Set(delArticulo.filter((x) => nombres.includes(norm(x?.localidad))).map((x) => String(x.serie).trim()))];
@@ -68,24 +66,6 @@ Deno.serve(async (req: Request) => {
   if (raras.length) await anotar(sb, { ruta: 'listaserie', consulta: `art=${c} alm=${a}`, status, largo: txt.length, campos: 'localidades sin almacén: ' + raras.join(' | ').slice(0, 300), muestra: '' });
   return new Response(JSON.stringify({ ok: true, imeis, fuente: true, del_articulo: delArticulo.length }), { headers: cors });
 });
-
-async function probarFiltros(sb: any, BASE: string, CLAVE: string, c: string, a: string, desc: string, total: number) {
-  const { data: ult } = await sb.from('infoplus_diagnostico').select('creado_en').eq('ruta', 'listaserie-filtro').order('creado_en', { ascending: false }).limit(1);
-  if (ult && ult[0] && Date.now() - new Date(ult[0].creado_en).getTime() < 10 * 60 * 1000) return;
-  const otro = a === '6' ? '1' : '6';
-  const variantes = ['codalmacen', 'Codalmacen', 'CodAlmacen', 'almacen', 'localidad', 'codlocalidad', 'CodLocalidad', 'idalmacen']
-    .flatMap((p) => [`${p}=${a}`, `${p}=${otro}`]).concat([`sinfiltro=1`, `CodArticulo=${c}`, `codarticulo=${c}&codalmacen=${a}`, `articulo=${c}`, `localidad=OFICINA%20SANTIAGO`]);
-  for (const v of variantes) {
-    let status = 0, n = -1, del: string[] = [];
-    try {
-      const r = await fetch(`https://apicliente.infoplusplatinum.com/api/ListaArticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&tipo=listaserie&${v}`);
-      status = r.status; const j = JSON.parse(await r.text()); const l = Array.isArray(j?.data) ? j.data : [];
-      n = l.length; del = l.filter((x: any) => normDesc(x?.descripcion) === desc).map((x: any) => `${String(x.serie).trim()}@${norm(x.localidad)}`);
-    } catch (_e) { /* se anota con n=-1 */ }
-    await sb.from('infoplus_diagnostico').insert({ ruta: 'listaserie-filtro', consulta: v, status, largo: n, imeis_detectados: del.length,
-      campos: `total:${n} (sin filtro:${total}) art=${c}`, muestra: del.join(' | ').slice(0, 1000) });
-  }
-}
 
 async function anotar(sb: any, fila: Record<string, unknown>) {
   const { data: ult } = await sb.from('infoplus_diagnostico').select('creado_en').eq('ruta', 'listaserie').order('creado_en', { ascending: false }).limit(1);
