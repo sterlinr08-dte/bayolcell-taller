@@ -46,7 +46,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // docs.zernio.com (no adivinado): POST .../messages con
 // { messageType:"template", template:{ name, language, variableMapping:{
 // body_text:[[...]] | body_text_named_params:[{param_name,example}],
-// header_handle:["url"] } } }.
+// header_handle:["url"] } } }. 22-oct-2026: Zernio lo cambió a
+// template:{ elements:[{ name, language, components }] } (ver bloque de envío).
 //
 // Fix 2026-09-04 (autorizacion por sucursal — auditoria): antes, cualquier
 // cuenta con sesion valida podia enviar a CUALQUIER hilo_id de cualquier
@@ -307,14 +308,22 @@ Deno.serve(async (req: Request) => {
   let resultado: ResultadoZernio;
   try {
     if (plantilla) {
-      const variableMapping: Record<string, unknown> = {};
-      if (plantilla.variables?.length) variableMapping.body_text = [plantilla.variables];
-      if (plantilla.variablesNombradas?.length) variableMapping.body_text_named_params = plantilla.variablesNombradas;
-      if (plantilla.headerUrl) variableMapping.header_handle = [plantilla.headerUrl];
+      // 22-oct-2026: Zernio cambió el contrato y la forma vieja (variableMapping) da 400 «Invalid template shape».
+      // Contrato actual (docs.zernio.com/messages/send-inbox-message): template = { elements: [ { name, language,
+      // components } ] } con un solo elemento; components se reenvía tal cual a Meta Cloud API.
+      const components: Record<string, unknown>[] = [];
+      if (plantilla.headerUrl) components.push({ type: "header", parameters: [{ type: "image", image: { link: plantilla.headerUrl } }] });
+      if (plantilla.variablesNombradas?.length) {
+        components.push({ type: "body", parameters: plantilla.variablesNombradas.map((v) => ({ type: "text", parameter_name: v.param_name, text: String(v.text ?? "") })) });
+      } else if (plantilla.variables?.length) {
+        components.push({ type: "body", parameters: plantilla.variables.map((t) => ({ type: "text", text: String(t ?? "") })) });
+      }
+      const elemento: Record<string, unknown> = { name: plantilla.nombre, language: plantilla.idioma };
+      if (components.length) elemento.components = components;
       const enviarPlantilla = () =>
         mandarAZernio(conversationId, linea.zernio_account_id, {
           messageType: "template",
-          template: { name: plantilla.nombre, language: plantilla.idioma, variableMapping },
+          template: { elements: [elemento] },
         });
       resultado = await enviarPlantilla();
       resultado = await reintentarSiConversacionNoEncontrada(resultado, enviarPlantilla);
