@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261021-w15';
+  var VERSION = '20261022-w17';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -1028,9 +1028,69 @@
     box.innerHTML = '<i class="ti ti-arrow-forward-up"></i><div class="tx"><b>Cliente referido' + (ref._linea ? ' desde ' + esc(ref._linea) : '') + '</b>' +
       '<span>Lo pasó ' + esc(ref.de_nombre || 'un compañero') + (cuando ? ' · ' + esc(cuando) : '') + '</span>' +
       (ref.nota ? '<em>“' + esc(ref.nota) + '”</em>' : '') + '</div>' +
-      (tel ? '<a class="bcwa-referido-btn" href="https://wa.me/' + tel + '" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Escribirle desde mi WhatsApp</a>' : '');
+      '<div class="bcwa-referido-acc"><button type="button" class="bcwa-referido-ver"><i class="ti ti-history"></i> Ver conversación anterior</button>' +
+      (tel ? '<a class="bcwa-referido-btn" href="https://wa.me/' + tel + '" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Escribirle desde mi WhatsApp</a>' : '') + '</div>';
+    box.querySelector('.bcwa-referido-ver').addEventListener('click', function(){ abrirHistorialReferido(id); });
     var scroll = det.querySelector('#waMessagesScroll');
     if (scroll && scroll.parentNode) scroll.parentNode.insertBefore(box, scroll); else det.appendChild(box);
+  }
+
+  // Conversación ANTERIOR del cliente referido (22-oct-2026, dueño): «transferir con todo y chat para que el empleado
+  // sepa el contexto». Solo lectura. La trae la RPC whatsapp_referido_historial (misma regla de acceso que el chat
+  // de destino), porque con «solo su sucursal» el empleado no puede leer los mensajes de la otra línea.
+  function cerrarHistorialReferido(){ var m = document.getElementById('bcwaRefHist'); if (m) m.remove(); document.removeEventListener('keydown', escHistorial, true); }
+  function escHistorial(e){ if (e.key === 'Escape'){ e.stopPropagation(); cerrarHistorialReferido(); } }
+  function textoMensaje(m){
+    var t = m.tipo || 'text';
+    if (t === 'imagen') return '📷 Foto' + (m.cuerpo ? ' · ' + m.cuerpo : '');
+    if (t === 'audio') return '🎤 Nota de voz';
+    if (t === 'video') return '🎬 Video' + (m.cuerpo ? ' · ' + m.cuerpo : '');
+    if (t === 'documento') return '📄 Documento' + (m.cuerpo ? ' · ' + m.cuerpo : '');
+    if (t === 'sticker') return '🙂 Sticker';
+    if (t === 'ubicacion') return '📍 Ubicación';
+    if (t === 'contacto'){ try { return '👤 ' + (JSON.parse(m.cuerpo).nombre || 'Contacto'); } catch(e){ return '👤 Contacto'; } }
+    if (m.plantilla && !m.cuerpo) return '📋 Plantilla: ' + m.plantilla;
+    return m.cuerpo || ('[' + t + ']');
+  }
+  async function abrirHistorialReferido(id){
+    cerrarHistorialReferido();
+    var h = hiloActual(), nombre = (h && (h.nombre_perfil || h.telefono_e164)) || 'Cliente';
+    var m = document.createElement('div'); m.id = 'bcwaRefHist'; m.className = 'bcwa-hoja bcwa-refhist';
+    m.innerHTML = '<div class="bcwa-hoja-caja" role="dialog" aria-label="Conversación anterior"><div class="bcwa-hoja-agarre"></div>' +
+      '<div class="bcwa-ct-head"><div class="bcwa-rh-tit"><b>Conversación anterior</b><span>Cargando…</span></div>' +
+      '<button type="button" class="bcwa-ct-x" aria-label="Cerrar"><i class="ti ti-x"></i></button></div>' +
+      '<div class="bcwa-rh-lista"><div class="vacio">Cargando la conversación…</div></div>' +
+      '<div class="bcwa-rh-pie">Solo lectura. Para contestar, cierre esta ventana y escriba en este chat.</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function(e){ if (e.target === m || e.target.closest('.bcwa-ct-x')) cerrarHistorialReferido(); });
+    document.addEventListener('keydown', escHistorial, true);
+    var lista = m.querySelector('.bcwa-rh-lista'), sub = m.querySelector('.bcwa-rh-tit span');
+    try {
+      var r = await supabaseClient.rpc('whatsapp_referido_historial', { p_hilo: id });
+      if (!document.getElementById('bcwaRefHist')) return;
+      if (r.error) throw r.error;
+      var d = r.data || {};
+      if (!d.ok){ sub.textContent = ''; lista.innerHTML = '<div class="vacio">Este chat no tiene una conversación anterior.</div>'; return; }
+      var msgs = d.mensajes || [];
+      sub.textContent = (d.linea ? 'En ' + d.linea : 'En otra línea') + ' · ' + msgs.length + ' mensaje' + (msgs.length === 1 ? '' : 's');
+      if (!msgs.length){ lista.innerHTML = '<div class="vacio">La conversación anterior no tiene mensajes.</div>'; return; }
+      var html = '', diaPrev = '';
+      msgs.forEach(function(x){
+        var f = new Date(x.creado_en), dia = isNaN(f) ? '' : f.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        if (dia && dia !== diaPrev){ html += '<div class="bcwa-rh-dia"><span>' + esc(dia) + '</span></div>'; diaPrev = dia; }
+        var hora = isNaN(f) ? '' : f.toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' });
+        var sale = x.direccion === 'out';
+        html += '<div class="bcwa-rh-msg ' + (sale ? 'sale' : 'entra') + '"><small>' + (sale ? 'Bayol Cell' : esc(nombre)) + '</small>' +
+          '<div>' + esc(textoMensaje(x)) + '</div><time>' + esc(hora) + '</time></div>';
+      });
+      if (d.nota || d.de_nombre) html += '<div class="bcwa-rh-dia fin"><span>Referido por ' + esc(d.de_nombre || 'un compañero') + (d.nota ? ': “' + esc(d.nota) + '”' : '') + '</span></div>';
+      lista.innerHTML = html;
+      lista.scrollTop = lista.scrollHeight;
+    } catch(e){
+      sub.textContent = '';
+      var msg = String((e && e.message) || '');
+      lista.innerHTML = '<div class="vacio">' + (msg.indexOf('sin_permiso') >= 0 ? 'No tiene permiso para ver esta conversación.' : 'No se pudo cargar la conversación. Intente de nuevo.') + '</div>';
+    }
   }
 
   // Botón "Etiquetas" en la barra del nombre del cliente (3 oct 2026): un toque abre
