@@ -33,3 +33,8 @@ La rama `claude/articulos-factura` (buscador) queda sin publicar.
   se corta con «…» cuando no cabe (completo al pasar el mouse).
 - El lápiz y la papelera ya no ocupan columna: en PC salen al pasar el mouse por el renglón y en celular al tocarlo (44×44).
 - Playwright: filas 53 px; nombre 218 px en PC (410 px de cuadro) y 172 px a 390; iconos ocultos hasta tocar; sin errores.
+
+## Ajuste 4 (18:35) — dueño: «¿Pero y los botones de quitar y editar?»
+- Lápiz y papelera vuelven a estar SIEMPRE visibles, al final de cada renglón, compactos (36 × 44 px, pegados, con fondo
+  celeste/rosado tenue). El nombre se corta con «…» cuando no cabe (completo al pasar el mouse).
+- Playwright: filas 53 px; botones 35–36 × 44; nombre ≈ 150 px en un cuadro de 410 px; sin scroll lateral; sin errores.
