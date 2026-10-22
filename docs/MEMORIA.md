@@ -67,9 +67,7 @@ listas y sincronización.
 
 ## 6. Pendientes y esperas
 - **IMEI por almacén:** Dagoberto dijo `tipo=listaserie` (22-oct); Edge v2 desplegada, falta probar desde la pantalla (bit. 2026-10-22-2000).
-- **Esperando a Dagoberto** (bitácoras 2026-10-20-2040 y 2026-10-19-2200): IMEI por almacén
-  (`tipo` de `ListaArticulos`, permisos `InventarioActual`/`TransaccionInventario`; `infoplus-imei-almacen` guarda la ruta que sirva
-  como `FUENTE_OK`) y Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`. También crédito/mínimo por nivel y `porcentaje`.
+- **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
 - Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
 - Meta: el conector **WhatsApp Business MCP** solo ve «jose antonio peralta» y «Studiord»; el conector **Meta Ads** sí ve Bayol Cell,
