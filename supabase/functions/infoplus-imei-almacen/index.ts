@@ -4,43 +4,25 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Regla del dueño: «7 almacenes, 7 iPhone, uno en cada almacén: la empleada del almacén 1 solo ve el IMEI del iPhone que
 // está en el almacén 1; no le pueden salir los de los almacenes 7, 6, 5 y 4». Sin botón: sale al prefacturar.
 // · Solo usuarios con sesión (verify_jwt + getUser). Solo GET a Info Plus; nunca escribe allá ni devuelve la clave.
-// · Info Plus no documenta qué ruta da las series por almacén: se prueban las candidatas y la primera que responda con
-//   registros que digan EXPLÍCITAMENTE el artículo y el almacén queda guardada como fuente (infoplus_diagnostico, ruta
-//   'FUENTE_OK'). Si ninguna lo dice, se devuelve una lista vacía: NUNCA se muestran IMEI sin confirmar el almacén.
+// 22-oct-2026 · Dagoberto (Info Plus): «Ponle tipo=listaserie». Probado en vivo: `ListaArticulos?tipo=listaserie` devuelve
+// TODAS las series disponibles como { descripcion, serie, localidad } (sin código de artículo ni de almacén; ignora otros
+// filtros). Por eso se compara:
+//   · artículo: la descripción de Info Plus del código pedido (tabla infoplus_articulos), sin espacios dobles ni mayúsculas;
+//   · almacén: el NOMBRE de la localidad («OFICINA SANTIAGO») contra el nombre del almacén pedido.
+// Si el nombre de la localidad no se reconoce, NO se muestra ese IMEI (se anota en infoplus_diagnostico para ajustar).
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json' };
-const ALMACENES = ['1', '3', '4', '5', '6', '7'];
-// 22-oct-2026: Dagoberto (Info Plus) respondió «Ponle tipo=listaserie». Va primero; el resto queda de respaldo.
-const CANDIDATAS = [
-  'ListaArticulos|tipo=listaserie&CodArticulo={c}&Codalmacen={a}',
-  'ListaArticulos|tipo=listaserie&codarticulo={c}&codalmacen={a}',
-  'ListaArticulos|tipo=listaserie',
-  'ListaArticulos|tipo={c}&CodArticulo={c}&Codalmacen={a}',
-  'ListaArticulos|tipo={a}&CodArticulo={c}&Codalmacen={a}',
-  'ListaArticulos|tipo=SERIE&CodArticulo={c}&Codalmacen={a}',
-  'ListaArticulos|tipo=IMEI&CodArticulo={c}&Codalmacen={a}',
-  'ListaArticulos|tipo=1&CodArticulo={c}&Codalmacen={a}',
-  'ListaArticulos|tipo={c}',
-  'ListaArticulos|tipo=A',
-  'InventarioActual|',
-];
-
-const ART = /^(cod)?(art(iculo)?|producto|codproducto|codarticulo|articulo|codigo)$/i;
-const ALM = /^(cod)?(almacen|alm|localidad|codlocalidad|codalmacen|bodega)$/i;
-// Recorre el JSON: un IMEI cuenta solo si en su objeto (o en uno que lo contiene) el artículo Y el almacén coinciden.
-function extraer(nodo: any, c: string, a: string, ctx: { art: boolean | null; alm: boolean | null }, out: Set<string>, vio: { art: boolean; alm: boolean }) {
-  if (Array.isArray(nodo)) { for (const x of nodo) extraer(x, c, a, ctx, out, vio); return; }
-  if (!nodo || typeof nodo !== 'object') return;
-  const aqui = { art: ctx.art, alm: ctx.alm };
-  for (const [k, v] of Object.entries(nodo)) {
-    if (v === null || typeof v === 'object') continue;
-    if (ART.test(k)) { vio.art = true; aqui.art = String(v).trim() === c; }
-    if (ALM.test(k)) { vio.alm = true; aqui.alm = String(v).trim() === a; }
-  }
-  if (aqui.art === true && aqui.alm === true) {
-    for (const v of Object.values(nodo)) if (typeof v === 'string' || typeof v === 'number') { const m = String(v).trim(); if (/^\d{15}$/.test(m)) out.add(m); }
-  }
-  for (const v of Object.values(nodo)) if (v && typeof v === 'object') extraer(v, c, a, aqui, out, vio);
-}
+// Nombres de cada almacén como pueden venir de Info Plus (ya normalizados con norm()).
+const ALMACENES: Record<string, string[]> = {
+  '1': ['OFICINA SANTIAGO', 'SANTIAGO'],
+  '3': ['GARANTIA CHINA'],
+  '4': ['MOCA'],
+  '5': ['2DO NIVEL', 'SEGUNDO NIVEL'],
+  '6': ['TALLER'],
+  '7': ['NAVARRETE'],
+};
+const norm = (s: unknown) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+  .replace(/\b(LOCALIDAD|ALMACEN)\b/g, ' ').replace(/\s+/g, ' ').trim();
+const normDesc = (s: unknown) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -51,44 +33,39 @@ Deno.serve(async (req: Request) => {
   const body = await req.json().catch(() => ({}));
   const c = String(body.codarticulo ?? '').replace(/\D/g, '');
   const a = String(body.codalmacen ?? '').replace(/\D/g, '');
-  if (!c || !ALMACENES.includes(a)) return new Response(JSON.stringify({ ok: false, error: 'faltan artículo o almacén' }), { status: 400, headers: cors });
+  if (!c || !ALMACENES[a]) return new Response(JSON.stringify({ ok: false, error: 'faltan artículo o almacén' }), { status: 400, headers: cors });
 
   const BASE = (Deno.env.get('INFOPLUS_BASE') || 'bayol').trim();
   const CLAVE = (Deno.env.get('INFOPLUS_CLAVE') || '').trim();
   const limpiar = (s: string) => CLAVE ? s.split(CLAVE).join('***') : s;
   const sb = createClient(URL_SB, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-  async function consultar(tpl: string) {
-    const [ruta, q] = tpl.split('|');
-    const qq = (q || '').split('{c}').join(c).split('{a}').join(a);
-    const url = `https://apicliente.infoplusplatinum.com/api/${ruta}?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}${qq ? '&' + qq : ''}`;
-    let status = 0, txt = '';
-    try { const r = await fetch(url); status = r.status; txt = await r.text(); } catch (e) { txt = 'ERROR ' + String(e); }
-    const out = new Set<string>(); const vio = { art: false, alm: false };
-    try { extraer(JSON.parse(txt), c, a, { art: null, alm: null }, out, vio); } catch (_e) { /* no es JSON */ }
-    return { ruta, qq, status, txt: limpiar(txt), imeis: [...out], vio };
+  // Descripción del artículo en Info Plus.
+  const { data: art } = await sb.from('infoplus_articulos').select('descripcion').eq('codigo', c).maybeSingle();
+  const desc = normDesc(art?.descripcion);
+  if (!desc) return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true, motivo: 'articulo_sin_descripcion' }), { headers: cors });
+
+  const url = `https://apicliente.infoplusplatinum.com/api/ListaArticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&tipo=listaserie`;
+  let status = 0, txt = '', lista: any[] = [];
+  try { const r = await fetch(url); status = r.status; txt = await r.text(); const j = JSON.parse(txt); lista = Array.isArray(j?.data) ? j.data : []; }
+  catch (_e) { lista = []; }
+  if (!lista.length) {
+    await anotar(sb, { ruta: 'listaserie', consulta: `art=${c} alm=${a}`, status, largo: txt.length, campos: 'sin lista', muestra: limpiar(txt).slice(0, 600) });
+    return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true }), { headers: cors });
   }
 
-  // ¿Ya se sabe cuál ruta sirve?
-  const { data: f } = await sb.from('infoplus_diagnostico').select('consulta').eq('ruta', 'FUENTE_OK').order('creado_en', { ascending: false }).limit(1);
-  if (f && f[0] && f[0].consulta) {
-    const r = await consultar(f[0].consulta);
-    return new Response(JSON.stringify({ ok: true, imeis: r.imeis, fuente: true }), { headers: cors });
-  }
-  // Todavía no: se prueban las candidatas (solo lectura) y se anota lo que respondió cada una.
-  // Como máximo una ronda cada 10 minutos, para no cargar Info Plus mientras no aparezca la ruta buena.
-  const { data: ult } = await sb.from('infoplus_diagnostico').select('creado_en').order('creado_en', { ascending: false }).limit(1);
-  if (ult && ult[0] && Date.now() - new Date(ult[0].creado_en).getTime() < 10 * 60 * 1000) {
-    return new Response(JSON.stringify({ ok: true, imeis: [], fuente: false }), { headers: cors });
-  }
-  for (const tpl of CANDIDATAS) {
-    const r = await consultar(tpl);
-    await sb.from('infoplus_diagnostico').insert({ ruta: r.ruta, consulta: limpiar(r.qq), status: r.status, largo: r.txt.length,
-      imeis_detectados: (r.txt.match(/\b\d{15}\b/g) || []).length, campos: `articulo:${r.vio.art} almacen:${r.vio.alm} imeis_confirmados:${r.imeis.length}`, muestra: r.txt.slice(0, 1200) });
-    if (r.vio.art && r.vio.alm && r.status === 200 && r.imeis.length) {
-      await sb.from('infoplus_diagnostico').insert({ ruta: 'FUENTE_OK', consulta: tpl, status: 200, imeis_detectados: r.imeis.length, campos: 'ruta que da los IMEI por artículo y almacén' });
-      return new Response(JSON.stringify({ ok: true, imeis: r.imeis, fuente: true }), { headers: cors });
-    }
-  }
-  return new Response(JSON.stringify({ ok: true, imeis: [], fuente: false }), { headers: cors });
+  const nombres = ALMACENES[a];
+  const delArticulo = lista.filter((x) => normDesc(x?.descripcion) === desc && String(x?.serie ?? '').trim());
+  const imeis = [...new Set(delArticulo.filter((x) => nombres.includes(norm(x?.localidad))).map((x) => String(x.serie).trim()))];
+  // Localidades que no se reconocen: no se muestran; se anotan (una vez cada 10 min) para agregarlas al mapa de arriba.
+  const conocidas = new Set(Object.values(ALMACENES).flat());
+  const raras = [...new Set(lista.map((x) => norm(x?.localidad)).filter((n) => n && !conocidas.has(n)))];
+  if (raras.length) await anotar(sb, { ruta: 'listaserie', consulta: `art=${c} alm=${a}`, status, largo: txt.length, campos: 'localidades sin almacén: ' + raras.join(' | ').slice(0, 300), muestra: '' });
+  return new Response(JSON.stringify({ ok: true, imeis, fuente: true, del_articulo: delArticulo.length }), { headers: cors });
 });
+
+async function anotar(sb: any, fila: Record<string, unknown>) {
+  const { data: ult } = await sb.from('infoplus_diagnostico').select('creado_en').eq('ruta', 'listaserie').order('creado_en', { ascending: false }).limit(1);
+  if (ult && ult[0] && Date.now() - new Date(ult[0].creado_en).getTime() < 10 * 60 * 1000) return;
+  await sb.from('infoplus_diagnostico').insert({ imeis_detectados: 0, ...fila });
+}
