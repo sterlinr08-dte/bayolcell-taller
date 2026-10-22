@@ -41,6 +41,8 @@ Deno.serve(async (req: Request) => {
   const a = String(body.codalmacen ?? '').replace(/\D/g, '');
   const imei = String(body.imei ?? '').replace(/\D/g, '');
   if (imei && ALMACENES[a]) return await buscarPorImei(imei, a, URL_SB);
+  // 22-oct-2026 (noche) · ¿Este artículo lleva IMEI/serie? Lo decide Info Plus, no la palabra «celular» del nombre.
+  if (String(body.pregunta ?? '') === 'serial' && c) return await esSerializado(c, URL_SB);
   if (!c || !ALMACENES[a]) return new Response(JSON.stringify({ ok: false, error: 'faltan artículo o almacén' }), { status: 400, headers: cors });
   // 22-oct-2026 · Apagada en la mañana; el dueño eligió luego la «lista prudente» (opción B): se muestra solo si cuadra con
   // la existencia (ver abajo). Para apagarla del todo: LISTA_ACTIVA = false.
@@ -100,6 +102,32 @@ async function anotar(sb: any, fila: Record<string, unknown>) {
   const { data: ult } = await sb.from('infoplus_diagnostico').select('creado_en').eq('ruta', 'listaserie').order('creado_en', { ascending: false }).limit(1);
   if (ult && ult[0] && Date.now() - new Date(ult[0].creado_en).getTime() < 10 * 60 * 1000) return;
   await sb.from('infoplus_diagnostico').insert({ imeis_detectados: 0, ...fila });
+}
+
+// ¿Lleva serie? (22-oct-2026, dueño: «el sistema tiene un error: cuando ve la palabra celular le asigna IMEI sin tener»).
+// serial = true si Info Plus registró alguna serie del código: en las compras sincronizadas (infoplus_seriales) o en
+// listaserie de cualquier almacén (filtro codarticulo; si el filtro se ignorara, se exige la misma descripción).
+async function esSerializado(c: string, URL_SB: string): Promise<Response> {
+  const sb = createClient(URL_SB, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const BASE = (Deno.env.get('INFOPLUS_BASE') || 'bayol').trim();
+  const CLAVE = (Deno.env.get('INFOPLUS_CLAVE') || '').trim();
+  const resp = (o: Record<string, unknown>) => new Response(JSON.stringify({ ok: true, codarticulo: c, ...o }), { headers: cors });
+  const { count } = await sb.from('infoplus_seriales').select('imei', { count: 'exact', head: true }).eq('codproducto', c);
+  if ((count || 0) > 0) return resp({ serial: true, fuente: 'compras', series: count });
+  const { data: art } = await sb.from('infoplus_articulos').select('descripcion').eq('codigo', c).maybeSingle();
+  const desc = normDesc(art?.descripcion);
+  let fallo = false;
+  const porAlm = await Promise.all(Object.keys(ALMACENES).map(async (alm) => {
+    try {
+      const r = await fetch(`https://apicliente.infoplusplatinum.com/api/ListaArticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&tipo=listaserie&codalmacen=${alm}&codarticulo=${encodeURIComponent(c)}`);
+      const j = JSON.parse(await r.text()); const l: any[] = Array.isArray(j?.data) ? j.data : [];
+      return l.filter((x) => String(x?.serie ?? '').trim() && (!desc || normDesc(x?.descripcion) === desc)).length;
+    } catch (_e) { fallo = true; return 0; }
+  }));
+  const total = porAlm.reduce((s, n) => s + n, 0);
+  if (total > 0) return resp({ serial: true, fuente: 'listaserie', series: total });
+  if (fallo) return new Response(JSON.stringify({ ok: false, error: 'No se pudo consultar Info Plus' }), { status: 502, headers: cors });
+  return resp({ serial: false, fuente: 'ninguna' });
 }
 
 // IMEI completo → artículo (22-oct-2026, pedido del dueño: «si pongo el IMEI completo también funcione el artículo»).

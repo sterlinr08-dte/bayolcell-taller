@@ -157,17 +157,18 @@
       var lCom = q('label', fComent); if (lCom) lCom.innerHTML = 'Comentario';
       var tCom = doc.getElementById('o_observaciones'); if (tCom) tCom.placeholder = 'Ej. cliente pasa a buscarlo el viernes; trae su propio cargador…';
       detCom.appendChild(fComent);
-      detCom.appendChild(el('p', 'bcpf-nota', 'Se guarda en el taller y sale al imprimir. En Info Plus aparecerá cuando el proveedor habilite el campo de comentarios.'));
+      detCom.appendChild(el('p', 'bcpf-nota', 'Se guarda en el taller, sale al imprimir y se manda a Info Plus como comentario de la prefactura (confirmar con Dagoberto que la cajera lo ve).'));
     }
     otras.appendChild(detCom);
     R.com = detCom;
     var tot = el('div', 'bcpf-tot',
       '<div class="tr"><span>Artículos</span><b class="t-art">0</b></div>' +
       '<div class="tr"><span>Subtotal</span><b class="t-sub">RD$ 0.00</b></div>' +
-      '<div class="tr td" hidden><span>Descuento</span><b class="t-des">RD$ 0.00</b></div>' +
+      '<div class="tr td" hidden><span>Descuento por línea</span><b class="t-des">RD$ 0.00</b></div>' +
+      '<div class="tr tdm"><label><span>Descuento RD$</span><span class="dmw"><i>RD$</i><input class="dm" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Descuento en pesos sobre toda la prefactura" onfocus="this.select()" onchange="_rpDescMonto(this.value)"></span></label></div>' +
       '<div class="tr tt"><span>Total</span><b class="t-tot">RD$ 0.00</b></div>' +
       '<div class="t-info"></div>');
-    R.tArt = q('.t-art', tot); R.tSub = q('.t-sub', tot); R.tDes = q('.t-des', tot); R.tDesF = q('.td', tot); R.tTot = q('.t-tot', tot); R.tInfo = q('.t-info', tot);
+    R.tArt = q('.t-art', tot); R.tSub = q('.t-sub', tot); R.tDes = q('.t-des', tot); R.tDesF = q('.td', tot); R.tTot = q('.t-tot', tot); R.tInfo = q('.t-info', tot); R.tDm = q('.dm', tot); R.tDmF = q('.tdm', tot);
     pie.appendChild(otras); pie.appendChild(tot);
     pad.appendChild(pie);
 
@@ -252,7 +253,7 @@
     o.id = 'bcpfImv'; o.setAttribute('data-i', i);
     o.innerHTML = '<div class="box" role="dialog" aria-modal="true" aria-label="IMEI de ' + esc(it.desc) + '">' +
       '<div class="hd"><b><i class="ti ti-barcode" aria-hidden="true"></i> IMEI · ' + esc(it.desc) + '</b><button type="button" class="vol"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button></div>' +
-      '<p>Escanee o escriba el IMEI y presione Enter, o tóquelo en la lista. <b>La cantidad se ajusta sola.</b></p>' +
+      '<p>Escanee o escriba el IMEI y presione Enter, o tóquelo en la lista. <b>La cantidad se ajusta sola.</b> El IMEI escrito se comprueba en Info Plus: tiene que existir en ' + esc(almNom()) + ' y ser de este artículo.</p>' +
       '<input id="rpImei_' + i + '" inputmode="numeric" autocomplete="off" placeholder="IMEI del equipo" aria-label="IMEI" onkeydown="_rpImeiKey(event,' + i + ')">' +
       '<div class="lst">' + imvLista(i) + '</div>' +
       '<div class="ims"><div class="imsh">Elegir de la lista</div><div class="imsl"><span class="imsv">Cargando IMEI…</span></div></div>' +
@@ -262,7 +263,7 @@
     o.querySelector('input').addEventListener('input', function () { pintarElegibles(); });
     o.addEventListener('click', function (e) {
       var b = e.target.closest('[data-elegir]'); if (!b) return;
-      try { _rpAgregarImei(i, b.getAttribute('data-elegir')); } catch (er) {}
+      try { _rpAgregarImei(i, b.getAttribute('data-elegir'), true); } catch (er) {} // viene de Info Plus: ya comprobado
     });
     o.addEventListener('click', function (e) { if (e.target === o || e.target.closest('.vol, .ok')) cerrarImei(); });
     setTimeout(function () { var x = doc.getElementById('rpImei_' + i); if (x) x.focus(); }, 40);
@@ -428,8 +429,11 @@
     R.cnt.textContent = items.length ? items.length + (items.length === 1 ? ' artículo' : ' artículos') + ' · ' + unidades + (unidades === 1 ? ' unidad' : ' unidades') : '';
     R.tArt.textContent = String(unidades);
     R.tSub.textContent = plata(tt.subtotal); R.tTot.textContent = plata(total); R.bn.textContent = plata(total);
-    R.tDesF.hidden = !(tt.descuento > 0); R.tDes.textContent = '− ' + plata(tt.descuento);
+    var dl = tt.descLineas != null ? tt.descLineas : tt.descuento, dm = tt.descMonto || 0;
+    R.tDesF.hidden = !(dl > 0); R.tDes.textContent = '− ' + plata(dl);
     var facturada = s && s.estado === 'facturada';
+    if (R.tDm && doc.activeElement !== R.tDm) R.tDm.value = dm > 0 ? num2(dm) : '';
+    if (R.tDmF) R.tDmF.hidden = !!facturada && !(dm > 0);
     R.tInfo.innerHTML = facturada ? '<div class="t-fac">Esta prefactura ya fue convertida en factura y no puede modificarse.</div>'
       : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' : 'No cobra ni descuenta inventario: se factura en Info Plus.');
     R.bar.querySelector('.bimp').hidden = !(s && s.codprefactura);

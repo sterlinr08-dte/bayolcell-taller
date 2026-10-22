@@ -1,5 +1,7 @@
 # CLAUDE.md — Guía para Claude (BAYOL CELL)
 
+> **Reglas del dueño:** `REGLAMENTOS.md` (prefactura, IMEI, descuentos). Leerlo antes de tocar la Prefactura o Info Plus.
+
 Contexto para que cualquier chat nuevo retome el trabajo sin perder tiempo.
 
 **MEMORIA (dueño, 21-oct-2026): leer primero `docs/MEMORIA.md`.** Resume qué tenemos, las reglas del dueño, lo pendiente y los errores que no se repiten. Se recarga sola al iniciar y al compactar el chat (hook `.claude/hooks/memoria.sh` en `.claude/settings.json`). **Actualizarla en cada entrega**; si el dueño dice «anótalo en la memoria», va ahí.

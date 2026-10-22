@@ -750,3 +750,9 @@ html.bc-pf body .bcpf-imv .imse i { color: #e4572e; font-size: 16px; }
 html.bc-pf body .bcpf-imv .imse:hover { background: #fff7ed; border-color: #fdba74; }
 html.bc-pf body .bcpf-imv .imse:active { transform: scale(.96); }
 html.bc-pf .bcpf-imv .imsv { font-size: 13px; color: #64748b; line-height: 1.45; }
+/* 22-oct-2026 · descuento en pesos sobre toda la prefactura (dueño). Campo 48 px, letra 16 px. */
+html.bc-pf #v-recepcion .bcpf-tot .tdm label { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; }
+html.bc-pf #v-recepcion .bcpf-tot .tdm .dmw { display: inline-flex; align-items: center; gap: 6px; height: 48px; padding: 0 10px 0 12px; border: 1px solid var(--pf-line2); border-radius: 10px; background: #fafbfc; }
+html.bc-pf #v-recepcion .bcpf-tot .tdm .dmw i { font: 600 13px var(--pf-mono); color: var(--pf-steel); font-style: normal; }
+html.bc-pf #v-recepcion .bcpf-tot .tdm .dm { width: 112px; height: 46px; border: 0; background: transparent; text-align: right; font: 600 16px var(--pf-mono); color: var(--pf-ink); outline: none; }
+html.bc-pf #v-recepcion .bcpf-tot .tdm .dmw:focus-within { border-color: #fb923c; box-shadow: 0 0 0 3px rgba(251, 146, 60, .18); }

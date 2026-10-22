@@ -242,7 +242,7 @@
           // El IMEI buscado queda en la línea del artículo (si es celular). La cantidad se ajusta sola.
           var it = (_rpState && _rpState.items) || [], k = -1;
           for (var j = 0; j < it.length; j++) if (String(it[j].cod) === String(a.codigo) && it[j].serial && !it[j].servicio) { k = j; break; }
-          if (k >= 0 && (it[k].imeis || []).indexOf(imei) < 0) _rpAgregarImei(k, imei);
+          if (k >= 0 && (it[k].imeis || []).indexOf(imei) < 0) _rpAgregarImei(k, imei, true); // ya comprobado por la Edge
           else if (k < 0) { try { toast('Este artículo no lleva IMEI; se agregó sin él.'); } catch (e) {} }
           estado.q = ''; estado.imei = ''; estado.imeiBusq = null; estado.imeiMsg = '';
         }
