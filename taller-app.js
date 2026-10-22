@@ -6672,6 +6672,34 @@ function _abStyles() {
       .ab-add:focus-visible,.ab-edit:focus-visible,.ab-chip:focus-visible,.ab-fbtn:focus-visible{outline:2px solid #c8191f;outline-offset:2px;}
       .ab-meta .ab-badges{flex-wrap:wrap;}
       @media(max-width:640px){.ab-ref-fallas{margin:8px 16px 0;}.ab-card{padding:8px 14px;align-items:flex-start;}.ab-thumb{display:none;}.ab-name{white-space:normal;display:block;line-height:1.3;}.ab-name .ab-cod{margin-right:5px;}.ab-meta{gap:6px;}.ab-right{flex-direction:column;align-items:flex-end;gap:5px;}.ab-right .ab-edit{display:none;}.ab-price b{font-size:12.5px;}}
+      /* Factura (22-oct-2026, dueño): una línea por artículo con columnas alineadas, como el renglón de una factura. */
+      .ab-results{--ab-cols:84px minmax(0,1fr) auto 112px auto;}
+      .ab-th,.ab-results .ab-card{display:grid;grid-template-columns:var(--ab-cols);align-items:center;column-gap:12px;padding:0 18px;}
+      .ab-th{position:sticky;top:0;z-index:2;background:#f8f8fa;border-bottom:1px solid rgba(0,0,0,.08);min-height:30px;font-size:10.5px;font-weight:700;color:#6e6e73;text-transform:uppercase;letter-spacing:.05em;}
+      .ab-th .r,.ab-c-pre{text-align:right;}
+      .ab-results .ab-card{min-height:52px;padding-top:4px;padding-bottom:4px;border-bottom:1px solid rgba(0,0,0,.06);font-variant-numeric:tabular-nums;}
+      .ab-c-cod{font-size:12px;font-weight:700;color:#c8191f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .ab-c-art{min-width:0;}
+      .ab-c-nom{font-size:13px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;}
+      .ab-c-sub{font-size:11px;color:#86868b;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+      .ab-c-ex .ab-badges{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-start;margin:0;}
+      .ab-c-pre{font-size:13.5px;font-weight:700;color:#15803d;white-space:nowrap;}
+      .ab-c-acc{display:flex;align-items:center;justify-content:flex-end;gap:6px;}
+      .ab-results .ab-add,.ab-results .ab-edit{width:44px;height:44px;font-size:20px;border-radius:12px;}
+      .ab-results .ab-edit{font-size:17px;}
+      @media(max-width:640px){
+        .ab-results{--ab-cols:auto minmax(0,1fr) auto auto;}
+        .ab-th,.ab-results .ab-card{padding:0 12px;column-gap:8px;row-gap:2px;}
+        .ab-th{display:none;}
+        .ab-results .ab-card{min-height:56px;padding-top:6px;padding-bottom:6px;}
+        .ab-c-cod{grid-column:1;grid-row:1;font-size:11.5px;align-self:baseline;}
+        .ab-c-art{grid-column:2;grid-row:1;}
+        .ab-c-nom{font-size:12.5px;}
+        .ab-c-ex{grid-column:1 / span 2;grid-row:2;}
+        .ab-c-pre{grid-column:3;grid-row:1 / span 2;font-size:12.5px;}
+        .ab-c-acc{grid-column:4;grid-row:1 / span 2;}
+        .ab-results .ab-edit{display:none;}
+      }
     `;
     document.head.appendChild(s);
 }
@@ -6776,23 +6804,25 @@ function renderBuscadorArticulos() {
     const items = lista.slice(start, start + size);
     if(cEl) cEl.textContent = `${total.toLocaleString('es-DO')} artículos encontrados${total > size ? ` (mostrando ${items.length})` : ''}`;
     if(!total) { cont.innerHTML = `<div style="text-align:center; color:#86868b; padding:40px 20px; font-size:14px;">No hay resultados${q ? ` para "${escapeHtml(q)}"` : ''}.</div>`; if(fEl) fEl.innerHTML = ''; return; }
-    cont.innerHTML = items.map((a, i) => _abCard(a, i)).join('');
+    cont.innerHTML = `<div class="ab-th"><div>Cód.</div><div>Artículo</div><div>Existencia</div><div class="r">Precio</div><div></div></div>` + items.map((a, i) => _abCard(a, i)).join('');
     _abRenderFoot(total, pages, items.length);
 }
 function _abCard(a, i) {
+    // 22-oct-2026 (dueño): «que se vean como si fuera en factura, lineal horizontal». Una línea por artículo con columnas
+    // fijas: Código · Artículo · Existencia · Precio · botones. La clase .ab-card se conserva (teclado ↑↓ Enter).
     const cod = String(a.codigo).replace(/'/g, "\\'");
     const precio = Number(a.precio) || 0, costo = Number(a.costo) || 0;
     const pventa = Number(a.precio_especial) > 0 ? Number(a.precio_especial) : precio;
-    return `<div class="ab-card ${i === _artBusc.hl ? 'hl' : ''}" data-cod="${escapeHtml(String(a.codigo))}" onclick="_artBuscElegir('${cod}')">
-      <div class="ab-thumb">${_abEmoji(_abCat(a.descripcion))}</div>
-      <div class="ab-info">
-        <div class="ab-name"><span class="ab-cod">${escapeHtml(a.codigo)}</span>${escapeHtml(a.descripcion || '(sin descripcion)')}</div>
-        <div class="ab-meta">${a.marca ? `<span class="mk">${escapeHtml(a.marca)}</span>` : ''}${precio > 0 && precio !== pventa ? `<span>Lista ${money(precio)}</span>` : ''}${costo > 0 && isAdminUser() ? `<span>Costo ${money(costo)}</span>` : ''}<span class="ab-badges">${_abInv(a)}</span></div>
-      </div>
-      <div class="ab-right">
-        <div class="ab-price"><b>${pventa > 0 ? money(pventa) : ''}</b></div>
-        ${isAdminUser() ? `<button class="ab-edit" onclick="event.stopPropagation(); abrirEditarPreciosArticulo('${cod}')" title="Editar precios"><i class="ti ti-edit"></i></button>` : ''}
-        <button class="ab-add" onclick="event.stopPropagation(); _artBuscElegir('${cod}')" title="Agregar"><i class="ti ti-plus"></i></button>
+    const desc = a.descripcion || '(sin descripcion)';
+    const sub = [a.marca ? escapeHtml(a.marca) : '', precio > 0 && precio !== pventa ? `Lista ${money(precio)}` : '', costo > 0 && isAdminUser() ? `Costo ${money(costo)}` : ''].filter(Boolean).join(' · ');
+    return `<div class="ab-card ${i === _artBusc.hl ? 'hl' : ''}" data-cod="${escapeHtml(String(a.codigo))}" onclick="_artBuscElegir('${cod}')" title="${escapeHtml(desc)}">
+      <div class="ab-c-cod">${escapeHtml(String(a.codigo))}</div>
+      <div class="ab-c-art"><div class="ab-c-nom">${escapeHtml(desc)}</div>${sub ? `<div class="ab-c-sub">${sub}</div>` : ''}</div>
+      <div class="ab-c-ex"><span class="ab-badges">${_abInv(a)}</span></div>
+      <div class="ab-c-pre">${pventa > 0 ? money(pventa) : '—'}</div>
+      <div class="ab-c-acc">
+        ${isAdminUser() ? `<button class="ab-edit" onclick="event.stopPropagation(); abrirEditarPreciosArticulo('${cod}')" title="Editar precios" aria-label="Editar precios"><i class="ti ti-edit"></i></button>` : ''}
+        <button class="ab-add" onclick="event.stopPropagation(); _artBuscElegir('${cod}')" title="Agregar" aria-label="Agregar"><i class="ti ti-plus"></i></button>
       </div>
     </div>`;
 }
