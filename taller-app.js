@@ -32405,7 +32405,12 @@ let _waTransferirEmpleados = [];
 // whatsapp_referir_a_linea: el cliente aparece en el CRM de esa línea (no leído, con la nota) y, si esta línea tiene
 // un chat abierto (24 h) con el número de esa sucursal, además se le manda por WhatsApp la tarjeta del cliente + la nota.
 // «A un empleado» = lo de siempre (whatsapp_transferir_hilo).
-let _waTrModo = 'linea', _waTrLineas = [], _waTransferirLinea = null, _waTrHilo = null, _waTrHiloDatos = null;
+let _waTrModo = 'linea', _waTrLineas = [], _waTransferirLinea = null, _waTrHilo = null, _waTrHiloDatos = null, _waTrSinNumero = false;
+// 22-oct-2026 (dueño: «hay chats sin número, solo nombre de usuario, y no se pueden transferir»): un chat sin teléfono
+// (bsid: o menos de 10 dígitos) no se puede pasar a OTRA LÍNEA, porque ese número no tiene cómo escribirle. Para esos
+// chats la ventana abre en «A un empleado»: el empleado de la otra sucursal le contesta desde este mismo WhatsApp
+// y ve toda la conversación. La pestaña «A otra sucursal» lo explica en vez de dar error.
+function _waTrEsSinNumero(h) { const t = String((h && h.telefono_e164) || ''); return t.startsWith('bsid:') || t.replace(/\D/g, '').length < 10; }
 async function _waAbrirTransferir(hiloId) {
     try {
         const [emp, lin] = await Promise.all([supabaseClient.rpc('whatsapp_empleados_directorio'), supabaseClient.rpc('whatsapp_lineas_directorio')]);
@@ -32414,7 +32419,7 @@ async function _waAbrirTransferir(hiloId) {
         _waTransferirEmpleados = (emp.data || []).filter(e => !(yo.tipo === 'tecnico' && String(e.id) === String(yo.id)));
         let h = _waHilos.find(x => x.id === hiloId);
         if(!h) { const r = await supabaseClient.from('whatsapp_hilos').select('id, linea_id, telefono_e164, nombre_perfil').eq('id', hiloId).maybeSingle(); h = r.data || null; }
-        _waTrHilo = hiloId; _waTrHiloDatos = h;
+        _waTrHilo = hiloId; _waTrHiloDatos = h; _waTrSinNumero = _waTrEsSinNumero(h);
         _waTrLineas = ((lin && lin.data) || []).filter(l => l.whatsapp_numero && (!h || l.id !== h.linea_id))
             .sort((a, b) => String(a.sucursal_nombre || '').localeCompare(String(b.sucursal_nombre || '')) || String(a.nombre || '').localeCompare(String(b.nombre || '')));
         const cliente = h ? (h.nombre_perfil || h.telefono_e164 || 'este cliente') : 'este cliente';
@@ -32429,7 +32434,7 @@ async function _waAbrirTransferir(hiloId) {
         abrirModalGenerico('Transferir cliente', html, { ancho: '460px' });
         _waTrCliente = cliente;
         _waTransferirElegido = null; _waTransferirLinea = null;
-        _waTrCambiarModo(_waTrLineas.length ? 'linea' : 'empleado');
+        _waTrCambiarModo(_waTrLineas.length && !_waTrSinNumero ? 'linea' : 'empleado');
     } catch(e) { logError('_waAbrirTransferir', e); toastError('No se pudo abrir Transferir.'); }
 }
 let _waTransferirElegido = null, _waTrCliente = '';
@@ -32437,7 +32442,9 @@ function _waTrCambiarModo(m) {
     _waTrModo = m; _waTransferirElegido = null; _waTransferirLinea = null;
     ['linea', 'empleado'].forEach(k => { const b = document.getElementById('waTrTab_' + k); if(b) { b.style.background = k === m ? '#fff' : 'transparent'; b.style.color = k === m ? '#075E54' : '#475569'; b.style.boxShadow = k === m ? '0 1px 3px rgba(15,23,42,.15)' : 'none'; } });
     const ex = document.getElementById('waTrExplica');
-    if(ex) ex.innerHTML = m === 'linea'
+    if(ex) ex.innerHTML = m === 'linea' && _waTrSinNumero
+        ? `<b>${escapeHtml(_waTrCliente)}</b> escribió con nombre de usuario, <b>sin número de teléfono</b>. Otra línea no le puede escribir. Páselo <b>a un empleado de esa sucursal</b>: le contesta desde este mismo WhatsApp y ve toda la conversación.`
+        : m === 'linea'
         ? `Pase a <b>${escapeHtml(_waTrCliente)}</b> al <b>número de otra sucursal</b>. Le aparece en el CRM de esa línea con su nota, y la vendedora le escribe desde su WhatsApp.`
         : `Pase a <b>${escapeHtml(_waTrCliente)}</b> a otro empleado. Le aparece en <b>Transferidos a mí</b> y le escribe desde este mismo WhatsApp.`;
     const bus = document.getElementById('waTrBuscar'); if(bus) { bus.value = ''; bus.placeholder = m === 'linea' ? 'Buscar sucursal o línea…' : 'Buscar empleado o sucursal…'; }
@@ -32454,6 +32461,10 @@ function _waTransferirFiltrar(q) {
             <span style="flex:1; min-width:0;"><b style="display:block; font-size:13.5px; color:#0f172a;">${escapeHtml(titulo)}</b><span style="font-size:12px; color:#64748b;">${escapeHtml(sub)}</span></span>
             ${sel ? '<i class="ti ti-circle-check-filled" style="color:#128C7E; font-size:20px;"></i>' : ''}
         </button>`;
+    if(_waTrModo === 'linea' && _waTrSinNumero) {
+        cont.innerHTML = `<button type="button" onclick="_waTrCambiarModo('empleado')" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; padding:10px 14px; border:1.5px solid #128C7E; border-radius:12px; background:#ecfdf5; color:#075E54; font-size:14px; font-weight:700; cursor:pointer;"><i class="ti ti-user"></i> Elegir un empleado de la otra sucursal</button>`;
+        return;
+    }
     if(_waTrModo === 'linea') {
         const lista = _waTrLineas.filter(l => !q || `${l.sucursal_nombre || ''} ${l.nombre || ''} ${l.whatsapp_numero || ''}`.toLowerCase().includes(q));
         cont.innerHTML = lista.length ? lista.map(l => fila(l.id, String(_waTransferirLinea) === String(l.id), '', `${l.sucursal_nombre || 'Sucursal'} · ${l.nombre || ''}`, _waTrTel(l.whatsapp_numero), '_waTransferirElegirLinea', 'brand-whatsapp')).join('')
