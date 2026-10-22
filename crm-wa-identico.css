@@ -421,7 +421,7 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
   body #v-crmLinea.active[data-social-channel="whatsapp"]:has(.crm-busq-row .bcbp-marco.open) #crmSelectorWrap{ visibility:hidden; }
 }
 
-/* 22-oct-2026 · Conversación anterior del cliente referido (solo lectura). */
+/* 22-oct-2026 · Conversación anterior del cliente referido: botón del aviso. */
 .bcwa-referido{ flex-wrap:wrap; }
 .bcwa-referido-acc{ display:flex; flex-wrap:wrap; gap:8px; }
 .bcwa-referido-ver{ flex:none; display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 14px; border-radius:999px;
@@ -429,20 +429,22 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
 .bcwa-referido-ver:active, .bcwa-referido-btn:active{ transform:scale(.97); }
 .bcwa-referido-ver .ti{ font-size:18px; }
 @media (max-width:560px){ .bcwa-referido-acc{ width:100%; } .bcwa-referido-acc > *{ flex:1 1 auto; justify-content:center; } }
-.bcwa-refhist .bcwa-hoja-caja{ max-width:560px; display:flex; flex-direction:column; max-height:86vh; padding-bottom:0; }
-@media (min-width:768px){ .bcwa-refhist{ align-items:center; } .bcwa-refhist .bcwa-hoja-caja{ border-radius:16px; } }
-.bcwa-refhist .bcwa-ct-x{ width:44px; height:44px; }
-.bcwa-rh-tit{ display:flex; flex-direction:column; min-width:0; }
-.bcwa-rh-tit span{ font-size:13px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.bcwa-rh-lista{ flex:1; min-height:160px; overflow-y:auto; background:#efeae2; padding:10px 12px; display:flex; flex-direction:column; gap:6px; overscroll-behavior:contain; }
-.bcwa-rh-lista .vacio{ padding:22px 20px; color:#667781; font-size:14px; text-align:center; }
-.bcwa-rh-dia{ align-self:center; margin:6px 0; }
-.bcwa-rh-dia span{ display:inline-block; background:#fff; color:#54656f; font-size:12.5px; padding:5px 12px; border-radius:8px; box-shadow:0 1px .5px rgba(11,20,26,.13); }
-.bcwa-rh-dia.fin span{ background:#fff8e6; color:#5c4813; }
-.bcwa-rh-msg{ max-width:82%; padding:6px 9px 4px; border-radius:8px; font-size:14.5px; line-height:1.35; color:#111b21; box-shadow:0 1px .5px rgba(11,20,26,.13); white-space:pre-wrap; overflow-wrap:anywhere; }
-.bcwa-rh-msg.entra{ align-self:flex-start; background:#fff; }
-.bcwa-rh-msg.sale{ align-self:flex-end; background:#d9fdd3; }
-.bcwa-rh-msg small{ display:block; font-size:12px; font-weight:600; color:#1f7aec; margin-bottom:1px; }
-.bcwa-rh-msg.sale small{ color:#00806a; }
-.bcwa-rh-msg time{ display:block; text-align:right; font-size:11.5px; color:#667781; margin-top:2px; }
-.bcwa-rh-pie{ padding:10px 16px calc(12px + env(safe-area-inset-bottom)); font-size:13px; color:#667781; border-top:1px solid #e9edef; text-align:center; }
+/* La conversación de la otra sucursal, dentro del chat (solo lectura). */
+.bcwa-refprev{ display:flex; flex-direction:column; gap:6px; }
+.bcwa-refprev ~ .wa-chat-empty{ display:none; }
+.bcwa-rp-franja{ align-self:stretch; display:flex; justify-content:center; margin:8px 0; }
+.bcwa-rp-franja span{ display:inline-flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:4px 6px; max-width:92%; text-align:center;
+  background:#fff8e6; color:#5c4813; border:1px solid #f5dfa6; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:8px; }
+.bcwa-rp-franja em{ font-style:normal; font-weight:400; }
+.bcwa-rp-franja.fin{ margin-bottom:14px; }
+.bcwa-rp-dia{ align-self:center; margin:4px 0; }
+.bcwa-rp-dia span{ display:inline-block; background:#fff; color:#54656f; font-size:12.5px; padding:5px 12px; border-radius:8px; box-shadow:0 1px .5px rgba(11,20,26,.13); }
+.bcwa-rp-msg{ display:flex; }
+.bcwa-rp-msg.sale{ justify-content:flex-end; }
+.bcwa-rp-bur{ max-width:min(78%, 560px); padding:6px 9px 5px; border-radius:8px; font-size:13.5px; line-height:1.35; color:#111b21;
+  box-shadow:0 1px .5px rgba(11,20,26,.13); white-space:pre-wrap; overflow-wrap:anywhere; opacity:.92; }
+.bcwa-rp-msg.entra .bcwa-rp-bur{ background:#fff; }
+.bcwa-rp-msg.sale .bcwa-rp-bur{ background:#dcf8c6; }
+.bcwa-rp-bur small{ display:block; font-size:11.5px; font-weight:600; color:#1f7aec; margin-bottom:1px; }
+.bcwa-rp-msg.sale .bcwa-rp-bur small{ color:#00806a; }
+.bcwa-rp-bur time{ display:block; text-align:right; font-size:11px; color:#667781; margin-top:2px; }

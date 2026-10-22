@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261022-w17';
+  var VERSION = '20261022-w18';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -1030,16 +1030,14 @@
       (ref.nota ? '<em>“' + esc(ref.nota) + '”</em>' : '') + '</div>' +
       '<div class="bcwa-referido-acc"><button type="button" class="bcwa-referido-ver"><i class="ti ti-history"></i> Ver conversación anterior</button>' +
       (tel ? '<a class="bcwa-referido-btn" href="https://wa.me/' + tel + '" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Escribirle desde mi WhatsApp</a>' : '') + '</div>';
-    box.querySelector('.bcwa-referido-ver').addEventListener('click', function(){ abrirHistorialReferido(id); });
+    box.querySelector('.bcwa-referido-ver').addEventListener('click', function(){ irAConversacionAnterior(); });
     var scroll = det.querySelector('#waMessagesScroll');
     if (scroll && scroll.parentNode) scroll.parentNode.insertBefore(box, scroll); else det.appendChild(box);
   }
 
   // Conversación ANTERIOR del cliente referido (22-oct-2026, dueño): «transferir con todo y chat para que el empleado
-  // sepa el contexto». Solo lectura. La trae la RPC whatsapp_referido_historial (misma regla de acceso que el chat
-  // de destino), porque con «solo su sucursal» el empleado no puede leer los mensajes de la otra línea.
-  function cerrarHistorialReferido(){ var m = document.getElementById('bcwaRefHist'); if (m) m.remove(); document.removeEventListener('keydown', escHistorial, true); }
-  function escHistorial(e){ if (e.key === 'Escape'){ e.stopPropagation(); cerrarHistorialReferido(); } }
+  // sepa el contexto». La trae la RPC whatsapp_referido_historial (misma regla de acceso que el chat de destino),
+  // porque con «solo su sucursal» el empleado no puede leer los mensajes de la otra línea.
   function textoMensaje(m){
     var t = m.tipo || 'text';
     if (t === 'imagen') return '📷 Foto' + (m.cuerpo ? ' · ' + m.cuerpo : '');
@@ -1052,45 +1050,47 @@
     if (m.plantilla && !m.cuerpo) return '📋 Plantilla: ' + m.plantilla;
     return m.cuerpo || ('[' + t + ']');
   }
-  async function abrirHistorialReferido(id){
-    cerrarHistorialReferido();
-    var h = hiloActual(), nombre = (h && (h.nombre_perfil || h.telefono_e164)) || 'Cliente';
-    var m = document.createElement('div'); m.id = 'bcwaRefHist'; m.className = 'bcwa-hoja bcwa-refhist';
-    m.innerHTML = '<div class="bcwa-hoja-caja" role="dialog" aria-label="Conversación anterior"><div class="bcwa-hoja-agarre"></div>' +
-      '<div class="bcwa-ct-head"><div class="bcwa-rh-tit"><b>Conversación anterior</b><span>Cargando…</span></div>' +
-      '<button type="button" class="bcwa-ct-x" aria-label="Cerrar"><i class="ti ti-x"></i></button></div>' +
-      '<div class="bcwa-rh-lista"><div class="vacio">Cargando la conversación…</div></div>' +
-      '<div class="bcwa-rh-pie">Solo lectura. Para contestar, cierre esta ventana y escriba en este chat.</div></div>';
-    document.body.appendChild(m);
-    m.addEventListener('click', function(e){ if (e.target === m || e.target.closest('.bcwa-ct-x')) cerrarHistorialReferido(); });
-    document.addEventListener('keydown', escHistorial, true);
-    var lista = m.querySelector('.bcwa-rh-lista'), sub = m.querySelector('.bcwa-rh-tit span');
+  // 22-oct-2026 (dueño: «no era así, sino en la ventana normal del chat»): la conversación de la otra sucursal se
+  // pinta DENTRO del chat, arriba de los mensajes de esta línea, separada por dos franjas. Solo lectura (sin menú ni
+  // responder). Se vuelve a poner cada vez que el chat se repinta; no toca _waMensajes ni el envío.
+  var historialCache = {};
+  async function cargarHistorialReferido(id){
+    if (!id || historialCache.hasOwnProperty(id)) return;
+    historialCache[id] = null;
     try {
       var r = await supabaseClient.rpc('whatsapp_referido_historial', { p_hilo: id });
-      if (!document.getElementById('bcwaRefHist')) return;
-      if (r.error) throw r.error;
-      var d = r.data || {};
-      if (!d.ok){ sub.textContent = ''; lista.innerHTML = '<div class="vacio">Este chat no tiene una conversación anterior.</div>'; return; }
-      var msgs = d.mensajes || [];
-      sub.textContent = (d.linea ? 'En ' + d.linea : 'En otra línea') + ' · ' + msgs.length + ' mensaje' + (msgs.length === 1 ? '' : 's');
-      if (!msgs.length){ lista.innerHTML = '<div class="vacio">La conversación anterior no tiene mensajes.</div>'; return; }
-      var html = '', diaPrev = '';
-      msgs.forEach(function(x){
-        var f = new Date(x.creado_en), dia = isNaN(f) ? '' : f.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-        if (dia && dia !== diaPrev){ html += '<div class="bcwa-rh-dia"><span>' + esc(dia) + '</span></div>'; diaPrev = dia; }
-        var hora = isNaN(f) ? '' : f.toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' });
-        var sale = x.direccion === 'out';
-        html += '<div class="bcwa-rh-msg ' + (sale ? 'sale' : 'entra') + '"><small>' + (sale ? 'Bayol Cell' : esc(nombre)) + '</small>' +
-          '<div>' + esc(textoMensaje(x)) + '</div><time>' + esc(hora) + '</time></div>';
-      });
-      if (d.nota || d.de_nombre) html += '<div class="bcwa-rh-dia fin"><span>Referido por ' + esc(d.de_nombre || 'un compañero') + (d.nota ? ': “' + esc(d.nota) + '”' : '') + '</span></div>';
-      lista.innerHTML = html;
-      lista.scrollTop = lista.scrollHeight;
-    } catch(e){
-      sub.textContent = '';
-      var msg = String((e && e.message) || '');
-      lista.innerHTML = '<div class="vacio">' + (msg.indexOf('sin_permiso') >= 0 ? 'No tiene permiso para ver esta conversación.' : 'No se pudo cargar la conversación. Intente de nuevo.') + '</div>';
-    }
+      if (!r.error && r.data && r.data.ok && (r.data.mensajes || []).length){ historialCache[id] = r.data; pintarHistorialEnChat(); }
+    } catch(e){}
+  }
+  function pintarHistorialEnChat(){
+    var id = hiloId(), d = id && historialCache[id];
+    var chat = document.getElementById('waMessagesScroll'); if (!chat) return;
+    var ya = chat.querySelector(':scope > .bcwa-refprev');
+    if (!d){ if (ya) ya.remove(); return; }
+    if (ya && ya.dataset.hilo === id) return;
+    if (ya) ya.remove();
+    var h = hiloActual(), nombre = (h && (h.nombre_perfil || h.telefono_e164)) || 'Cliente';
+    var pegado = (chat.scrollHeight - chat.scrollTop - chat.clientHeight) < 80;
+    var html = '<div class="bcwa-rp-franja"><span><i class="ti ti-history"></i> Conversación en ' + esc(d.linea || 'otra sucursal') + '</span></div>', diaPrev = '';
+    (d.mensajes || []).forEach(function(x){
+      var f = new Date(x.creado_en), dia = isNaN(f) ? '' : f.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      if (dia && dia !== diaPrev){ html += '<div class="bcwa-rp-dia"><span>' + esc(dia) + '</span></div>'; diaPrev = dia; }
+      var hora = isNaN(f) ? '' : f.toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' });
+      var sale = x.direccion === 'out';
+      html += '<div class="bcwa-rp-msg ' + (sale ? 'sale' : 'entra') + '"><div class="bcwa-rp-bur"><small>' + (sale ? 'BayolCell · ' + esc(d.linea || '') : esc(nombre)) + '</small>' +
+        '<div class="tx">' + esc(textoMensaje(x)) + '</div><time>' + esc(hora) + '</time></div></div>';
+    });
+    var cuando = '', fr = new Date(d.referido_en); if (d.referido_en && !isNaN(fr)) cuando = fr.toLocaleString('es-DO', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+    html += '<div class="bcwa-rp-franja fin"><span><i class="ti ti-arrow-forward-up"></i> Referido a esta línea' + (d.de_nombre ? ' por ' + esc(d.de_nombre) : '') + (cuando ? ' · ' + esc(cuando) : '') +
+      (d.nota ? '<em>“' + esc(d.nota) + '”</em>' : '') + '</span></div>';
+    var box = document.createElement('div'); box.className = 'bcwa-refprev'; box.dataset.hilo = id; box.innerHTML = html;
+    chat.insertBefore(box, chat.firstChild);
+    if (pegado) chat.scrollTop = chat.scrollHeight;
+  }
+  function irAConversacionAnterior(){
+    var chat = document.getElementById('waMessagesScroll'), b = chat && chat.querySelector('.bcwa-refprev');
+    if (!b){ var id = hiloId(); if (id){ delete historialCache[id]; cargarHistorialReferido(id); } return; }
+    chat.scrollTo({ top: Math.max(0, b.offsetTop - chat.offsetTop - 8), behavior: 'smooth' });
   }
 
   // Botón "Etiquetas" en la barra del nombre del cliente (3 oct 2026): un toque abre
@@ -1160,7 +1160,7 @@
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
     decorarLista();
-    if (id){ cargarReferido(id); avisoReferido(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); asignacionEnCabecera(); ordenCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
+    if (id){ cargarReferido(id); avisoReferido(); cargarHistorialReferido(id); pintarHistorialEnChat(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); asignacionEnCabecera(); ordenCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
     borradoresEnLista();
   }
   var pendiente = false;
@@ -1168,7 +1168,7 @@
     if (pendiente) return;
     for (var i = 0; i < muts.length; i++){
       var t = muts[i].target;
-      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info, .bcwa-row-ic, .bcwa-row-tags, .bcwa-archivados, .bcwa-chips-etq, .bcwa-etq-filtro, #bcwaContactosBtn')) continue;
+      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-refprev, .bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info, .bcwa-row-ic, .bcwa-row-tags, .bcwa-archivados, .bcwa-chips-etq, .bcwa-etq-filtro, #bcwaContactosBtn')) continue;
       if (t && t.nodeType === 1 && (t.id === 'waWrap' || (t.closest && t.closest('#waWrap')))){
         pendiente = true;
         Promise.resolve().then(function(){ pendiente = false; try { aplicar(); } catch(e){} });
