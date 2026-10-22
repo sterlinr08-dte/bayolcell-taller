@@ -66,7 +66,7 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
-- **IMEI por almacén FUNCIONA** (22-oct, Edge v3): `listaserie` da {descripcion, serie, localidad}; se compara por nombre (bit. 2026-10-22-1010).
+- **IMEI por almacén:** `listaserie` (Edge v5) da {descripcion, serie, localidad} de TODOS los almacenes, sin filtros; su localidad no sigue las transferencias. Dagoberto (22-oct): «hay que agregar esos filtros» → esperar los nombres de parámetro (bit. 2026-10-22-1040).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
 - Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
