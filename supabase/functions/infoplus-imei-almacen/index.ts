@@ -10,7 +10,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //   · artículo: la descripción de Info Plus del código pedido (tabla infoplus_articulos), sin espacios dobles ni mayúsculas;
 //   · almacén: el NOMBRE de la localidad («OFICINA SANTIAGO») contra el nombre del almacén pedido.
 // Si el nombre de la localidad no se reconoce, NO se muestra ese IMEI (se anota en infoplus_diagnostico para ajustar).
-const LISTA_ACTIVA = false;
+const LISTA_ACTIVA = true;
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json' };
 // Nombres de cada almacén como pueden venir de Info Plus (ya normalizados con norm()).
 const ALMACENES: Record<string, string[]> = {
@@ -35,9 +35,8 @@ Deno.serve(async (req: Request) => {
   const c = String(body.codarticulo ?? '').replace(/\D/g, '');
   const a = String(body.codalmacen ?? '').replace(/\D/g, '');
   if (!c || !ALMACENES[a]) return new Response(JSON.stringify({ ok: false, error: 'faltan artículo o almacén' }), { status: 400, headers: cors });
-  // 22-oct-2026 · APAGADA por el dueño («sí, apágala») hasta que Info Plus agregue los filtros de artículo y almacén a
-  // listaserie (Dagoberto: «hay que agregar esos filtros»). Hoy trae IMEI de otros almacenes. La ventana pide escanear o
-  // escribir el IMEI, como antes. Para volver a prenderla: LISTA_ACTIVA = true.
+  // 22-oct-2026 · Apagada en la mañana; el dueño eligió luego la «lista prudente» (opción B): se muestra solo si cuadra con
+  // la existencia (ver abajo). Para apagarla del todo: LISTA_ACTIVA = false.
   if (!LISTA_ACTIVA) return new Response(JSON.stringify({ ok: true, imeis: [], fuente: false, apagada: true }), { headers: cors });
 
   const BASE = (Deno.env.get('INFOPLUS_BASE') || 'bayol').trim();
@@ -65,6 +64,30 @@ Deno.serve(async (req: Request) => {
   const nombres = ALMACENES[a];
   const delArticulo = lista.filter((x) => normDesc(x?.descripcion) === desc && String(x?.serie ?? '').trim());
   const imeis = [...new Set(delArticulo.filter((x) => nombres.includes(norm(x?.localidad))).map((x) => String(x.serie).trim()))];
+
+  // «Lista prudente» (dueño, 22-oct-2026, opción B). La localidad de listaserie es la de ENTRADA y no sigue las
+  // transferencias. Se muestran los IMEI solo si, en TODOS los almacenes, las series que lista Info Plus de este artículo
+  // son exactamente la existencia en vivo (ListaArticulos?CodArticulo&Codalmacen). Si algo no cuadra, si una localidad no
+  // se reconoce o si falla una consulta: no se muestra nada (se escanea o escribe el IMEI).
+  const porAlm: Record<string, number> = {}; let desconocida = false;
+  for (const x of delArticulo) {
+    const cod = Object.keys(ALMACENES).find((k) => ALMACENES[k].includes(norm(x?.localidad)));
+    if (!cod) { desconocida = true; continue; }
+    porAlm[cod] = (porAlm[cod] || 0) + 1;
+  }
+  const existencias: Record<string, number | null> = {};
+  await Promise.all(Object.keys(ALMACENES).map(async (alm) => {
+    try {
+      const r = await fetch(`https://apicliente.infoplusplatinum.com/api/listaarticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&codarticulo=${encodeURIComponent(c)}&codalmacen=${alm}`);
+      const d = JSON.parse(await r.text()); const arr = (d && (d.data || d.Data)) || [];
+      const it = Array.isArray(arr) ? arr.find((z: any) => String(z.codigo) === c) : null;
+      existencias[alm] = it ? Math.round(Number(it.cantidad) || 0) : 0;
+    } catch (_e) { existencias[alm] = null; }
+  }));
+  const cuadra = !desconocida && Object.keys(ALMACENES).every((alm) => existencias[alm] !== null && (porAlm[alm] || 0) === existencias[alm]);
+  if (!cuadra) {
+    return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true, prudente: 'no_cuadra', listadas: porAlm, existencias }), { headers: cors });
+  }
   // Localidades que no se reconocen: no se muestran; se anotan (una vez cada 10 min) para agregarlas al mapa de arriba.
   const conocidas = new Set(Object.values(ALMACENES).flat());
   const raras = [...new Set(lista.map((x) => norm(x?.localidad)).filter((n) => n && !conocidas.has(n)))];

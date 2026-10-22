@@ -292,6 +292,8 @@
         eleg.cargando = false;
         var d = r && r.data;
         if (!d || !d.ok) eleg.error = 'No se pudo consultar Info Plus. Escanee o escriba el IMEI.';
+        // 22-oct-2026 · «Lista prudente»: si los IMEI de Info Plus no cuadran con la existencia por tienda, no se listan.
+        else if (d.prudente === 'no_cuadra') eleg.error = 'Este equipo se ha movido entre tiendas y Info Plus no confirma cuáles IMEI están aquí. Escanee o escriba el IMEI.';
         else eleg.lista = (d.imeis || []).map(function (m) { return String(m).trim(); }).filter(Boolean);
         pintarElegibles();
       }, function () { if (eleg.clave !== clave) return; eleg.cargando = false; eleg.error = 'No se pudo consultar Info Plus. Escanee o escriba el IMEI.'; pintarElegibles(); });
