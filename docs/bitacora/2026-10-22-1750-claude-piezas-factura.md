@@ -22,3 +22,8 @@ La rama `claude/articulos-factura` (buscador) queda sin publicar.
   unidades sale «RD$ X c/u» debajo del nombre) y la etiqueta INFO PLUS / EXTERNA pasó a ser un punto de color
   (azul = Info Plus, violeta = externa; el texto sale al pasar el mouse). Columnas: Pieza · Cant. · Total · acciones.
 - Playwright 390 y 1280: filas 45 px, lápiz y papelera 44×44, sin scroll lateral, totales correctos.
+
+## Ajuste 2 (18:05)
+- Con columnas de una sola línea el nombre quedaba en 70 px («BATER…»). Ahora cada pieza ocupa dos líneas dentro del
+  mismo renglón: el nombre completo arriba (hasta 2 líneas) y, debajo, la cantidad y el total alineados bajo sus títulos;
+  lápiz y papelera a la derecha ocupan las dos líneas. Renglón de 57–58 px; nombre con 196 px, sin recortes en los ejemplos.

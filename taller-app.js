@@ -17274,7 +17274,7 @@ function _piezasCostoHTML(conCosto, esAdminPiezas, total) {
         const origen = esIP ? '<span class="cbx-dot ip" title="Info Plus"></span>' : (esExterna ? '<span class="cbx-dot ext" title="Pieza externa"></span>' : '<span class="cbx-dot"></span>');
         const unit = cant > 1 ? `<span class="cu">${money(cu)} c/u</span>` : '';
         const acc = esAdminPiezas ? `<a onclick="editarPiezaInfoPlus('${p.id}')" title="Editar" aria-label="Editar" class="ed"><i class="ti ti-edit"></i></a><a onclick="eliminarPiezaInfoPlus('${p.id}')" title="Quitar" aria-label="Quitar" class="rm"><i class="ti ti-trash"></i></a>` : '';
-        return `<div class="cbx-tr"><div class="pz">${origen}<span class="nm" title="${escapeHtml(p.pieza_nombre || 'Pieza')}${esIP ? ' (Info Plus)' : (esExterna ? ' (externa)' : '')}">${escapeHtml(p.pieza_nombre || 'Pieza')}${unit}</span></div><div class="n">${cant}</div><div class="n t">${money(cant * cu)}</div><div class="ac">${acc}</div></div>`;
+        return `<div class="cbx-tr it"><div class="pz">${origen}<span class="nm" title="${escapeHtml(p.pieza_nombre || 'Pieza')}${esIP ? ' (Info Plus)' : (esExterna ? ' (externa)' : '')}">${escapeHtml(p.pieza_nombre || 'Pieza')}${unit}</span></div><div class="n c">${cant}</div><div class="n t">${money(cant * cu)}</div><div class="ac">${acc}</div></div>`;
     }).join('');
     return `<div class="cbx-tab${esAdminPiezas ? '' : ' sin-acc'}">
         <div class="cbx-tr cbx-th"><div>Pieza</div><div class="n">Cant.</div><div class="n">Total</div><div></div></div>
@@ -17734,16 +17734,16 @@ function _cbxStyles() {
     .cbx-row b{font-weight:800;font-variant-numeric:tabular-nums;color:#0f172a;}
     .cbx-pzs{margin:8px 0 4px;padding:10px 12px;background:linear-gradient(180deg,#f8fafc,#fff);border-radius:12px;border:1px solid #eef2f7;}
     .cbx-tab{margin:8px 0 4px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fff;font-variant-numeric:tabular-nums;}
-    .cbx-tr{display:grid;grid-template-columns:minmax(0,1fr) 34px 92px 90px;align-items:center;column-gap:6px;padding:0 10px;min-height:44px;border-bottom:1px solid #f1f5f9;font-size:12.5px;color:#0f172a;}
-    .cbx-tab.sin-acc .cbx-tr{grid-template-columns:minmax(0,1fr) 34px 92px 0;column-gap:0;}
+    .cbx-tr{display:grid;grid-template-columns:minmax(0,1fr) 28px 86px 90px;align-items:center;column-gap:6px;padding:4px 10px;min-height:44px;border-bottom:1px solid #f1f5f9;font-size:12.5px;color:#0f172a;}
+    .cbx-tab.sin-acc .cbx-tr{grid-template-columns:minmax(0,1fr) 28px 86px 0;}
     .cbx-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#cbd5e1;} .cbx-dot.ip{background:#0ea5e9;} .cbx-dot.ext{background:#8b5cf6;}
-    .cbx-tr .pz .nm .cu{display:block;font-size:10.5px;color:#64748b;font-weight:500;}
+    .cbx-tr .pz .nm .cu{display:block;font-size:10.5px;color:#64748b;font-weight:500;white-space:nowrap;}
     .cbx-tr:last-child{border-bottom:none;}
     .cbx-tr.cbx-th{min-height:28px;background:#f8fafc;font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;}
     .cbx-tr .n{text-align:right;white-space:nowrap;}
     .cbx-tr .t{font-weight:800;}
     .cbx-tr .pz{min-width:0;display:flex;align-items:center;gap:6px;}
-    .cbx-tr .pz .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+    .cbx-tr .pz .nm{min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;line-height:1.2;font-weight:600;word-break:break-word;}
     .cbx-tr .ac{display:flex;justify-content:flex-end;gap:2px;flex:none;}
     .cbx-tr .ac a{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;font-size:15px;}
     .cbx-tr .ac a.ed{color:#0369a1;} .cbx-tr .ac a.rm{color:#b91c1c;} .cbx-tr .ac a:hover{background:#f1f5f9;}
@@ -17752,6 +17752,13 @@ function _cbxStyles() {
     .cbx-tr .inv{display:flex;justify-content:flex-end;}
     .cbx-tr .inv .btn{min-height:36px;}
     .cbx-tr.cbx-tt>div:first-child{white-space:nowrap;}
+    /* Renglón de pieza en dos líneas (el cuadro es angosto): nombre completo arriba; cantidad y total debajo, bajo sus títulos. */
+    .cbx-tr.it{grid-template-rows:auto auto;row-gap:1px;padding-top:6px;padding-bottom:6px;}
+    .cbx-tr.it .pz{grid-column:1 / 4;grid-row:1;}
+    .cbx-tr.it .c{grid-column:2;grid-row:2;}
+    .cbx-tr.it .t{grid-column:3;grid-row:2;}
+    .cbx-tr.it .ac{grid-column:4;grid-row:1 / 3;}
+    .cbx-tr.it .pz .nm .cu{display:inline;margin-left:6px;}
     .cbx-empty{font-size:12.5px;color:#94a3b8;padding:14px 12px;background:#f8fafc;border-radius:12px;border:1px dashed rgba(226,232,240,.8);text-align:center;margin:6px 0 2px;}
     .cbx-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
     .cbx-act{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:11px;font-weight:700;color:#334155;transition:all .2s;text-align:center;line-height:1.25;font-family:inherit;}
