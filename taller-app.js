@@ -31514,11 +31514,24 @@ async function _waEnviarContacto() {
 let _waPlantillas = [];         // ultima lista cargada para la linea del hilo abierto
 let _waPlantillaElegida = null; // objeto completo de la plantilla seleccionada en el select
 let _waPlantillaToken = 0;      // invalida respuestas obsoletas si se reabre/cierra el modal para otro hilo
+// 22-oct-2026 (dueño: «Si»): la sucursal de la línea del hilo abierto, para llenar sola la variable {{2}} (nombre del
+// cliente en {{1}}) de plantillas como bayolcell_seguimiento_consulta. Sale de la RPC whatsapp_lineas_directorio.
+let _waPlantillaSucursal = '';
+async function _waCargarSucursalPlantilla(h) {
+    _waPlantillaSucursal = '';
+    try {
+        if(!h || !h.linea_id) return;
+        const { data } = await supabaseClient.rpc('whatsapp_lineas_directorio');
+        const l = (data || []).find(x => String(x.id) === String(h.linea_id));
+        _waPlantillaSucursal = (l && l.sucursal_nombre) ? String(l.sucursal_nombre).replace(/^(localidad|sucursal)\s+/i, '').trim() : '';
+    } catch(e) { _waPlantillaSucursal = ''; }
+}
 
 async function _waAbrirModalPlantilla() {
     const h = _waHilos.find(x => x.id === _waHiloId);
     if(!h || !h.linea_id) { toastError('Este hilo no tiene una línea de WhatsApp asignada.'); return; }
     const token = ++_waPlantillaToken;
+    _waCargarSucursalPlantilla(h);
     document.getElementById('modalWaPlantilla').classList.add('active');
     const cont = document.getElementById('waPlantillaCont');
     cont.innerHTML = `<div style="text-align:center; padding:20px; color:#8696a0; font-size:13px;">Cargando plantillas aprobadas...</div>`;
@@ -31601,7 +31614,7 @@ function _waSeleccionarPlantilla() {
     const nombreCliente = h => (h?.nombre_perfil || '');
     const hAbierto = _waHilos.find(x => x.id === _waHiloId);
     varsCont.innerHTML = slots.length
-        ? slots.map((s, i) => `<div class="form-row"><label>${esNombrado ? escapeHtml(s) : 'Variable {{' + escapeHtml(s) + '}}'}</label><input class="wa-plantilla-var" data-slot="${escapeHtml(s)}" type="text" placeholder="${escapeHtml(ejemplos[i] || '')}" value="${i === 0 && !esNombrado ? escapeHtml(nombreCliente(hAbierto)) : ''}" oninput="_waActualizarPreviewPlantilla()"></div>`).join('')
+        ? slots.map((s, i) => `<div class="form-row"><label>${esNombrado ? escapeHtml(s) : 'Variable {{' + escapeHtml(s) + '}}'}</label><input class="wa-plantilla-var" data-slot="${escapeHtml(s)}" type="text" placeholder="${escapeHtml(ejemplos[i] || '')}" value="${!esNombrado ? escapeHtml(i === 0 ? nombreCliente(hAbierto) : (i === 1 ? _waPlantillaSucursal : '')) : ''}" oninput="_waActualizarPreviewPlantilla()"></div>`).join('')
         : '';
     btn.disabled = false;
     _waActualizarPreviewPlantilla();
