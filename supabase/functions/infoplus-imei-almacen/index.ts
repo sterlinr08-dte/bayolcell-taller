@@ -4,12 +4,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Regla del dueño: «7 almacenes, 7 iPhone, uno en cada almacén: la empleada del almacén 1 solo ve el IMEI del iPhone que
 // está en el almacén 1; no le pueden salir los de los almacenes 7, 6, 5 y 4». Sin botón: sale al prefacturar.
 // · Solo usuarios con sesión (verify_jwt + getUser). Solo GET a Info Plus; nunca escribe allá ni devuelve la clave.
-// 22-oct-2026 · Dagoberto (Info Plus): «Ponle tipo=listaserie». Probado en vivo: `ListaArticulos?tipo=listaserie` devuelve
-// TODAS las series disponibles como { descripcion, serie, localidad } (sin código de artículo ni de almacén; ignora otros
-// filtros). Por eso se compara:
-//   · artículo: la descripción de Info Plus del código pedido (tabla infoplus_articulos), sin espacios dobles ni mayúsculas;
-//   · almacén: el NOMBRE de la localidad («OFICINA SANTIAGO») contra el nombre del almacén pedido.
-// Si el nombre de la localidad no se reconoce, NO se muestra ese IMEI (se anota en infoplus_diagnostico para ajustar).
+// 22-oct-2026 · Dagoberto (Info Plus): «Ponle tipo=listaserie». Devuelve las series como { descripcion, serie, localidad }.
+// 22-oct-2026 (tarde) · Dagoberto agregó los filtros `codalmacen` y `codarticulo` a listaserie (probado en vivo con curl:
+// codalmacen=1 → 77 series, todas OFICINA SANTIAGO; =6 → 72 TALLER; =4 → 37 MOCA). Por eso ahora se pide:
+//   1) listaserie&codarticulo=<c>&codalmacen=<a>; si vuelve vacío,
+//   2) listaserie&codalmacen=<a> y se compara la descripción de Info Plus del artículo (tabla infoplus_articulos).
+// En los dos casos se exige además que la localidad sea la del almacén pedido (por si el filtro la ignorara).
 const LISTA_ACTIVA = true;
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json' };
 // Nombres de cada almacén como pueden venir de Info Plus (ya normalizados con norm()).
@@ -49,50 +49,44 @@ Deno.serve(async (req: Request) => {
   const desc = normDesc(art?.descripcion);
   if (!desc) return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true, motivo: 'articulo_sin_descripcion' }), { headers: cors });
 
-  const url = `https://apicliente.infoplusplatinum.com/api/ListaArticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&tipo=listaserie`;
-  let status = 0, txt = '', lista: any[] = [];
-  try { const r = await fetch(url); status = r.status; txt = await r.text(); const j = JSON.parse(txt); lista = Array.isArray(j?.data) ? j.data : []; }
-  catch (_e) { lista = []; }
+  const base = `https://apicliente.infoplusplatinum.com/api/ListaArticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&tipo=listaserie&codalmacen=${a}`;
+  const pedir = async (u: string) => {
+    let status = 0, txt = '', lista: any[] = [];
+    try { const r = await fetch(u); status = r.status; txt = await r.text(); const j = JSON.parse(txt); lista = Array.isArray(j?.data) ? j.data : []; }
+    catch (_e) { lista = []; }
+    return { status, txt, lista };
+  };
+  // 1) Filtro por artículo y almacén (Dagoberto, 22-oct-2026). 2) Si no trae nada, solo por almacén y se compara la descripción.
+  let modo = 'codarticulo';
+  let { status, txt, lista } = await pedir(`${base}&codarticulo=${encodeURIComponent(c)}`);
+  if (!lista.length) { modo = 'descripcion'; ({ status, txt, lista } = await pedir(base)); }
   if (!lista.length) {
     await anotar(sb, { ruta: 'listaserie', consulta: `art=${c} alm=${a}`, status, largo: txt.length, campos: 'sin lista', muestra: limpiar(txt).slice(0, 600) });
     return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true }), { headers: cors });
   }
 
-  // 22-oct-2026 · Se probó separar por almacén con 21 variantes (codalmacen, Codalmacen, CodAlmacen, almacen, localidad,
-  // codlocalidad, CodLocalidad, idalmacen con 1 y 6; CodArticulo, articulo, localidad=OFICINA SANTIAGO): listaserie las
-  // ignora todas y devuelve siempre las mismas 77 series. Ver bitácora 2026-10-22-1040.
   const nombres = ALMACENES[a];
   const delArticulo = lista.filter((x) => normDesc(x?.descripcion) === desc && String(x?.serie ?? '').trim());
   const imeis = [...new Set(delArticulo.filter((x) => nombres.includes(norm(x?.localidad))).map((x) => String(x.serie).trim()))];
 
-  // «Lista prudente» (dueño, 22-oct-2026, opción B). La localidad de listaserie es la de ENTRADA y no sigue las
-  // transferencias. Se muestran los IMEI solo si, en TODOS los almacenes, las series que lista Info Plus de este artículo
-  // son exactamente la existencia en vivo (ListaArticulos?CodArticulo&Codalmacen). Si algo no cuadra, si una localidad no
-  // se reconoce o si falla una consulta: no se muestra nada (se escanea o escribe el IMEI).
-  const porAlm: Record<string, number> = {}; let desconocida = false;
-  for (const x of delArticulo) {
-    const cod = Object.keys(ALMACENES).find((k) => ALMACENES[k].includes(norm(x?.localidad)));
-    if (!cod) { desconocida = true; continue; }
-    porAlm[cod] = (porAlm[cod] || 0) + 1;
+  // «Lista prudente» (dueño, 22-oct-2026, opción B): los IMEI se muestran solo si la cantidad de series que Info Plus lista
+  // para este artículo en este almacén es exactamente su existencia en vivo (ListaArticulos?codarticulo&codalmacen).
+  // Si no cuadra o falla la consulta: no se muestra nada (se escanea o escribe el IMEI).
+  let existencia: number | null = null;
+  try {
+    const r = await fetch(`https://apicliente.infoplusplatinum.com/api/listaarticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&codarticulo=${encodeURIComponent(c)}&codalmacen=${a}`);
+    const d = JSON.parse(await r.text()); const arr = (d && (d.data || d.Data)) || [];
+    const it = Array.isArray(arr) ? arr.find((z: any) => String(z.codigo) === c) : null;
+    existencia = it ? Math.round(Number(it.cantidad) || 0) : 0;
+  } catch (_e) { existencia = null; }
+  if (existencia === null || imeis.length !== existencia) {
+    return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true, prudente: 'no_cuadra', modo, listadas: imeis.length, existencia }), { headers: cors });
   }
-  const existencias: Record<string, number | null> = {};
-  await Promise.all(Object.keys(ALMACENES).map(async (alm) => {
-    try {
-      const r = await fetch(`https://apicliente.infoplusplatinum.com/api/listaarticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&codarticulo=${encodeURIComponent(c)}&codalmacen=${alm}`);
-      const d = JSON.parse(await r.text()); const arr = (d && (d.data || d.Data)) || [];
-      const it = Array.isArray(arr) ? arr.find((z: any) => String(z.codigo) === c) : null;
-      existencias[alm] = it ? Math.round(Number(it.cantidad) || 0) : 0;
-    } catch (_e) { existencias[alm] = null; }
-  }));
-  const cuadra = !desconocida && Object.keys(ALMACENES).every((alm) => existencias[alm] !== null && (porAlm[alm] || 0) === existencias[alm]);
-  if (!cuadra) {
-    return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true, prudente: 'no_cuadra', listadas: porAlm, existencias }), { headers: cors });
-  }
-  // Localidades que no se reconocen: no se muestran; se anotan (una vez cada 10 min) para agregarlas al mapa de arriba.
+  // Localidades que no se reconocen: se anotan (una vez cada 10 min) para agregarlas al mapa de arriba.
   const conocidas = new Set(Object.values(ALMACENES).flat());
   const raras = [...new Set(lista.map((x) => norm(x?.localidad)).filter((n) => n && !conocidas.has(n)))];
   if (raras.length) await anotar(sb, { ruta: 'listaserie', consulta: `art=${c} alm=${a}`, status, largo: txt.length, campos: 'localidades sin almacén: ' + raras.join(' | ').slice(0, 300), muestra: '' });
-  return new Response(JSON.stringify({ ok: true, imeis, fuente: true, del_articulo: delArticulo.length }), { headers: cors });
+  return new Response(JSON.stringify({ ok: true, imeis, fuente: true, modo, del_articulo: delArticulo.length }), { headers: cors });
 });
 
 async function anotar(sb: any, fila: Record<string, unknown>) {

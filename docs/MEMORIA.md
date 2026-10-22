@@ -40,7 +40,7 @@ apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
 - Equipo, falla y más datos en plegable opcional; con equipo crea también la orden. Descuento % por línea (sin probar contra Info Plus real).
 - Almacén fijo para empleadas con sucursal; el admin elige y se recuerda en su equipo (`bc_alm_admin`).
 - Códigos de vendedor Info Plus en `tecnicos.infoplus_codempleado`: Michelle 748, Kenifer 1020, Yosmeiry 1192, Loribel 249; Yves sin código.
-- Celulares: botón IMEI abre ventana; **lista «IMEI en <almacén>»** (vacía hoy, ver §6); se escanea o escribe.
+- Celulares: botón IMEI abre ventana; lista «IMEI en <almacén>» (Edge v8, filtros de Dagoberto, §6); se escanea o escribe.
   Covers, forros, cases, cristales y accesorios **no piden IMEI** (`_abCat`).
 - Buscador de artículos como ventana emergente (vidrio NEXUS): Código · Artículo · Existencia · Precio; al tocar, niveles y existencia
   por almacén; muestra la **referencia** de Info Plus (capacidad / «Con aviso»). La línea de servicio lleva equipo · IMEI · falla
@@ -66,9 +66,9 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
-- **IMEI por almacén:** `listaserie` (Edge v5) da {descripcion, serie, localidad} de todos los almacenes; localidad no sigue transferencias. Dagoberto (22-oct): «hay que agregar esos filtros» → esperar los nombres de parámetro (bit. 2026-10-22-1040).
+- **IMEI por almacén:** `listaserie` ya filtra por `codalmacen` (probado); Edge v8 lo usa y la lista prudente compara solo ese almacén. Falta prueba real del dueño y confirmar `codarticulo` (bit. 22-oct 1740).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
-- **WA 22-oct:** plantilla v22 OK (ToNnY leyó). Publicado: «Transferido», conversación anterior dentro del chat, sin número → «A un empleado». Respuestas rápidas publicadas (bit. 1545). Llamadas: sin rastro (coexistencia); webhook v39 avisa álbum y marca eliminados. «Eliminar para todos» publicado (bit. 1700); falta prueba real.
+- **WA 22-oct:** plantilla v22 OK (ToNnY leyó). Publicado: «Transferido», historial en el chat, sin número → «A un empleado», respuestas rápidas (bit. 1545). Llamadas: sin rastro (coexistencia); webhook v39 avisa álbum y marca eliminados. «Eliminar para todos» publicado (bit. 1700); falta prueba real.
 - Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
 - Meta: conector WhatsApp MCP no ve BayolCell (reconectar marcando BayolCell); app de desarrollador bloqueada para el dueño (ESTERLIN ESPINAL con 2FA puede crearla). **Zernio se queda** hasta probar cada paso.
