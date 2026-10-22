@@ -31524,6 +31524,9 @@ async function _waCargarSucursalPlantilla(h) {
         const { data } = await supabaseClient.rpc('whatsapp_lineas_directorio');
         const l = (data || []).find(x => String(x.id) === String(h.linea_id));
         _waPlantillaSucursal = (l && l.sucursal_nombre) ? String(l.sucursal_nombre).replace(/^(localidad|sucursal)\s+/i, '').trim() : '';
+        // Si la plantilla ya se eligió antes de que llegara la sucursal, se llena ahora la casilla {{2}} vacía.
+        const inp2 = document.querySelector('.wa-plantilla-var[data-slot="2"]');
+        if(inp2 && !inp2.value && _waPlantillaSucursal) { inp2.value = _waPlantillaSucursal; _waActualizarPreviewPlantilla(); }
     } catch(e) { _waPlantillaSucursal = ''; }
 }
 
