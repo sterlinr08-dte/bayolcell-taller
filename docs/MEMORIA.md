@@ -66,7 +66,7 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
-- **IMEI por almacén:** `listaserie` ya filtra por `codalmacen` (probado); Edge v8 lo usa y la lista prudente compara solo ese almacén. Falta prueba real del dueño y confirmar `codarticulo` (bit. 22-oct 1740).
+- **IMEI por almacén:** `listaserie` filtra por `codalmacen`; Edge v9 lo usa (lista prudente por almacén) y con `{imei}` devuelve el artículo (compras → listaserie). Falta prueba real; rama `claude/imei-busca-articulo` (IMEI → artículo en el buscador) sin publicar (bit. 1740, 1830).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
 - **WA 22-oct:** plantilla v22 OK (ToNnY leyó). Publicado: «Transferido», historial en el chat, sin número → «A un empleado», respuestas rápidas (bit. 1545). Llamadas: sin rastro (coexistencia); webhook v39 avisa álbum y marca eliminados. «Eliminar para todos» publicado (bit. 1700); falta prueba real.
 - Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).

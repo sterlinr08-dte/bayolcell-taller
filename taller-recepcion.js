@@ -106,7 +106,41 @@
     if (bSrv) { bSrv.classList.add('bcrx-srv'); bSrv.innerHTML = '<i class="ti ti-tool"></i> Servicio / falla'; }
     var slot = doc.createElement('div'); slot.className = 'bcrx-ppk-slot';
     zona.parentNode.insertBefore(slot, zona);
-    var estado = { q: '', hl: 0, lista: [], det: -1 };
+    var estado = { q: '', hl: 0, lista: [], det: -1, imei: '', imeiBusq: null, imeiMsg: '', enterPend: false };
+    // 22-oct-2026 (dueño): «si pongo el IMEI completo también funcione el artículo». Con 14–17 dígitos seguidos se
+    // pregunta a infoplus-imei-almacen {imei, codalmacen}: compras sincronizadas o listaserie de Info Plus. Si lo
+    // encuentra, la lista muestra ese artículo y al agregarlo el IMEI queda puesto en su línea.
+    function imeiDe(txt) { var d = String(txt || '').replace(/\D/g, ''); return (/^[\d\s-]+$/.test(String(txt || '').trim()) && d.length >= 15 && d.length <= 17) ? d : ''; }
+    var imeiTimer = null;
+    function artDe(cod, desc) { var a = null; try { a = _findInfoplusArt(cod); } catch (e) {} return a || null; }
+    function buscarImei(imei) {
+      var alm = almacen(), clave = imei + '@' + alm;
+      if (estado.imeiBusq === clave) return;
+      estado.imeiBusq = clave; estado.imeiMsg = ''; estado.lista = []; estado.hl = 0; estado.det = -1;
+      pintar();
+      var fin = function (lista, msg) {
+        if (estado.imeiBusq !== clave) return;
+        estado.lista = lista; estado.imeiMsg = msg; estado.hl = 0; pintar();
+        if (estado.enterPend && lista.length === 1) { estado.enterPend = false; agregar(0); }
+        estado.enterPend = false;
+      };
+      try {
+        supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { imei: imei, codalmacen: alm } }).then(function (r) {
+          var d = r && r.data;
+          if (!d || !d.ok) return fin([], 'No se pudo consultar Info Plus. Busque el artículo por nombre y escriba el IMEI en su línea.');
+          var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {};
+          var otro = d.en_otro_almacen ? ' Info Plus lo tiene en ' + d.en_otro_almacen + ', no en ' + (alms[alm] || 'este almacén') + '.' : '';
+          if (d.codigo) {
+            var a = artDe(d.codigo);
+            if (!a) return fin([], 'El IMEI es del artículo ' + d.codigo + ' (' + (d.descripcion || '') + '), pero no está en el catálogo cargado. Use «Catálogo completo» para sincronizar.' + otro);
+            return fin([a], 'IMEI ' + imei + ' → ' + (a.descripcion || '').trim() + (d.fuente === 'compras' ? ' (según las compras)' : '') + otro);
+          }
+          var cand = (d.candidatos || []).map(function (x) { return artDe(x.codigo); }).filter(Boolean);
+          if (cand.length) return fin(cand, 'Ese IMEI es un «' + (d.descripcion || '') + '», pero Info Plus tiene ' + cand.length + ' códigos con ese nombre. Elija el correcto.' + otro);
+          fin([], d.encontrado === false ? 'Info Plus no tiene ese IMEI. Busque el artículo por nombre y escriba el IMEI en su línea.' : 'No se encontró el artículo de ese IMEI.' + otro);
+        }, function () { fin([], 'No se pudo consultar Info Plus. Busque el artículo por nombre y escriba el IMEI en su línea.'); });
+      } catch (e) { fin([], 'No se pudo consultar Info Plus. Busque el artículo por nombre y escriba el IMEI en su línea.'); }
+    }
     function barraHTML() {
       return '<button type="button" class="bcrx-scan" aria-label="Buscar artículo"><i class="ti ti-scan" aria-hidden="true"></i>' +
         '<span>Buscar o escanear por nombre, código o IMEI</span><kbd>F2</kbd></button>';
@@ -153,6 +187,10 @@
     function pkRef(a) { var r = String(a.referencia || '').trim(); if (!r || String(a.descripcion || '').toUpperCase().indexOf(r.toUpperCase()) >= 0) return ''; var av = /^AVISO$/i.test(r); return ' <span class="pk-ref' + (av ? ' aviso' : '') + '">' + esc(av ? 'Con aviso' : r) + '</span>'; }
     function filtrar() {
       var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
+      estado.imei = imeiDe(estado.q);
+      if (estado.imei) { clearTimeout(imeiTimer); var im = estado.imei; imeiTimer = setTimeout(function () { if (estado.imei === im) buscarImei(im); }, 200); return; }
+      clearTimeout(imeiTimer);
+      estado.imeiBusq = null; estado.imeiMsg = ''; estado.enterPend = false;
       var qq = norm(estado.q).trim(), pal = qq.split(/\s+/).filter(Boolean);
       var l = arts;
       if (pal.length) l = arts.filter(function (a) { var h = norm([a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(Boolean).join(' ')); return pal.every(function (p) { return h.indexOf(p) >= 0; }); });
@@ -168,6 +206,13 @@
       var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
       if (!arts.length) { cont.innerHTML = '<div class="bcrx-ppk-vacio">' + ((typeof _infoplusCargando !== 'undefined' && _infoplusCargando) ? 'Cargando artículos de Info Plus…' : 'No hay artículos cargados. Use «Catálogo completo» para sincronizar.') + '</div>'; return; }
       var l = estado.lista, show = l.slice(0, MAXF);
+      var aviso = '';
+      if (estado.imei) {
+        var buscando = !estado.imeiMsg && !l.length;
+        aviso = '<div class="bcrx-ppk-imei' + (l.length ? ' ok' : (buscando ? '' : ' no')) + '" role="status"><i class="ti ' + (l.length ? 'ti-barcode' : (buscando ? 'ti-loader-2' : 'ti-alert-triangle')) + '" aria-hidden="true"></i> ' +
+          esc(buscando ? 'Buscando el IMEI ' + estado.imei + ' en Info Plus…' : (estado.imeiMsg || '')) + '</div>';
+        if (buscando || !l.length) { cont.innerHTML = aviso; return; }
+      }
       var filas = show.map(function (a, i) {
         var ex = existe(a), pr = precioDe(a);
         var chip = esServ(a) ? '<span class="bcrx-stk srv">Servicio</span>' : ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin stock</span>' : '<span class="bcrx-stk">Stock: ' + ex + '</span>';
@@ -182,7 +227,7 @@
           '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>' +
           (estado.det === i ? detalleHTML(a, i) : '');
       }).join('');
-      cont.innerHTML = (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
+      cont.innerHTML = aviso + (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
         (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span><span></span></div>' + filas
           : '<div class="bcrx-ppk-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
     }
@@ -190,7 +235,19 @@
     function agregar(i) {
       var a = estado.lista[i]; if (!a || agregando) return;
       agregando = true;
-      Promise.resolve(_rpAgregarArticulo(a)).then(function (ok) { agregando = false; if (ok) cerrarPanel(); }, function () { agregando = false; });
+      var imei = estado.imei;
+      Promise.resolve(_rpAgregarArticulo(a)).then(function (ok) {
+        agregando = false; if (!ok) return;
+        if (imei) {
+          // El IMEI buscado queda en la línea del artículo (si es celular). La cantidad se ajusta sola.
+          var it = (_rpState && _rpState.items) || [], k = -1;
+          for (var j = 0; j < it.length; j++) if (String(it[j].cod) === String(a.codigo) && it[j].serial && !it[j].servicio) { k = j; break; }
+          if (k >= 0 && (it[k].imeis || []).indexOf(imei) < 0) _rpAgregarImei(k, imei);
+          else if (k < 0) { try { toast('Este artículo no lleva IMEI; se agregó sin él.'); } catch (e) {} }
+          estado.q = ''; estado.imei = ''; estado.imeiBusq = null; estado.imeiMsg = '';
+        }
+        cerrarPanel();
+      }, function () { agregando = false; });
     }
     function abrirPanel() {
       slot.innerHTML = '<div class="bcrx-ppk" role="dialog" aria-label="Buscar artículo">' +
@@ -200,12 +257,12 @@
         '<div class="bcrx-ppk-list" role="listbox"></div></div>';
       var inp = q('input', slot);
       inp.value = estado.q;
-      inp.addEventListener('input', function () { estado.q = inp.value; filtrar(); pintar(); });
+      inp.addEventListener('input', function () { estado.q = inp.value; filtrar(); if (estado.imei) { estado.lista = []; estado.imeiMsg = ''; } pintar(); });
       inp.addEventListener('keydown', function (e) {
         var n = Math.min(estado.lista.length, MAXF);
         if (e.key === 'ArrowDown') { e.preventDefault(); estado.hl = Math.min(estado.hl + 1, n - 1); pintar(); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); estado.hl = Math.max(estado.hl - 1, 0); pintar(); }
-        else if (e.key === 'Enter') { e.preventDefault(); if (n) agregar(estado.hl); }
+        else if (e.key === 'Enter') { e.preventDefault(); if (n) agregar(estado.hl); else if (estado.imei && !estado.imeiMsg) estado.enterPend = true; }
         else if (e.key === 'Escape') { e.preventDefault(); cerrarPanel(); }
       });
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
@@ -222,6 +279,8 @@
     cerrarPanel();
     // Si cambia el precio del cliente con el panel abierto, se repinta (precio y nivel resaltado)
     doc.addEventListener('change', function (e) { if (e.target && e.target.id === 'rxNivel' && q('.bcrx-ppk', slot)) setTimeout(pintar, 0); });
+    // Si cambia el almacén con un IMEI escrito, se vuelve a buscar en ese almacén.
+    doc.addEventListener('change', function (e) { if (e.target && e.target.id === 'rxAlmacen' && q('.bcrx-ppk', slot) && estado.imei) { filtrar(); } });
     // Tocar fuera del panel lo cierra (el texto buscado se recuerda)
     doc.addEventListener('click', function (e) { if (q('.bcrx-ppk', slot) && !slot.contains(e.target) && doc.contains(e.target)) cerrarPanel(); }, true);
     // F2 abre la búsqueda (como en STUDIO), solo con Recepción en pantalla

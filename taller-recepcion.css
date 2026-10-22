@@ -248,3 +248,11 @@ html.bc-rx #v-recepcion .bcrx-ppk-det .pk-elegir { justify-self: start; }
 /* 20-oct-2026: referencia de Info Plus (capacidad / aviso) junto al nombre del artículo */
 html.bc-rx #v-recepcion .pk-ref { display: inline-block; font-size: 12px; font-weight: 800; color: #0f172a; background: #e2e8f0; border-radius: 6px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; }
 html.bc-rx #v-recepcion .pk-ref.aviso { color: #9a3412; background: #ffedd5; }
+/* 22-oct-2026 · aviso del IMEI buscado en la pestaña «Buscar o escanear» */
+html.bc-rx #v-recepcion .bcrx-ppk-imei { display: flex; align-items: flex-start; gap: 8px; margin: 2px 4px 6px; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.35; color: #334155; background: #f1f5f9; border: 1px solid #e2e8f0; }
+html.bc-rx #v-recepcion .bcrx-ppk-imei i { font-size: 18px; flex: none; margin-top: 1px; }
+html.bc-rx #v-recepcion .bcrx-ppk-imei .ti-loader-2 { animation: bcrx-gira 1s linear infinite; }
+html.bc-rx #v-recepcion .bcrx-ppk-imei.ok { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
+html.bc-rx #v-recepcion .bcrx-ppk-imei.no { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+@keyframes bcrx-gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { html.bc-rx #v-recepcion .bcrx-ppk-imei .ti-loader-2 { animation: none; } }
