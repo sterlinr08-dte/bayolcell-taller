@@ -30735,6 +30735,7 @@ function _pintarWhatsappDetalle() {
                 <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
                 <button class="wa-icon-btn" id="btnWaUbicacion" onclick="_crmMostrarMenuUbicacion('whatsapp', this)" title="Enviar ubicación de la tienda"><i class="ti ti-map-pin"></i></button>
+                <button class="wa-icon-btn" id="btnWaRapidas" onclick="window._waAbrirRapidas && window._waAbrirRapidas()" title="Respuestas rápidas" aria-label="Respuestas rápidas"><i class="ti ti-bolt"></i></button>
                 <textarea id="waTexto" rows="1" placeholder="Escriba una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)"></textarea>
                 <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>

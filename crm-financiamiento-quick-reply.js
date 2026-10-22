@@ -1,4 +1,8 @@
-/* BAYOL CELL: /financiamiento. Draft only; reuse existing send and GPS actions. */
+/* BAYOL CELL: /financiamiento. Draft only; reuse existing send and GPS actions.
+   22-oct-2026 (dueño: «agrega la opción de poder agregar respuestas rápidas»): respuestas rápidas guardadas en
+   whatsapp_respuestas_rapidas (todas las ven; edita o borra quien la creó o un administrador). Salen primero en el
+   menú «/» y en el botón ⚡ junto a la caja de escribir. Elegir una la pone en la caja (no se envía sola) y cambia
+   {nombre} por el nombre del cliente. */
 (() => {
   'use strict';
   if (window.__bcFinanciamientoQuickReply) return;
@@ -8,7 +12,7 @@
     console.warn('[CRM] Financiamiento: el menu de WhatsApp no esta disponible.');
     return;
   }
-  window.__bcFinanciamientoQuickReply = '20260923-1';
+  window.__bcFinanciamientoQuickReply = '20261022-r1';
 
   const FORM = [
     '\ud83d\udccb *SOLICITUD DE FINANCIAMIENTO \u2013 BAYOL CELL*', '',
@@ -25,6 +29,30 @@
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   const thread = () => typeof _waHiloId === 'undefined' ? null : _waHiloId;
   let menu, anchor, context, options = [], selected = 0, sequence = 0;
+  let replies = [], repliesAt = 0, pendingReplies;
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function loadReplies(force) {
+    if (!force && Date.now() - repliesAt < 60000) return Promise.resolve(replies);
+    if (pendingReplies) return pendingReplies;
+    pendingReplies = Promise.resolve().then(() => supabaseClient.from('whatsapp_respuestas_rapidas')
+      .select('id, atajo, texto, creado_por_id, creado_por_nombre').order('atajo', { ascending: true }).limit(300))
+      .then(r => { if (!r.error) { replies = r.data || []; repliesAt = Date.now(); } return replies; })
+      .catch(() => replies).finally(() => { pendingReplies = null; });
+    return pendingReplies;
+  }
+  function clientName() {
+    try {
+      const h = (window._waHilos || (typeof _waHilos !== 'undefined' ? _waHilos : [])).find(x => x.id === thread());
+      const n = String((h && h.nombre_perfil) || '').trim();
+      if (!n || /^[+\d\s()-]+$/.test(n)) return '';
+      return n.split(/\s+/)[0];
+    } catch (e) { return ''; }
+  }
+  function fillText(texto) {
+    const n = clientName();
+    return String(texto || '').replace(/\{\s*nombre\s*\}/gi, n).replace(/[ \t]+([,.!?])/g, '$1').replace(/ {2,}/g, ' ');
+  }
+  function preview(t) { const x = String(t || '').replace(/\s+/g, ' ').trim(); return x.length > 70 ? x.slice(0, 68) + '…' : x; }
   let branches = [], pendingBranches;
 
   const style = document.createElement('style');
@@ -70,7 +98,7 @@
     input.style.setProperty('height', '40px', 'important');
     input.style.setProperty('height', Math.min(140, Math.max(40, input.scrollHeight + 2)) + 'px', 'important');
   }
-  function insertForm(input) {
+  function insertForm(input, text) {
     if (input.tagName !== 'TEXTAREA') {
       const area = document.createElement('textarea');
       for (const a of input.attributes) {
@@ -89,7 +117,7 @@
     }
     input.classList.add('bc-fin-composer');
     input.setAttribute('aria-multiline', 'true');
-    input.value = FORM;
+    input.value = text == null ? FORM : text;
     input.focus();
     input.setSelectionRange(0, 0);
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -103,6 +131,8 @@
       input.disabled || !input.value.startsWith('/') || thread() !== context) { close(); return; }
     close();
     if (option.type === 'form') insertForm(input);
+    else if (option.type === 'reply') insertForm(input, fillText(option.texto));
+    else if (option.type === 'new' || option.type === 'admin') { input.value = ''; window._waActualizarBotonEnvio?.(); openManager(option.type === 'new'); }
     else chooseBranch(option.id);
   }
   function paint(input, loading) {
@@ -118,23 +148,27 @@
     const query = normalize(input.value.slice(1));
     const previous = options[selected];
     options = [];
+    replies.filter(r => !query || normalize(r.atajo).includes(query) || normalize(r.texto).includes(query))
+      .forEach(r => options.push({ type: 'reply', id: r.id, name: '/' + r.atajo, hint: preview(r.texto), texto: r.texto }));
     if (['financiamiento', 'financiar', 'solicitud', 'formulario', 'credito'].some(w => w.startsWith(query))) {
       options.push({ type: 'form', name: 'Financiamiento', hint: '/financiamiento - Insertar formulario' });
     }
     branches.filter(b => normalize(b.nombre).includes(query)).forEach(b => options.push({ type: 'branch', id: b.id, name: String(b.nombre), hint: 'Enviar ubicacion de la sucursal' }));
+    options.push({ type: 'new', name: 'Nueva respuesta rápida', hint: 'Guardar un texto para usarlo con /' });
+    if (replies.length) options.push({ type: 'admin', name: 'Administrar respuestas rápidas', hint: 'Editar o borrar' });
     const retained = previous ? options.findIndex(o => o.type === previous.type && o.id === previous.id) : -1;
     selected = retained >= 0 ? retained : (options.length ? 0 : -1);
     menu.replaceChildren();
     const heading = document.createElement('div');
     heading.className = 'bc-fin-heading';
-    heading.textContent = 'Respuestas rapidas y ubicaciones';
+    heading.textContent = 'Respuestas rápidas y ubicaciones';
     menu.appendChild(heading);
     options.forEach((option, i) => {
       const button = document.createElement('button');
       button.type = 'button'; button.tabIndex = -1; button.id = 'bcFinOption-' + i;
       button.dataset.finIndex = String(i); button.setAttribute('role', 'option');
       const icon = document.createElement('i');
-      icon.className = 'ti ' + (option.type === 'form' ? 'ti-file-dollar' : 'ti-map-pin');
+      icon.className = 'ti ' + ({ form: 'ti-file-dollar', reply: 'ti-bolt', new: 'ti-plus', admin: 'ti-settings' }[option.type] || 'ti-map-pin');
       icon.setAttribute('aria-hidden', 'true');
       const text = document.createElement('span'); text.textContent = option.name;
       const hint = document.createElement('small'); hint.className = 'bc-fin-hint'; hint.textContent = option.hint;
@@ -144,7 +178,7 @@
     });
     if (!options.length) {
       const empty = document.createElement('div'); empty.className = 'bc-fin-heading';
-      empty.textContent = loading ? 'Cargando ubicaciones...' : 'Ninguna opcion coincide.';
+      empty.textContent = loading ? 'Cargando…' : 'Ninguna opción coincide.';
       menu.appendChild(empty);
     }
     input.setAttribute('aria-controls', 'waSlashMenu');
@@ -164,10 +198,98 @@
           return branches;
         }).finally(() => { pendingBranches = null; });
       }
-      await pendingBranches;
+      await Promise.all([pendingBranches, loadReplies()]);
     } catch (error) { console.warn('[CRM] No se pudieron cargar las ubicaciones del menu.'); }
     if (isCurrent(input, value, token)) paint(input, false);
   }
+  // ---- Ventana para crear, editar y borrar respuestas rápidas ----
+  function me() { try { return typeof _crmMiIdentidad === 'function' ? _crmMiIdentidad() : {}; } catch (e) { return {}; } }
+  function amAdmin() { try { return typeof isAdminUser === 'function' && !!isAdminUser(); } catch (e) { return false; } }
+  function canEdit(r) { const y = me(); return amAdmin() || (r.creado_por_id && y.id && String(r.creado_por_id) === String(y.id)); }
+  let editing = null;
+  function managerHTML(focusNew) {
+    const list = replies.map(r => `<div class="bc-rr-item"><div class="bc-rr-tx"><b>/${esc(r.atajo)}</b><span>${esc(preview(r.texto))}</span>` +
+      `<small>${esc(r.creado_por_nombre || '')}</small></div>` +
+      (canEdit(r) ? `<div class="bc-rr-acc"><button type="button" data-rr-edit="${esc(r.id)}" aria-label="Editar"><i class="ti ti-pencil"></i></button>` +
+        `<button type="button" data-rr-del="${esc(r.id)}" aria-label="Borrar"><i class="ti ti-trash"></i></button></div>` : '') + `</div>`).join('');
+    return `<div class="bc-rr">
+      <form class="bc-rr-form" autocomplete="off">
+        <label>Atajo<input name="atajo" maxlength="40" placeholder="garantia" required></label>
+        <label>Texto<textarea name="texto" rows="5" maxlength="4000" placeholder="Hola {nombre}, la pantalla tiene 30 días de garantía." required></textarea></label>
+        <p class="bc-rr-ayuda">Escriba <b>/</b> y el atajo en el chat para usarla. <b>{nombre}</b> se cambia por el nombre del cliente.</p>
+        <div class="bc-rr-btns"><button type="button" class="bc-rr-cancel" hidden>Cancelar</button><button type="submit" class="bc-rr-save">Guardar respuesta</button></div>
+      </form>
+      <div class="bc-rr-list">${list || '<p class="bc-rr-vacio">Todavía no hay respuestas rápidas.</p>'}</div></div>`;
+  }
+  function paintManager(focusNew) {
+    const body = document.getElementById('modalGenericoBody'); const root = body && body.querySelector('.bc-rr');
+    if (!root) return;
+    root.outerHTML = managerHTML(focusNew);
+    wireManager(focusNew);
+  }
+  function wireManager(focusNew) {
+    const root = document.querySelector('#modalGenericoBody .bc-rr'); if (!root) return;
+    const form = root.querySelector('.bc-rr-form'), at = form.atajo, tx = form.texto, save = form.querySelector('.bc-rr-save'), cancel = form.querySelector('.bc-rr-cancel');
+    const setEditing = r => {
+      editing = r || null;
+      at.value = r ? r.atajo : ''; tx.value = r ? r.texto : '';
+      save.textContent = r ? 'Guardar cambios' : 'Guardar respuesta'; cancel.hidden = !r;
+      if (r) at.focus();
+    };
+    setEditing(null);
+    cancel.addEventListener('click', () => setEditing(null));
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const atajo = at.value.trim().replace(/^\/+/, '').replace(/\s+/g, '').toLowerCase(), texto = tx.value.trim();
+      if (!atajo || !texto) { (atajo ? tx : at).focus(); return; }
+      save.disabled = true; save.textContent = 'Guardando…';
+      try {
+        const q = supabaseClient.from('whatsapp_respuestas_rapidas');
+        const r = editing ? await q.update({ atajo, texto }).eq('id', editing.id).select('id') : await q.insert({ atajo, texto }).select('id');
+        if (r.error) throw r.error;
+        if (editing && !(r.data || []).length) throw new Error('sin_permiso');
+        await loadReplies(true); paintManager(false);
+        window.toast?.(editing ? '✅ Respuesta rápida actualizada.' : '✅ Respuesta rápida guardada. Úsela con /' + atajo);
+      } catch (err) {
+        const m = String((err && (err.message || err.code)) || '');
+        window.toastError?.(/23505|duplicate|unique/i.test(m) ? 'Ya existe una respuesta con el atajo /' + atajo + '.' : /sin_permiso|row-level|42501/i.test(m) ? 'Solo quien la creó o un administrador puede cambiarla.' : 'No se pudo guardar la respuesta.');
+        save.disabled = false; save.textContent = editing ? 'Guardar cambios' : 'Guardar respuesta';
+      }
+    });
+    root.querySelectorAll('[data-rr-edit]').forEach(b => b.addEventListener('click', () => setEditing(replies.find(r => r.id === b.dataset.rrEdit))));
+    root.querySelectorAll('[data-rr-del]').forEach(b => b.addEventListener('click', async () => {
+      const r = replies.find(x => x.id === b.dataset.rrDel); if (!r) return;
+      if (!window.confirm('¿Borrar la respuesta rápida /' + r.atajo + '?')) return;
+      const res = await supabaseClient.from('whatsapp_respuestas_rapidas').delete().eq('id', r.id).select('id');
+      if (res.error || !(res.data || []).length) { window.toastError?.('No se pudo borrar. Solo quien la creó o un administrador puede borrarla.'); return; }
+      await loadReplies(true); paintManager(false); window.toast?.('Respuesta rápida borrada.');
+    }));
+    if (focusNew) setTimeout(() => at.focus(), 60);
+  }
+  async function openManager(focusNew) {
+    if (typeof abrirModalGenerico !== 'function') return;
+    await loadReplies(true);
+    abrirModalGenerico('Respuestas rápidas', managerHTML(focusNew), { ancho: '520px' });
+    wireManager(focusNew);
+  }
+  // Botón ⚡ junto a la caja de escribir: abre el mismo menú que «/».
+  window._waAbrirRapidas = function () {
+    const input = document.getElementById('waTexto'); if (!input || input.disabled) return;
+    if (input.value.trim() && !input.value.startsWith('/')) { openManager(true); return; }
+    input.value = '/'; input.focus(); try { input.setSelectionRange(1, 1); } catch (e) {}
+    detect(input);
+  };
+  window._waAdministrarRapidas = () => openManager(false);
+  const rrStyle = document.createElement('style');
+  rrStyle.textContent = '.bc-rr-form{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}.bc-rr-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:#334155}' +
+    '.bc-rr-form input,.bc-rr-form textarea{box-sizing:border-box;width:100%;min-height:48px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:16px;font-weight:400;color:#0f172a}' +
+    '.bc-rr-form textarea{min-height:110px;resize:vertical}.bc-rr-ayuda{margin:0;font-size:13px;color:#64748b}.bc-rr-btns{display:flex;gap:8px}' +
+    '.bc-rr-save,.bc-rr-cancel{flex:1;min-height:54px;border-radius:12px;border:0;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}.bc-rr-save{background:linear-gradient(180deg,#128C7E,#075E54);color:#fff}.bc-rr-save:disabled{opacity:.6}' +
+    '.bc-rr-cancel{background:#f1f5f9;color:#334155}.bc-rr-save:active,.bc-rr-cancel:active{transform:scale(.97)}' +
+    '.bc-rr-list{display:flex;flex-direction:column;gap:6px;border-top:1px solid #e2e8f0;padding-top:12px}.bc-rr-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:12px}' +
+    '.bc-rr-tx{flex:1;min-width:0;display:flex;flex-direction:column}.bc-rr-tx b{font-size:14px;color:#075E54}.bc-rr-tx span{font-size:13px;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bc-rr-tx small{font-size:12px;color:#94a3b8}' +
+    '.bc-rr-acc{display:flex;gap:4px}.bc-rr-acc button{width:44px;height:44px;border:0;border-radius:10px;background:#f1f5f9;color:#475569;font-size:18px;cursor:pointer}.bc-rr-acc button:active{transform:scale(.95)}.bc-rr-vacio{margin:0;font-size:13px;color:#64748b;text-align:center;padding:10px}';
+  document.head.appendChild(rrStyle);
   window._waSlashDetectar = detect;
   window._waSlashCerrar = close;
   window._waSlashAbierto = isOpen;
