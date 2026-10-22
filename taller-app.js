@@ -17274,12 +17274,13 @@ function _piezasCostoHTML(conCosto, esAdminPiezas, total) {
         const origen = esIP ? '<span class="cbx-dot ip" title="Info Plus"></span>' : (esExterna ? '<span class="cbx-dot ext" title="Pieza externa"></span>' : '<span class="cbx-dot"></span>');
         const unit = cant > 1 ? `<span class="cu">${money(cu)} c/u</span>` : '';
         const acc = esAdminPiezas ? `<a onclick="editarPiezaInfoPlus('${p.id}')" title="Editar" aria-label="Editar" class="ed"><i class="ti ti-edit"></i></a><a onclick="eliminarPiezaInfoPlus('${p.id}')" title="Quitar" aria-label="Quitar" class="rm"><i class="ti ti-trash"></i></a>` : '';
-        return `<div class="cbx-tr it"><div class="pz">${origen}<span class="nm" title="${escapeHtml(p.pieza_nombre || 'Pieza')}${esIP ? ' (Info Plus)' : (esExterna ? ' (externa)' : '')}">${escapeHtml(p.pieza_nombre || 'Pieza')}${unit}</span></div><div class="n c">${cant}</div><div class="n t">${money(cant * cu)}</div><div class="ac">${acc}</div></div>`;
+        // Lápiz/papelera no ocupan columna: salen al pasar el mouse (PC) o al tocar el renglón (celular).
+        return `<div class="cbx-tr it"${acc ? ` onclick="if(!event.target.closest('a')) this.classList.toggle('abierta')"` : ''}><div class="pz">${origen}<span class="nm" title="${escapeHtml(p.pieza_nombre || 'Pieza')}${esIP ? ' (Info Plus)' : (esExterna ? ' (externa)' : '')}">${escapeHtml(p.pieza_nombre || 'Pieza')}${unit}</span></div><div class="n c">${cant}</div><div class="n t">${money(cant * cu)}</div>${acc ? `<div class="ac">${acc}</div>` : ''}</div>`;
     }).join('');
-    return `<div class="cbx-tab${esAdminPiezas ? '' : ' sin-acc'}">
-        <div class="cbx-tr cbx-th"><div>Pieza</div><div class="n">Cant.</div><div class="n">Total</div><div></div></div>
+    return `<div class="cbx-tab">
+        <div class="cbx-tr cbx-th"><div>Pieza</div><div class="n">Cant.</div><div class="n">Total</div></div>
         ${filas}
-        <div class="cbx-tr cbx-tt"><div>Total piezas</div><div></div><div class="n t">${money(total)}</div><div></div></div>
+        <div class="cbx-tr cbx-tt"><div>Total piezas</div><div></div><div class="n t">${money(total)}</div></div>
     </div>`;
 }
 // HTML de la sección "Piezas de Info Plus" (descontadas / por descontar) para la caja de costo (solo admin).
@@ -17752,13 +17753,14 @@ function _cbxStyles() {
     .cbx-tr .inv{display:flex;justify-content:flex-end;}
     .cbx-tr .inv .btn{min-height:36px;}
     .cbx-tr.cbx-tt>div:first-child{white-space:nowrap;}
-    /* Renglón de pieza en dos líneas (el cuadro es angosto): nombre completo arriba; cantidad y total debajo, bajo sus títulos. */
-    .cbx-tr.it{grid-template-rows:auto auto;row-gap:1px;padding-top:6px;padding-bottom:6px;}
-    .cbx-tr.it .pz{grid-column:1 / 4;grid-row:1;}
-    .cbx-tr.it .c{grid-column:2;grid-row:2;}
-    .cbx-tr.it .t{grid-column:3;grid-row:2;}
-    .cbx-tr.it .ac{grid-column:4;grid-row:1 / 3;}
+    /* 22-oct-2026 (dueño): UNA línea por pieza, como un renglón de factura. El nombre se corta con «…» (completo al pasar
+       el mouse); lápiz y papelera compactos (44 px de alto, 32 de ancho) para que el nombre tenga el mayor espacio posible. */
+    .cbx-tr.it .pz .nm{display:block;white-space:nowrap;-webkit-line-clamp:unset;font-size:12px;}
     .cbx-tr.it .pz .nm .cu{display:inline;margin-left:6px;}
+    .cbx-tab:not(.ip2) .cbx-tr{grid-template-columns:minmax(0,1fr) 24px 84px;position:relative;}
+    .cbx-tr.it .ac{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:none;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(15,23,42,.14);padding:0 2px;}
+    .cbx-tr.it:hover .ac,.cbx-tr.it.abierta .ac,.cbx-tr.it:focus-within .ac{display:flex;}
+    .cbx-tr.it.abierta{background:#f8fafc;}
     .cbx-empty{font-size:12.5px;color:#94a3b8;padding:14px 12px;background:#f8fafc;border-radius:12px;border:1px dashed rgba(226,232,240,.8);text-align:center;margin:6px 0 2px;}
     .cbx-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
     .cbx-act{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:11px;font-weight:700;color:#334155;transition:all .2s;text-align:center;line-height:1.25;font-family:inherit;}

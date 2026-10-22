@@ -27,3 +27,9 @@ La rama `claude/articulos-factura` (buscador) queda sin publicar.
 - Con columnas de una sola línea el nombre quedaba en 70 px («BATER…»). Ahora cada pieza ocupa dos líneas dentro del
   mismo renglón: el nombre completo arriba (hasta 2 líneas) y, debajo, la cantidad y el total alineados bajo sus títulos;
   lápiz y papelera a la derecha ocupan las dos líneas. Renglón de 57–58 px; nombre con 196 px, sin recortes en los ejemplos.
+
+## Ajuste 3 (18:20) — dueño: «No me gusta… línea por cada artículo para que se vean organizadas»
+- Vuelve a UNA línea por pieza: Pieza · Cant. · Total, con cabecera y total abajo. El nombre usa todo el ancho que queda y
+  se corta con «…» cuando no cabe (completo al pasar el mouse).
+- El lápiz y la papelera ya no ocupan columna: en PC salen al pasar el mouse por el renglón y en celular al tocarlo (44×44).
+- Playwright: filas 53 px; nombre 218 px en PC (410 px de cuadro) y 172 px a 390; iconos ocultos hasta tocar; sin errores.
