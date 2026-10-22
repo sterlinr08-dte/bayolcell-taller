@@ -511,6 +511,10 @@ async function procesarMensaje(payload: any) {
       // Lo mas comun (29 de 37): el cliente borro el mensaje, o es un reenvio
       // viejo que WhatsApp ya no entrega.
       textoNoDisponible = "⚠️ Mensaje no disponible — el cliente lo elimino, o WhatsApp ya no lo entrega.";
+    } else if (code === 131051 && String(sinSoporte?.type || "").toLowerCase() === "album") {
+      // 22-oct-2026: con meta.sin_soporte (v37) se vio que Meta marca type "album" cuando el cliente manda varias
+      // fotos juntas. Antes salía como «contacto compartido», que confundía.
+      textoNoDisponible = "🖼️ El cliente mandó un álbum de fotos. WhatsApp no lo pasa al sistema: ábrelo en el teléfono para verlo.";
     } else if (code === 131051) {
       // Tipo que la API de WhatsApp no reenvia a sistemas externos. Aca cae,
       // entre otros, el contacto compartido.
