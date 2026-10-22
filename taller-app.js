@@ -13289,6 +13289,7 @@ function cargarDatosTallerEnForm() {
     const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
     set('cfgTallerNombre', d.nombre); set('cfgTallerTel', d.tel);
     set('cfgTallerDir', d.dir); set('cfgTallerPie', d.pie);
+    set('cfgDescMaxPct', String(_rpDescMaxPct()));
 }
 async function guardarDatosTaller() {
     const g = id => (document.getElementById(id)?.value || '').trim();
@@ -13296,7 +13297,8 @@ async function guardarDatosTaller() {
         nombre: g('cfgTallerNombre') || 'BAYOL CELL',
         telefono: g('cfgTallerTel'),
         direccion: g('cfgTallerDir'),
-        pie: g('cfgTallerPie') || 'Gracias por su preferencia'
+        pie: g('cfgTallerPie') || 'Gracias por su preferencia',
+        prefactura_desc_max_pct: Math.min(100, Math.max(0, parseFloat(g('cfgDescMaxPct').replace(',', '.')) || 0))
     };
     // Respaldo local siempre (por si no hay conexión)
     localStorage.setItem('bayol_taller_nombre', datos.nombre);
@@ -13307,7 +13309,7 @@ async function guardarDatosTaller() {
         const { error } = await supabaseClient.from('config_taller')
             .update({ ...datos, actualizado_en: new Date().toISOString() }).eq('id', 1);
         if(error) throw error;
-        cache.configTaller = { id: 1, ...datos };
+        cache.configTaller = { ...(cache.configTaller || {}), id: 1, ...datos };
         toast('✅ Datos del taller guardados (todos los dispositivos).', 'success');
     } catch(e) {
         logError('Guardar datos taller', e);
@@ -20318,7 +20320,8 @@ async function _rpAgregarArticulo(a) {
         if(!_rpState) _rpInit();
         const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
         it.precio = _rpNivelPrecio(it);
-        if(_abCat(it.desc) === 'celular') { it.serial = true; it.imeis = []; it.cant = 0; }
+        // 22-oct-2026 (dueño): si lleva IMEI lo decide Info Plus (compras o listaserie), no la palabra «celular».
+        if(await _rpEsSerial(it.cod, it.desc)) { it.serial = true; it.imeis = []; it.cant = 0; }
         // 20-oct-2026: si el artículo ya está en la prefactura se usa la misma línea (como STUDIO):
         // celular → el cursor va al IMEI de esa línea (cada IMEI suma 1); otro artículo → cantidad + 1.
         const ya = _rpState.items.findIndex(x => String(x.cod) === String(it.cod) && !x.servicio);
@@ -20339,8 +20342,35 @@ async function _rpAgregarArticulo(a) {
         if(it.serial) setTimeout(() => document.getElementById('rpImei_' + (_rpState.items.length - 1))?.focus(), 60);
         return true;
 }
+// ¿El artículo lleva IMEI/serie? Pregunta a Info Plus (Edge infoplus-imei-almacen, pregunta:'serial'); se guarda por
+// sesión. Si Info Plus no responde, se decide por el nombre como antes (_abCat === 'celular').
+const _rpSerialCache = {};
+async function _rpEsSerial(cod, desc) {
+    const k = String(cod || '');
+    if(k in _rpSerialCache) return _rpSerialCache[k];
+    try {
+        const { data } = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { pregunta: 'serial', codarticulo: k } });
+        if(data && data.ok && typeof data.serial === 'boolean') { _rpSerialCache[k] = data.serial; return data.serial; }
+    } catch(e) { logError('serial Info Plus', e); }
+    return _abCat(desc) === 'celular';
+}
+// IMEI escrito a mano: tiene que existir en Info Plus, en el almacén de la prefactura y ser de ESTE artículo
+// (dueño, 22-oct-2026). Los elegidos de la lista o encontrados por el buscador ya vienen comprobados (validado = true).
+async function _rpComprobarImei(imei, it) {
+    const d15 = String(imei || '').replace(/\D/g, '');
+    if(d15.length < 15 || d15.length > 17) return { ok: false, msg: 'El IMEI debe tener 15 dígitos.' };
+    const alm = document.getElementById('rxAlmacen')?.value || '1';
+    let d = null;
+    try { const r = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { imei: d15, codalmacen: alm } }); d = r && r.data; } catch(e) { logError('comprobar IMEI', e); }
+    if(!d || !d.ok) return { ok: false, msg: 'No se pudo comprobar el IMEI en Info Plus. Intente de nuevo.' };
+    if(d.encontrado === false) return { ok: false, msg: 'Info Plus no tiene el IMEI ' + d15 + ': no se puede facturar.' };
+    if(d.en_otro_almacen) return { ok: false, msg: 'El IMEI ' + d15 + ' está en ' + d.en_otro_almacen + ', no en ' + _rpAlmNombre() + '.' };
+    const cods = d.codigo ? [String(d.codigo)] : (d.candidatos || []).map(x => String(x.codigo));
+    if(cods.length && !cods.includes(String(it.cod))) return { ok: false, msg: 'Ese IMEI es de «' + (d.descripcion || 'otro artículo') + '» (cód. ' + cods.join('/') + '), no de ' + it.desc + '.' };
+    return { ok: true };
+}
 function _rpImeiKey(e, i) { if(e.key === 'Enter') { e.preventDefault(); _rpAgregarImei(i, e.target.value); } }
-function _rpAgregarImei(i, v) {
+async function _rpAgregarImei(i, v, validado) {
     const it = _rpState.items[i]; if(!it) return;
     const imei = (v || '').replace(/\s+/g, '').trim();
     if(!imei) return;
@@ -20348,6 +20378,13 @@ function _rpAgregarImei(i, v) {
     if(repetido) return toast('Ese IMEI ya está en esta prefactura.', 'error');
     const stock = _rpStockItem(it);
     if(stock !== null && (it.imeis || []).length + 1 > stock) return toast(`Solo hay ${stock} en ${_rpAlmNombre()}.`, 'error');
+    if(!validado) {
+        toast('Comprobando el IMEI en Info Plus…');
+        const r = await _rpComprobarImei(imei, it);
+        if(!r.ok) return toast(r.msg, 'error');
+        if(!_rpState.items[i] || _rpState.items[i] !== it) return;
+        if((it.imeis || []).includes(imei)) return;
+    }
     it.imeis = [...(it.imeis || []), imei];
     it.cant = it.imeis.length;
     _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
@@ -20415,10 +20452,33 @@ async function _rpAgregarServicio() {
 function _rpCant(i, v) { _rpState.items[i].cant = Math.max(1, parseInt(v) || 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 function _rpPrecio(i, v) { _rpState.items[i].precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 // 20-oct-2026 (dueño, como STUDIO): descuento por línea en %. Importe = precio × cantidad − descuento.
-function _rpDescPct(i, v) { _rpState.items[i].descPct = Math.min(100, Math.max(0, parseFloat(String(v).replace(/[,%]/g, '')) || 0)); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+// Descuento máximo (%) de la prefactura: Configuración → Datos del taller (config_taller.prefactura_desc_max_pct; 10 si no está).
+function _rpDescMaxPct() { const v = Number(cache.configTaller && cache.configTaller.prefactura_desc_max_pct); return (isFinite(v) && v >= 0 && v <= 100) ? v : 10; }
+function _rpDescPct(i, v) {
+    let p = Math.min(100, Math.max(0, parseFloat(String(v).replace(/[,%]/g, '')) || 0));
+    const max = _rpDescMaxPct();
+    if(p > max) { p = max; toast(`El descuento máximo permitido es ${max}%.`, 'error'); }
+    _rpState.items[i].descPct = p; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
+}
+// Descuento en dinero sobre toda la prefactura (dueño, 22-oct-2026). Va a Info Plus en «descuento»/«descuentototal»
+// (cabecera), aparte del % por línea. Tope: líneas + dinero no pueden pasar del máximo % del subtotal.
+function _rpDescMonto(v) {
+    if(!_rpState) return;
+    let m = Math.max(0, parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0);
+    const base = _rpTotales(_rpState.items, 0);
+    const tope = Math.max(0, Math.round((base.subtotal * _rpDescMaxPct() / 100 - base.descuento) * 100) / 100);
+    if(m > tope) { m = tope; toast(`El descuento máximo es ${_rpDescMaxPct()}% del subtotal: quedan ${money(tope)} disponibles.`, 'error'); }
+    if(m > base.total) m = base.total;
+    _rpState.descMonto = Math.round(m * 100) / 100; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
+}
 function _rpBruto(it) { return Math.round(Number(it.precio || 0) * Number(it.cant || 0) * 100) / 100; }
 function _rpImporte(it) { const b = _rpBruto(it), p = Number(it.descPct || 0); return p > 0 ? Math.round(b * (100 - p)) / 100 : b; }
-function _rpTotales(items) { const sub = (items || []).reduce((s, it) => s + _rpBruto(it), 0); const tot = (items || []).reduce((s, it) => s + _rpImporte(it), 0); return { subtotal: Math.round(sub * 100) / 100, descuento: Math.round((sub - tot) * 100) / 100, total: Math.round(tot * 100) / 100 }; }
+function _rpTotales(items, descMonto) {
+    const sub = (items || []).reduce((s, it) => s + _rpBruto(it), 0); let tot = (items || []).reduce((s, it) => s + _rpImporte(it), 0);
+    const m = descMonto != null ? Number(descMonto) : ((_rpState && items === _rpState.items) ? Number(_rpState.descMonto || 0) : 0);
+    tot = Math.max(0, tot - (m > 0 ? m : 0));
+    return { subtotal: Math.round(sub * 100) / 100, descuento: Math.round((sub - tot) * 100) / 100, total: Math.round(tot * 100) / 100, descLineas: Math.round((sub - tot - Math.max(0, m)) * 100) / 100, descMonto: Math.round(Math.max(0, m) * 100) / 100 };
+}
 function _rpQuitar(i) { _rpState.items.splice(i, 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 function _rpMarcarCambio() { if(_rpState && _rpState.codprefactura && _rpState.estado === 'sincronizada') _rpState.estado = 'cambios'; }
 function _rpRenderResumen() {
@@ -20442,6 +20502,7 @@ function _rpRenderResumen() {
       <div style="border-top:1px solid #eef2f7;margin:8px 0;"></div>
       ${_rpState.items.length ? _rpState.items.map(it => `<div class="rx-sum-row"><span style="max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.desc)} ×${it.cant}</span><b>${money(_rpImporte(it))}</b></div>`).join('') : '<div style="font-size:12px;color:#94a3b8;padding:4px 0;">Sin artículos aún.</div>'}
       <div style="border-top:1px solid #eef2f7;margin:8px 0;"></div>
+      ${facturada ? '' : `<div class="rx-sum-row"><span>Descuento RD$</span><input id="rxDescMonto" inputmode="decimal" value="${Number(_rpState.descMonto || 0) ? Number(_rpState.descMonto).toFixed(2) : ''}" placeholder="0.00" aria-label="Descuento en pesos" onfocus="this.select()" onchange="_rpDescMonto(this.value)" style="width:110px;height:48px;font-size:16px;text-align:right;border:1px solid #d8dee9;border-radius:9px;padding:0 10px;"></div>`}
       <div class="rx-sum-row" style="font-size:16px;"><span><b>Total</b></span><b style="color:#e31e24;">${money(total)}</b></div>
       ${facturada ? `<div style="margin-top:12px;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:9px;">Esta prefactura ya fue convertida en factura y no puede modificarse desde Recepción.</div>` : `
       <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
@@ -20472,7 +20533,9 @@ async function _rpCrearPrefactura() {
         codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0, descuento: _tt.descuento, descuentototal: _tt.descuento,
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
-        contrato: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
+        // 22-oct-2026 · Dagoberto pidió verificar que el comentario «esté puesto»: se manda en `contrato` (como hasta hoy)
+        // y también en `comentario`, por si el modelo nuevo lo lee de ahí. Un campo que el modelo no conozca se ignora.
+        contrato: obs ? obs.slice(0, 200) : '', comentario: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
         seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: Number(it.descPct || 0), despachado: 0, descripcionunidad: null }))
     };
     _rpState.estado = 'actualizando'; _rpRenderResumen();
@@ -20487,7 +20550,7 @@ async function _rpCrearPrefactura() {
         _rpState.codprefactura = num; _rpState.estado = 'sincronizada';
         _rpUltima = { num, total, model, ref: { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: g('o_falla'), coment: g('o_observaciones'), cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') } };
         try {
-            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: _tt.subtotal, total: total, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
+            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: _tt.subtotal, total: total, descuento_monto: Number(_rpState.descMonto || 0), observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
             if(_rpState.localId) { await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', _rpState.localId); }
             else { row.creado_por = (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'); const { data: ins } = await supabaseClient.from('recepcion_prefacturas').insert([row]).select('id').maybeSingle(); if(ins) _rpState.localId = ins.id; }
             if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();
@@ -20601,7 +20664,7 @@ function _rpPrefDeOrden(ordenId) { return (cache.recepcionPrefacturas || []).fin
 function _rpCargarDesdeLista(prefId) { const p = (cache.recepcionPrefacturas || []).find(x => x.id === prefId); if(!p) { toast('Prefactura no encontrada.', 'error'); return; } _rpPendingLoad = { pref: p }; nav('recepcion'); }
 function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x => x.id === ordenId) || {}; const c = findCliente(o.cliente_id) || {}; const e = findEquipo(o.equipo_id) || {}; _rpPendingLoad = { orden: o, cliente: c, equipo: e }; nav('recepcion'); }
 function _rpAplicarCargaPref(p) {
-    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
+    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), descMonto: Number(p.descuento_monto || 0), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
     const _nvS = document.getElementById('rxNivel'); if(_nvS) _nvS.value = String(_rpState.nivel);
     const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
     set('c_nombre', p.nombre_visible); set('c_whatsapp', p.telefono_visible); set('c_cedula', p.documento_visible); set('o_observaciones', p.observaciones); set('e_imei', p.imei);

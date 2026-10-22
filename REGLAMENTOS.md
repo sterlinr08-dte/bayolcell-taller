@@ -1,0 +1,36 @@
+# REGLAMENTOS — BAYOL CELL (taller)
+
+Reglas del dueño que el sistema debe cumplir siempre. Se agregan al final; nunca se borra una regla sin su OK.
+La bitácora dice cuándo y por qué se escribió cada una.
+
+## 1. Prefactura e IMEI (dueño, 22-oct-2026)
+
+1. **Quién decide si un artículo lleva IMEI es Info Plus, no el nombre.** Un artículo pide IMEI si Info Plus tiene
+   alguna serie registrada de ese código (en las compras sincronizadas o en la lista de series de cualquier almacén).
+   La palabra «celular» en el nombre no basta. Solo si Info Plus no responde se decide por el nombre, como antes.
+2. **Sin IMEI no se factura ni se prefactura un artículo con serie.** La cantidad de la línea es la cantidad de IMEI.
+3. **Un IMEI escrito a mano tiene que existir en Info Plus**, estar en el almacén de la prefactura y ser de ese
+   artículo. Si no, no entra y el sistema dice por qué (no existe, está en otro almacén, es de otro artículo).
+   Los IMEI elegidos de la lista o encontrados por el buscador ya vienen comprobados.
+4. **Con el IMEI completo se encuentra el artículo** (buscador «Buscar o escanear»): al agregarlo, el IMEI queda en su línea.
+5. **Nunca se muestra un IMEI de otro almacén** en la lista «IMEI en <almacén>»; si Info Plus no cuadra con la
+   existencia, la lista sale vacía y se escanea o escribe.
+
+## 2. Descuentos en la prefactura (dueño, 22-oct-2026)
+
+1. El descuento **por línea es en por ciento** y tiene un **tope** que se pone en Configuración → Datos del taller
+   («Descuento máximo en la prefactura (%)»). Si no se pone, es **10 %**.
+2. Hay además un **descuento en pesos (RD$) sobre toda la prefactura**. Va a Info Plus en la cabecera
+   (`descuento` / `descuentototal`), no en las líneas, por eso en Info Plus sale en otro lugar.
+3. Líneas + pesos **no pueden pasar del tope** (% del subtotal). El sistema recorta y avisa cuánto queda disponible.
+
+## 3. Comentario de la prefactura (22-oct-2026)
+
+- El comentario se guarda en el taller, sale al imprimir y se manda a Info Plus en `contrato` y en `comentario`.
+  Dagoberto pidió verificar que «esté puesto»: falta que el dueño confirme en qué campo lo ve la cajera.
+
+## 4. Reglas generales que ya regían
+
+- Datos de Bayol salen solo de su Info Plus; escribir en Info Plus exige autorización expresa del dueño.
+- Publicar a `main` solo con «publícalo» (vale para esa entrega). Secretos nunca en el repo, el chat ni la bitácora.
+- Todo lo que se toca mide ≥44 px; campos 48 px con letra 16 px; se mide con Playwright a 390 y 1280 px.
