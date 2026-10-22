@@ -10,6 +10,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //   · artículo: la descripción de Info Plus del código pedido (tabla infoplus_articulos), sin espacios dobles ni mayúsculas;
 //   · almacén: el NOMBRE de la localidad («OFICINA SANTIAGO») contra el nombre del almacén pedido.
 // Si el nombre de la localidad no se reconoce, NO se muestra ese IMEI (se anota en infoplus_diagnostico para ajustar).
+const LISTA_ACTIVA = false;
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json' };
 // Nombres de cada almacén como pueden venir de Info Plus (ya normalizados con norm()).
 const ALMACENES: Record<string, string[]> = {
@@ -34,6 +35,10 @@ Deno.serve(async (req: Request) => {
   const c = String(body.codarticulo ?? '').replace(/\D/g, '');
   const a = String(body.codalmacen ?? '').replace(/\D/g, '');
   if (!c || !ALMACENES[a]) return new Response(JSON.stringify({ ok: false, error: 'faltan artículo o almacén' }), { status: 400, headers: cors });
+  // 22-oct-2026 · APAGADA por el dueño («sí, apágala») hasta que Info Plus agregue los filtros de artículo y almacén a
+  // listaserie (Dagoberto: «hay que agregar esos filtros»). Hoy trae IMEI de otros almacenes. La ventana pide escanear o
+  // escribir el IMEI, como antes. Para volver a prenderla: LISTA_ACTIVA = true.
+  if (!LISTA_ACTIVA) return new Response(JSON.stringify({ ok: true, imeis: [], fuente: false, apagada: true }), { headers: cors });
 
   const BASE = (Deno.env.get('INFOPLUS_BASE') || 'bayol').trim();
   const CLAVE = (Deno.env.get('INFOPLUS_CLAVE') || '').trim();
