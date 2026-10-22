@@ -40,7 +40,7 @@ apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
 - Equipo, falla y más datos en plegable opcional; con equipo crea también la orden. Descuento % por línea (sin probar contra Info Plus real).
 - Almacén fijo para empleadas con sucursal; el admin elige y se recuerda en su equipo (`bc_alm_admin`).
 - Códigos de vendedor Info Plus en `tecnicos.infoplus_codempleado`: Michelle 748, Kenifer 1020, Yosmeiry 1192, Loribel 249; Yves sin código.
-- Celulares: botón IMEI abre ventana; lista «IMEI en <almacén>» (Edge v8, filtros de Dagoberto, §6); se escanea o escribe.
+- Celulares: botón IMEI abre ventana; lista «IMEI en <almacén>» (Edge v10, §6); se escanea o escribe.
   Covers, forros, cases, cristales y accesorios **no piden IMEI** (`_abCat`).
 - Buscador de artículos como ventana emergente (vidrio NEXUS): Código · Artículo · Existencia · Precio; al tocar, niveles y existencia
   por almacén; muestra la **referencia** de Info Plus (capacidad / «Con aviso»). La línea de servicio lleva equipo · IMEI · falla
@@ -66,9 +66,9 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
-- **IMEI por almacén:** `listaserie` filtra por `codalmacen`; Edge v9 lo usa (lista prudente por almacén) y con `{imei}` devuelve el artículo (compras → listaserie). Falta prueba real; rama `claude/imei-busca-articulo` sin publicar: IMEI → artículo, serie la decide Info Plus, IMEI a mano comprobado, tope % y descuento RD$, `REGLAMENTOS.md` (bit. 1740, 1830, 1915).
+- **IMEI por almacén:** `listaserie` filtra por `codalmacen`; Edge v9 lo usa (lista prudente por almacén) y con `{imei}` devuelve el artículo (compras → listaserie). Falta prueba real; rama `claude/imei-busca-articulo` sin publicar: IMEI → artículo, serie la decide Info Plus, IMEI a mano comprobado, tope % y descuento RD$, `REGLAMENTOS.md` (bit. 1740, 1830, 1825).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
-- **WA 22-oct:** plantilla v22 OK (ToNnY leyó). Publicado: «Transferido», historial en el chat, sin número → «A un empleado», respuestas rápidas (bit. 1545). Llamadas: sin rastro (coexistencia); webhook v39 avisa álbum y marca eliminados. «Eliminar para todos» publicado (bit. 1700); falta prueba real.
+- **WA 22-oct:** publicado «Transferido», historial en el chat, «A un empleado», respuestas rápidas, álbum y «Eliminar para todos» (falta prueba real, bit. 1700). Llamadas: sin rastro (coexistencia).
 - Prefactura impresa con el Nº de Info Plus (ticket/carta, «COPIA»): rama sin publicar (bit. 21-oct 1200). IA v32 desplegada (código no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento (% y RD$), código de empleada y en qué campo sale el comentario (`contrato` o `comentario`).
 - Meta: conector WhatsApp MCP no ve BayolCell (reconectar marcando BayolCell); app de desarrollador bloqueada para el dueño (ESTERLIN ESPINAL con 2FA puede crearla). **Zernio se queda** hasta probar cada paso.

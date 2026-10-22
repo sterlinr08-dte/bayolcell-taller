@@ -1,4 +1,4 @@
-# 22-oct-2026 19:15 · Claude · Prefactura: IMEI lo decide Info Plus, IMEI a mano comprobado, tope de descuento, descuento RD$, comentario
+# 22-oct-2026 18:25 · Claude · Prefactura: IMEI lo decide Info Plus, IMEI a mano comprobado, tope de descuento, descuento RD$, comentario
 
 ## Pedido del dueño (dictado; «email» = IMEI)
 1. Que el sistema detecte solo qué equipos llevan IMEI: «cuando ve la palabra celular le asigna IMEI sin tener».
