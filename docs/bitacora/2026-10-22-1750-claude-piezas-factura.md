@@ -16,3 +16,9 @@ La rama `claude/articulos-factura` (buscador) queda sin publicar.
 
 ## Pruebas (Playwright, datos de ejemplo, 390 y 1280 px)
 - Filas de 45 px; lápiz/papelera 44×44; sin scroll lateral; totales por fila y total general correctos; sin errores.
+
+## Ajuste (misma rama, 17:55)
+- En el cuadro angosto el nombre se aplastaba. Se quitó la columna «Costo» (cuando hay 1 unidad es igual al Total; con más
+  unidades sale «RD$ X c/u» debajo del nombre) y la etiqueta INFO PLUS / EXTERNA pasó a ser un punto de color
+  (azul = Info Plus, violeta = externa; el texto sale al pasar el mouse). Columnas: Pieza · Cant. · Total · acciones.
+- Playwright 390 y 1280: filas 45 px, lápiz y papelera 44×44, sin scroll lateral, totales correctos.
