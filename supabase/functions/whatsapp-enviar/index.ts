@@ -320,13 +320,36 @@ Deno.serve(async (req: Request) => {
       }
       const elemento: Record<string, unknown> = { name: plantilla.nombre, language: plantilla.idioma };
       if (components.length) elemento.components = components;
-      const enviarPlantilla = () =>
-        mandarAZernio(conversationId, linea.zernio_account_id, {
-          messageType: "template",
-          template: { elements: [elemento] },
+      // 22-oct-2026 (cliente pasado de Moca a Santiago: «Zernio todavia no reconoce esta conversacion»): si el cliente
+      // nunca le escribió a ESTA línea no hay conversación en Zernio. Para plantillas a un teléfono se usa
+      // POST /v1/inbox/conversations (crear conversación): abre el hilo si no existe o manda dentro del que ya hay
+      // (docs.zernio.com/messages/create-inbox-conversation). Los contactos de anuncio (bsid, sin teléfono) y las
+      // plantillas con imagen de cabecera siguen por el camino de antes.
+      const telDigitos = hilo.telefono_e164.startsWith("bsid:") ? "" : hilo.telefono_e164.replace(/\D/g, "");
+      const valores = plantilla.variablesNombradas?.length ? plantilla.variablesNombradas.map((v) => String(v.text ?? "")) : (plantilla.variables || []).map((t) => String(t ?? ""));
+      if (telDigitos.length >= 10 && !plantilla.headerUrl) {
+        const resp = await fetch("https://zernio.com/api/v1/inbox/conversations", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${ZERNIO_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ accountId: linea.zernio_account_id, participantId: "+" + (telDigitos.length === 10 ? "1" + telDigitos : telDigitos),
+            templateName: plantilla.nombre, templateLanguage: plantilla.idioma, ...(valores.length ? { templateParams: valores } : {}) }),
+          signal: AbortSignal.timeout(ZERNIO_TIMEOUT_MS),
         });
-      resultado = await enviarPlantilla();
-      resultado = await reintentarSiConversacionNoEncontrada(resultado, enviarPlantilla);
+        const data = await resp.json().catch(() => null);
+        resultado = { ok: resp.ok && !!data?.success, data, status: resp.status };
+        const convNueva = data?.data?.conversationId;
+        if (resultado.ok && convNueva && !hilo.zernio_conversation_id) {
+          await db.from("whatsapp_hilos").update({ zernio_conversation_id: convNueva }).eq("id", hiloId);
+        }
+      } else {
+        const enviarPlantilla = () =>
+          mandarAZernio(conversationId, linea.zernio_account_id, {
+            messageType: "template",
+            template: { elements: [elemento] },
+          });
+        resultado = await enviarPlantilla();
+        resultado = await reintentarSiConversacionNoEncontrada(resultado, enviarPlantilla);
+      }
     } else if (adjunto?.es_nota_voz) {
       resultado = await mandarAZernioNotaVoz(conversationId, linea.zernio_account_id, adjunto.url, replyToWaId);
       if (!resultado.ok && replyToWaId && resultado.status >= 400 && resultado.status < 500 && !esConversacionNoEncontrada(resultado)) {
