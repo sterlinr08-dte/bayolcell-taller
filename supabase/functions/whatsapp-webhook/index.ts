@@ -564,6 +564,23 @@ async function procesarMensaje(payload: any) {
   }
   // Reenviado y anuncio de origen (lo que WhatsApp muestra como «Reenviado» y la tarjeta del anuncio).
   const metaMsg: Record<string, unknown> = {};
+  // 22-oct-2026 (dueño: «agrega lo de llamada entrante en el chat»). Las líneas de Bayol están en coexistencia
+  // (app WhatsApp Business + API) y Zernio documenta que ahí las llamadas NO pasan por la API. Para comprobar si
+  // Meta deja alguna huella de una llamada (p. ej. un mensaje 131051 «tipo desconocido»), se guardan los datos
+  // técnicos del motivo — sin texto del cliente — en meta.sin_soporte. Solo diagnóstico; no cambia lo que se ve.
+  if (sinSoporte && typeof sinSoporte === "object") {
+    const ss = sinSoporte as Record<string, unknown>;
+    const ed = (ss.error_data && typeof ss.error_data === "object") ? ss.error_data as Record<string, unknown> : {};
+    metaMsg.sin_soporte = {
+      code: ss.code ?? null,
+      title: typeof ss.title === "string" ? ss.title.slice(0, 120) : null,
+      tipo: typeof ss.type === "string" ? ss.type.slice(0, 60) : null,
+      detalle: String(ss.details ?? ss.message ?? ed.details ?? "").slice(0, 300) || null,
+      claves: Object.keys(ss).slice(0, 20),
+      claves_meta: Object.keys(metaZ).slice(0, 30),
+      tipo_msg: (msg as any).type ?? (msg as any).messageType ?? null,
+    };
+  }
   if (metaZ.forwarded || metaZ.frequentlyForwarded || metaZ.frequently_forwarded) metaMsg.reenviado = true;
   if (metaZ.referral && typeof metaZ.referral === "object") {
     const r = metaZ.referral;
