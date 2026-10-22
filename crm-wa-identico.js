@@ -1075,6 +1075,16 @@
     fila.classList.add('bcwa-asig-fila');
   }
 
+  // Orden de la cabecera (dueño, 22-oct-2026: «el botón de etiqueta del cliente y la lupa, después del botón de search»):
+  // Consulta → Etiquetas → Buscar en el chat → Asignarme/Reasignar/Transferir → lo demás. Solo mueve si está desordenado.
+  function ordenCabecera(){
+    var head = document.querySelector('#waDetalle .wa-chat-head'); if (!head) return;
+    var cons = head.querySelector(':scope > .cp-btn'); if (!cons) return;
+    var orden = [head.querySelector(':scope > .bcwa-etq-btn'), head.querySelector(':scope > .bcwa-lupa'), head.querySelector(':scope > .bcwa-asig-cab')].filter(Boolean);
+    var prev = cons;
+    orden.forEach(function(el){ if (prev.nextElementSibling !== el) prev.after(el); prev = el; });
+  }
+
   // =====================================================================
   // Aplicar todo al pintarse el CRM
   // =====================================================================
@@ -1090,7 +1100,7 @@
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
     decorarLista();
-    if (id){ cargarReferido(id); avisoReferido(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); asignacionEnCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
+    if (id){ cargarReferido(id); avisoReferido(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); asignacionEnCabecera(); ordenCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
     borradoresEnLista();
   }
   var pendiente = false;
