@@ -68,7 +68,7 @@ listas y sincronización.
 ## 6. Pendientes y esperas
 - **IMEI por almacén:** `listaserie` (Edge v5) da {descripcion, serie, localidad} de todos los almacenes; localidad no sigue transferencias. Dagoberto (22-oct): «hay que agregar esos filtros» → esperar los nombres de parámetro (bit. 2026-10-22-1040).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
-- **Plantillas WA (22-oct):** `whatsapp-enviar` v22: con teléfono real abre conversación nueva (`POST /v1/inbox/conversations`), arregla los referidos. Plantilla aprobada en 5/6 líneas. Publicado: etiqueta «Transferido» y «Ver conversación anterior» del referido (bit. 1405). Falta reintentar la plantilla a ToNnY.
+- **Plantillas WA (22-oct):** `whatsapp-enviar` v22: con teléfono real abre conversación nueva (`POST /v1/inbox/conversations`), arregla los referidos. Plantilla aprobada en 5/6 líneas. Publicado: etiqueta «Transferido» y «Ver conversación anterior» (bit. 1405). Falta reintentar plantilla a ToNnY.
 - Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
 - Meta: conector WhatsApp MCP no ve BayolCell (reconectar marcando BayolCell); app de desarrollador bloqueada para el dueño (ESTERLIN ESPINAL con 2FA puede crearla). **Zernio se queda** hasta probar cada paso.
