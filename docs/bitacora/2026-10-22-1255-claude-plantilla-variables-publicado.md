@@ -1,0 +1,1 @@
+- **Publicado** el 22-oct-2026 (dueño: «Si»). Verificado en bayolcell.com: `taller-app.js?v=20261022-p2` con `_waPlantillaSucursal`.

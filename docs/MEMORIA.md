@@ -68,6 +68,7 @@ listas y sincronización.
 ## 6. Pendientes y esperas
 - **IMEI por almacén:** `listaserie` (Edge v5) da {descripcion, serie, localidad} de todos los almacenes; localidad no sigue transferencias. Dagoberto (22-oct): «hay que agregar esos filtros» → esperar los nombres de parámetro (bit. 2026-10-22-1040).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
+- **WhatsApp plantillas (22-oct):** Zernio cambió el contrato de envío (`template.elements[]`); `whatsapp-enviar` v21 ya lo usa. Plantilla `bayolcell_seguimiento_consulta` (UTILITY) sometida en las 6 líneas, esperando a Meta; el CRM llena solo {{1}} nombre y {{2}} sucursal.
 - Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
 - Meta: el conector **WhatsApp Business MCP** solo ve «jose antonio peralta» y «Studiord»; el conector **Meta Ads** sí ve Bayol Cell,
