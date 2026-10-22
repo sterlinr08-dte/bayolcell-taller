@@ -9,7 +9,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //   'FUENTE_OK'). Si ninguna lo dice, se devuelve una lista vacía: NUNCA se muestran IMEI sin confirmar el almacén.
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json' };
 const ALMACENES = ['1', '3', '4', '5', '6', '7'];
+// 22-oct-2026: Dagoberto (Info Plus) respondió «Ponle tipo=listaserie». Va primero; el resto queda de respaldo.
 const CANDIDATAS = [
+  'ListaArticulos|tipo=listaserie&CodArticulo={c}&Codalmacen={a}',
+  'ListaArticulos|tipo=listaserie&codarticulo={c}&codalmacen={a}',
+  'ListaArticulos|tipo=listaserie',
   'ListaArticulos|tipo={c}&CodArticulo={c}&Codalmacen={a}',
   'ListaArticulos|tipo={a}&CodArticulo={c}&Codalmacen={a}',
   'ListaArticulos|tipo=SERIE&CodArticulo={c}&Codalmacen={a}',
