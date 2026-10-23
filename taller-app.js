@@ -20509,7 +20509,7 @@ function _rpProblemasFactura() {
     (_rpState?.items || []).forEach(it => {
         if(it.serial && !(it.imeis || []).length) probs.push(`"${it.desc}" necesita al menos un IMEI.`);
         const stock = _rpStockItem(it);
-        if(stock !== null && Number(it.cant) > stock) probs.push(`"${it.desc}": pides ${it.cant} y hay ${stock} en ${_rpAlmNombre()}.`);
+        if(stock !== null && Number(it.cant) > stock) probs.push(`"${it.desc}": pide ${it.cant} y hay ${stock} en ${_rpAlmNombre()}.`);
     });
     return probs;
 }
@@ -20557,7 +20557,14 @@ async function _rpAgregarServicio() {
     _rpState.items.push({ cod: '1121', desc: (desc || 'Servicio técnico').trim(), precio: Math.max(0, parseFloat(precioTxt) || 0), cant: 1, servicio: true });
     _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
 }
-function _rpCant(i, v) { _rpState.items[i].cant = Math.max(1, parseInt(v) || 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+// 23-oct-2026 (dueño: «no debería de sumar si lo hay dos»): la cantidad nunca pasa de la existencia del almacén.
+// Si se pide más, se queda en lo que hay y se avisa. Con existencia 0 se deja 1 y el aviso rojo de la fila bloquea el guardado.
+function _rpCant(i, v) {
+    const it = _rpState.items[i]; let n = Math.max(1, parseInt(v) || 1);
+    const s = _rpStockItem(it);
+    if(s !== null && s >= 1 && n > s) { n = s; toast('Solo hay ' + s + ' en ' + _rpAlmNombre() + '.', 'error'); }
+    it.cant = n; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
+}
 function _rpPrecio(i, v) { _rpState.items[i].precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 // 20-oct-2026 (dueño, como STUDIO): descuento por línea en %. Importe = precio × cantidad − descuento.
 // Descuento máximo (%) de la prefactura: Configuración → Datos del taller (config_taller.prefactura_desc_max_pct; 10 si no está).
