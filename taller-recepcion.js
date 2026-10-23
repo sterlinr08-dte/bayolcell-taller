@@ -185,6 +185,56 @@
     function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return false; } }
     // 20-oct-2026 (dueño): la «referencia» de Info Plus (256GB, 64GB, AVISO…) junto al nombre, si no está ya en la descripción
     function pkRef(a) { var r = String(a.referencia || '').trim(); if (!r || String(a.descripcion || '').toUpperCase().indexOf(r.toUpperCase()) >= 0) return ''; var av = /^AVISO$/i.test(r); return ' <span class="pk-ref' + (av ? ' aviso' : '') + '">' + esc(av ? 'Con aviso' : r) + '</span>'; }
+    // 23-oct-2026 (dueño: «ponerlo smart»). Búsqueda tolerante: sinónimos y abreviaturas del mostrador, y errores de una
+    // letra («aifon» → iphone, «bateria ifon 13» → BATERIA IPHONE 13). Lo entendido se muestra bajo el buscador.
+    var SIN = {
+      pantalla: ['display', 'lcd', 'modulo', 'pant', 'panta'], display: ['pantalla'], lcd: ['pantalla'],
+      auricular: ['audifono', 'audifonos', 'airpod', 'airpods', 'handsfree', 'headset', 'aur', 'auri'], audifono: ['auricular'], audifonos: ['auricular'], airpods: ['auricular airpods'], airpod: ['auricular airpods'],
+      bateria: ['pila', 'bat', 'bate'], pila: ['bateria'],
+      cargador: ['cubo', 'adaptador', 'carg'], cubo: ['cargador'],
+      protector: ['mica', 'vidrio', 'templado', 'glass', 'prot'], mica: ['protector', 'vidrio'], vidrio: ['protector', 'templado'], templado: ['protector', 'vidrio'],
+      forro: ['cover', 'funda', 'case', 'estuche'], cover: ['forro'], funda: ['forro'], estuche: ['forro'], case: ['forro'],
+      bocina: ['altavoz', 'speaker', 'parlante', 'boc'], altavoz: ['bocina'], parlante: ['bocina'], speaker: ['bocina'],
+      camara: ['cam'], microfono: ['mic'], centro: ['pin de carga', 'puerto'],
+      iphone: ['aifon', 'ifon', 'aiphone', 'iphon', 'ip', 'iph'], aifon: ['iphone'], ifon: ['iphone'], aiphone: ['iphone'],
+      samsung: ['sansum', 'sansung', 'samsun', 'sam', 'sams'], sansum: ['samsung'], sansung: ['samsung'],
+      xiaomi: ['xia', 'siaomi', 'shaomi'], motorola: ['moto', 'mot'], huawei: ['hua', 'huawey'], tecno: ['tekno'], infinix: ['infinix', 'infi'],
+      plus: ['mas', '+'], mas: ['plus'], max: ['mas'],
+      original: ['orig', 'ori'], generico: ['gen', 'generica'], servicio: ['serv', 'mano de obra', 'instalacion']
+    };
+    var ATAJO = { pant: 'pantalla', panta: 'pantalla', bat: 'bateria', bate: 'bateria', aur: 'auricular', auri: 'auricular', carg: 'cargador', prot: 'protector',
+      cam: 'camara', mic: 'microfono', boc: 'bocina', ip: 'iphone', iph: 'iphone', sam: 'samsung', sams: 'samsung', xia: 'xiaomi', mot: 'motorola', moto: 'motorola', hua: 'huawei', orig: 'original', serv: 'servicio' };
+    function lev1(a, b) { // ¿difieren en una sola letra (cambio, falta o sobra)?
+      if (a === b) return true; var la = a.length, lb = b.length; if (Math.abs(la - lb) > 1) return false;
+      var i = 0, j = 0, d = 0;
+      while (i < la && j < lb) {
+        if (a[i] === b[j]) { i++; j++; continue; }
+        if (++d > 1) return false;
+        if (la > lb) i++; else if (lb > la) j++;
+        else if (a[i] === b[j + 1] && a[i + 1] === b[j]) { i += 2; j += 2; } // dos letras cambiadas de orden
+        else { i++; j++; }
+      }
+      return d + (la - i) + (lb - j) <= 1;
+    }
+    var tokCache = new WeakMap();
+    function tokensDe(a) { var t = tokCache.get(a); if (!t) { t = norm([a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(Boolean).join(' ')).split(/[^a-z0-9+]+/).filter(Boolean); tokCache.set(a, t); } return t; }
+    // Devuelve 0 = no coincide; 2 = tal cual; 1 = por sinónimo, abreviatura o una letra de diferencia.
+    function coincide(p, h, toks) {
+      if (h.indexOf(p) >= 0) return 2;
+      var alts = (SIN[p] || []).concat(ATAJO[p] ? [ATAJO[p]] : []);
+      for (var k = 0; k < alts.length; k++) if (h.indexOf(alts[k]) >= 0) return 1;
+      if (p.length >= 4 && !/^\d+$/.test(p)) for (var t = 0; t < toks.length; t++) { var w = toks[t]; if (lev1(p, w) || (w.length > p.length && lev1(p, w.slice(0, p.length)))) return 1; }
+      return 0;
+    }
+    function entendido(pal, arts) { // cómo se leyó cada palabra, para avisarlo
+      return pal.map(function (p) {
+        if (ATAJO[p]) return ATAJO[p];
+        var alts = SIN[p] || []; if (!alts.length) return p;
+        var directo = arts.some(function (a) { return norm(a.descripcion || '').indexOf(p) >= 0; });
+        return directo ? p : (alts[0].split(' ')[0]);
+      }).join(' ');
+    }
+    estado.soloDisp = (function () { try { return localStorage.getItem('bc_ppk_solodisp') === '1'; } catch (e) { return false; } })();
     function filtrar() {
       var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
       estado.imei = imeiDe(estado.q);
@@ -192,13 +242,21 @@
       clearTimeout(imeiTimer);
       estado.imeiBusq = null; estado.imeiMsg = ''; estado.enterPend = false;
       var qq = norm(estado.q).trim(), pal = qq.split(/\s+/).filter(Boolean);
-      var l = arts;
-      if (pal.length) l = arts.filter(function (a) { var h = norm([a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(Boolean).join(' ')); return pal.every(function (p) { return h.indexOf(p) >= 0; }); });
+      var l = arts, punt = new Map();
+      if (pal.length) l = arts.filter(function (a) {
+        var h = norm([a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(Boolean).join(' ')), toks = tokensDe(a), total = 0;
+        for (var i = 0; i < pal.length; i++) { var c = coincide(pal[i], h, toks); if (!c) return false; total += c; }
+        punt.set(a, total); return true;
+      });
+      // «Solo disponibles»: fuera lo que no tiene existencia en este almacén (los servicios se quedan)
+      if (estado.soloDisp) l = l.filter(function (a) { var e = existe(a); return e === null || e > 0; });
       l = l.slice().sort(function (x, y) {
         if (qq) { var cx = String(x.codigo) === qq, cy = String(y.codigo) === qq; if (cx !== cy) return cx ? -1 : 1; }
         var ex = (existe(x) || 0) > 0, ey = (existe(y) || 0) > 0; if (ex !== ey) return ex ? -1 : 1;
+        var px = punt.get(x) || 0, py = punt.get(y) || 0; if (px !== py) return py - px;
         return String(x.descripcion || '').localeCompare(String(y.descripcion || ''));
       });
+      estado.entendido = pal.length ? entendido(pal, arts) : ''; if (estado.entendido === qq) estado.entendido = '';
       estado.lista = l; estado.hl = 0; estado.det = -1;
     }
     function pintar() {
@@ -227,7 +285,16 @@
           '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>' +
           (estado.det === i ? detalleHTML(a, i) : '');
       }).join('');
-      cont.innerHTML = aviso + (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
+      // 23-oct-2026: aviso discreto si el nivel de precio no es el que suele llevar este cliente
+      var avisoNv = '';
+      try {
+        var cod = String((_rpState && _rpState.codcliente) || '1'), nv = nivel();
+        if (cod === '1' && nv !== '1') avisoNv = 'Cliente de contado con precio ' + (nv === '2' ? 'Por mayor' : 'Extremo') + '. Compruébelo antes de agregar.';
+        else if (cod !== '1' && nv === '1') avisoNv = 'Este cliente tiene código en Info Plus y suele llevar precio Por mayor. Aquí está en Cliente final.';
+      } catch (e) {}
+      var cabeza = (estado.entendido ? '<div class="bcrx-ppk-ent"><i class="ti ti-sparkles" aria-hidden="true"></i> Entendido como «' + esc(estado.entendido) + '»</div>' : '') +
+        (avisoNv ? '<div class="bcrx-ppk-nv" role="note"><i class="ti ti-info-circle" aria-hidden="true"></i> ' + esc(avisoNv) + '</div>' : '');
+      cont.innerHTML = cabeza + aviso + (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
         (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span><span></span></div>' + filas
           : '<div class="bcrx-ppk-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
     }
@@ -253,7 +320,8 @@
       slot.innerHTML = '<div class="bcrx-ppk" role="dialog" aria-label="Buscar artículo">' +
         '<div class="bcrx-ppk-top"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Buscar artículo</span>' +
         '<button type="button" class="bcrx-ppk-cat">Catálogo completo</button><button type="button" class="bcrx-ppk-x" aria-label="Cerrar"><i class="ti ti-arrow-left" aria-hidden="true"></i> Cerrar</button></div>' +
-        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' + clienteHTML() +
+        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo">' +
+        '<button type="button" class="bcrx-ppk-disp' + (estado.soloDisp ? ' on' : '') + '" aria-pressed="' + estado.soloDisp + '" title="Mostrar solo lo que hay en este almacén"><i class="ti ti-package" aria-hidden="true"></i><span>Solo disponibles</span></button></div>' + clienteHTML() +
         '<div class="bcrx-ppk-list" role="listbox"></div></div>';
       var inp = q('input', slot);
       inp.value = estado.q;
@@ -266,6 +334,10 @@
         else if (e.key === 'Escape') { e.preventDefault(); cerrarPanel(); }
       });
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
+      q('.bcrx-ppk-disp', slot).addEventListener('click', function () {
+        estado.soloDisp = !estado.soloDisp; try { localStorage.setItem('bc_ppk_solodisp', estado.soloDisp ? '1' : '0'); } catch (e) {}
+        this.classList.toggle('on', estado.soloDisp); this.setAttribute('aria-pressed', String(estado.soloDisp)); filtrar(); pintar(); inp.focus();
+      });
       q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
       q('.bcrx-ppk-list', slot).addEventListener('click', function (e) {
         var b = e.target.closest('.pk-add, .pk-elegir'); if (b) { agregar(Number(b.getAttribute('data-i'))); return; }

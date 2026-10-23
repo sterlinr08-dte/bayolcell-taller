@@ -153,7 +153,7 @@ html.bc-rx #v-recepcion .bcrx-ppk-mas { font-size: 12px; color: #64748b; padding
 html.bc-rx #v-recepcion .bcrx-ppk-vacio { text-align: center; color: #64748b; font-size: 14px; padding: 26px 12px; }
 html.bc-rx #v-recepcion .bcrx-ppk-head,
 html.bc-rx #v-recepcion .bcrx-ppk-row {
-  display: grid; grid-template-columns: 70px minmax(0, 1fr) 96px 104px 44px; align-items: center; column-gap: 10px;
+  display: grid; grid-template-columns: 70px minmax(0, 1fr) 96px 120px 44px; align-items: center; column-gap: 10px;
 }
 html.bc-rx #v-recepcion .bcrx-ppk-head { padding: 6px 8px; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .03em; }
 html.bc-rx #v-recepcion .bcrx-ppk-head span:nth-child(3), html.bc-rx #v-recepcion .bcrx-ppk-head span:nth-child(4) { text-align: right; }
@@ -256,3 +256,42 @@ html.bc-rx #v-recepcion .bcrx-ppk-imei.ok { color: #065f46; background: #ecfdf5;
 html.bc-rx #v-recepcion .bcrx-ppk-imei.no { color: #92400e; background: #fffbeb; border-color: #fde68a; }
 @keyframes bcrx-gira { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { html.bc-rx #v-recepcion .bcrx-ppk-imei .ti-loader-2 { animation: none; } }
+
+/* 23-oct-2026 (dueño: «ponerlo smart»): buscador de artículos */
+/* Interruptor «Solo disponibles» dentro del campo, a la derecha */
+html.bc-rx #v-recepcion .bcrx-ppk-inp > input { padding-right: 150px !important; }
+html.bc-rx #v-recepcion .bcrx-ppk-disp {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 36px; padding: 0 10px; border-radius: 999px;
+  border: 1.5px solid #e2e8f0; background: #fff; color: #475569; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+}
+html.bc-rx #v-recepcion .bcrx-ppk-disp i { font-size: 16px; }
+html.bc-rx #v-recepcion .bcrx-ppk-disp.on { border-color: #15803d; background: #f0fdf4; color: #15803d; }
+html.bc-rx #v-recepcion .bcrx-ppk-disp:active { transform: translateY(-50%) scale(.96); }
+/* Lo entendido y el aviso de precio: una línea discreta cada uno */
+html.bc-rx #v-recepcion .bcrx-ppk-ent, html.bc-rx #v-recepcion .bcrx-ppk-nv { display: flex; align-items: center; gap: 6px; margin: 2px 6px 6px; font-size: 13px; font-weight: 600; line-height: 1.3; }
+html.bc-rx #v-recepcion .bcrx-ppk-ent { color: #6d28d9; }
+html.bc-rx #v-recepcion .bcrx-ppk-nv { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 6px 10px; }
+html.bc-rx #v-recepcion .bcrx-ppk-nv i, html.bc-rx #v-recepcion .bcrx-ppk-ent i { font-size: 16px; flex: none; }
+/* Sin existencia aquí: toda la fila en gris, al final de la lista */
+html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-pre, html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-cod { color: #94a3b8; }
+html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-add { background: #cbd5e1; }
+/* Fila compacta en el celular: nombre en una línea con «…», código y existencia pequeños; 5–6 artículos por pantalla */
+@media (max-width: 640px) {
+  /* Nombre a todo el ancho en una línea; debajo: código · existencia · precio */
+  html.bc-rx #v-recepcion .bcrx-ppk-row {
+    min-height: 52px; padding: 4px 4px 4px 8px; row-gap: 2px; align-items: center;
+    grid-template-columns: auto auto minmax(0, 1fr) 44px; grid-template-areas: "nom nom nom add" "cod stk pre add";
+  }
+  html.bc-rx #v-recepcion .pk-nom, html.bc-rx #v-recepcion .pk-cod, html.bc-rx #v-recepcion .pk-pre { line-height: 1.2; }
+  html.bc-rx #v-recepcion .bcrx-stk { line-height: 1.2; }
+  html.bc-rx #v-recepcion .pk-nom .pk-dtx { -webkit-line-clamp: 1; }
+  html.bc-rx #v-recepcion .pk-nom small { display: none; }
+  html.bc-rx #v-recepcion .pk-stk { text-align: left; }
+  html.bc-rx #v-recepcion .pk-nom { font-size: 13.5px; }
+  html.bc-rx #v-recepcion .pk-cod { font-size: 11.5px; }
+  html.bc-rx #v-recepcion .bcrx-stk { font-size: 11.5px; padding: 1px 8px; }
+  html.bc-rx #v-recepcion .pk-pre { font-size: 14px; }
+  html.bc-rx #v-recepcion .pk-pre s { display: none; } /* el precio de lista se ve en el detalle de la fila */
+  html.bc-rx #v-recepcion .bcrx-ppk-row.abierta .pk-nom .pk-dtx { -webkit-line-clamp: 3; }
+  html.bc-rx #v-recepcion .bcrx-ppk-list { max-height: min(60vh, 560px); }
+}
