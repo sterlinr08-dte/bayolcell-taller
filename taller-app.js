@@ -20567,10 +20567,9 @@ async function _rpCrearPrefactura() {
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
         // 22-oct-2026 · Comprobado por el dueño (prefactura 118932): el comentario sale en Info Plus en el campo
         // «Comentario» (`comentario`). `contrato` va vacío, como pide el modelo.
-        contrato: '', comentario: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
-        // 22-oct-2026 (dueño): con el cliente de contado (cód. 1) Info Plus deja editar nombre, cédula, teléfono… en la
-        // prefactura. `nombre` ya viajaba. Se prueban además estos campos; si el modelo no los conoce, los ignora.
-        cedula: g('c_cedula') || g('c_rnc') || '', telefono: g('c_whatsapp') || '',
+        // 22-oct-2026 (dueño): toda prefactura hecha desde el taller se identifica en Info Plus con el comentario fijo
+        // «bayolcell.com:» seguido de lo que se escriba. Probado: la API solo toma `nombre`; cédula y teléfono no.
+        contrato: '', comentario: ('bayolcell.com:' + (obs ? ' ' + obs : '')).slice(0, 200), ordencompra: '', centro: '',
         seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
     _rpState.estado = 'actualizando'; _rpRenderResumen();
