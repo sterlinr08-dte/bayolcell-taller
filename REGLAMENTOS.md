@@ -35,7 +35,12 @@ La bitácora dice cuándo y por qué se escribió cada una.
 - El comentario se guarda en el taller, sale al imprimir y se manda a Info Plus en `comentario` (campo «Comentario»
   de la prefactura; comprobado por el dueño con la 118932). `contrato` va vacío.
 
-## 4. Reglas generales que ya regían
+## 4. Redacción de avisos y textos (dueño, 22-oct-2026)
+
+- Avisos **cortos, profesionales y que informen**, sin redundancias ni instrucciones de más. Una o dos frases.
+  Ejemplo aprobado: «Esta prefactura no se modificará en Info Plus. Los cambios quedan solo en este sistema.»
+
+## 5. Reglas generales que ya regían
 
 - Datos de Bayol salen solo de su Info Plus; escribir en Info Plus exige autorización expresa del dueño.
 - Publicar a `main` solo con «publícalo» (vale para esa entrega). Secretos nunca en el repo, el chat ni la bitácora.

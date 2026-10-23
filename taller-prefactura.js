@@ -437,7 +437,7 @@
     R.tInfo.innerHTML = facturada ? '<div class="t-fac">Esta prefactura ya fue convertida en factura y no puede modificarse.</div>'
       : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' +
         // 22-oct-2026 (dueño): Info Plus no toma cambios de descuento ni de comentario en una prefactura ya enviada.
-        '<div class="t-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Los cambios que haga aquí no se modifican en Info Plus. Para cambiarla, anule la Nº ' + esc(s.codprefactura) + ' en Info Plus y cree una nueva.</div>'
+        '<div class="t-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Esta prefactura no se modificará en Info Plus. Los cambios quedan solo en este sistema.</div>'
         : 'No cobra ni descuenta inventario: se factura en Info Plus.');
     R.bar.querySelector('.bimp').hidden = !(s && s.codprefactura);
     R.bar.querySelector('.bg').hidden = !!facturada; R.bar.querySelector('.bgi').hidden = !!facturada;
