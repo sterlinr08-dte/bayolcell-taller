@@ -20509,7 +20509,7 @@ function _rpRenderResumen() {
         <button class="rx-btn rx-btn-red" onclick="_rpGuardar(false)"><i class="ti ti-device-floppy"></i> Guardar</button>
         <button class="rx-btn rx-btn-dark" onclick="_rpGuardar(true)"><i class="ti ti-printer"></i> Guardar e imprimir</button>
       </div>`}
-      ${_rpState.codprefactura && !facturada ? `<div style="margin-top:10px;font-size:12.5px;line-height:1.35;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:9px 11px;"><i class="ti ti-alert-triangle"></i> Info Plus no cambia el descuento ni el comentario de una prefactura ya enviada. Para cambiarlos, anule la Nº ${escapeHtml(_rpState.codprefactura)} en Info Plus y cree una nueva.</div>` : ''}
+      ${_rpState.codprefactura && !facturada ? `<div style="margin-top:10px;font-size:12.5px;line-height:1.35;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:9px 11px;"><i class="ti ti-alert-triangle"></i> Los cambios que haga aquí no se modifican en Info Plus. Para cambiarla, anule la Nº ${escapeHtml(_rpState.codprefactura)} en Info Plus y cree una nueva.</div>` : ''}
       ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button><button class="btn btn-light btn-sm" onclick="_rpImprimir('pdf')" style="margin-left:4px; color:#b91c1c;" title="Descargar PDF"><i class="ti ti-file-type-pdf"></i></button></div>` : ''}`;
 }
 function _rpEstadoBadge(estado, cod) {
