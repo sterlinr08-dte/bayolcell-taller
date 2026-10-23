@@ -51,6 +51,11 @@ html.bc-pf #v-recepcion .bcpf-partes {
 html.bc-pf #v-recepcion .bcpf-partes .pcol { min-width: 0; }
 html.bc-pf #v-recepcion .plab { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--pf-steel); margin: 0 0 8px; }
 html.bc-pf #v-recepcion .bcpf-campos { display: grid; gap: 10px; }
+/* 22-oct-2026 · datos del cliente de contado arriba, debajo de «Facturar a» */
+html.bc-pf #v-recepcion .bcpf-clidatos { margin: 10px 0 2px; }
+html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.3fr); align-items: end; }
+html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos > div[style*="display:flex"], html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos > div[style*="display: flex"] { display: flex !important; gap: 10px; }
+@media (max-width: 760px) { html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos { grid-template-columns: 1fr; } }
 html.bc-pf #v-recepcion .bcpf-campos > div { margin: 0 !important; min-width: 0; }
 html.bc-pf #v-recepcion .bcpf-campos label {
   display: block; font-size: 13px !important; font-weight: 600; color: var(--pf-steel); text-transform: none; letter-spacing: 0; margin: 0 0 4px;

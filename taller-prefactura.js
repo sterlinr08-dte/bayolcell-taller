@@ -91,6 +91,11 @@
     // 20-oct-2026 (dueño): el «Vendedor» va al pie, al lado de «Pedir reseña» (fijo para cada empleada; lo decide _rpInit)
     var fVen = campo('rxVendedor'), avisoV = doc.getElementById('rxVendAviso');
     pad.appendChild(p1);
+    // 22-oct-2026 (dueño: «ponlo arriba»): los datos del cliente de contado (nombre, WhatsApp, cédula) van debajo de
+    // «Facturar a», no en el plegable. Son los que viajan a Info Plus con el código 1.
+    var lNom = q('#c_nombre', camposCli) && q('#c_nombre', camposCli).parentElement.querySelector('label'); if (lNom) lNom.textContent = 'Nombre del cliente';
+    var lWa = q('#c_whatsapp', camposCli) && q('#c_whatsapp', camposCli).parentElement.querySelector('label'); if (lWa) lWa.textContent = 'WhatsApp';
+    var cliDatos = el('div', 'bcpf-clidatos'); cliDatos.appendChild(camposCli); pad.appendChild(cliDatos);
 
     // Equipo, falla y lo demás: opcional (dueño: «la falla … opcional, no obligatorio. Y … los equipos también»).
     var camposEq = el('div', 'bcpf-campos');
@@ -182,7 +187,6 @@
     seccion('Equipo recibido', [camposEq]);
     var sFa = seccion('Falla reportada', [camposFa]);
     [fallasCard, seg].forEach(function (c) { if (c) { c.classList.add('bcpf-plegable'); sFa.appendChild(c); } });
-    seccion('Datos del cliente', [camposCli]);
     seccion('Orden de reparación', [camposAd]);
     if (rifaCard) seccion('Otras herramientas', [rifaCard]);
     mas.appendChild(cuerpo);
