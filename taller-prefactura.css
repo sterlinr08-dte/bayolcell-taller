@@ -206,6 +206,9 @@ html.bc-pf #v-recepcion .bcpf-coment textarea:focus { outline: none; border-colo
 html.bc-pf #v-recepcion .bcpf-resena { border: 0; margin-bottom: 12px; }
 html.bc-pf #v-recepcion .bcpf-resena:not([open]), html.bc-pf #v-recepcion .bcpf-resena > summary { display: none !important; }
 html.bc-pf #v-recepcion .bcpf-coment .bcpf-chev { margin-left: auto; }
+/* 23-oct-2026 (dueño: «Eso se repite dos veces»): el interruptor «Recibir promociones por WhatsApp» ya está bajo el
+   WhatsApp del cliente; dentro de «Pedir reseña» no se repite. */
+html.bc-pf #v-recepcion .bcpf-resena .bc-mkt-consent { display: none !important; }
 html.bc-pf #v-recepcion .bcpf-resena > .card { margin: 0 !important; box-shadow: none !important; border: 1px solid var(--pf-line) !important; border-top: 1px solid var(--pf-line) !important; border-radius: 12px !important; }
 html.bc-pf #v-recepcion .bcpf-mas { margin-top: 16px; border: 1px solid var(--pf-line); border-radius: 12px; background: var(--pf-canvas); }
 html.bc-pf #v-recepcion .bcpf-mas > summary {
