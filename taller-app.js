@@ -20797,12 +20797,40 @@ async function _rpEnviarCuentasWhatsApp() {
         if(r && r.error && !d) throw r.error;
         if(!d || !d.ok) {
             const msg = (d && (d.mensaje || d.error)) || 'No se pudo enviar.';
-            if(/template|plantilla|132001|not found|does not exist/i.test(String(msg))) throw new Error('La plantilla de cuentas todavía no está aprobada por Meta. El cliente debe escribir primero, o espere la aprobación.');
+            // 23-oct-2026 (dueño: «le decimos al cliente que nos escriba al WhatsApp para enviarle la cuenta»): si no se pudo
+            // mandar porque el chat está cerrado y la plantilla aún no está aprobada, se abre la ventana con el número y el QR
+            // de la línea para que el cliente nos escriba; en cuanto escriba, el botón manda las cuentas.
+            if(!h.abierto && /template|plantilla|132001|not found|does not exist/i.test(String(msg))) { _rpAvisoEscribanos(linea, suc, wa); return; }
             throw new Error(msg);
         }
         toast('Cuentas de pago enviadas por WhatsApp desde ' + linea.nombre + ' (' + suc + ').');
     } catch(e) { logError('enviar cuentas WhatsApp', e); toastError(getFriendlyError(e, 'No se pudieron enviar las cuentas.')); }
     finally { _rpEnviandoWa = false; }
+}
+// Ventana «Pídale al cliente que nos escriba»: número de la línea en grande, botón para copiarlo y QR de wa.me que el cliente
+// puede escanear en el mostrador (abre el chat con un texto ya escrito). Nada se envía desde aquí.
+function _rpAvisoEscribanos(linea, suc, waCliente) {
+    document.getElementById('modalRpEscribanos')?.remove();
+    const num = String((linea && linea.whatsapp_numero) || '').replace(/\D/g, '');
+    const bonito = num.length === 11 ? '+' + num[0] + ' ' + num.slice(1, 4) + '-' + num.slice(4, 7) + '-' + num.slice(7) : (linea && linea.whatsapp_numero) || '';
+    const texto = 'Hola BAYOL CELL, quiero las cuentas para pagar.';
+    const enlace = num ? 'https://wa.me/' + num + '?text=' + encodeURIComponent(texto) : '';
+    const box = document.createElement('div'); box.id = 'modalRpEscribanos'; box.className = 'modal-backdrop active'; box.style.zIndex = '820';
+    box.innerHTML = `<div class="modal-box" style="max-width:460px; width:94%; text-align:center;">
+        <h3 style="margin:0 0 6px; font-size:19px;">Pídale al cliente que nos escriba</h3>
+        <p style="margin:0 0 14px; color:#475569; font-size:14px; line-height:1.45;">WhatsApp solo deja mandar las cuentas si el cliente nos escribe primero. Dígale que escriba a la línea <b>${escapeHtml((linea && linea.nombre) || '')} (${escapeHtml(suc || '')})</b> o que escanee el código. En cuanto escriba, vuelva a tocar «Enviar cuentas de pago».</p>
+        <div style="font:700 26px/1 ui-monospace, Menlo, monospace; letter-spacing:.01em; margin:0 0 10px;">${escapeHtml(bonito)}</div>
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:14px;">
+            <button class="btn btn-light" style="min-height:46px;" onclick="navigator.clipboard&&navigator.clipboard.writeText('${escapeHtml(bonito)}').then(()=>toast('Número copiado.'))"><i class="ti ti-copy"></i> Copiar número</button>
+            <button class="btn btn-light" style="min-height:46px;" onclick="document.getElementById('modalRpEscribanos').remove(); _rpEnviarCuentasWhatsApp();"><i class="ti ti-refresh"></i> Ya escribió, enviar</button>
+        </div>
+        <div id="rpEscribanosQr" style="display:inline-block; padding:10px; background:#fff; border:1px solid #e5e7eb; border-radius:12px;"></div>
+        <div style="font-size:12px; color:#64748b; margin:8px 0 14px;">El QR abre el chat de WhatsApp con el mensaje «${escapeHtml(texto)}» ya escrito.</div>
+        <button class="btn btn-dark" style="min-height:48px; width:100%;" onclick="document.getElementById('modalRpEscribanos').remove()">Cerrar</button>
+    </div>`;
+    document.body.appendChild(box);
+    box.addEventListener('click', e => { if(e.target === box) box.remove(); });
+    if(enlace) _finQrRender(enlace, 'rpEscribanosQr', 200); else document.getElementById('rpEscribanosQr').textContent = 'La línea no tiene número configurado.';
 }
 async function _rpEnviarWhatsApp() {
     if(_rpEnviandoWa) return;
