@@ -297,6 +297,10 @@ html.bc-rx #v-recepcion .bcrx-ppk-chip:hover { border-color: #e4572e; }
 html.bc-rx #v-recepcion .bcrx-ppk-chip:active { transform: scale(.97); }
 html.bc-rx #v-recepcion .bcrx-ppk-chip.on { background: #e4572e; border-color: #e4572e; color: #fff; }
 @media (max-width: 760px) {
-  html.bc-rx #v-recepcion .bcrx-ppk-chips { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  /* 23-oct-2026 (dueño: «en el celular se distorsiona… ajústalo mejor»): las fichas no se encogen; la fila se desliza de lado
+     y la última deja ver un pedacito de la siguiente para que se note que hay más. */
+  html.bc-rx #v-recepcion .bcrx-ppk-chips { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px; padding: 2px 12px 8px; scroll-padding-left: 12px; scroll-snap-type: x proximity; }
   html.bc-rx #v-recepcion .bcrx-ppk-chips::-webkit-scrollbar { display: none; }
+  html.bc-rx #v-recepcion .bcrx-ppk-chip { flex: 0 0 auto; padding: 0 12px; scroll-snap-align: start; }
+  html.bc-rx #v-recepcion .bcrx-ppk-chip:last-child { margin-right: 12px; }
 }
