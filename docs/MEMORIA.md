@@ -67,6 +67,7 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
+- **Prefactura por WhatsApp** (rama `claude/prefactura-whatsapp`, sin publicar): botón, línea por sucursal, cliente por número con pestaña Compras, sin «Prefacturas realizadas». Plantilla `bayolcell_prefactura` sometida a Meta (PENDING, 22-oct). Ver REGLAMENTOS §1.7–1.9.
 - **IMEI por almacén:** `listaserie` filtra por `codalmacen`; Edge v9 lo usa (lista prudente por almacén) y con `{imei}` devuelve el artículo (compras → listaserie). Falta prueba real; rama `claude/imei-busca-articulo` sin publicar: IMEI → artículo, serie la decide Info Plus, IMEI a mano comprobado, tope % y descuento RD$, `REGLAMENTOS.md` (bit. 1740, 1830, 1825).
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
 - **WA 22-oct:** publicado «Transferido», historial en el chat, «A un empleado», respuestas rápidas, álbum y «Eliminar para todos» (falta prueba real, bit. 1700). Llamadas: sin rastro (coexistencia).

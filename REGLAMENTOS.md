@@ -21,6 +21,15 @@ La bitácora dice cuándo y por qué se escribió cada una.
    queda bloqueado; el Almacén es el de su sucursal, también bloqueado. Solo el administrador puede cambiarlos.
    Una empleada sin código ve un aviso «usuario no enlazado» y el administrador le asigna el código en su ficha.
 
+7. **Enviar la prefactura por WhatsApp** (dueño, 22-oct-2026): botón «Enviar por WhatsApp», nunca automático. Sale por la
+   línea de la sucursal del almacén: Santiago → Reparación, Navarrete → Principal, Moca → Reparación; cliente mayorista →
+   «Al por Mayor» donde exista. Si el cliente escribió en las últimas 24 h, va el texto con el PDF; si no, va la plantilla
+   aprobada por Meta «bayolcell_prefactura». El mensaje queda en el chat del CRM de esa línea.
+8. **El cliente se guarda por su número de WhatsApp** (tabla `clientes`), sin importar la sucursal, y cada prefactura queda
+   ligada a él (`cliente_id`). Su historial de compras se ve en la ficha del cliente, pestaña «Compras».
+9. La lista «Prefacturas realizadas» no va en la pantalla de Prefactura (dueño, 22-oct). Para reabrir una, la píldora
+   «Prefacturas» o la ficha del cliente.
+
 ## 2. Descuentos en la prefactura (dueño, 22-oct-2026)
 
 1. El descuento **por línea es en por ciento** y tiene un **tope** que se pone en Configuración → Datos del taller
