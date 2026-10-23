@@ -35,3 +35,6 @@ Rama `claude/garantia-prefactura`, **sin publicar**. Falta el «publícalo» del
 ## Pendientes
 - El dueño revisa/corrige el texto de piezas (Configuración → Datos del taller).
 - Si aparece un celular con nombre raro y sin IMEI, agregar la marca a la lista (`RE_CEL`).
+
+## Añadido 16:25 — texto de piezas del dueño
+El dueño mandó su propia redacción de «GARANTÍA DE LA PIEZA»; reemplaza el borrador como texto estándar (`GAR_PZA`).
