@@ -30,6 +30,7 @@ manda lo más nuevo. Ante la duda, volver a leer (nunca suponer).
 - Agente de IA de WhatsApp: seguir `.claude/rules/agente-atencion-supervisado.md` y
   `AGENTE_ATENCION_APRENDIZAJE_SUPERVISADO_2026-09-14.md`.
 
+- **Avisos en pantalla:** cortos, profesionales, que informen, sin redundancia (`REGLAMENTOS.md` §4, 22-oct).
 ## 3. Qué tenemos funcionando (por módulo)
 **Prefactura** (antes «Recepción»; id interno `recepcion`, tabla `recepcion_prefacturas`; capa `taller-prefactura.js/.css`,
 apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
