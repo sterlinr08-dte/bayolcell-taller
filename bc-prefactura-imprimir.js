@@ -163,11 +163,21 @@
     w.document.write(html); w.document.close(); w.focus(); return true;
   }
 
+  // 23-oct-2026 (dueño: «quiero que no salga la pantalla emergente»): con QZ Tray conectado y una impresora de tickets elegida
+  // en «Config. Impresora», el ticket sale DIRECTO a la impresora (sin ventana). Si QZ no está o falla, sigue la ventana de siempre.
+  function qzListo() { try { return typeof _qzConectado !== 'undefined' && _qzConectado && typeof qzImpresoraTickets === 'function' && !!qzImpresoraTickets() && typeof qzImprimirHtml === 'function'; } catch (e) { return false; } }
+  function sinAutoPrint(html) { return html.replace(/<script>window\.onload=[\s\S]*?<\/script>/, ''); }
   function imprimir(modo) {
     var p = typeof _prefUltima !== 'undefined' ? _prefUltima : null; if (!p) return;
     var d = datos(p), copia = yaImpresa(d.num);
     if (modo === 'pdf') { try { return _htmlAPdf(htmlCarta(d, copia, true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760 }); } catch (e) { return; } }
     if (modo !== 'ticket' && modo !== 'carta') modo = formato();
+    if (modo === 'ticket' && qzListo()) {
+      return Promise.resolve(qzImprimirHtml(sinAutoPrint(htmlTicket(d, copia)), 76, null, 1, 'tickets')).then(function (ok) {
+        if (ok) { marcarImpresa(d.num); try { toast('Prefactura Nº ' + d.num + ' impresa en ' + qzImpresoraTickets() + '.'); } catch (e) {} return true; }
+        if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false;
+      }, function () { if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false; });
+    }
     if (abrir(modo === 'ticket' ? htmlTicket(d, copia) : htmlCarta(d, copia))) marcarImpresa(d.num);
   }
 
@@ -179,7 +189,7 @@
     if (!c) {
       c = doc.createElement('div'); c.id = 'bcPfFmtCard'; c.className = 'card';
       c.innerHTML = '<h3 style="margin:0 0 4px;"><i class="ti ti-file-invoice" style="color:#ea580c;"></i> Papel de la prefactura</h3>' +
-        '<div class="bcpffmt-mut">Se usa al imprimir la prefactura en esta computadora.</div>' +
+        '<div class="bcpffmt-mut">Se usa al imprimir la prefactura en esta computadora. Con QZ Tray conectado y una impresora de tickets elegida arriba, el ticket sale directo, sin ventana.</div>' +
         '<div class="bcpffmt" role="radiogroup" aria-label="Papel de la prefactura">' +
         '<button type="button" role="radio" data-f="ticket"><i class="ti ti-receipt"></i><span>Ticket 80 mm</span></button>' +
         '<button type="button" role="radio" data-f="carta"><i class="ti ti-file-text"></i><span>Hoja carta</span></button></div>';

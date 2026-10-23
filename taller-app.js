@@ -1024,6 +1024,9 @@ function esDueno() {
 function tienePermiso(permiso) {
     // Admin (usuario tradicional o técnico admin) tiene todo
     if(isAdminUser()) return true;
+    // 23-oct-2026 (dueño: «habilitar la opción para que los empleados puedan configurar la impresora si se desconfigura»):
+    // la configuración de impresora es de cada computadora (QZ Tray, impresora de tickets, papel), no toca datos ni dinero.
+    if(permiso === 'config_impresora' && sessionUser) return true;
     // Si no tiene permisos cargados, denegar por defecto (excepto lo básico)
     const permisos = sessionUser?._permisos || {};
     return permisos[permiso] === true;

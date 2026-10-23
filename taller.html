@@ -3152,12 +3152,12 @@ body{
                     <div id="qzNoInstalado" style="display:none; margin-top:15px;">
                         <div style="background:#fef2f2; border:1px solid #fecaca; padding:14px; border-radius:8px; color:#991b1b;">
                             <b><i class="ti ti-alert-triangle"></i> El Cliente de Impresión no está instalado</b>
-                            <p style="margin:8px 0; font-size:13px; line-height:1.5;">Para imprimir directo sin diálogo (como InfoPlus), descargue e instale QZ Tray. Es gratis.</p>
+                            <p style="margin:8px 0; font-size:13px; line-height:1.5;">Para imprimir sin que salga la ventana (prefacturas, tickets y etiquetas), instale QZ Tray. Es gratis y ya trae todo lo que necesita.</p>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
                                 <a href="https://qz.io/download/" target="_blank" class="btn btn-blue" style="text-decoration:none;"><i class="ti ti-download"></i> Descargar QZ Tray</a>
                                 <button class="btn btn-light" onclick="qzVerificarConexion()"><i class="ti ti-refresh"></i> Ya lo instalé, reconectar</button>
                             </div>
-                            <p style="margin:10px 0 0; font-size:11px; color:#92400e;">⚠️ Durante la instalación puede pedir instalar Java. Acéptelo; QZ Tray lo necesita.</p>
+                            <p style="margin:10px 0 0; font-size:12px; color:#334155;">En la primera impresión QZ Tray pregunta «¿Permitir?»: marque <b>Recordar esta decisión</b> y toque <b>Permitir</b>. No vuelve a preguntar en esa computadora.</p>
                         </div>
                     </div>
                     
@@ -3188,7 +3188,7 @@ body{
                     <div style="margin-top:15px; border-top:1px solid var(--border-color); padding-top:14px;">
                         <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:6px;"><i class="ti ti-shield-lock" style="color:#f59e0b;"></i> QZ Tray pide permiso en cada impresión</div>
                         <div style="font-size:13px; color:#334155; line-height:1.55;">
-                            <p style="margin:0 0 10px;">Es el aviso de seguridad de QZ Tray. Para que <b>deje de preguntar</b> en esta computadora, instale el certificado de BAYOL CELL como "de confianza" (una sola vez por computadora):</p>
+                            <p style="margin:0 0 10px;">Lo normal es marcar <b>Recordar esta decisión</b> en ese aviso y listo. Si aun así sigue preguntando, instale el certificado de BAYOL CELL como "de confianza" (una sola vez por computadora):</p>
                             <button class="btn btn-blue" onclick="_qzDescargarCertificado()"><i class="ti ti-download"></i> Descargar certificado (bayol-cell.crt)</button>
                             <ol style="margin:12px 0 0 18px; padding:0; font-size:12.5px;">
                                 <li>Descargue el archivo con el botón de arriba (se guarda como <b>bayol-cell.crt</b>).</li>
@@ -5655,10 +5655,10 @@ body{
 <div id="printArea" class="print-area"></div>
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
-<script defer src="taller-app.min.js?v=20261023-p31"></script>
+<script defer src="taller-app.min.js?v=20261023-p32"></script>
 <script defer src="taller-recepcion.js?v=20261023-g8"></script>
 <script defer src="taller-prefactura.js?v=20261023-i20"></script>
-<script defer src="bc-prefactura-imprimir.js?v=20261021-i3"></script>
+<script defer src="bc-prefactura-imprimir.js?v=20261023-i4"></script>
 <script defer src="bc-permisos-listas.js?v=20261021-pl1"></script>
 <script defer src="taller-info.js?v=20261023-v2"></script>
 <script defer src="crm-consulta-precio.js?v=20261020-h2"></script>
