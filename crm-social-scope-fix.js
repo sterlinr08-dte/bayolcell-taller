@@ -159,7 +159,9 @@
     if(host.dataset.fbLoading==='1'){host.dataset.fbReload='1';return;}
     host.dataset.fbLoading='1';
     try{
-      host.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Comprobando Facebook…</div>';
+      // 23-oct-2026 (dueño: «Facebook parpadea»): el aviso «Comprobando…» solo la primera vez. En los refrescos de tiempo
+      // real la lista se queda en pantalla y se actualiza en su sitio (fbActualizarListaIncremental).
+      if(!host.querySelector('[data-fb-thread]')) host.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Comprobando Facebook…</div>';
       const actor=typeof sessionUser!=='undefined'?sessionUser:window.sessionUser;
       const sucursalId=actor?.sucursal_id||actor?.sucursalId;
       let accountQuery=client.from('social_cuentas').select('id,username,display_name,estado').eq('plataforma','facebook').eq('activo',true);
@@ -178,7 +180,7 @@
       state.meta.facebook.ready=true;
       state.meta.facebook.account=account.display_name||account.username||'BayolCell';
       syncHeaderState();
-      const {data:threadsRaw,error}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado,asignado_id,asignado_tipo').eq('cuenta_id',account.id).or(state.fbVerArchivados?'estado.eq.archivado':'estado.is.null,estado.neq.archivado').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(100),12000);
+      const {data:threadsRaw,error}=await withTimeout(client.from('social_hilos').select('id,participant_id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado,asignado_id,asignado_tipo').eq('cuenta_id',account.id).or(state.fbVerArchivados?'estado.eq.archivado':'estado.is.null,estado.neq.archivado').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(100),12000);
       if(error) throw error;
       let threads=threadsRaw||[];
       // Mismo candado que WhatsApp/Instagram (ver CLAUDE.md): un empleado
@@ -193,7 +195,7 @@
       setupFacebookRealtime();
       if(!threads?.length && state.fbVerArchivados){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-archive"></i><b>No hay conversaciones archivadas</b><span>Las que archives desde el menú ⋮ aparecerán aquí.</span></div>';return;}
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
-      if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span><i class="bc-fb-thread-time">${escapeHtml(fbListaHora(t.ultimo_mensaje_at))}</i>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
+      if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||('Cliente de Facebook ·'+String(t.participant_id||t.id||'').slice(-4));const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span><i class="bc-fb-thread-time">${escapeHtml(fbListaHora(t.ultimo_mensaje_at))}</i>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
       if(facebookSelectedThread) host.querySelectorAll('[data-fb-thread]').forEach(r=>r.classList.toggle('on',r.dataset.fbThread===facebookSelectedThread));
     }catch(e){
       state.meta.facebook.ready=false;
