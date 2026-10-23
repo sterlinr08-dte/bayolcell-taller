@@ -34,7 +34,99 @@ const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY, {
   global: { fetch: _bcFetch }
 });
 // Mantiene fresca la sesion segura para evitar "JWT expired" (al volver a la pestana, al enfocar y cada 10 min)
-function _bcRefreshSession(){ try{ supabaseClient.auth.refreshSession(); }catch(e){} }
+function _bcRefreshSession(){ try{ supabaseClient.auth.refreshSession(); }catch(e){} try{ _sesComprobarVigente(); }catch(e){} }
+
+/* ============================================================
+   SESIONES ACTIVAS (23-oct-2026). Referencia: reel Moxen «Quién entra a tu cuenta». Sin aviso por WhatsApp (dueño).
+   Lee auth.sessions por RPC (app_sesiones_listar); el admin ve a todos. Cerrar una sesión borra su fila en auth y el
+   otro aparato, que pregunta cada minuto si su sesión sigue viva (app_sesion_vigente), sale solo.
+   ============================================================ */
+function _sesDispositivo(ua) {
+    ua = String(ua || '');
+    const so = /iPhone|iPad/.test(ua) ? (/iPad/.test(ua) ? 'iPad' : 'iPhone') : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'Equipo';
+    const nav = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) && !/Edg/.test(ua) ? 'Chrome' : /Safari\//.test(ua) && /Version\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : 'Navegador';
+    const movil = /iPhone|Android.*Mobile/.test(ua), tableta = /iPad|Android(?!.*Mobile)/.test(ua);
+    const tipo = movil ? 'Teléfono' : tableta ? 'Tableta' : 'Computadora';
+    const icono = movil ? 'ti-device-mobile' : tableta ? 'ti-device-tablet' : /Mac/.test(so) ? 'ti-device-laptop' : 'ti-device-desktop';
+    return { tipo, so, nav, icono, titulo: tipo + (so !== 'Equipo' ? ' ' + so : '') };
+}
+function _sesHace(iso) {
+    if(!iso) return '';
+    const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if(m < 1) return 'activa ahora'; if(m < 60) return 'hace ' + m + ' min';
+    const h = Math.round(m / 60); if(h < 24) return 'hace ' + h + ' h';
+    const d = Math.round(h / 24); return d === 1 ? 'ayer' : 'hace ' + d + ' días';
+}
+let _sesLista = [];
+async function _sesCargar(avisar) {
+    const cont = document.getElementById('bcSesLista'); if(!cont) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('app_sesiones_listar');
+        if(error) throw error;
+        _sesLista = data || [];
+        _sesPintar();
+        if(avisar) toast('Sesiones actualizadas.');
+    } catch(e) { logError('sesiones', e); cont.innerHTML = '<div class="bc-ses-vacio">No se pudieron cargar las sesiones.</div>'; }
+}
+function _sesPintar() {
+    const cont = document.getElementById('bcSesLista'), num = document.getElementById('bcSesNum'), sub = document.getElementById('bcSesSub'), ico = document.getElementById('bcSesIco');
+    if(!cont) return;
+    const l = _sesLista, admin = isAdminUser();
+    const mias = l.filter(s => s.es_mia), otras = mias.filter(s => !s.es_actual).length;
+    const btnOtras = document.getElementById('bcSesCerrarOtras'); if(btnOtras) btnOtras.style.display = otras ? '' : 'none';
+    if(num) num.textContent = l.length;
+    const sinUso = l.filter(s => Date.now() - new Date(s.vista_en).getTime() > 7 * 86400000).length;
+    if(sub) sub.textContent = admin ? (sinUso ? sinUso + ' sin usar hace más de una semana. Ciérrelas si no las reconoce.' : 'Todo en orden: cada sesión se usó esta semana.') : (otras ? 'Tiene el taller abierto en ' + (otras + 1) + ' dispositivos.' : 'Solo este dispositivo tiene el taller abierto.');
+    if(ico) ico.classList.toggle('alerta', !!sinUso);
+    if(!l.length) { cont.innerHTML = '<div class="bc-ses-vacio">No hay sesiones abiertas.</div>'; return; }
+    cont.innerHTML = l.map(s => {
+        const d = _sesDispositivo(s.user_agent);
+        return `<div class="bc-ses-fila${s.es_actual ? ' actual' : ''}" data-id="${s.id}">
+            <div class="ico"><i class="ti ${d.icono}"></i></div>
+            <div style="min-width:0;">
+                <div class="nom">${escapeHtml(admin ? (s.nombre || 'Usuario') : d.titulo)}${s.es_actual ? '<span class="badge" style="background:#d1fae5; color:#065f46;"><i class="ti ti-circle-check"></i> Este dispositivo</span>' : (Date.now() - new Date(s.vista_en).getTime() > 7 * 86400000 ? '<span class="badge" style="background:#fef3c7; color:#92400e;"><i class="ti ti-clock"></i> Sin usar</span>' : '')}</div>
+                <div class="det"><span>${escapeHtml(admin ? d.titulo : d.so)}</span><span>${escapeHtml(d.nav)}</span>${s.ip ? `<span>${escapeHtml(s.ip)}</span>` : ''}<span>${escapeHtml(_sesHace(s.vista_en))}</span></div>
+            </div>
+            ${s.es_actual ? '' : `<button type="button" class="btn btn-light" onclick="_sesCerrar('${s.id}')"><i class="ti ti-logout"></i> Cerrar sesión</button>`}
+        </div>`;
+    }).join('');
+}
+async function _sesCerrar(id) {
+    const s = _sesLista.find(x => x.id === id); if(!s) return;
+    const d = _sesDispositivo(s.user_agent);
+    if(!await confirmar(`¿Cerrar la sesión de ${isAdminUser() ? (s.nombre || 'este usuario') + ' en ' : ''}${d.titulo} (${d.nav})?\n\nEse dispositivo tendrá que volver a iniciar sesión.`)) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('app_sesion_cerrar', { p_id: id });
+        if(error) throw error;
+        if(!data) return toast('Esa sesión ya no existe.', 'error');
+        const fila = document.querySelector(`.bc-ses-fila[data-id="${id}"]`);
+        if(fila) { fila.style.transition = 'opacity .25s, transform .25s'; fila.style.opacity = '0'; fila.style.transform = 'translateX(16px)'; }
+        setTimeout(() => { _sesLista = _sesLista.filter(x => x.id !== id); _sesPintar(); }, 260);
+        toast('Sesión cerrada.');
+    } catch(e) { logError('cerrar sesión', e); toast(e.message || 'No se pudo cerrar la sesión.', 'error'); }
+}
+async function _sesCerrarOtras() {
+    if(!await confirmar('¿Cerrar sus otras sesiones?\n\nEste dispositivo sigue abierto; los demás tendrán que volver a iniciar sesión.')) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('app_sesiones_cerrar_otras');
+        if(error) throw error;
+        toast(data ? `Se cerraron ${data} sesión${data === 1 ? '' : 'es'}.` : 'No había otras sesiones.');
+        _sesCargar();
+    } catch(e) { logError('cerrar otras', e); toast('No se pudieron cerrar.', 'error'); }
+}
+let _sesVigenteUltima = 0;
+async function _sesComprobarVigente() {
+    if(!sessionUser || Date.now() - _sesVigenteUltima < 45000) return;
+    _sesVigenteUltima = Date.now();
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession(); if(!session) return;
+        const { data, error } = await supabaseClient.rpc('app_sesion_vigente');
+        if(error || data !== false) return;
+        toast('Esta sesión fue cerrada desde otro dispositivo.', 'error');
+        setTimeout(logout, 1500);
+    } catch(e) {}
+}
+setInterval(function(){ try { _sesComprobarVigente(); } catch(e) {} }, 60 * 1000);
 document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _bcRefreshSession(); });
 window.addEventListener('focus', _bcRefreshSession);
 setInterval(_bcRefreshSession, 10 * 60 * 1000);
@@ -13229,6 +13321,7 @@ function restaurarOrdenMenu() {
 
 function cambiarMainTabConfig(tab) {
     try { localStorage.setItem('bayol_subtab_config', tab); } catch(e){} // recordar sub-pestaña de Configuración
+    if(tab === 'general') { try { _sesCargar(); } catch(e) {} }
     document.getElementById('cfgContentTecnicos').style.display = tab === 'tecnicos' ? 'block' : 'none';
     document.getElementById('cfgContentGeneral').style.display = tab === 'general' ? 'block' : 'none';
     const rolesCont = document.getElementById('cfgContentRoles');
