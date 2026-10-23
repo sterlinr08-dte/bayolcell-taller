@@ -286,3 +286,17 @@ html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-add { background: #cbd5e1; }
   html.bc-rx #v-recepcion .bcrx-ppk-row.abierta .pk-nom .pk-dtx { -webkit-line-clamp: 3; }
   html.bc-rx #v-recepcion .bcrx-ppk-list { max-height: min(60vh, 560px); }
 }
+
+/* 23-oct-2026 (dueño, opción A): fichas de acceso rápido debajo del campo de búsqueda. 44 px de alto; en celular, una fila que se desliza. */
+html.bc-rx #v-recepcion .bcrx-ppk-chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 2px 12px 8px; }
+html.bc-rx #v-recepcion .bcrx-ppk-chip {
+  min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(0,0,0,.16);
+  background: #fff; color: #0f172a; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: transform 120ms ease-out, background 120ms;
+}
+html.bc-rx #v-recepcion .bcrx-ppk-chip:hover { border-color: #e4572e; }
+html.bc-rx #v-recepcion .bcrx-ppk-chip:active { transform: scale(.97); }
+html.bc-rx #v-recepcion .bcrx-ppk-chip.on { background: #e4572e; border-color: #e4572e; color: #fff; }
+@media (max-width: 760px) {
+  html.bc-rx #v-recepcion .bcrx-ppk-chips { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  html.bc-rx #v-recepcion .bcrx-ppk-chips::-webkit-scrollbar { display: none; }
+}
