@@ -88,6 +88,9 @@
     p1.appendChild(cCli); if (fNivel) p1.appendChild(fNivel);
     ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var l = doc.querySelector('label[for="' + id + '"]') || (campo(id) && campo(id).querySelector('label')); if (l) Array.prototype.slice.call(l.childNodes).forEach(function (n) { if (n.nodeType === 3) n.nodeValue = n.nodeValue.replace(/\s*\(Info Plus\)/i, ''); }); });
     var fAlm = campo('rxAlmacen'); if (fAlm) { var cAlm = el('div', 'pcol bcpf-campos'); cAlm.appendChild(fAlm); p1.appendChild(cAlm); }
+    // 22-oct-2026 (dueño: «vendedor arriba también»): el Vendedor vuelve a la franja, como 4.ª casilla.
+    var fVenArriba = campo('rxVendedor');
+    if (fVenArriba) { var cVenArriba = el('div', 'pcol bcpf-campos bcpf-vend'); cVenArriba.appendChild(fVenArriba); p1.appendChild(cVenArriba); }
     // 20-oct-2026 (dueño): el «Vendedor» va al pie, al lado de «Pedir reseña» (fijo para cada empleada; lo decide _rpInit)
     var fVen = campo('rxVendedor'), avisoV = doc.getElementById('rxVendAviso');
     pad.appendChild(p1);
@@ -151,7 +154,7 @@
       pildora('ti-star', 'Pedir reseña', function () { detRes.open = !detRes.open; if (detRes.open) { var i = doc.getElementById('resenaWa'); if (i) i.focus(); } });
     }
     var qrow = el('div', 'bcpf-qrow'); qrow.appendChild(qs);
-    if (fVen) { var cVen = el('div', 'bcpf-campos bcpf-vend'); cVen.appendChild(fVen); qrow.appendChild(cVen); if (avisoV) { avisoV.classList.add('bcpf-vaviso'); qrow.appendChild(avisoV); } }
+    if (avisoV) { avisoV.classList.add('bcpf-vaviso'); qrow.appendChild(avisoV); }
     otras.appendChild(qrow);
     R.qrow = qrow;
     if (detRes) otras.appendChild(detRes);
