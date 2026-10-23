@@ -157,7 +157,7 @@
       var lCom = q('label', fComent); if (lCom) lCom.innerHTML = 'Comentario';
       var tCom = doc.getElementById('o_observaciones'); if (tCom) tCom.placeholder = 'Ej. cliente pasa a buscarlo el viernes; trae su propio cargador…';
       detCom.appendChild(fComent);
-      detCom.appendChild(el('p', 'bcpf-nota', 'Se guarda en el taller, sale al imprimir y se manda a Info Plus como comentario de la prefactura (confirmar con Dagoberto que la cajera lo ve).'));
+      detCom.appendChild(el('p', 'bcpf-nota', 'Se guarda en el taller, sale al imprimir y se manda a Info Plus como comentario de la prefactura.'));
     }
     otras.appendChild(detCom);
     R.com = detCom;
