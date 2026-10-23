@@ -4100,6 +4100,10 @@ body{
                         <div style="font-size:12px;color:#64748b;margin:-6px 0 12px;">Tope para el % por línea y para el descuento en pesos de toda la prefactura. Si no se pone, es 10 %.</div>
                         <label style="display:block;font-size:13px;color:#475569;">Cuentas para pagos (se envían al cliente por WhatsApp)</label>
                         <textarea id="cfgCuentasPago" rows="4" placeholder="Una cuenta por línea. Ej.: Banco Popular · Ahorros 123456789 · BAYOL CELL SRL" style="margin:3px 0 12px;font-size:16px;min-height:96px;"></textarea>
+                        <label style="display:block;font-size:13px;color:#475569;">Garantía de celulares (sale en la prefactura si lleva un celular)</label>
+                        <textarea id="cfgGarantiaCelular" rows="5" placeholder="Vacío = texto estándar del sistema" style="margin:3px 0 12px;font-size:16px;min-height:96px;"></textarea>
+                        <label style="display:block;font-size:13px;color:#475569;">Garantía de piezas y reparaciones (sale si lleva pantalla, batería u otra pieza)</label>
+                        <textarea id="cfgGarantiaPieza" rows="5" placeholder="Vacío = texto estándar del sistema" style="margin:3px 0 12px;font-size:16px;min-height:96px;"></textarea>
                         <button onclick="guardarDatosTaller()" class="btn btn-blue" style="width:100%;"><i class="ti ti-device-floppy"></i> Guardar datos del taller</button>
                     </div>
                     <div class="card">
@@ -5655,10 +5659,10 @@ body{
 <div id="printArea" class="print-area"></div>
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
-<script defer src="taller-app.min.js?v=20261023-p33"></script>
+<script defer src="taller-app.min.js?v=20261023-p34"></script>
 <script defer src="taller-recepcion.js?v=20261023-g8"></script>
 <script defer src="taller-prefactura.js?v=20261023-i22"></script>
-<script defer src="bc-prefactura-imprimir.js?v=20261023-i8"></script>
+<script defer src="bc-prefactura-imprimir.js?v=20261023-i9"></script>
 <script defer src="bc-permisos-listas.js?v=20261021-pl1"></script>
 <script defer src="taller-info.js?v=20261023-v3"></script>
 <script defer src="crm-consulta-precio.js?v=20261020-h2"></script>

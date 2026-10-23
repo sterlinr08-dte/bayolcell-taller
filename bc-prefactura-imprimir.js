@@ -61,6 +61,30 @@
   function clienteExtra(r) { return [r.cedula ? 'Céd. ' + esc(r.cedula) : '', r.telefono ? 'Tel. ' + esc(r.telefono) : ''].filter(Boolean).join(' · '); }
 
   var PIE = 'Este documento no es una factura fiscal. Preséntelo en caja para pagar y recibir su factura con comprobante.';
+  // 23-oct-2026 (dueño): garantía «smart». Según lo que lleve la prefactura salen uno, dos o ningún texto:
+  // celular = la línea tiene IMEI o el nombre empieza por celular/teléfono/iPhone…; pieza = pantalla, batería, flex, tapa,
+  // reparación… Accesorios (cargador, cable, cristal) no llevan texto. Los textos se editan en Configuración → Datos del taller.
+  var GAR_CEL = 'GARANTÍA DEL CELULAR\nEste equipo cuenta con 30 días de garantía por fallas de fábrica, a partir de la fecha de compra.\nLa garantía no cubre daños por golpes, caídas, humedad, pantalla rota, rayaduras o mal uso. Tampoco cubre bloqueos relacionados con cuentas, contraseñas o accesos del cliente.\nPara solicitar la garantía, debe presentar el equipo junto con esta prefactura y su factura de compra.\nEl equipo será evaluado en nuestro taller. Si se confirma una falla de fábrica cubierta por la garantía, se procederá con su reparación o cambio, según corresponda.';
+  var GAR_PZA = 'GARANTÍA DE LA PIEZA\nLa pieza instalada cuenta con 30 días de garantía desde la fecha de instalación, solo por defecto de la pieza.\nNo cubre pantallas rotas o rajadas, golpes, humedad, ni daños causados por otra reparación.\nPara solicitar la garantía, debe presentar el equipo junto con esta prefactura.\nLa garantía es válida solo si la pieza fue instalada por BAYOL CELL.';
+  var RE_CEL = /^\s*(CELULAR|CELU\b|TELEFONO|TELÉFONO|SMARTPHONE|IPHONE|SAMSUNG|XIAOMI|REDMI|MOTOROLA|MOTO\s|HUAWEI|HONOR|TECNO|INFINIX|REALME|OPPO|VIVO|ONEPLUS|GOOGLE PIXEL|PIXEL\s|NOKIA|ALCATEL|ZTE|BLU\b|TCL\b)/i;
+  var RE_PZA = /(PANTALLA|DISPLAY|\bLCD\b|TOUCH|TACTIL|TÁCTIL|BATERIA|BATERÍA|\bFLEX\b|CONECTOR|PIN DE CARGA|PUERTO|CAMARA|CÁMARA|\bLENTE\b|BOCINA|SPEAKER|ALTAVOZ|MICROFONO|MICRÓFONO|TAPA|TRASERA|CARCASA|\bMARCO\b|BANDEJA|BOTON|BOTÓN|VIBRADOR|ANTENA|SENSOR|REPARACION|REPARACIÓN|CAMBIO DE|INSTALACION|INSTALACIÓN|SERVICIO|MANO DE OBRA)/i;
+  function garantias(d) {
+    var ct = (typeof cache !== 'undefined' && cache.configTaller) || {}, cel = false, pza = false;
+    (d.lineas || []).forEach(function (l) {
+      var n = String(l.desc || '');
+      if ((l.imeis && l.imeis.length) || RE_CEL.test(n)) cel = true; else if (RE_PZA.test(n)) pza = true;
+    });
+    var out = [];
+    if (cel) out.push((ct.garantia_celular || '').trim() || GAR_CEL);
+    if (pza) out.push((ct.garantia_pieza || '').trim() || GAR_PZA);
+    return out;
+  }
+  function garHtml(d, cls) {
+    return garantias(d).map(function (t) {
+      var ls = t.split('\n').map(function (x) { return x.trim(); }).filter(Boolean), tit = ls.shift() || '';
+      return '<div class="' + cls + '"><b>' + esc(tit) + '</b>' + ls.map(function (x) { return '<p>' + esc(x) + '</p>'; }).join('') + '</div>';
+    }).join('');
+  }
   var FUENTE = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
 
   function htmlTicket(d, copia) {
@@ -82,6 +106,7 @@
       '.hr{border-top:1px dashed #000;margin:2.5mm 0}.kv{display:table;width:100%;border-collapse:collapse}.kv span:first-child{display:table-cell;color:#000;opacity:.75;white-space:nowrap;padding-right:3mm;vertical-align:top}.kv b{display:table-cell;text-align:right;vertical-align:top}' +
       '.blk{margin-bottom:1mm}.blk span{display:block;font-size:10.5px;opacity:.75}.blk b{display:block}.sub{font-size:10.5px;text-align:right}.it{margin:0 0 2mm}.d{font-weight:700}.s{font-size:10.5px}.r{display:flex;justify-content:space-between}' +
       '.tot{display:flex;justify-content:space-between;align-items:baseline;font-size:18px;font-weight:900;margin-top:1mm}' +
+      '.gar{border-top:1px dashed #000;margin-top:2.5mm;padding-top:2mm;font-size:9.5px;line-height:1.35;text-align:left}.gar b{display:block;font-size:10.5px;letter-spacing:.06em;margin-bottom:1mm}.gar p{margin:0 0 1mm}' +
       '.pie{font-size:10px;text-align:center;margin-top:3mm;line-height:1.4}.gr{font-weight:800;font-size:12px;margin-top:2mm}' +
       '</style></head><body>' +
       '<img class="logo" src="' + esc(d.logo) + '" onerror="this.remove()">' +
@@ -101,6 +126,7 @@
       (d.desc ? '<div class="kv"><span>Subtotal</span><b>' + rd(d.total + d.desc) + '</b></div><div class="kv"><span>Descuento</span><b>−' + rd(d.desc) + '</b></div>' : '') +
       '<div class="tot"><span>TOTAL</span><span>' + rd(d.total) + '</span></div>' +
       (eq.coment ? '<div class="hr"></div><div class="mut"><b>Nota:</b> ' + esc(eq.coment) + '</div>' : '') +
+      garHtml(d, 'gar') +
       '<div class="hr"></div><div class="pie">' + PIE + '<div class="gr">¡Gracias por preferirnos!</div></div>' +
       '<script>window.onload=function(){setTimeout(function(){window.print();},150);}<\/script></body></html>';
   }
@@ -132,6 +158,7 @@
       '.eq{display:flex;gap:28px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;margin-bottom:14px}' +
       'table{width:100%;border-collapse:collapse}th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;padding:8px 8px;border-bottom:1.5px solid #0f172a}' +
       'td{padding:9px 8px;border-bottom:1px solid #e2e8f0;vertical-align:top}.i{color:#94a3b8;width:26px}.ds{font-weight:600}.n{text-align:right;white-space:nowrap}.b{font-weight:700}' +
+      '.gars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px}.garc{font-size:11px;color:#334155;line-height:1.45;border:1px solid rgba(15,23,42,.1);border-radius:12px;padding:10px 12px}.garc b{display:block;color:#0f172a;font-size:11.5px;letter-spacing:.05em;margin-bottom:4px}.garc p{margin:0 0 4px}' +
       '.pie2{display:flex;justify-content:space-between;gap:24px;margin-top:16px;align-items:flex-start}' +
       '.nota{flex:1;font-size:12px;color:#475569;background:#f8fafc;border-radius:12px;padding:12px 14px}.nota b{color:#0f172a}' +
       '.tot{width:290px}.tot div{display:flex;justify-content:space-between;padding:4px 0;color:#475569}' +
@@ -153,6 +180,7 @@
       '<div class="tot"><div><span>Artículos</span><span>' + d.cant + '</span></div>' +
       (d.desc ? '<div><span>Subtotal</span><span>' + rd(d.total + d.desc) + '</span></div><div><span>Descuento</span><span>−' + rd(d.desc) + '</span></div>' : '') +
       '<div class="g"><span>Total</span><span>' + rd(d.total) + '</span></div></div></div>' +
+      (garantias(d).length ? '<div class="gars">' + garHtml(d, 'garc') + '</div>' : '') +
       '<div class="fin"><span>¡Gracias por preferirnos!</span><span>' + esc(d.negocio) + ' · Prefactura Nº ' + esc(d.num) + '</span></div>' +
       (paraPdf ? '' : '<script>window.onload=function(){setTimeout(function(){window.print();},150);}<\/script>') + '</body></html>';
   }
