@@ -20,8 +20,9 @@ La bitácora dice cuándo y por qué se escribió cada una.
 
 1. El descuento **por línea es en por ciento** y tiene un **tope** que se pone en Configuración → Datos del taller
    («Descuento máximo en la prefactura (%)»). Si no se pone, es **10 %**.
-2. Hay además un **descuento en pesos (RD$) sobre toda la prefactura**. Va a Info Plus en la cabecera
-   (`descuento` / `descuentototal`), no en las líneas, por eso en Info Plus sale en otro lugar.
+2. Hay además un **descuento en pesos (RD$) sobre toda la prefactura**. Va a Info Plus en la cabecera: `descuento`
+   es un **por ciento** sobre el subtotal (comprobado con la prefactura 118930: 500 se tomó como 500 %), así que se
+   manda el % equivalente a los pesos, y `descuentototal` lleva los pesos. En Info Plus sale como «Descuento %».
 3. Líneas + pesos **no pueden pasar del tope** (% del subtotal). El sistema recorta y avisa cuánto queda disponible.
 
 ## 3. Comentario de la prefactura (22-oct-2026)

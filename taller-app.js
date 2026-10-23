@@ -20530,7 +20530,11 @@ async function _rpCrearPrefactura() {
     const _tt = _rpTotales(_rpState.items), total = _tt.total;
     const now = new Date();
     const model = {
-        codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0, descuento: _tt.descuento, descuentototal: _tt.descuento,
+        // 22-oct-2026 (prefactura real 118930): en Info Plus `descuento` de cabecera es un POR CIENTO sobre el subtotal
+        // (mandamos 500 y lo tomó como 500 % → total negativo). Se manda el % equivalente al descuento en pesos y en
+        // `descuentototal` los pesos. El % por línea viaja en cada línea (`porcentaje`), no aquí.
+        codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0,
+        descuento: _tt.subtotal > 0 ? Math.round((_tt.descMonto || 0) / _tt.subtotal * 1000000) / 10000 : 0, descuentototal: _tt.descMonto || 0,
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
         // 22-oct-2026 · Dagoberto pidió verificar que el comentario «esté puesto»: se manda en `contrato` (como hasta hoy)
