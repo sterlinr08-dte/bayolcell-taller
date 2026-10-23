@@ -78,6 +78,7 @@ listas y sincronización.
 - Revisar sugerencias reales de la IA (tono/largo) y el gasto diario tras el 25-oct.
 
 ## 7. Errores a no repetir
+- **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
   cuenta**; una **llamada automática silenciosa** con la sesión del admin. Lo correcto: función autenticada usada por la pantalla real.
 - **MCP de Supabase:** `apply_migration` y `execute_sql` largos/complejos se cuelgan ~60 s → aplicar en sentencias pequeñas;
