@@ -435,7 +435,10 @@
     if (R.tDm && doc.activeElement !== R.tDm) R.tDm.value = dm > 0 ? num2(dm) : '';
     if (R.tDmF) R.tDmF.hidden = !!facturada && !(dm > 0);
     R.tInfo.innerHTML = facturada ? '<div class="t-fac">Esta prefactura ya fue convertida en factura y no puede modificarse.</div>'
-      : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' : 'No cobra ni descuenta inventario: se factura en Info Plus.');
+      : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' +
+        // 22-oct-2026 (dueño): Info Plus no toma cambios de descuento ni de comentario en una prefactura ya enviada.
+        '<div class="t-aviso"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Info Plus no cambia el descuento ni el comentario de una prefactura ya enviada. Para cambiarlos, anule la Nº ' + esc(s.codprefactura) + ' en Info Plus y cree una nueva.</div>'
+        : 'No cobra ni descuenta inventario: se factura en Info Plus.');
     R.bar.querySelector('.bimp').hidden = !(s && s.codprefactura);
     R.bar.querySelector('.bg').hidden = !!facturada; R.bar.querySelector('.bgi').hidden = !!facturada;
     // 23-oct-2026 (dueño: «cuando pongo descuento el botón de guardar e imprimir desaparece»): al cambiar precio,
