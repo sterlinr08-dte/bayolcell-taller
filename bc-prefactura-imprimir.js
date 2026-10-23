@@ -28,7 +28,7 @@
 
   function datos(p) {
     var m = p.model || {}, ct = (typeof cache !== 'undefined' && cache.configTaller) || {}, r = p.ref || {};
-    var loc = String(m.codlocalidad) === '4' ? 'Moca' : 'Santiago';
+    var loc = String(m.codlocalidad) === '4' ? 'Moca' : String(m.codlocalidad) === '7' ? 'Navarrete' : 'Santiago'; // 23-oct-2026: Navarrete tiene su sucursal
     var lineas = (m.detallesPreFactura || []).map(function (d) {
       var pct = Number(d.porcentaje || 0), imp = Math.round(d.precio * d.cantidad * (100 - pct)) / 100;
       var imeis = (m.seriales || []).filter(function (s) { return String(s.codarticulo) === String(d.codarticulo); }).map(function (s) { return s.numero; });
@@ -76,10 +76,10 @@
       'body{width:72mm;margin:0 auto;padding:3mm 0 6mm;font:12px/1.35 ' + FUENTE + ';color:#000;font-variant-numeric:tabular-nums}' +
       '.c{text-align:center}.logo{max-width:40mm;max-height:15mm;display:block;margin:0 auto 1.5mm}' +
       '.neg{font-size:15px;font-weight:800;letter-spacing:.5px}.mut{font-size:10.5px}' +
-      '.band{background:#000;color:#fff;text-align:center;font-weight:800;letter-spacing:3px;font-size:12px;padding:1.2mm 0;margin:3mm 0 1.5mm;border-radius:1.5mm}' +
+      '.band{background:none;color:#000;text-align:center;font-weight:900;letter-spacing:3px;font-size:13px;padding:1.2mm 0;margin:3mm 0 1.5mm;border-top:2px solid #000;border-bottom:2px solid #000}' +
       '.no{font-size:22px;font-weight:900;text-align:center;letter-spacing:.5px}.bar{text-align:center;margin:1mm 0 .5mm}.bar svg{max-width:62mm;height:11mm}' +
       '.cp{text-align:center;font-weight:900;letter-spacing:4px;border:1.5px solid #000;margin:1.5mm 12mm 0;padding:.6mm 0}' +
-      '.hr{border-top:1px dashed #000;margin:2.5mm 0}.kv{display:flex;justify-content:space-between;gap:3mm}.kv span:first-child{color:#000;opacity:.75}.kv b{text-align:right}' +
+      '.hr{border-top:1px dashed #000;margin:2.5mm 0}.kv{display:table;width:100%;border-collapse:collapse}.kv span:first-child{display:table-cell;color:#000;opacity:.75;white-space:nowrap;padding-right:3mm;vertical-align:top}.kv b{display:table-cell;text-align:right;vertical-align:top}' +
       '.blk{margin-bottom:1mm}.blk span{display:block;font-size:10.5px;opacity:.75}.blk b{display:block}.sub{font-size:10.5px;text-align:right}.it{margin:0 0 2mm}.d{font-weight:700}.s{font-size:10.5px}.r{display:flex;justify-content:space-between}' +
       '.tot{display:flex;justify-content:space-between;align-items:baseline;font-size:18px;font-weight:900;margin-top:1mm}' +
       '.pie{font-size:10px;text-align:center;margin-top:3mm;line-height:1.4}.gr{font-weight:800;font-size:12px;margin-top:2mm}' +
