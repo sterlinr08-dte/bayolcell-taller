@@ -31,8 +31,8 @@ La bitácora dice cuándo y por qué se escribió cada una.
 
 ## 3. Comentario de la prefactura (22-oct-2026)
 
-- El comentario se guarda en el taller, sale al imprimir y se manda a Info Plus en `contrato` y en `comentario`.
-  Dagoberto pidió verificar que «esté puesto»: falta que el dueño confirme en qué campo lo ve la cajera.
+- El comentario se guarda en el taller, sale al imprimir y se manda a Info Plus en `comentario` (campo «Comentario»
+  de la prefactura; comprobado por el dueño con la 118932). `contrato` va vacío.
 
 ## 4. Reglas generales que ya regían
 

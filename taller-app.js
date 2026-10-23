@@ -20540,9 +20540,9 @@ async function _rpCrearPrefactura() {
         descuento: _tt.subtotal > 0 ? Math.round((_tt.descuento || 0) / _tt.subtotal * 1000000) / 10000 : 0, descuentototal: _tt.descuento || 0,
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
-        // 22-oct-2026 · Dagoberto pidió verificar que el comentario «esté puesto»: se manda en `contrato` (como hasta hoy)
-        // y también en `comentario`, por si el modelo nuevo lo lee de ahí. Un campo que el modelo no conozca se ignora.
-        contrato: obs ? obs.slice(0, 200) : '', comentario: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
+        // 22-oct-2026 · Comprobado por el dueño (prefactura 118932): el comentario sale en Info Plus en el campo
+        // «Comentario» (`comentario`). `contrato` va vacío, como pide el modelo.
+        contrato: '', comentario: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
         seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
     _rpState.estado = 'actualizando'; _rpRenderResumen();

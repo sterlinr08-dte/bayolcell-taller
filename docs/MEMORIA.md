@@ -70,7 +70,7 @@ listas y sincronización.
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
 - **WA 22-oct:** publicado «Transferido», historial en el chat, «A un empleado», respuestas rápidas, álbum y «Eliminar para todos» (falta prueba real, bit. 1700). Llamadas: sin rastro (coexistencia).
 - Prefactura impresa con el Nº de Info Plus (ticket/carta, «COPIA»): rama sin publicar (bit. 21-oct 1200). IA v32 desplegada (código no en `main`).
-- Revisar en Info Plus la 1.ª prefactura real con descuento (% y RD$), código de empleada y en qué campo sale el comentario (`contrato` o `comentario`).
+- Info Plus (22-oct, probado en vivo): descuento de cabecera es %, se manda todo el descuento ahí (líneas con 0); al **modificar** no actualiza el descuento → anular y crear nueva (pedir a Dagoberto). Comentario va en `comentario`.
 - Meta: conector WhatsApp MCP no ve BayolCell (reconectar marcando BayolCell); app de desarrollador bloqueada para el dueño (ESTERLIN ESPINAL con 2FA puede crearla). **Zernio se queda** hasta probar cada paso.
 - Cuenta publicitaria 988971888850978 fuera de portafolio (para después).
 - `reaction.received` en Zernio (dueño). «te sale» en `social-automatizaciones`.
