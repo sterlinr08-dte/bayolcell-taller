@@ -20685,7 +20685,10 @@ async function _rpArmarModelo() {
         // «Comentario» (`comentario`). `contrato` va vacío, como pide el modelo.
         // 22-oct-2026 (dueño): toda prefactura hecha desde el taller se identifica en Info Plus con el comentario fijo
         // «bayolcell.com:» seguido de lo que se escriba. Probado: la API solo toma `nombre`; cédula y teléfono no.
-        contrato: '', comentario: ('bayolcell.com:' + (obs ? ' ' + obs : '')).slice(0, 200), ordencompra: '', centro: '',
+        // 23-oct-2026 (dueño: «ayer sí funcionó»): la prueba buena del 22-oct (118932) mandaba el texto en `contrato` Y en
+        // `comentario`; al dejarlo solo en `comentario`, la factura de Info Plus cargó la prefactura con «Comentarios» vacío
+        // (118975, 118977). Vuelve a ir en los dos campos.
+        contrato: ('bayolcell.com:' + (obs ? ' ' + obs : '')).slice(0, 200), comentario: ('bayolcell.com:' + (obs ? ' ' + obs : '')).slice(0, 200), ordencompra: '', centro: '',
         seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
     const ref = { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: g('o_falla'), coment: g('o_observaciones'), cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') };
