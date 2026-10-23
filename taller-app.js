@@ -6730,6 +6730,8 @@ function _abStyles() {
       .ab-price small{font-size:10px;color:#86868b;font-weight:500;}
       .ab-add{width:36px;height:36px;border-radius:50%;border:0;background:#c8191f;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s,transform .1s;line-height:1;}
       .ab-add:hover{background:#b01419;} .ab-add:active{transform:scale(.9);}
+      /* 23-oct-2026 (dueño): «Elegir» con texto, como en la ventana de búsqueda de la Prefactura */
+      .ab-add.ab-elegir{width:auto;min-width:44px;height:44px;border-radius:999px;padding:0 14px;gap:6px;font-size:13px;font-weight:700;} .ab-add.ab-elegir i{font-size:18px;} .ab-add.ab-elegir:active{transform:scale(.97);}
       .ab-edit{width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(0,0,0,.08);background:#fff;color:#86868b;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s;} .ab-edit:hover{background:#f5f5f7;color:#1a1a1a;}
       .ab-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid rgba(0,0,0,.06);background:#fff;flex-wrap:wrap;}
       .ab-foot .info{font-size:12px;color:#86868b;font-weight:500;}
@@ -6894,7 +6896,7 @@ function _abCard(a, i) {
       <div class="ab-right">
         <div class="ab-price"><b>${pventa > 0 ? money(pventa) : ''}</b></div>
         ${isAdminUser() ? `<button class="ab-edit" onclick="event.stopPropagation(); abrirEditarPreciosArticulo('${cod}')" title="Editar precios"><i class="ti ti-edit"></i></button>` : ''}
-        <button class="ab-add" onclick="event.stopPropagation(); _artBuscElegir('${cod}')" title="Agregar"><i class="ti ti-plus"></i></button>
+        <button class="ab-add ab-elegir" onclick="event.stopPropagation(); _artBuscElegir('${cod}')" title="Agregar a la prefactura"><i class="ti ti-circle-plus"></i> Elegir</button>
       </div>
     </div>`;
 }

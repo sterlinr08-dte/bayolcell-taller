@@ -106,7 +106,7 @@
     if (bSrv) { bSrv.classList.add('bcrx-srv'); bSrv.innerHTML = '<i class="ti ti-tool"></i> Servicio / falla'; }
     var slot = doc.createElement('div'); slot.className = 'bcrx-ppk-slot';
     zona.parentNode.insertBefore(slot, zona);
-    var estado = { q: '', hl: 0, lista: [], det: -1, imei: '', imeiBusq: null, imeiMsg: '', enterPend: false };
+    var estado = { q: '', chip: '', hl: 0, lista: [], det: -1, imei: '', imeiBusq: null, imeiMsg: '', enterPend: false };
     // 22-oct-2026 (dueño): «si pongo el IMEI completo también funcione el artículo». Con 14–17 dígitos seguidos se
     // pregunta a infoplus-imei-almacen {imei, codalmacen}: compras sincronizadas o listaserie de Info Plus. Si lo
     // encuentra, la lista muestra ese artículo y al agregarlo el IMEI queda puesto en su línea.
@@ -146,7 +146,7 @@
         '<span>Buscar o escanear por nombre, código o IMEI</span><kbd>F2</kbd></button>';
     }
     // 23-oct-2026 (dueño, video: «que se limpie la barra cuando la cierro y la abro de nuevo»): al cerrar se olvida lo buscado.
-    function cerrarPanel() { estado.q = ''; estado.hl = 0; estado.lista = []; estado.det = -1; estado.imei = ''; estado.imeiBusq = null; estado.imeiMsg = ''; estado.enterPend = false; estado.entendido = ''; slot.innerHTML = barraHTML(); q('.bcrx-scan', slot).addEventListener('click', abrirPanel); }
+    function cerrarPanel() { estado.q = ''; estado.chip = ''; estado.hl = 0; estado.lista = []; estado.det = -1; estado.imei = ''; estado.imeiBusq = null; estado.imeiMsg = ''; estado.enterPend = false; estado.entendido = ''; slot.innerHTML = barraHTML(); q('.bcrx-scan', slot).addEventListener('click', abrirPanel); }
     function nivel() { try { return String((_rpState && _rpState.nivel) || 1); } catch (e) { return '1'; } }
     function almacen() { var s = doc.getElementById('rxAlmacen'); return (s && s.value) || '1'; }
     function precioDe(a) { var nv = nivel(); if (a.niveles && a.niveles[nv] != null) return Number(a.niveles[nv]); if (a.niveles && a.niveles['1'] != null) return Number(a.niveles['1']); return Number(a.precio || 0); }
@@ -244,7 +244,8 @@
       if (estado.imei) { clearTimeout(imeiTimer); var im = estado.imei; imeiTimer = setTimeout(function () { if (estado.imei === im) buscarImei(im); }, 200); return; }
       clearTimeout(imeiTimer);
       estado.imeiBusq = null; estado.imeiMsg = ''; estado.enterPend = false;
-      var qq = norm(estado.q).trim(), pal = qq.split(/\s+/).filter(Boolean);
+      // 23-oct-2026 (dueño, opción A): la ficha de acceso rápido se suma a lo escrito («bateria» + «iphone 6»).
+      var qq = norm((estado.chip ? estado.chip + ' ' : '') + estado.q).trim(), pal = qq.split(/\s+/).filter(Boolean);
       var l = arts, punt = new Map();
       if (pal.length) l = arts.filter(function (a) {
         var h = norm([a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(Boolean).join(' ')), toks = tokensDe(a), total = 0;
@@ -317,11 +318,14 @@
         cerrarPanel();
       }, function () { agregando = false; });
     }
+    var CHIPS = [['pantalla', 'Pantallas'], ['bateria', 'Baterías'], ['cargador', 'Cargadores'], ['auricular', 'Auriculares'], ['protector', 'Protectores'], ['celular', 'Celulares']];
     function abrirPanel() {
       slot.innerHTML = '<div class="bcrx-ppk" role="dialog" aria-label="Buscar artículo">' +
         '<div class="bcrx-ppk-top"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Buscar artículo</span>' +
         '<button type="button" class="bcrx-ppk-cat">Catálogo completo</button><button type="button" class="bcrx-ppk-x" aria-label="Cerrar"><i class="ti ti-arrow-left" aria-hidden="true"></i> Cerrar</button></div>' +
-        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' + clienteHTML() +
+        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
+        // 23-oct-2026 (dueño, video: «acceso rápido como filtro», eligió la opción A): una fila de fichas por tipo. Tocar una filtra; tocarla otra vez la quita.
+        '<div class="bcrx-ppk-chips" role="group" aria-label="Acceso rápido">' + CHIPS.map(function (c) { return '<button type="button" class="bcrx-ppk-chip' + (estado.chip === c[0] ? ' on' : '') + '" data-chip="' + c[0] + '" aria-pressed="' + (estado.chip === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' + clienteHTML() +
         '<div class="bcrx-ppk-list" role="listbox"></div></div>';
       var inp = q('input', slot);
       inp.value = estado.q;
@@ -332,6 +336,12 @@
         else if (e.key === 'ArrowUp') { e.preventDefault(); estado.hl = Math.max(estado.hl - 1, 0); pintar(); }
         else if (e.key === 'Enter') { e.preventDefault(); if (n) agregar(estado.hl); else if (estado.imei && !estado.imeiMsg) estado.enterPend = true; }
         else if (e.key === 'Escape') { e.preventDefault(); cerrarPanel(); }
+      });
+      q('.bcrx-ppk-chips', slot).addEventListener('click', function (e) {
+        var b = e.target.closest('.bcrx-ppk-chip'); if (!b) return;
+        var c = b.getAttribute('data-chip'); estado.chip = estado.chip === c ? '' : c;
+        Array.prototype.forEach.call(slot.querySelectorAll('.bcrx-ppk-chip'), function (x) { var on = x.getAttribute('data-chip') === estado.chip; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
+        filtrar(); pintar(); inp.focus();
       });
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
       q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
