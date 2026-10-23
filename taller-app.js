@@ -29843,12 +29843,22 @@ function _pintarWhatsapp() {
     // En movil, con el chat abierto la cabecera de la bandeja sobra (solo roba
     // altura) — el CSS la esconde con esta clase.
     _crmActualizarClaseChatAbierto();
-    wrap.innerHTML = `<div class="wa-shell">
-        ${mostrarLista ? `<div class="wa-list-col" id="waListaCol"><div class="wa-list-scroll" id="waLista"></div></div>` : ''}
-        ${mostrarDetalle ? `<div class="wa-chat-col" id="waDetalleCol"><div id="waDetalle" style="display:flex; flex-direction:column; height:100%;"></div></div>` : ''}
-    </div>`;
-    if(mostrarLista) _pintarWhatsappLista();
-    if(mostrarDetalle) _pintarWhatsappDetalle();
+    // 23-oct-2026 (dueño: «corregir los parpadeos»): si la estructura ya existe con las mismas columnas, NO se
+    // destruye. Antes, abrir un chat en la PC borraba y volvía a crear la lista entera (su scroll volvía arriba y
+    // las filas pestañeaban) y el chat. Ahora solo se marca la fila activa y se pinta el chat.
+    const shellPrevio = wrap.querySelector(':scope > .wa-shell');
+    const mismaForma = shellPrevio && (!!document.getElementById('waLista') === mostrarLista) && (!!document.getElementById('waDetalle') === mostrarDetalle);
+    if(mismaForma) {
+        if(mostrarLista) _actualizarListaWhatsappIncremental();
+        if(mostrarDetalle) _pintarWhatsappDetalle();
+    } else {
+        wrap.innerHTML = `<div class="wa-shell">
+            ${mostrarLista ? `<div class="wa-list-col" id="waListaCol"><div class="wa-list-scroll" id="waLista"></div></div>` : ''}
+            ${mostrarDetalle ? `<div class="wa-chat-col" id="waDetalleCol"><div id="waDetalle" style="display:flex; flex-direction:column; height:100%;"></div></div>` : ''}
+        </div>`;
+        if(mostrarLista) _pintarWhatsappLista();
+        if(mostrarDetalle) _pintarWhatsappDetalle();
+    }
     _waPintarAvisoLineas();
     _waCargarEstadoLineas();
     _crmPintarCabecera();
@@ -29974,10 +29984,10 @@ function _actualizarListaWhatsappIncremental() {
     const idsActuales = new Set();
     existentes.forEach(el => idsActuales.add(el.dataset.hiloid));
     const idsNuevos = new Set(lista.map(h => h.id));
-    let necesitaRebuild = false;
-    if(idsActuales.size !== idsNuevos.size) necesitaRebuild = true;
-    if(!necesitaRebuild) idsNuevos.forEach(id => { if(!idsActuales.has(id)) necesitaRebuild = true; });
-    if(necesitaRebuild) { _pintarWhatsappLista(); return; }
+    // 23-oct-2026: antes cualquier hilo nuevo o quitado reconstruía la lista completa (pestañeo de todas las filas
+    // y scroll arriba). Ahora se quita lo que sobra y se inserta solo la fila nueva; el orden se ajusta abajo.
+    existentes.forEach(el => { if(!idsNuevos.has(el.dataset.hiloid)) el.remove(); });
+    lista.forEach(h => { if(!idsActuales.has(h.id)) cont.insertAdjacentHTML('beforeend', _waFilaHiloHTML(h, false)); });
     lista.forEach(h => {
         const row = cont.querySelector(`[data-hiloid="${h.id}"]`);
         if(!row) return;
@@ -30013,11 +30023,52 @@ function _actualizarListaWhatsappIncremental() {
         if(!filasActuales[i] || filasActuales[i].dataset.hiloid !== ordenIds[i]) { reordenar = true; break; }
     }
     if(reordenar) {
-        ordenIds.forEach(id => {
-            const el = cont.querySelector(`[data-hiloid="${id}"]`);
-            if(el) cont.appendChild(el);
-        });
+        // 23-oct-2026: mover solo las filas fuera de lugar (antes se volvían a colgar TODAS, y el navegador
+        // repintaba la lista completa por un solo chat que subió).
+        const porId = new Map(filasActuales.map(el => [el.dataset.hiloid, el]));
+        let cursor = cont.firstElementChild;
+        for(const id of ordenIds) {
+            const el = porId.get(id); if(!el) continue;
+            while(cursor && !cursor.dataset?.hiloid) cursor = cursor.nextElementSibling; // saltar separadores u otros nodos
+            if(cursor === el) { cursor = cursor.nextElementSibling; continue; }
+            cont.insertBefore(el, cursor);
+        }
     }
+}
+
+// Una fila de la bandeja. La usan el pintado completo y el incremental (23-oct-2026).
+function _waFilaHiloHTML(h, animarFilas) {
+    const noLeido = (h.no_leidos_count || 0) > 0;
+    const activo = h.id === _waHiloId;
+    const nombre = h.nombre_perfil || h.telefono_e164 || 'Sin nombre';
+    const clases = ['wa-row'];
+    // Sin esta condicion, la lista re-animaria fade+translateY en CADA tecla
+    // tipeada en el buscador (esta funcion se repinta en cada oninput) — el
+    // tipo de "wow" que rompe la velocidad operativa, no algo que se sienta premium.
+    if(animarFilas) clases.push('fade-in-row');
+    if(activo) clases.push('active');
+    if(noLeido) clases.push('no-leido');
+    const pendienteHumano = _crmEsPendiente(h);
+    if(pendienteHumano) clases.push('pendiente');
+    return `<div class="${clases.join(' ')}" data-hiloid="${h.id}" onclick="abrirHiloWhatsapp('${h.id}')">
+        <div class="wa-avatar-wrap">
+            <div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
+            <span class="wa-wa-badge"><i class="ti ti-brand-whatsapp"></i></span>
+        </div>
+        <div style="min-width:0; flex:1;">
+            <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
+                <span class="fila-nombre">${escapeHtml(nombre)}</span>
+                <span class="fila-hora">${_waHoraRelativa(h.ultimo_mensaje_at)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px; align-items:center;">
+                <span class="fila-preview">${escapeHtml(h.ultimo_mensaje_preview || '')}</span>
+                <span style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
+                    ${pendienteHumano ? `<span class="fila-pendiente" title="El saludo automático no sustituye una respuesta humana"><i class="ti ti-user-exclamation"></i> Atender</span>` : ''}
+                    ${noLeido ? `<span class="fila-badge">${h.no_leidos_count}</span>` : ''}
+                </span>
+            </div>
+        </div>
+    </div>`;
 }
 
 function _pintarWhatsappLista() {
@@ -30036,39 +30087,7 @@ function _pintarWhatsappLista() {
         _crmListaAnimarProxima = false;
         return;
     }
-    cont.innerHTML = lista.map(h => {
-        const noLeido = (h.no_leidos_count || 0) > 0;
-        const activo = h.id === _waHiloId;
-        const nombre = h.nombre_perfil || h.telefono_e164 || 'Sin nombre';
-        const clases = ['wa-row'];
-        // Sin esta condicion, la lista re-animaria fade+translateY en CADA tecla
-        // tipeada en el buscador (esta funcion se repinta en cada oninput) — el
-        // tipo de "wow" que rompe la velocidad operativa, no algo que se sienta premium.
-        if(animarFilas) clases.push('fade-in-row');
-        if(activo) clases.push('active');
-        if(noLeido) clases.push('no-leido');
-        const pendienteHumano = _crmEsPendiente(h);
-        if(pendienteHumano) clases.push('pendiente');
-        return `<div class="${clases.join(' ')}" data-hiloid="${h.id}" onclick="abrirHiloWhatsapp('${h.id}')">
-            <div class="wa-avatar-wrap">
-                <div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
-                <span class="wa-wa-badge"><i class="ti ti-brand-whatsapp"></i></span>
-            </div>
-            <div style="min-width:0; flex:1;">
-                <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
-                    <span class="fila-nombre">${escapeHtml(nombre)}</span>
-                    <span class="fila-hora">${_waHoraRelativa(h.ultimo_mensaje_at)}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px; align-items:center;">
-                    <span class="fila-preview">${escapeHtml(h.ultimo_mensaje_preview || '')}</span>
-                    <span style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
-                        ${pendienteHumano ? `<span class="fila-pendiente" title="El saludo automático no sustituye una respuesta humana"><i class="ti ti-user-exclamation"></i> Atender</span>` : ''}
-                        ${noLeido ? `<span class="fila-badge">${h.no_leidos_count}</span>` : ''}
-                    </span>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
+    cont.innerHTML = lista.map(h => _waFilaHiloHTML(h, animarFilas)).join('');
     if(!animarFilas) cont.scrollTop = scrollPrevio;
     _crmListaAnimarProxima = false;
 }
@@ -33364,7 +33383,7 @@ function _crmSuscribirRealtime(lineaId) {
                     await _crmRepintarWhatsappSilencioso();
                 } else {
                     await _crmSinParpadeo(async () => {
-                        _pintarWhatsappLista();
+                        _actualizarListaWhatsappIncremental(); // 23-oct-2026: antes _pintarWhatsappLista() (lista entera)
                         _crmPintarCabecera();
                     });
                 }

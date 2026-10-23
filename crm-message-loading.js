@@ -17,12 +17,16 @@
     _waForzarScrollFondo=_waHiloId!==id;
     if(_waHiloId!==id){_waMensajes=[];_waSugerenciasIA=[];}
     _waHiloId=id;
-    _pintarWhatsapp();
+    // 23-oct-2026 (parpadeos): en la PC la lista y el chat ya están en pantalla; solo se marca la fila activa y el
+    // chat se pinta una vez, cuando llegan los mensajes. Antes se pintaba todo dos veces (vacío y luego lleno).
+    // En el celular sí se pinta ya, para que el chat aparezca al instante.
+    if(typeof _waEsMovil==='function'&&_waEsMovil()) _pintarWhatsapp();
+    else if(typeof _actualizarListaWhatsappIncremental==='function') _actualizarListaWhatsappIncremental();
     const h=_waHilos.find(x=>x.id===id);
     // Read acknowledgement must not block reading the messages.
     if(h?.no_leidos_count){
       bounded(supabaseClient.from('whatsapp_hilos').update({no_leidos_count:0}).eq('id',id))
-        .then(({error})=>{if(!error){h.no_leidos_count=0;if(_waHiloId===id)_pintarWhatsappLista();}})
+        .then(({error})=>{if(!error){h.no_leidos_count=0;if(_waHiloId===id)_actualizarListaWhatsappIncremental();}})
         .catch(e=>logError('marcar leido',e));
     }
     await cargarMensajesHilo(id);
