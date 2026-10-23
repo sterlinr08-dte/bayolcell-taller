@@ -820,3 +820,21 @@ html.bc-pf #v-recepcion .bcpf-it .n .nc { display: none; }
   html.bc-pf #v-recepcion .bcpf-it .n .nc { display: inline-block; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; font: 600 13px/1 var(--pf-mono); color: var(--pf-steel); }
   html.bc-pf #v-recepcion .bcpf-it .dsub .cod { display: none; }
 }
+
+/* 23-oct-2026 (dueño, foto en PC: «vamos a poner más compacto y ahorra palabras»). Solo PC: menos aire entre bloques; los campos
+   siguen en 48 px y los botones en 44. El subtítulo «Prefactura de Info Plus» se quita (la pestaña ya dice Prefactura). */
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-pad { padding: 10px 16px 14px; }
+  html.bc-pf #v-recepcion .bcpf-dh { padding-bottom: 8px; gap: 6px 12px; }
+  html.bc-pf #v-recepcion .bcpf-dh .empsub { display: none; }
+  html.bc-pf #v-recepcion .bcpf-franja { margin-top: 10px; padding: 8px 10px 10px; gap: 10px; }
+  html.bc-pf #v-recepcion .bcpf-franja .pcol > .plab, html.bc-pf #v-recepcion .bcpf-campos label { margin: 0 0 2px; }
+  html.bc-pf #v-recepcion .bcpf-clidatos { margin-top: 8px; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos { gap: 10px; }
+  html.bc-pf #v-recepcion .bcpf-clidatos + .bcpf-busc { margin-top: 10px; }
+  html.bc-pf #v-recepcion .bcpf-vacio { padding: 14px 12px; }
+  html.bc-pf #v-recepcion .bcpf-pie { margin-top: 10px; gap: 12px; }
+  html.bc-pf #v-recepcion .bcpf-otras, html.bc-pf #v-recepcion .bcpf-tot { padding: 10px 12px; }
+  html.bc-pf #v-recepcion .bcpf-qs { margin-bottom: 8px; }
+  html.bc-pf #v-recepcion .bcpf-cnt { margin: 6px 2px 0; }
+}
