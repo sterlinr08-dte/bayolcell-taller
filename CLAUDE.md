@@ -1124,3 +1124,11 @@ Pedido del dueño: poder ponerles el color a los iPhone al registrarlos, en el l
 - **Dentro del lote:** botón «Poner colores» en la barra del lote (`abrirColoresLote()`, toma los equipos visibles con los filtros). En la tarjeta, el color es un botón (`.bcf-color` → `abrirColoresLote(id)`). Se guarda al instante en `equipos_refurbish.color` (`_bcGuardarColorEquipo`).
 - **Ventana común** `_bcColoresAbrir({titulo, ayuda, filas, onSet, onCerrar})`: agrupa por modelo, «Todos de» pinta todos los del mismo modelo, «+ Otro» para texto libre.
 - Probado en copia local (1366 y 390 px): paletas (14 Plus, 15 Pro Max, XR, XS, 8), guardado y caché, conteo, importador 0/2 → 2/2, chips de compra; 0 errores.
+
+## Carga rápida: archivo minificado (23-oct-2026)
+- `taller.html` carga **`taller-app.min.js`**, no `taller-app.js`. El código fuente sigue siendo `taller-app.js`; se edita solo ese.
+- `taller-app.min.js` y su `.map` los genera `scripts/minificar.sh` (esbuild). **No editarlos a mano.**
+- Es automático: el robot `.github/workflows/minificar.yml` lo regenera al cambiar `taller-app.js` en `main`, y el candado
+  `.claude/hooks/minificar.sh` lo regenera antes de cada `git push` de Claude. Si una IA sin candado publica, el robot lo
+  cubre en 1–2 minutos.
+- La versión `?v=` del `<script>` se sube igual que antes al cambiar la fuente.
