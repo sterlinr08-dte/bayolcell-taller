@@ -179,7 +179,7 @@
     if (detRes) otras.appendChild(detRes);
     // Comentario (como «Agregar nota o condiciones al documento» de STUDIO)
     var detCom = el('details', 'bcpf-det bcpf-coment');
-    detCom.innerHTML = '<summary><i class="ti ti-note" aria-hidden="true"></i><span>Agregar comentario a la prefactura</span><i class="ti ti-chevron-down bcpf-chev" aria-hidden="true"></i></summary>';
+    detCom.innerHTML = '<summary><i class="ti ti-note" aria-hidden="true"></i><span>Comentario</span><i class="ti ti-chevron-down bcpf-chev" aria-hidden="true"></i></summary>';
     if (fComent) {
       var lCom = q('label', fComent); if (lCom) lCom.innerHTML = 'Comentario';
       var tCom = doc.getElementById('o_observaciones'); if (tCom) tCom.placeholder = 'Ej. cliente pasa a buscarlo el viernes; trae su propio cargador…';
@@ -356,7 +356,7 @@
   function pintarCarrito() {
     var c = doc.getElementById('rxArticulos'); if (!c) return;
     var s = st();
-    if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos. Use el buscador o escanee un código para agregarlos.</div>'; return; }
+    if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos</div>'; return; }
     c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>#</span><span>Artículo</span><span>IMEI / serie</span><span>Precio</span><span>Desc.</span><span>Cant.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
       var cant = it.serial
         ? '<span class="stp fijo" title="La cantidad sale del número de IMEI">' + it.cant + '</span>'

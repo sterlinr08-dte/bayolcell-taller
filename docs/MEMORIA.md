@@ -100,3 +100,5 @@ listas y sincronización.
 - `docs/bitacora/` (leer las más recientes en orden), `git log --oneline origin/main -50`.
 - Pruebas locales (Playwright, banco con Supabase simulado): `pftest`, `pfopc`, `pfvent`, `almfijo`, `imeialm`, `crmprecio`,
   `etqcount`, `acuse`; `scripts/qa-precio-pantalla.mjs`.
+
+- **Textos (dueño, 23-oct-2026):** nada de texto explicativo en las pantallas. Etiquetas de una o dos palabras («Comentario», «Sin artículos»). Si hace falta explicar, va detrás de la ⓘ (`taller-info.js`). Los avisos y errores sí se muestran.

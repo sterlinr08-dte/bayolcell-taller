@@ -97,7 +97,11 @@
     // «usuario no enlazado con Info Plus» queda detrás de una ⓘ junto a «Vendedor».
     { notas: function () { return todos('#v-recepcion #rxVendAviso').filter(function (e) { return e.style.display !== 'none'; }); },
       titulo: function () { var s = doc.getElementById('rxVendedor'), c = s && (s.closest('.bcpf-campos > div') || s.parentElement); return c && c.querySelector('label'); },
-      texto: function () { return 'Su usuario todavía no está enlazado con Info Plus: la prefactura sale a nombre del vendedor que elija aquí.\n\nPida al administrador que registre su código en Configuración → Técnicos.'; } }
+      texto: function () { return 'Su usuario todavía no está enlazado con Info Plus: la prefactura sale a nombre del vendedor que elija aquí.\n\nPida al administrador que registre su código en Configuración → Técnicos.'; } },
+    // 23-oct-2026 (dueño: «no pongas texto tan explicativo; si es necesario, la ⓘ»): la nota «No cobra ni descuenta
+    // inventario: se factura en Info Plus» de los totales queda detrás de una ⓘ junto a «Total».
+    { notas: function () { return porTexto('#v-recepcion', '.bcpf-tot .t-info', 'No cobra ni descuenta'); },
+      titulo: function () { var t = doc.querySelector('#v-recepcion .bcpf-tot .tt > span'); return t; } },
   ];
 
   function boton(titulo) {
