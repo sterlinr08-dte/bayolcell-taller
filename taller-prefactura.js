@@ -142,6 +142,8 @@
     var qs = el('div', 'bcpf-qs');
     function pildora(ic, txt, fn) { var b = el('button', 'bcpf-q', '<i class="ti ' + ic + '" aria-hidden="true"></i><span>' + txt + '</span>'); b.type = 'button'; b.addEventListener('click', fn); qs.appendChild(b); return b; }
     pildora('ti-file-plus', 'Nueva', function () { nueva(); });
+    // 22-oct-2026 (dueño): enviar la prefactura por WhatsApp desde la línea de la sucursal del almacén.
+    pildora('ti-brand-whatsapp', 'Enviar por WhatsApp', function () { try { _rpEnviarWhatsApp(); } catch (e) {} });
     // Herramientas rápidas: queda solo «Pedir reseña» a mano (dueño: «puede dejar el asunto de la reseña»); la rifa baja a «Más datos».
     var tools = q('.rx-toolsbox', v);
     var resCard = doc.getElementById('resenaWa') && doc.getElementById('resenaWa').closest('.card');
@@ -210,7 +212,8 @@
     [cli, equ, adi, fal, art].forEach(function (c) { c.classList.add('bcpf-oculto'); });
     if (envLista && envLista !== lista && !envLista.children.length) envLista.classList.add('bcpf-oculto');
     var titLista = q('#recepcionesLista') && q('#recepcionesLista').closest('.card');
-    if (titLista) { titLista.classList.add('bcpf-hist'); var h = q('h3', titLista); if (h) h.lastChild.nodeValue = ' Prefacturas realizadas'; var hb = q('button[onclick*="_rpHistorial"]', titLista); if (hb) hb.classList.add('bcpf-oculto'); } // «Historial de prefacturas» repetía la píldora «Prefacturas»
+    // 22-oct-2026 (dueño): «quitar Prefacturas realizadas». El historial queda en la ficha del cliente (pestaña Compras) y en la píldora «Prefacturas».
+    if (titLista) { titLista.classList.add('bcpf-hist', 'bcpf-oculto'); var h = q('h3', titLista); if (h) h.lastChild.nodeValue = ' Prefacturas realizadas'; var hb = q('button[onclick*="_rpHistorial"]', titLista); if (hb) hb.classList.add('bcpf-oculto'); } // «Historial de prefacturas» repetía la píldora «Prefacturas»
 
     // Barra fija abajo (como STUDIO): Total · Imprimir · Guardar e imprimir · Guardar
     var bar = el('div', 'bcpf-bar', '<div class="bt"><span class="bl">Total</span><b class="bn">RD$ 0.00</b></div>' +

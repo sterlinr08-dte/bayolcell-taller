@@ -15887,9 +15887,11 @@ async function _htmlAPdf(fullHtml, filename, opts) {
                 while(hLeft > 0) { pdf.addPage(); pos = margin - (ih - hLeft); pdf.addImage(img, 'PNG', margin, pos, iw, ih); hLeft -= (ph - margin * 2); }
             }
         }
+        if(opts.blob) return pdf.output('blob'); // 22-oct-2026: para mandarlo por WhatsApp sin descargarlo
         pdf.save(filename.endsWith('.pdf') ? filename : filename + '.pdf');
         toast('📄 PDF descargado.');
     } catch(e) { logError('_htmlAPdf', e); toastError('No se pudo generar el PDF: ' + getFriendlyError(e)); }
+    return null;
 }
 // Descarga el conduce de un despacho como PDF real (mismo diseño del conduce impreso).
 async function descargarDespachoPDF(id) {
@@ -20146,6 +20148,7 @@ function imprimirPrefactura(_modo) {
       <div style="font-size:11px;color:#888;margin-top:16px;">Documento preliminar (prefactura). La cajera lo convierte en factura fiscal al momento de cobrar.</div>
       <script>window.onload=function(){window.print();}<\/script></body></html>`;
     if(_modo === 'pdf') return _htmlAPdf(_html, 'Prefactura_' + (p.num || 'SN'), { ancho: 760 });
+    if(_modo === 'blob') return _htmlAPdf(_html.replace('<script>window.onload=function(){window.print();}<\/script>', ''), 'Prefactura_' + (p.num || 'SN'), { ancho: 760, blob: true });
     const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(_html); w.document.close(); w.focus();
 }
@@ -20538,13 +20541,8 @@ function _rpDescCambioBloqueado() {
     if(Math.abs(ahora - Number(_rpState.descEnviado)) < 0.00005) return '';
     return 'Info Plus no cambia el descuento de una prefactura ya enviada (la Nº ' + _rpState.codprefactura + ' se quedaría con ' + Number(_rpState.descEnviado).toFixed(2) + ' %).\n\nAnule la Nº ' + _rpState.codprefactura + ' en Info Plus y cree una nueva con el botón «Nueva».';
 }
-async function _rpCrearPrefactura() {
-    if(!_rpState || !_rpState.items.length) return toast('Agregue al menos un artículo o servicio.', 'error');
-    if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
-    const probs = _rpProblemasFactura();
-    if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
-    const bloqueo = _rpDescCambioBloqueado();
-    if(bloqueo) { _rpState.estado = 'cambios'; _rpRenderResumen(); return toastError(bloqueo); }
+// Arma el PreFacturaModel que se manda a Info Plus (lo usan crear/actualizar y el envío por WhatsApp).
+async function _rpArmarModelo() {
     const g = id => (document.getElementById(id)?.value || '').trim();
     // 22-oct-2026 (dueño): con el cliente de contado (cód. 1) el nombre va a Info Plus como «CONTADO <nombre>».
     const nombre = _rpNombreInfoplus(g('c_nombre'));
@@ -20572,6 +20570,18 @@ async function _rpCrearPrefactura() {
         contrato: '', comentario: ('bayolcell.com:' + (obs ? ' ' + obs : '')).slice(0, 200), ordencompra: '', centro: '',
         seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
+    const ref = { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: g('o_falla'), coment: g('o_observaciones'), cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') };
+    return { model, nombre, obs, almacen, vend, nivel, _tt, total, ref };
+}
+async function _rpCrearPrefactura() {
+    if(!_rpState || !_rpState.items.length) return toast('Agregue al menos un artículo o servicio.', 'error');
+    if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
+    const probs = _rpProblemasFactura();
+    if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
+    const bloqueo = _rpDescCambioBloqueado();
+    if(bloqueo) { _rpState.estado = 'cambios'; _rpRenderResumen(); return toastError(bloqueo); }
+    const { model, nombre, obs, almacen, vend, nivel, _tt, total, ref } = await _rpArmarModelo();
+    const g = id => (document.getElementById(id)?.value || '').trim();
     _rpState.estado = 'actualizando'; _rpRenderResumen();
     try {
         const { data, error } = await supabaseClient.functions.invoke('infoplus-prefactura-crear', { body: model });
@@ -20582,9 +20592,11 @@ async function _rpCrearPrefactura() {
         if(!ok) throw new Error((d && d.message) || 'Info Plus no aceptó la prefactura.');
         const eraUpdate = !!_rpState.codprefactura;
         _rpState.codprefactura = num; _rpState.estado = 'sincronizada'; _rpState.descEnviado = model.descuento;
-        _rpUltima = { num, total, model, ref: { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: g('o_falla'), coment: g('o_observaciones'), cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') } };
+        // 22-oct-2026 (dueño): el cliente queda guardado por su número de WhatsApp, sin importar la sucursal.
+        try { _rpState.clienteId = await _rpGuardarClientePorWhatsApp(); } catch(e) { logError('cliente por WhatsApp', e); }
+        _rpUltima = { num, total, model, ref };
         try {
-            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: _tt.subtotal, total: total, descuento_monto: Number(_rpState.descMonto || 0), observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
+            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: _tt.subtotal, total: total, descuento_monto: Number(_rpState.descMonto || 0), cliente_id: _rpState.clienteId || null, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
             if(_rpState.localId) { await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', _rpState.localId); }
             else { row.creado_por = (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'); const { data: ins } = await supabaseClient.from('recepcion_prefacturas').insert([row]).select('id').maybeSingle(); if(ins) _rpState.localId = ins.id; }
             if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();
@@ -20594,6 +20606,95 @@ async function _rpCrearPrefactura() {
     } catch(e) { logError('crear prefactura recepcion', e); _rpState.estado = 'error'; _rpRenderResumen(); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.')); }
 }
 let _rpUltima = null;
+// ---- 22-oct-2026 · Cliente por WhatsApp + envío de la prefactura por WhatsApp (dueño) ----
+// El cliente se guarda en `clientes` por su número de WhatsApp (o cédula) y la prefactura queda ligada (cliente_id):
+// así el historial de compras se ve en su ficha, sin importar la sucursal. Misma regla que guardarRecepcion.
+async function _rpGuardarClientePorWhatsApp() {
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    const wa = g('c_whatsapp'), waDig = wa.replace(/\D/g, '');
+    const ced = (g('c_cedula') || '').trim(), rnc = (g('c_rnc') || '').trim();
+    const nombre = g('c_nombre');
+    if(!waDig && !ced) return _rpState.clienteId || null;
+    if(!cache.clientes) { try { const { data } = await supabaseClient.from('clientes').select('*'); cache.clientes = data || []; } catch(e) { cache.clientes = cache.clientes || []; } }
+    let c = (cache.clientes || []).find(x => (waDig && String(x.whatsapp || x.whatsapp_e164 || '').replace(/\D/g, '').endsWith(waDig.slice(-10))) || (ced && String(x.cedula || '').trim() === ced));
+    const tipo = (document.getElementById('c_tipo')?.value === 'tienda') ? 'tienda' : 'final';
+    if(c) {
+        const upd = {};
+        if(nombre && !c.nombre) upd.nombre = nombre;
+        if(wa && !c.whatsapp) upd.whatsapp = wa;
+        if(ced && !c.cedula) upd.cedula = ced;
+        if(rnc && !c.rnc) upd.rnc = rnc;
+        if(Object.keys(upd).length) { await supabaseClient.from('clientes').update(upd).eq('id', c.id); Object.assign(c, upd); }
+        return c.id;
+    }
+    if(!nombre && !waDig) return null;
+    const e164 = waDig ? ('+' + (waDig.length === 10 ? '1' + waDig : waDig)) : null;
+    const { data: ins, error } = await supabaseClient.from('clientes').insert([{ nombre: nombre || ('Cliente ' + wa), whatsapp: wa || null, whatsapp_e164: e164, cedula: ced || null, rnc: rnc || null, tipo_cliente: tipo }]).select('*').maybeSingle();
+    if(error) throw error;
+    if(ins) cache.clientes.push(ins);
+    return ins ? ins.id : null;
+}
+// Sucursal del almacén de la prefactura (códigos de Info Plus) y línea de WhatsApp que le toca.
+// Dueño (22-oct-2026): Santiago → Reparación; Navarrete → Principal; Moca → Reparación; mayorista → «Al por Mayor» si existe.
+const _RP_SUCURSAL_DE_ALMACEN = { '1': 'Santiago', '3': 'Santiago', '5': 'Santiago', '6': 'Santiago', '4': 'Moca', '7': 'Navarrete' };
+const _RP_LINEA_POR_SUCURSAL = { 'Santiago': 'Reparación', 'Navarrete': 'Principal', 'Moca': 'Reparación' };
+function _rpElegirLinea(lineas, almacen, nivel) {
+    const suc = _RP_SUCURSAL_DE_ALMACEN[String(almacen)] || 'Santiago';
+    const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const deSuc = (lineas || []).filter(l => norm(l.sucursal_nombre) === norm(suc));
+    if(!deSuc.length) return null;
+    if(Number(nivel) === 2) { const m = deSuc.find(l => /mayor/i.test(l.nombre || '')); if(m) return m; }
+    return deSuc.find(l => norm(l.nombre) === norm(_RP_LINEA_POR_SUCURSAL[suc])) || deSuc[0];
+}
+function _rpTextoWhatsApp(num, suc, total, nombre) {
+    const quien = nombre && !/^CONTADO$/i.test(nombre) ? nombre.replace(/^CONTADO\s+/i, '') : '';
+    return 'Hola' + (quien ? ' ' + quien : '') + '. Le enviamos su prefactura Nº ' + num + ' de BAYOL CELL, sucursal ' + suc + ', por ' + money(total) + '. Gracias por preferirnos.';
+}
+let _rpEnviandoWa = false;
+async function _rpEnviarWhatsApp() {
+    if(_rpEnviandoWa) return;
+    if(!_rpState || !_rpState.codprefactura) return toast('Guarde la prefactura antes de enviarla.', 'error');
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    const wa = g('c_whatsapp').replace(/\D/g, '');
+    if(wa.length < 10) { document.getElementById('c_whatsapp')?.focus(); return toast('Escriba el WhatsApp del cliente.', 'error'); }
+    const almacen = document.getElementById('rxAlmacen')?.value || '1';
+    const suc = _RP_SUCURSAL_DE_ALMACEN[String(almacen)] || 'Santiago';
+    _rpEnviandoWa = true;
+    try {
+        if(!cache.waLineasDirectorio) { const { data, error } = await supabaseClient.rpc('whatsapp_lineas_directorio'); if(error) throw error; cache.waLineasDirectorio = data || []; }
+        const linea = _rpElegirLinea(cache.waLineasDirectorio, almacen, _rpState.nivel);
+        if(!linea) throw new Error('No hay línea de WhatsApp para la sucursal ' + suc + '.');
+        if(!_rpState.clienteId) { try { _rpState.clienteId = await _rpGuardarClientePorWhatsApp(); } catch(e) { logError('cliente por WhatsApp', e); } }
+        const { data: h, error: eh } = await supabaseClient.rpc('whatsapp_hilo_para_telefono', { p_linea: linea.id, p_telefono: wa, p_cliente: _rpState.clienteId || null });
+        if(eh) throw eh;
+        if(!h || !h.ok) throw new Error(h && h.error === 'sin_permiso' ? 'No tiene acceso a la línea ' + linea.nombre + ' de ' + suc + '.' : (h && h.error) || 'No se pudo abrir el chat.');
+        const num = _rpState.codprefactura, total = _rpTotales(_rpState.items).total;
+        const texto = _rpTextoWhatsApp(num, suc, total, _rpNombreInfoplus(g('c_nombre')));
+        let r;
+        if(h.abierto) {
+            // El cliente escribió en las últimas 24 h: va el texto con el PDF de la prefactura.
+            if(!_rpUltima || _rpUltima.num !== num) { const m = await _rpArmarModelo(); _rpUltima = { num, total, model: m.model, ref: m.ref }; }
+            _prefUltima = _rpUltima;
+            const blob = await imprimirPrefactura('blob');
+            let adjunto = null;
+            if(blob) { const file = new File([blob], 'Prefactura_' + num + '.pdf', { type: 'application/pdf' }); const s = await _waSubirAdjunto(file, 'documentos', 'pdf'); adjunto = { url: s.url, path: s.path, tipo: 'documento', nombre: 'Prefactura_' + num + '.pdf' }; }
+            r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto, adjunto } });
+        } else {
+            // Sin conversación abierta: solo se permite una plantilla aprobada por Meta.
+            r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto, plantilla: { nombre: 'bayolcell_prefactura', idioma: 'es', variables: [texto.startsWith('Hola ') && !texto.startsWith('Hola.') ? texto.slice(5, texto.indexOf('.')) : 'cliente', String(num), suc, money(total)] } } });
+        }
+        const d = r && r.data;
+        if(r && r.error && !d) throw r.error;
+        if(!d || !d.ok) {
+            const msg = (d && (d.mensaje || d.error)) || 'No se pudo enviar.';
+            if(/template|plantilla|132001|not found|does not exist/i.test(String(msg))) throw new Error('La plantilla de prefactura todavía no está aprobada por Meta. El cliente debe escribir primero, o espere la aprobación.');
+            throw new Error(msg);
+        }
+        try { if(_rpState.localId) await supabaseClient.from('recepcion_prefacturas').update({ whatsapp_enviado_en: new Date().toISOString() }).eq('id', _rpState.localId); } catch(e) {}
+        toast('Prefactura enviada por WhatsApp desde ' + linea.nombre + ' (' + suc + ').');
+    } catch(e) { logError('enviar prefactura WhatsApp', e); toastError(getFriendlyError(e, 'No se pudo enviar por WhatsApp.')); }
+    finally { _rpEnviandoWa = false; }
+}
 // La API de prefactura de Info Plus no tiene Comentarios (probado 19-oct-2026 con la 118709): la cajera solo ve las
 // descripciones de las líneas. La línea de SERVICIO (o la primera, si no hay servicio) lleva además el equipo, el IMEI
 // y la falla, para que en Info Plus se sepa de qué equipo es. Solo cambia lo que se manda; el carrito no se toca.
@@ -20700,6 +20801,7 @@ function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x =>
 function _rpAplicarCargaPref(p) {
     _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), descMonto: Number(p.descuento_monto || 0), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
     if(_rpState.codprefactura) _rpState.descEnviado = _rpDescPctCabecera();
+    _rpState.clienteId = p.cliente_id || null;
     const _nvS = document.getElementById('rxNivel'); if(_nvS) _nvS.value = String(_rpState.nivel);
     const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
     set('c_nombre', p.nombre_visible); set('c_whatsapp', p.telefono_visible); set('c_cedula', p.documento_visible); set('o_observaciones', p.observaciones); set('e_imei', p.imei);
@@ -27367,6 +27469,29 @@ function _finTimelineCliente(cId, fins) {
     finPagosDeCliente(cId).forEach(p => ev.push({ d: p.creado_en, t: 'Pago recibido ' + money(p.monto), c: '#16a34a', i: 'ti-coin' }));
     return ev.sort((a, b) => new Date(b.d) - new Date(a.d)).slice(0, 15);
 }
+
+// Prefacturas del taller de un cliente: por cliente_id o por el mismo número de WhatsApp (las anteriores a hoy).
+function _rpComprasClienteHTML(c) {
+    const lista = cache.recepcionPrefacturas;
+    if(!lista) { if(typeof _rpCargarPrefacturas === 'function') _rpCargarPrefacturas().then(() => { if(_cliDetalleId === c.id && _cliTab === 'compras') _pintarFichaCliente(); }); return '<div class="card"><div style="color:var(--text-muted); font-size:13px;">Cargando compras…</div></div>'; }
+    const dig = String(c.whatsapp || c.whatsapp_e164 || '').replace(/\D/g, '').slice(-10);
+    const mias = lista.filter(p => p.cliente_id === c.id || (dig && String(p.telefono_visible || '').replace(/\D/g, '').slice(-10) === dig))
+        .sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
+    const alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {};
+    const total = mias.reduce((s, p) => s + Number(p.total || 0), 0);
+    const filas = mias.map(p => {
+        const arts = (p.items || []).map(it => escapeHtml(String(it.desc || '')) + (Number(it.cant) > 1 ? ' ×' + it.cant : '')).join(', ');
+        const f = p.creado_en ? new Date(p.creado_en).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+        return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; gap:10px; align-items:center;">
+            <div style="min-width:0;"><div style="font-weight:600; font-size:13px;">Prefactura Nº ${escapeHtml(p.codprefactura || '—')} <span style="color:#475569; font-weight:500;">· ${escapeHtml(alms[p.codlocalidad] || ('almacén ' + (p.codlocalidad || '')))}</span></div>
+            <div style="font-size:12px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f}${arts ? ' · ' + arts : ''}</div></div>
+            <div style="display:flex; align-items:center; gap:8px; flex:none;"><b style="font-size:14px;">${money(p.total)}</b>
+            <button class="btn btn-light" onclick="_rpCargarDesdeLista('${p.id}')" style="font-size:12px; min-height:44px;"><i class="ti ti-eye"></i> Ver</button></div>
+        </div>`;
+    }).join('');
+    return `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-receipt" style="color:#ea580c;"></i> Compras (${mias.length})${mias.length ? ` <span style="font-weight:500; color:#475569; font-size:13px;">· ${money(total)}</span>` : ''}</h3>
+        ${filas || '<div style="color:var(--text-muted); font-size:13px;">Sin prefacturas del taller.</div>'}</div>`;
+}
 function _pintarFichaCliente() {
     const cont = document.getElementById('finContenido');
     const kpis = document.getElementById('finKpis');
@@ -27408,7 +27533,7 @@ function _pintarFichaCliente() {
     </div>`;
 
     // Sub-pestañas
-    const tabs = [['resumen', 'Resumen', 'ti-layout-dashboard'], ['info', 'Información', 'ti-user'], ['financiamientos', 'Financiamientos', 'ti-cash'], ['pagos', 'Pagos', 'ti-coins'], ['mdm', 'MDM', 'ti-device-mobile'], ['documentos', 'Documentos', 'ti-photo']];
+    const tabs = [['resumen', 'Resumen', 'ti-layout-dashboard'], ['info', 'Información', 'ti-user'], ['financiamientos', 'Financiamientos', 'ti-cash'], ['pagos', 'Pagos', 'ti-coins'], ['mdm', 'MDM', 'ti-device-mobile'], ['compras', 'Compras', 'ti-receipt'], ['documentos', 'Documentos', 'ti-photo']];
     html += `<div style="display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">${tabs.map(([k, lbl, ic]) => `<button class="fin-chip${_cliTab === k ? ' on' : ''}" onclick="finCliTab('${k}')" style="white-space:nowrap;"><i class="ti ${ic}"></i> ${lbl}</button>`).join('')}</div>`;
 
     const dato = (label, val) => `<div style="font-size:12.5px;"><span style="color:var(--text-muted);">${label}:</span> <b>${escapeHtml(val || '—')}</b></div>`;
@@ -27471,6 +27596,9 @@ function _pintarFichaCliente() {
                 <button class="btn btn-light" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-device-mobile-cog"></i> Gestionar</button>
             </div>`;
         }).join('') : `<div style="color:var(--text-muted); font-size:13px;">Sin equipos.</div>`}</div>`;
+    } else if(_cliTab === 'compras') {
+        // 22-oct-2026 (dueño): historial de compras del cliente (prefacturas del taller), sin importar la sucursal.
+        html += _rpComprasClienteHTML(c);
     } else if(_cliTab === 'documentos') {
         const docsCli = (_finCache.documentos || []).filter(d => d.cliente_id === c.id);
         html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-photo" style="color:#0891b2;"></i> Documentos</h3>${docsCli.length ? `<div style="display:flex; gap:10px; flex-wrap:wrap;">${docsCli.map(d => `<a href="${d.url}" target="_blank" style="text-align:center;"><img src="${d.url}" style="width:120px; height:90px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0;"><div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(d.tipo || '')}</div></a>`).join('')}</div>` : `<div style="color:var(--text-muted); font-size:13px;">Sin documentos. Se suben desde el Contrato de cada financiamiento.</div>`}</div>`;
