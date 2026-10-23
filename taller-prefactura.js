@@ -407,7 +407,7 @@
     R.est.innerHTML = '<span class="bcpf-est ' + e2[0] + '"><i aria-hidden="true"></i>' + e2[1] + '</span>';
     // Cliente
     var info = s && s.codcliente && String(s.codcliente) !== '1';
-    var nombre = val('c_nombre') || (info ? s.infoNombre : '') || 'CONTADO: 1';
+    var nombre = (typeof _rpNombreInfoplus === 'function' && (val('c_nombre') || info)) ? _rpNombreInfoplus(val('c_nombre')) : 'CONTADO: 1';
     R.pnom.textContent = nombre;
     // Como STUDIO: código y documento en una línea; teléfono y dirección (de Info Plus) en otra
     var ip = info ? ((cache && cache.infoplusClientes) || []).find(function (c) { return String(c.codcliente) === String(s.codcliente); }) || {} : {};

@@ -20517,6 +20517,14 @@ function _rpEstadoBadge(estado, cod) {
     const [bg, col, txt] = map[estado] || map.pendiente;
     return `<span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:999px;font-size:11px;">${txt}${cod && estado !== 'pendiente' ? ' · Nº ' + escapeHtml(cod) : ''}</span>`;
 }
+// Nombre que viaja a Info Plus. Cliente de contado (cód. 1): «CONTADO» o «CONTADO <nombre escrito>» (sin repetir el
+// prefijo si ya lo escribieron). Cliente de Info Plus: lo escrito o su nombre en Info Plus.
+function _rpNombreInfoplus(escrito) {
+    const n = String(escrito || '').replace(/\s+/g, ' ').trim();
+    if(String((_rpState && _rpState.codcliente) || '1') !== '1') return n || (_rpState && _rpState.infoNombre) || 'CONTADO';
+    if(!n) return 'CONTADO';
+    return /^CONTADO\b/i.test(n) ? 'CONTADO' + n.slice(7) : 'CONTADO ' + n;
+}
 // % de descuento de cabecera que se manda a Info Plus (todo el descuento sobre el subtotal, 4 decimales).
 function _rpDescPctCabecera(st) {
     const t = _rpTotales((st || _rpState).items, Number((st || _rpState).descMonto || 0));
@@ -20538,7 +20546,8 @@ async function _rpCrearPrefactura() {
     const bloqueo = _rpDescCambioBloqueado();
     if(bloqueo) { _rpState.estado = 'cambios'; _rpRenderResumen(); return toastError(bloqueo); }
     const g = id => (document.getElementById(id)?.value || '').trim();
-    const nombre = g('c_nombre') || (String(_rpState.codcliente) !== '1' && _rpState.infoNombre) || 'CONTADO';
+    // 22-oct-2026 (dueño): con el cliente de contado (cód. 1) el nombre va a Info Plus como «CONTADO <nombre>».
+    const nombre = _rpNombreInfoplus(g('c_nombre'));
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
     const vend = _codVendedorPrefactura(document.getElementById('rxVendedor')?.value || '');
     const nivel = (_rpState && _rpState.nivel) || 1;
