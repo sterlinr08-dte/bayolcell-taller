@@ -26,6 +26,8 @@ La bitácora dice cuándo y por qué se escribió cada una.
    cabecera como un solo % y las líneas van con porcentaje 0; `descuentototal` lleva los pesos totales. En Info Plus
    sale como «Descuento %». El % por línea y los RD$ son solo la forma de escribirlo en el taller.
 3. Líneas + pesos **no pueden pasar del tope** (% del subtotal). El sistema recorta y avisa cuánto queda disponible.
+4. **Al modificar una prefactura ya enviada, Info Plus no cambia el descuento de la cabecera** (comprobado con la
+   118931, 22-oct). Si hay que cambiar el descuento, se anula en Info Plus y se crea una nueva, hasta que Dagoberto lo arregle.
 
 ## 3. Comentario de la prefactura (22-oct-2026)
 
