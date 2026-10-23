@@ -182,7 +182,12 @@
     if (modo === 'pdf') { try { return _htmlAPdf(htmlCarta(d, copia, true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760 }); } catch (e) { return; } }
     if (modo !== 'ticket' && modo !== 'carta') modo = formato();
     if (modo === 'ticket' && qzListo()) {
-      return Promise.resolve(qzImprimirHtml(sinAutoPrint(htmlTicket(d, copia)), 76, null, copias(), 'tickets')).then(function (ok) {
+      // 23-oct-2026 (dueño: «no hace el corte para dividir»): cada copia va como un trabajo aparte, para que la
+      // impresora corte entre una y otra. Con copies: N en un solo trabajo solo cortaba al final.
+      var htmlQz = sinAutoPrint(htmlTicket(d, copia)), n = copias();
+      var cadena = Promise.resolve(true);
+      for (var i = 0; i < n; i++) cadena = cadena.then(function (ok) { return ok ? qzImprimirHtml(htmlQz, 76, null, 1, 'tickets') : false; });
+      return cadena.then(function (ok) {
         if (ok) { marcarImpresa(d.num); try { toast('Prefactura Nº ' + d.num + ' impresa en ' + qzImpresoraTickets() + '.'); } catch (e) {} return true; }
         if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false;
       }, function () { if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false; });
