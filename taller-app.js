@@ -20516,11 +20516,26 @@ function _rpEstadoBadge(estado, cod) {
     const [bg, col, txt] = map[estado] || map.pendiente;
     return `<span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:999px;font-size:11px;">${txt}${cod && estado !== 'pendiente' ? ' · Nº ' + escapeHtml(cod) : ''}</span>`;
 }
+// % de descuento de cabecera que se manda a Info Plus (todo el descuento sobre el subtotal, 4 decimales).
+function _rpDescPctCabecera(st) {
+    const t = _rpTotales((st || _rpState).items, Number((st || _rpState).descMonto || 0));
+    return t.subtotal > 0 ? Math.round((t.descuento || 0) / t.subtotal * 1000000) / 10000 : 0;
+}
+// 22-oct-2026 (dueño, probado con las prefacturas 118931 y 118932): Info Plus NO cambia el descuento de la cabecera
+// cuando se reenvía una prefactura que ya existe. Si el descuento cambió, no se manda: hay que anular y crear otra.
+function _rpDescCambioBloqueado() {
+    if(!_rpState || !_rpState.codprefactura || _rpState.descEnviado == null) return '';
+    const ahora = _rpDescPctCabecera();
+    if(Math.abs(ahora - Number(_rpState.descEnviado)) < 0.00005) return '';
+    return 'Info Plus no cambia el descuento de una prefactura ya enviada (la Nº ' + _rpState.codprefactura + ' se quedaría con ' + Number(_rpState.descEnviado).toFixed(2) + ' %).\n\nAnule la Nº ' + _rpState.codprefactura + ' en Info Plus y cree una nueva con el botón «Nueva».';
+}
 async function _rpCrearPrefactura() {
     if(!_rpState || !_rpState.items.length) return toast('Agregue al menos un artículo o servicio.', 'error');
     if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
     const probs = _rpProblemasFactura();
     if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
+    const bloqueo = _rpDescCambioBloqueado();
+    if(bloqueo) { _rpState.estado = 'cambios'; _rpRenderResumen(); return toastError(bloqueo); }
     const g = id => (document.getElementById(id)?.value || '').trim();
     const nombre = g('c_nombre') || (String(_rpState.codcliente) !== '1' && _rpState.infoNombre) || 'CONTADO';
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
@@ -20554,7 +20569,7 @@ async function _rpCrearPrefactura() {
         const ok = data && data.ok && d && (d.message === 'Se ha creado correctamente' || (d.data && d.data[0]));
         if(!ok) throw new Error((d && d.message) || 'Info Plus no aceptó la prefactura.');
         const eraUpdate = !!_rpState.codprefactura;
-        _rpState.codprefactura = num; _rpState.estado = 'sincronizada';
+        _rpState.codprefactura = num; _rpState.estado = 'sincronizada'; _rpState.descEnviado = model.descuento;
         _rpUltima = { num, total, model, ref: { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: g('o_falla'), coment: g('o_observaciones'), cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') } };
         try {
             const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: _tt.subtotal, total: total, descuento_monto: Number(_rpState.descMonto || 0), observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
@@ -20672,6 +20687,7 @@ function _rpCargarDesdeLista(prefId) { const p = (cache.recepcionPrefacturas || 
 function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x => x.id === ordenId) || {}; const c = findCliente(o.cliente_id) || {}; const e = findEquipo(o.equipo_id) || {}; _rpPendingLoad = { orden: o, cliente: c, equipo: e }; nav('recepcion'); }
 function _rpAplicarCargaPref(p) {
     _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), descMonto: Number(p.descuento_monto || 0), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
+    if(_rpState.codprefactura) _rpState.descEnviado = _rpDescPctCabecera();
     const _nvS = document.getElementById('rxNivel'); if(_nvS) _nvS.value = String(_rpState.nivel);
     const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
     set('c_nombre', p.nombre_visible); set('c_whatsapp', p.telefono_visible); set('c_cedula', p.documento_visible); set('o_observaciones', p.observaciones); set('e_imei', p.imei);
