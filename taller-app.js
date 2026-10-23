@@ -30752,7 +30752,7 @@ function _waBurbujaMedia(m) {
         let c; try { c = JSON.parse(m.cuerpo || '{}'); } catch(e) { c = {}; }
         return `<div style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e9edef; border-radius:7px; padding:8px 10px; margin-bottom:4px;">
             <div class="wa-avatar" style="width:34px; height:34px; font-size:13px;">${escapeHtml(_waIniciales(c.nombre || '?'))}</div>
-            <div style="min-width:0;"><div style="font-weight:700; font-size:12.5px;">${escapeHtml(c.nombre || 'Contacto')}</div>${c.telefono ? `<a href="tel:${escapeHtml(String(c.telefono).replace(/[^+\d]/g, ''))}" onclick="event.stopPropagation()" style="font-size:11.5px; color:#027eb5; text-decoration:none;">${escapeHtml(c.telefono)}</a>` : ''}${c.mas > 0 ? `<div style="font-size:11px; color:#667781;">y ${Number(c.mas)} contacto${c.mas > 1 ? 's' : ''} más</div>` : ''}</div>
+            <div style="min-width:0;"><div style="font-weight:700; font-size:12.5px;">${escapeHtml(c.nombre || 'Contacto')}</div>${c.telefono ? `<a href="#" class="wa-tel" data-tel="${escapeHtml(_waTelDigitos(c.telefono))}" onclick="_waMenuTelefono(event, this.dataset.tel)" style="font-size:11.5px; color:#027eb5; text-decoration:none;">${escapeHtml(c.telefono)}</a>` : ''}${c.mas > 0 ? `<div style="font-size:11px; color:#667781;">y ${Number(c.mas)} contacto${c.mas > 1 ? 's' : ''} más</div>` : ''}</div>
         </div>`;
     }
     if(!m.media_path) return '';
@@ -30872,7 +30872,7 @@ function _waBurbujaRowHTML(m, nombre, porId) {
             ${_waMetaHTML(m)}
             ${citaHTML}
             ${_waBurbujaMedia(m)}
-            ${m.cuerpo && m.tipo_contenido !== 'ubicacion' && m.tipo_contenido !== 'contacto' ? `<div style="white-space:pre-wrap; word-break:break-word;">${linkifyText(escapeHtml(m.cuerpo))}</div>` : ''}
+            ${m.cuerpo && m.tipo_contenido !== 'ubicacion' && m.tipo_contenido !== 'contacto' ? `<div style="white-space:pre-wrap; word-break:break-word;">${linkifyText(_waEnlazarTelefonos(escapeHtml(m.cuerpo)))}</div>` : ''}
             <div class="wa-tick-line" style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                 ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                 ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
@@ -32152,6 +32152,53 @@ function _waAsegurarMenuAcciones() {
         document.addEventListener('scroll', () => _waCerrarMenuAcciones(), true);
     }
     return menu;
+}
+// 23-oct-2026 (dueño): «cuando envían números, que al darle click se abra el menú de acción para elegir si escribir
+// al WhatsApp o llamar». Vale para números escritos en el texto y para las tarjetas de contacto.
+function _waTelDigitos(t) {
+    let d = String(t || '').replace(/\D/g, '');
+    if(d.length === 10 && /^(809|829|849)/.test(d)) d = '1' + d; // RD sin código de país
+    return d;
+}
+function _waEnlazarTelefonos(escapado) {
+    // Dominicanos (809/829/849, con o sin +1, con guiones, puntos, espacios o paréntesis) y números internacionales con +.
+    const re = /(?:\+?1[\s.-]?)?\(?(?:809|829|849)\)?[\s.-]?\d{3}[\s.-]?\d{4}|\+\d{1,3}[\s.-]?\(?\d{2,4}\)?(?:[\s.-]?\d{2,4}){2,4}/g;
+    return String(escapado || '').replace(re, (txt) => {
+        const d = _waTelDigitos(txt);
+        if(d.length < 10 || d.length > 15) return txt;
+        return `<a href="#" class="wa-tel" data-tel="${d}" onclick="_waMenuTelefono(event, this.dataset.tel)">${txt}</a>`;
+    });
+}
+function _waMenuTelefono(ev, digitos) {
+    ev.preventDefault(); ev.stopPropagation();
+    _waCerrarMenuTelefono();
+    const d = String(digitos || '').replace(/\D/g, ''); if(!d) return;
+    const bonito = d.length === 11 && d[0] === '1' ? `(${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}` : '+' + d;
+    const menu = document.createElement('div');
+    menu.id = 'waTelMenu'; menu.className = 'wa-acciones-menu wa-tel-menu'; menu.setAttribute('role', 'menu');
+    menu.innerHTML = `<div class="wa-tel-num">${escapeHtml(bonito)}</div>
+        <button type="button" onclick="_waTelAccion('whatsapp','${d}')"><i class="ti ti-brand-whatsapp" style="color:#25D366;"></i> Escribir por WhatsApp</button>
+        <button type="button" onclick="_waTelAccion('llamar','${d}')"><i class="ti ti-phone" style="color:#2563eb;"></i> Llamar</button>
+        <button type="button" onclick="_waTelAccion('copiar','${d}')"><i class="ti ti-copy"></i> Copiar número</button>`;
+    document.body.appendChild(menu);
+    menu.style.display = 'flex';
+    const r = ev.currentTarget.getBoundingClientRect();
+    const alto = menu.offsetHeight || 160, ancho = menu.offsetWidth || 230;
+    let top = r.bottom + 6; if(top + alto > window.innerHeight - 8) top = Math.max(8, r.top - alto - 6);
+    let left = Math.min(r.left, window.innerWidth - ancho - 8); if(left < 8) left = 8;
+    menu.style.top = top + 'px'; menu.style.left = left + 'px';
+    setTimeout(() => {
+        document.addEventListener('click', _waCerrarMenuTelefono, { once: true, capture: true });
+        document.addEventListener('keydown', _waTelEsc, { once: true });
+    }, 0);
+}
+function _waTelEsc(e) { if(e.key === 'Escape') _waCerrarMenuTelefono(); }
+function _waCerrarMenuTelefono() { const m = document.getElementById('waTelMenu'); if(m) m.remove(); document.removeEventListener('keydown', _waTelEsc); }
+function _waTelAccion(accion, d) {
+    _waCerrarMenuTelefono();
+    if(accion === 'whatsapp') window.open('https://wa.me/' + d, '_blank', 'noopener');
+    else if(accion === 'llamar') window.location.href = 'tel:+' + d;
+    else if(accion === 'copiar') { try { navigator.clipboard.writeText('+' + d); toast('Número copiado.'); } catch(e) { toast('No se pudo copiar.', 'error'); } }
 }
 function _waAbrirMenuAcciones(ev, msgId) {
     ev.stopPropagation();

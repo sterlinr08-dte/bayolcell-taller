@@ -535,6 +535,11 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 #v-crmLinea.crm-refresco-silencioso .crm-stats,
 #v-crmLinea.crm-refresco-silencioso .crm-busq-row,
 #v-crmLinea.crm-refresco-silencioso .crm-chips-row { animation:none !important; }
+/* Número de teléfono dentro de un mensaje o tarjeta de contacto: al tocarlo sale el menú (WhatsApp · Llamar · Copiar). 23-oct-2026 */
+.wa-tel { color:#1d4ed8; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px; font-weight:600; cursor:pointer; }
+.wa-tel-menu { min-width:230px; }
+.wa-tel-menu .wa-tel-num { padding:6px 12px 4px; font-size:12px; font-weight:700; color:#54656f; letter-spacing:.02em; }
+.wa-tel-menu button { min-height:44px; font-size:14px; }
 @media (prefers-reduced-motion: reduce) {
     .fade-in-row, .crm-icon-btn.girando i { animation:none; }
 }
@@ -5603,7 +5608,7 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261023-p21"></script>
+<script src="taller-app.js?v=20261023-p22"></script>
 <script src="taller-recepcion.js?v=20261023-g6"></script>
 <script src="taller-prefactura.js?v=20261023-i14"></script>
 <script src="bc-prefactura-imprimir.js?v=20261021-i3"></script>

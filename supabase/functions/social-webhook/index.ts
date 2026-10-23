@@ -77,17 +77,37 @@ Deno.serve(async (req) => {
   const participant = conv.participant ?? {};
   const participantId = conv.participantId ?? participant.id ?? msg.sender?.id ?? null;
   const participantUsername = conv.participantUsername ?? participant.username ?? msg.sender?.username ?? null;
-  const participantName = conv.participantName ?? participant.name ?? msg.sender?.name ?? null;
   const incoming = msg.direction === "incoming" || event === "message.received";
+  // 23-oct-2026: en los eventos salientes el "sender" es la propia página (salía «BayolCell» como nombre del cliente).
+  const participantName = conv.participantName ?? participant.name ?? (incoming ? (msg.sender?.name ?? null) : null);
   const now = p.timestamp ?? new Date().toISOString();
   const preview = msg.text ?? msg.body ?? (msg.attachments?.length ? "Adjunto" : "");
-  const { data: hilo, error: hiloErr } = await db.from("social_hilos").upsert({
-    cuenta_id:cuenta.id,sucursal_id:cuenta.sucursal_id,zernio_conversation_id:conversationId,
-    participant_id:participantId,participant_username:participantUsername,participant_name:participantName,
-    ultimo_mensaje_at:now,ultimo_mensaje_preview:preview,ultimo_inbound_at:incoming?now:undefined,
-    no_leidos_count:incoming?undefined:undefined,actualizado_en:now
-  }, {onConflict:"cuenta_id,zernio_conversation_id"}).select("id,no_leidos_count").single();
-  if (hiloErr || !hilo) return json({ok:false,error:"thread_upsert_failed"},500);
+  // 23-oct-2026 (dueño: «conversaciones repetidas»): Zernio ha mandado dos ids de conversación distintos para el
+  // mismo cliente (el PSID y un id hexadecimal nuevo). Si ya existe un hilo de ese participante en esta cuenta, se
+  // reutiliza; solo se crea uno nuevo cuando el participante es desconocido.
+  let hilo: {id:string; no_leidos_count:number|null} | null = null;
+  if (participantId) {
+    const { data: previo } = await db.from("social_hilos").select("id,no_leidos_count").eq("cuenta_id",cuenta.id).eq("participant_id",participantId).order("creado_en",{ascending:true}).limit(1).maybeSingle();
+    if (previo) {
+      const cambios: Record<string, unknown> = { ultimo_mensaje_at:now, ultimo_mensaje_preview:preview, actualizado_en:now };
+      if (incoming) cambios.ultimo_inbound_at = now;
+      if (participantName) cambios.participant_name = participantName;
+      if (participantUsername) cambios.participant_username = participantUsername;
+      const { error: updErr } = await db.from("social_hilos").update(cambios).eq("id",previo.id);
+      if (updErr) return json({ok:false,error:"thread_update_failed"},500);
+      hilo = previo;
+    }
+  }
+  if (!hilo) {
+    const { data: creado, error: hiloErr } = await db.from("social_hilos").upsert({
+      cuenta_id:cuenta.id,sucursal_id:cuenta.sucursal_id,zernio_conversation_id:conversationId,
+      participant_id:participantId,participant_username:participantUsername,participant_name:participantName,
+      ultimo_mensaje_at:now,ultimo_mensaje_preview:preview,ultimo_inbound_at:incoming?now:undefined,
+      actualizado_en:now
+    }, {onConflict:"cuenta_id,zernio_conversation_id"}).select("id,no_leidos_count").single();
+    if (hiloErr || !creado) return json({ok:false,error:"thread_upsert_failed"},500);
+    hilo = creado;
+  }
   if (event.startsWith("message.")) {
     const status = event==="message.failed" ? "fallido" : event==="message.read" ? "leido" : event==="message.delivered" ? "entregado" : (incoming?"recibido":"enviado");
     const mid = msg.id ?? msg.platformMessageId ?? null;
