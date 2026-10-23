@@ -196,19 +196,30 @@
     var v = doc.getElementById('v-configImpresora'); if (!v) return false;
     var c = doc.getElementById('bcPfFmtCard');
     if (!c) {
+      // 23-oct-2026 (dueño: «así no, hazlo más profesional»; eligió la opción B): fichas con el dibujo del papel y
+      // contador − n + para las copias. La explicación larga va detrás de la ⓘ del título (regla en taller-info.js).
       c = doc.createElement('div'); c.id = 'bcPfFmtCard'; c.className = 'card';
-      c.innerHTML = '<h3 style="margin:0 0 4px;"><i class="ti ti-file-invoice" style="color:#ea580c;"></i> Papel de la prefactura</h3>' +
-        '<div class="bcpffmt-mut">Se usa al imprimir la prefactura en esta computadora. Con QZ Tray conectado y una impresora de tickets elegida arriba, el ticket sale directo, sin ventana.</div>' +
+      c.innerHTML = '<div class="bcpf-hd"><span class="bcpf-ic"><i class="ti ti-file-invoice"></i></span><h3>Prefactura</h3>' +
+        '<span class="bcpf-pc"><i class="ti ti-device-desktop"></i> Esta computadora</span></div>' +
+        '<div class="bcpffmt-mut">Papel con el que sale la prefactura en esta computadora. Con QZ Tray conectado y una impresora de tickets elegida arriba, el ticket sale directo, sin ventana. Las copias solo aplican al ticket.</div>' +
         '<div class="bcpffmt" role="radiogroup" aria-label="Papel de la prefactura">' +
-        '<button type="button" role="radio" data-f="ticket"><i class="ti ti-receipt"></i><span>Ticket 80 mm</span></button>' +
-        '<button type="button" role="radio" data-f="carta"><i class="ti ti-file-text"></i><span>Hoja carta</span></button></div>' +
-        '<div class="bcpffmt-mut" style="margin-top:12px">Copias del ticket</div>' +
-        '<div class="bcpffmt bcpfcop" role="radiogroup" aria-label="Copias del ticket">' +
-        '<button type="button" role="radio" data-c="1">1</button><button type="button" role="radio" data-c="2">2</button><button type="button" role="radio" data-c="3">3</button></div>';
+        '<button type="button" role="radio" data-f="ticket"><span class="bcpf-chk"><i class="ti ti-check"></i></span>' +
+        '<span class="bcpf-paper t"><i style="top:10px"></i><i style="top:18px;right:14px"></i><i style="top:26px"></i><i style="top:40px;left:12px"></i><i style="top:48px"></i></span>' +
+        '<span class="nm">Ticket</span><span class="ds">80 mm · directo</span></button>' +
+        '<button type="button" role="radio" data-f="carta"><span class="bcpf-chk"><i class="ti ti-check"></i></span>' +
+        '<span class="bcpf-paper"><i style="top:10px"></i><i style="top:18px;right:18px"></i><i style="top:30px"></i><i style="top:38px"></i><i style="top:50px;right:20px"></i></span>' +
+        '<span class="nm">Hoja carta</span><span class="ds">Impresora normal</span></button></div>' +
+        '<div class="bcpfcop"><span class="lab">Copias del ticket</span><span class="ctl" role="group" aria-label="Copias del ticket">' +
+        '<button type="button" data-c="-1" aria-label="Una copia menos">−</button><b aria-live="polite">1</b><button type="button" data-c="1" aria-label="Una copia más">+</button></span></div>';
       var h2 = v.querySelector('h2'); if (h2 && h2.nextSibling) v.insertBefore(c, h2.nextSibling); else v.appendChild(c);
       c.addEventListener('click', function (e) {
         var bc = e.target.closest('[data-c]');
-        if (bc) { lsSet(LS_COP, bc.dataset.c); marcar(); try { toast('Ticket de la prefactura: ' + bc.dataset.c + (bc.dataset.c === '1' ? ' copia' : ' copias') + ' en esta computadora.'); } catch (er) {} return; }
+        if (bc) {
+          var n = Math.max(1, Math.min(3, copias() + Number(bc.dataset.c))); if (n === copias()) return;
+          lsSet(LS_COP, String(n)); marcar();
+          try { toast('Ticket de la prefactura: ' + n + (n === 1 ? ' copia' : ' copias') + ' en esta computadora.'); } catch (er) {}
+          return;
+        }
         var b = e.target.closest('[data-f]'); if (!b) return;
         lsSet(LS_FMT, b.dataset.f); marcar();
         try { toast('Prefactura: ' + (b.dataset.f === 'ticket' ? 'ticket 80 mm' : 'hoja carta') + ' en esta computadora.'); } catch (er) {}
@@ -216,17 +227,38 @@
     }
     function marcar() {
       [].forEach.call(c.querySelectorAll('[data-f]'), function (b) { var on = b.dataset.f === formato(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
-      [].forEach.call(c.querySelectorAll('[data-c]'), function (b) { var on = Number(b.dataset.c) === copias(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      var n = copias(), num = c.querySelector('.bcpfcop b'); if (num) num.textContent = String(n);
+      var menos = c.querySelector('[data-c="-1"]'), mas = c.querySelector('[data-c="1"]');
+      if (menos) menos.disabled = n <= 1; if (mas) mas.disabled = n >= 3;
+      c.classList.toggle('sin-copias', formato() !== 'ticket');
     }
     marcar(); return true;
   }
 
   var css = doc.createElement('style');
-  css.textContent = '#bcPfFmtCard{border-top:4px solid #ea580c}#bcPfFmtCard .bcpffmt-mut{color:#64748b;font-size:14px;margin-bottom:12px}' +
-    '#bcPfFmtCard .bcpffmt{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:460px}#bcPfFmtCard .bcpfcop{grid-template-columns:1fr 1fr 1fr;max-width:300px}#bcPfFmtCard .bcpfcop button{min-height:52px!important;font-size:18px}' +
-    '#bcPfFmtCard .bcpffmt button{min-height:72px!important;padding:10px!important;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:700;color:#0f172a;cursor:pointer;transition:transform .16s ease-out,border-color .16s}' +
-    '#bcPfFmtCard .bcpffmt button i{font-size:24px;color:#ea580c}#bcPfFmtCard .bcpffmt button.on{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.15);background:#fff7ed}' +
-    '#bcPfFmtCard .bcpffmt button:active{transform:scale(.97)}#bcPfFmtCard .bcpffmt button:focus-visible{outline:3px solid #ea580c;outline-offset:2px}';
+  css.textContent = '#bcPfFmtCard{border-top:4px solid #ea580c}#bcPfFmtCard .bcpffmt-mut{color:#64748b;font-size:14px;margin:0 0 12px}' +
+    '#bcPfFmtCard .bcpf-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}#bcPfFmtCard .bcpf-hd h3{margin:0;font-size:17px;font-weight:800;display:flex;align-items:center;gap:6px}' +
+    '#bcPfFmtCard .bcpf-ic{width:36px;height:36px;border-radius:10px;background:#fff7ed;color:#ea580c;display:grid;place-items:center;font-size:20px;flex:0 0 auto}' +
+    '#bcPfFmtCard .bcpf-pc{margin-left:auto;font-size:12px;color:#64748b;background:#f8fafc;border:1px solid rgba(15,23,42,.08);border-radius:999px;padding:5px 10px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}' +
+    '#bcPfFmtCard .bcpffmt{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:520px}' +
+    '#bcPfFmtCard .bcpffmt button{position:relative;min-height:44px;padding:14px 12px!important;border-radius:14px;border:1.5px solid rgba(15,23,42,.1);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#0f172a;cursor:pointer;transition:transform .16s ease-out,border-color .16s,background .16s}' +
+    '#bcPfFmtCard .bcpffmt button .ds{font-size:13px;color:#64748b;font-weight:500;margin-top:-4px}#bcPfFmtCard .bcpffmt button:hover{border-color:rgba(15,23,42,.2)}' +
+    '#bcPfFmtCard .bcpffmt button.on{border-color:#ea580c;background:#fff7ed;box-shadow:0 0 0 3px rgba(234,88,12,.14)}' +
+    '#bcPfFmtCard .bcpf-chk{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;border:1.5px solid #cbd5e1;background:#fff;display:grid;place-items:center;color:#fff;font-size:14px}' +
+    '#bcPfFmtCard .bcpf-chk i{display:none}#bcPfFmtCard button.on .bcpf-chk{background:#ea580c;border-color:#ea580c}#bcPfFmtCard button.on .bcpf-chk i{display:block}' +
+    '#bcPfFmtCard .bcpf-paper{display:block;width:46px;height:70px;border:1.5px solid #cbd5e1;border-radius:3px;background:#fff;position:relative;overflow:hidden}' +
+    '#bcPfFmtCard .bcpf-paper.t{width:34px;height:74px;border-bottom:0;border-radius:3px 3px 0 0}' +
+    '#bcPfFmtCard .bcpf-paper.t:after{content:"";position:absolute;left:-2px;right:-2px;bottom:0;height:6px;background:repeating-linear-gradient(90deg,#cbd5e1 0 4px,transparent 4px 8px)}' +
+    '#bcPfFmtCard .bcpf-paper i{position:absolute;left:6px;right:6px;height:3px;background:#e2e8f0;border-radius:2px}' +
+    '#bcPfFmtCard .bcpfcop{display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(15,23,42,.06);max-width:520px}' +
+    '#bcPfFmtCard .bcpfcop .lab{font-size:15px;font-weight:600}#bcPfFmtCard.sin-copias .bcpfcop{opacity:.45;pointer-events:none}' +
+    '#bcPfFmtCard .bcpfcop .ctl{margin-left:auto;display:inline-flex;align-items:center;border:1.5px solid rgba(15,23,42,.1);border-radius:12px;overflow:hidden}' +
+    '#bcPfFmtCard .bcpfcop .ctl button{width:48px;min-width:48px;height:48px;min-height:48px!important;padding:0!important;border:0;border-radius:0;background:#fff;font-size:22px;line-height:1;color:#0f172a;cursor:pointer}' +
+    '#bcPfFmtCard .bcpfcop .ctl button:disabled{color:#cbd5e1;cursor:default}' +
+    '#bcPfFmtCard .bcpfcop .ctl b{width:52px;text-align:center;font-size:18px;font-variant-numeric:tabular-nums;border-left:1.5px solid rgba(15,23,42,.1);border-right:1.5px solid rgba(15,23,42,.1);height:48px;line-height:48px;background:#f8fafc}' +
+    '#bcPfFmtCard .bcpffmt button:active,#bcPfFmtCard .bcpfcop .ctl button:not(:disabled):active{transform:scale(.97)}' +
+    '#bcPfFmtCard button:focus-visible{outline:3px solid #ea580c;outline-offset:2px}' +
+    '@media(max-width:480px){#bcPfFmtCard .bcpf-pc{display:none}}';
   doc.head.appendChild(css);
   if (!pintarConfig()) {
     var mo = new MutationObserver(function () { if (pintarConfig()) mo.disconnect(); });

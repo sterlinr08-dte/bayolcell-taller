@@ -73,6 +73,8 @@
     nota('despachos', 'p', 'Traspasa mercancía'),
     nota('etiquetas', 'p', 'Modifique los campos del dispositivo'),
     nota('configImpresora', 'div', 'Ajuste el tamaño y verifique'),
+    // 23-oct-2026: tarjeta «Prefactura» (papel y copias): la explicación va en la ⓘ del título
+    nota('configImpresora', '#bcPfFmtCard .bcpffmt-mut', 'Papel con el que sale', function (n) { return n.parentElement.querySelector('.bcpf-hd h3'); }),
     nota('configImpresora', 'small', 'Más alto = más oscuro', function (n) { return n.parentElement.querySelector('label'); }),
     nota('configImpresora', 'p', 'Esto se imprime EXACTAMENTE'),
     nota('configImpresora', 'p', 'Ajuste el tamaño y seleccione'),
