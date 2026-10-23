@@ -102,3 +102,5 @@ listas y sincronización.
   `etqcount`, `acuse`; `scripts/qa-precio-pantalla.mjs`.
 
 - **Textos (dueño, 23-oct-2026):** nada de texto explicativo en las pantallas. Etiquetas de una o dos palabras («Comentario», «Sin artículos»). Si hace falta explicar, va detrás de la ⓘ (`taller-info.js`). Los avisos y errores sí se muestran.
+
+- **Prefactura (dueño, 23-oct-2026):** los **técnicos no prefacturan** (no hace falta código de vendedor para Francis, Josiel ni Luis Miguel). El almacén del empleado queda fijo por su sucursal; los administradores (Loribel, Yves, admin) quedan libres. **No** se hace aviso de «Pedir traslado» cuando el artículo solo existe en otra tienda: basta el bloqueo actual.
