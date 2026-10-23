@@ -80,7 +80,7 @@
     p1.classList.add('bcpf-franja');
     var nivel = doc.getElementById('rxNivel');
     var fNivel = null;
-    if (nivel) { fNivel = el('div', 'pcol bcpf-campos'); var fN = el('div', '', '<label for="rxNivel">Nivel de precio</label>'); // 22-oct-2026 (dueño) fN.appendChild(nivel); fNivel.appendChild(fN); }
+    if (nivel) { fNivel = el('div', 'pcol bcpf-campos'); var fN = el('div', '', '<label for="rxNivel">Nivel de precio</label>'); fN.appendChild(nivel); fNivel.appendChild(fN); }
     // «Tipo de cliente» y «Precio» decían lo mismo (dueño: «veo que se repite»): queda solo «Precio del cliente».
     // El tipo (final / tienda) se sigue guardando igual: se deriva del precio elegido.
     var selTipo = q('#c_tipo', camposCli), fTipo = selTipo && selTipo.parentElement; if (fTipo) fTipo.classList.add('bcpf-oculto'); // (aún fuera del documento: se busca dentro del bloque)
