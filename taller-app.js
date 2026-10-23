@@ -13401,6 +13401,9 @@ function cargarDatosTallerEnForm() {
     set('cfgCuentasPago', (cache.configTaller && cache.configTaller.cuentas_pago) || '');
     set('cfgGarantiaCelular', (cache.configTaller && cache.configTaller.garantia_celular) || '');
     set('cfgGarantiaPieza', (cache.configTaller && cache.configTaller.garantia_pieza) || '');
+    set('cfgGarantiaMoto', (cache.configTaller && cache.configTaller.garantia_moto) || '');
+    set('cfgGarantiaAire', (cache.configTaller && cache.configTaller.garantia_aire) || '');
+    set('cfgGarantiaTv', (cache.configTaller && cache.configTaller.garantia_tv) || '');
 }
 async function guardarDatosTaller() {
     const g = id => (document.getElementById(id)?.value || '').trim();
@@ -13413,7 +13416,10 @@ async function guardarDatosTaller() {
         cuentas_pago: g('cfgCuentasPago').slice(0, 1500),
         // 23-oct-2026: textos de garantía de la prefactura (celular / pieza). Vacío = texto estándar del sistema.
         garantia_celular: g('cfgGarantiaCelular').slice(0, 1500),
-        garantia_pieza: g('cfgGarantiaPieza').slice(0, 1500)
+        garantia_pieza: g('cfgGarantiaPieza').slice(0, 1500),
+        garantia_moto: g('cfgGarantiaMoto').slice(0, 1500),
+        garantia_aire: g('cfgGarantiaAire').slice(0, 1500),
+        garantia_tv: g('cfgGarantiaTv').slice(0, 1500)
     };
     // Respaldo local siempre (por si no hay conexión)
     localStorage.setItem('bayol_taller_nombre', datos.nombre);

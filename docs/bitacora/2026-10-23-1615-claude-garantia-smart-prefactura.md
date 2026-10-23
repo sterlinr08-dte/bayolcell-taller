@@ -38,3 +38,17 @@ Rama `claude/garantia-prefactura`, **sin publicar**. Falta el «publícalo» del
 
 ## Añadido 16:25 — texto de piezas del dueño
 El dueño mandó su propia redacción de «GARANTÍA DE LA PIEZA»; reemplaza el borrador como texto estándar (`GAR_PZA`).
+
+## Añadido 16:45 — encabezado por sucursal y 3 garantías más (dueño)
+- **Encabezado:** debajo de «Sucursal X» salen la dirección, el teléfono y el WhatsApp **de esa sucursal**, leídos de la tabla
+  `sucursales` (ya tenía dirección y teléfono de Santiago, Moca y Navarrete; se agregó la columna `whatsapp`, vacía hasta que
+  el dueño dé los números). Se cargan al arrancar la capa, no al imprimir, para que el navegador no bloquee la ventana.
+  Si no se pudieron cargar, se usan la dirección y el teléfono generales de Configuración, como antes.
+- **Garantías nuevas** (textos estándar redactados por Claude, el dueño los corrige en Configuración → Datos del taller):
+  moto eléctrica (3 meses), aire acondicionado (1 año) y televisor (1 año). Columnas `garantia_moto`, `garantia_aire`,
+  `garantia_tv` en `config_taller` (aplicadas con el conector).
+- **Orden de detección por línea:** moto → aire → TV → celular (IMEI o marca) → pieza. «MOTOROLA» sigue siendo celular
+  (la regla de moto exige la palabra sola: MOTO, MOTOR, MOTOCICLETA, SCOOTER, PATINETA…).
+- Pruebas (11 casos): moto, aire 12000 BTU inverter, Smart TV 43", Motorola con IMEI → celular, y una prefactura con los 5
+  tipos → salen los 5 textos en orden. 0 errores JS. Versiones `p35` / `i10`.
+- Pendiente del dueño: números de WhatsApp por sucursal (se guardan en `sucursales.whatsapp`) y revisar los 3 textos nuevos.

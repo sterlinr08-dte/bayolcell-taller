@@ -26,9 +26,24 @@
     lsSet(LS_IMP, l.slice(-300).join(','));
   }
 
+  // 23-oct-2026 (dueño): dirección, teléfono y WhatsApp de cada sucursal en el encabezado. Se leen de la tabla
+  // `sucursales` al arrancar (sin esperar al imprimir, para que la ventana no la bloquee el navegador).
+  var _sucs = null, _sucsIntentos = 0;
+  function cargarSucursales() {
+    if (_sucs || _sucsIntentos > 20) return;
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) { _sucsIntentos++; setTimeout(cargarSucursales, 1500); return; }
+    try {
+      supabaseClient.from('sucursales').select('nombre,direccion,telefono,whatsapp').then(function (r) { if (r && r.data) _sucs = r.data; }, function () {});
+    } catch (e) {}
+  }
+  setTimeout(cargarSucursales, 1500);
+  function sucursalDe(loc) {
+    return (_sucs || []).filter(function (x) { return String(x.nombre || '').toLowerCase() === loc.toLowerCase(); })[0] || null;
+  }
   function datos(p) {
     var m = p.model || {}, ct = (typeof cache !== 'undefined' && cache.configTaller) || {}, r = p.ref || {};
     var loc = String(m.codlocalidad) === '4' ? 'Moca' : String(m.codlocalidad) === '7' ? 'Navarrete' : 'Santiago'; // 23-oct-2026: Navarrete tiene su sucursal
+    var suc = sucursalDe(loc) || {};
     var lineas = (m.detallesPreFactura || []).map(function (d) {
       var pct = Number(d.porcentaje || 0), imp = Math.round(d.precio * d.cantidad * (100 - pct)) / 100;
       var imeis = (m.seriales || []).filter(function (s) { return String(s.codarticulo) === String(d.codarticulo); }).map(function (s) { return s.numero; });
@@ -36,7 +51,7 @@
     });
     var cant = lineas.reduce(function (a, l) { return a + (Number(l.cant) || 0); }, 0);
     return {
-      negocio: ct.nombre || 'BAYOL CELL', dir: ct.direccion || '', tel: ct.telefono || '', loc: loc,
+      negocio: ct.nombre || 'BAYOL CELL', dir: suc.direccion || ct.direccion || '', tel: suc.telefono || ct.telefono || '', wa: (suc.whatsapp && suc.whatsapp !== suc.telefono) ? suc.whatsapp : '', loc: loc,
       num: p.num || '', cliente: m.nombre || 'CONTADO', fecha: fechaBonita(m.fecha), hora: horaBonita(m.hora),
       vendedor: textoSel('rxVendedor', m.codempleado), almacen: textoSel('rxAlmacen', m.codlocalidad),
       lineas: lineas, cant: cant, desc: Number(m.descuentototal || 0), total: Number(p.total || 0), ref: r,
@@ -66,17 +81,30 @@
   // reparación… Accesorios (cargador, cable, cristal) no llevan texto. Los textos se editan en Configuración → Datos del taller.
   var GAR_CEL = 'GARANTÍA DEL CELULAR\nEste equipo cuenta con 30 días de garantía por fallas de fábrica, a partir de la fecha de compra.\nLa garantía no cubre daños por golpes, caídas, humedad, pantalla rota, rayaduras o mal uso. Tampoco cubre bloqueos relacionados con cuentas, contraseñas o accesos del cliente.\nPara solicitar la garantía, debe presentar el equipo junto con esta prefactura y su factura de compra.\nEl equipo será evaluado en nuestro taller. Si se confirma una falla de fábrica cubierta por la garantía, se procederá con su reparación o cambio, según corresponda.';
   var GAR_PZA = 'GARANTÍA DE LA PIEZA\nLa pieza cuenta con 30 días de garantía desde su instalación, únicamente por defectos de la pieza y siempre que haya sido instalada por BAYOL CELL.\nNo cubre pantallas rotas o rajadas, daños por golpes, humedad ni daños ocasionados por reparaciones posteriores.\nPara solicitar la garantía, debe presentar el equipo junto con esta prefactura. Nuestro taller evaluará la pieza y, si se confirma un defecto cubierto, se procederá con su reparación o cambio, según corresponda.';
+  var GAR_MOTO = 'GARANTÍA DE LA MOTO ELÉCTRICA\nLa moto cuenta con 3 meses de garantía por fallas de fábrica en motor, controlador y cargador, a partir de la fecha de compra.\nLa garantía no cubre la batería por desgaste normal, ni daños por golpes, caídas, humedad, sobrecarga, mal uso o modificaciones.\nPara solicitar la garantía, debe presentar la moto junto con esta prefactura y su factura de compra. Nuestro taller la evaluará y, si se confirma una falla cubierta, se procederá con su reparación o cambio de la pieza, según corresponda.';
+  var GAR_AIRE = 'GARANTÍA DEL AIRE ACONDICIONADO\nEl equipo cuenta con 1 año de garantía por fallas de fábrica, a partir de la fecha de compra.\nLa garantía no cubre daños por instalación incorrecta realizada por terceros, variaciones de voltaje, falta de mantenimiento, golpes, humedad o mal uso.\nPara solicitar la garantía, debe presentar esta prefactura y su factura de compra. El equipo será evaluado y, si se confirma una falla cubierta, se procederá con su reparación o cambio, según corresponda.';
+  var GAR_TV = 'GARANTÍA DEL TELEVISOR\nEl televisor cuenta con 1 año de garantía por fallas de fábrica, a partir de la fecha de compra.\nLa garantía no cubre pantalla rota, rayada o con golpes, daños por humedad, variaciones de voltaje o mal uso.\nPara solicitar la garantía, debe presentar el televisor junto con esta prefactura y su factura de compra. El equipo será evaluado y, si se confirma una falla cubierta, se procederá con su reparación o cambio, según corresponda.';
+  var RE_MOTO = /(\bMOTO\b|\bMOTOR\b|MOTOCICLETA|MOTOCARGA|SCOOTER|PATINETA|TRICICLO|BICICLETA)/i;
+  var RE_AIRE = /(AIRE ACONDICIONADO|\bAIRE\b|\bAIRES\b|\bSPLIT\b|INVERTER|\bBTU\b|\bA\/C\b|MINISPLIT)/i;
+  var RE_TV = /(\bTV\b|TELEVISOR|TELEVISION|TELEVISIÓN|SMART TV|PULGADAS|\bPULG\b)/i;
   var RE_CEL = /^\s*(CELULAR|CELU\b|TELEFONO|TELÉFONO|SMARTPHONE|IPHONE|SAMSUNG|XIAOMI|REDMI|MOTOROLA|MOTO\s|HUAWEI|HONOR|TECNO|INFINIX|REALME|OPPO|VIVO|ONEPLUS|GOOGLE PIXEL|PIXEL\s|NOKIA|ALCATEL|ZTE|BLU\b|TCL\b)/i;
   var RE_PZA = /(PANTALLA|DISPLAY|\bLCD\b|TOUCH|TACTIL|TÁCTIL|BATERIA|BATERÍA|\bFLEX\b|CONECTOR|PIN DE CARGA|PUERTO|CAMARA|CÁMARA|\bLENTE\b|BOCINA|SPEAKER|ALTAVOZ|MICROFONO|MICRÓFONO|TAPA|TRASERA|CARCASA|\bMARCO\b|BANDEJA|BOTON|BOTÓN|VIBRADOR|ANTENA|SENSOR|REPARACION|REPARACIÓN|CAMBIO DE|INSTALACION|INSTALACIÓN|SERVICIO|MANO DE OBRA)/i;
   function garantias(d) {
-    var ct = (typeof cache !== 'undefined' && cache.configTaller) || {}, cel = false, pza = false;
+    var ct = (typeof cache !== 'undefined' && cache.configTaller) || {}, t = {};
     (d.lineas || []).forEach(function (l) {
       var n = String(l.desc || '');
-      if ((l.imeis && l.imeis.length) || RE_CEL.test(n)) cel = true; else if (RE_PZA.test(n)) pza = true;
+      if (RE_MOTO.test(n)) t.moto = true;
+      else if (RE_AIRE.test(n)) t.aire = true;
+      else if (RE_TV.test(n)) t.tv = true;
+      else if ((l.imeis && l.imeis.length) || RE_CEL.test(n)) t.cel = true;
+      else if (RE_PZA.test(n)) t.pza = true;
     });
     var out = [];
-    if (cel) out.push((ct.garantia_celular || '').trim() || GAR_CEL);
-    if (pza) out.push((ct.garantia_pieza || '').trim() || GAR_PZA);
+    if (t.cel) out.push((ct.garantia_celular || '').trim() || GAR_CEL);
+    if (t.moto) out.push((ct.garantia_moto || '').trim() || GAR_MOTO);
+    if (t.aire) out.push((ct.garantia_aire || '').trim() || GAR_AIRE);
+    if (t.tv) out.push((ct.garantia_tv || '').trim() || GAR_TV);
+    if (t.pza) out.push((ct.garantia_pieza || '').trim() || GAR_PZA);
     return out;
   }
   function garHtml(d, cls) {
@@ -110,7 +138,7 @@
       '.pie{font-size:10px;text-align:center;margin-top:3mm;line-height:1.4}.gr{font-weight:800;font-size:12px;margin-top:2mm}' +
       '</style></head><body>' +
       '<img class="logo" src="' + esc(d.logo) + '" onerror="this.remove()">' +
-      '<div class="c"><div class="neg">' + esc(d.negocio) + '</div><div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? '<br>' + esc(d.dir) : '') + (d.tel ? '<br>Tel. ' + esc(d.tel) : '') + '</div></div>' +
+      '<div class="c"><div class="neg">' + esc(d.negocio) + '</div><div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? '<br>' + esc(d.dir) : '') + (d.tel ? '<br>Tel. ' + esc(d.tel) : '') + (d.wa ? '<br>WhatsApp ' + esc(d.wa) : '') + '</div></div>' +
       '<div class="band">PREFACTURA</div><div class="no">Nº ' + esc(d.num) + '</div>' +
       '<div class="bar">' + barras(d.num, 40, 1.6) + '</div>' + (copia ? '<div class="cp">COPIA</div>' : '') +
       '<div class="hr"></div>' +
@@ -168,7 +196,7 @@
       '</style></head><body>' + (copia ? '<div class="wm">COPIA</div>' : '') +
       '<div class="acc"></div>' +
       '<div class="top"><div class="marca"><img class="logo" src="' + esc(d.logo) + '" onerror="this.remove()"><div><div class="neg">' + esc(d.negocio) + '</div>' +
-      '<div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? '<br>' + esc(d.dir) : '') + (d.tel ? '<br>Tel. ' + esc(d.tel) : '') + '</div></div></div>' +
+      '<div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? '<br>' + esc(d.dir) : '') + (d.tel ? '<br>Tel. ' + esc(d.tel) : '') + (d.wa ? '<br>WhatsApp ' + esc(d.wa) : '') + '</div></div></div>' +
       '<div class="doc"><span class="pill">PREFACTURA</span><div class="no">Nº ' + esc(d.num) + '</div><div class="bar">' + barras(d.num, 40, 1.8) + '</div>' +
       (copia ? '<span class="cp">COPIA</span>' : '') + '</div></div>' +
       '<div class="info">' + celda('Cliente', esc(d.cliente), ce) + celda('Fecha', esc(d.fecha), esc(d.hora)) +
@@ -300,5 +328,5 @@
   }
 
   window.imprimirPrefactura = imprimir;
-  window.bcPfImprimirHtml = { ticket: htmlTicket, carta: htmlCarta, datos: datos }; // para pruebas
+  window.bcPfImprimirHtml = { ticket: htmlTicket, carta: htmlCarta, datos: datos, sucursales: function (a) { _sucs = a; } }; // para pruebas
 })();
