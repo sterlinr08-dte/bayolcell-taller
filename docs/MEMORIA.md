@@ -91,6 +91,8 @@ listas y sincronización.
 - Al medir animaciones, esperar a que termine la entrada (a medio abrir da 43/47 px).
 - No sobrescribir un archivo sin leerlo (pasó con `DESIGN.md` de nexus-pro; se restauró).
 
+- **Candado de secretos** (hook `secretos.sh`) y skill `redaccion-clara` instalados el 23-oct (HERRAMIENTAS.md).
+
 ## 8. Dónde buscar más
 - `CLAUDE.md` (mapa completo, Info Plus, permisos, historial por fechas), `DESIGN.md`, `HERRAMIENTAS.md`, `PENDIENTES.md`
   (MDM/financiamiento), `docs/RUTAS-CONSULTA-IMEI.md`, `docs/REFERENCIAS-DISENO.md`, `AUDITORIA_SISTEMA_PARA_CLAUDE.md`.
