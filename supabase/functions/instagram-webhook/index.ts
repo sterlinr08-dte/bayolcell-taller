@@ -148,6 +148,10 @@ async function procesarMensaje(payload: any) {
     if (esEntrante) {
       actualizacion.ultimo_inbound_at = ahora;
       actualizacion.no_leidos_count = (hiloExistente.no_leidos_count ?? 0) + 1;
+    } else {
+      // 23-oct-2026 (dueño): el contador confundía a los empleados: 165 chats ya respondidos seguían marcados.
+      // Un mensaje nuestro (desde el CRM, la app de Instagram o la automatización) deja el chat como atendido.
+      actualizacion.no_leidos_count = 0;
     }
     await db.from("instagram_hilos").update(actualizacion).eq("id", hiloId);
   } else {
