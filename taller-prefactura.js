@@ -80,7 +80,7 @@
     p1.classList.add('bcpf-franja');
     var nivel = doc.getElementById('rxNivel');
     var fNivel = null;
-    if (nivel) { fNivel = el('div', 'pcol bcpf-campos'); var fN = el('div', '', '<label for="rxNivel">Nivel de precio</label>'); fN.appendChild(nivel); fNivel.appendChild(fN); }
+    if (nivel) { fNivel = el('div', 'pcol bcpf-campos'); var fN = el('div', '', '<label for="rxNivel">Precio</label>'); fN.appendChild(nivel); fNivel.appendChild(fN); }
     // «Tipo de cliente» y «Precio» decían lo mismo (dueño: «veo que se repite»): queda solo «Precio del cliente».
     // El tipo (final / tienda) se sigue guardando igual: se deriva del precio elegido.
     var selTipo = q('#c_tipo', camposCli), fTipo = selTipo && selTipo.parentElement; if (fTipo) fTipo.classList.add('bcpf-oculto'); // (aún fuera del documento: se busca dentro del bloque)
@@ -88,6 +88,9 @@
     p1.appendChild(cCli); if (fNivel) p1.appendChild(fNivel);
     ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var l = doc.querySelector('label[for="' + id + '"]') || (campo(id) && campo(id).querySelector('label')); if (l) Array.prototype.slice.call(l.childNodes).forEach(function (n) { if (n.nodeType === 3) n.nodeValue = n.nodeValue.replace(/\s*\(Info Plus\)/i, ''); }); });
     var fAlm = campo('rxAlmacen'); if (fAlm) { var cAlm = el('div', 'pcol bcpf-campos'); cAlm.appendChild(fAlm); p1.appendChild(cAlm); }
+    // 23-oct-2026 (dueño: «más compacto y ahorra palabras»): las opciones del almacén sin «Localidad» / «Oficina» / «Almacén».
+    function acortarAlm() { var sa = doc.getElementById('rxAlmacen'); if (!sa) return; Array.prototype.forEach.call(sa.options, function (o) { var t = o.textContent.replace(/^\s*(Localidad|Oficina|Almacén)\s+/i, '').trim(); if (t && t !== o.textContent) o.textContent = t; }); }
+    acortarAlm(); setTimeout(acortarAlm, 1500); setTimeout(acortarAlm, 4000);
     // 22-oct-2026 (dueño: «vendedor arriba también»): el Vendedor vuelve a la franja, como 4.ª casilla.
     var fVenArriba = campo('rxVendedor');
     if (fVenArriba) { var cVenArriba = el('div', 'pcol bcpf-campos bcpf-vend'); cVenArriba.appendChild(fVenArriba); p1.appendChild(cVenArriba); }
@@ -96,11 +99,11 @@
     pad.appendChild(p1);
     // 22-oct-2026 (dueño: «ponlo arriba»): los datos del cliente de contado (nombre, WhatsApp, cédula) van debajo de
     // «Facturar a», no en el plegable. Son los que viajan a Info Plus con el código 1.
-    var lNom = q('#c_nombre', camposCli) && q('#c_nombre', camposCli).parentElement.querySelector('label'); if (lNom) lNom.textContent = 'Nombre del cliente';
+    var lNom = q('#c_nombre', camposCli) && q('#c_nombre', camposCli).parentElement.querySelector('label'); if (lNom) lNom.textContent = 'Nombre';
     var lWa = q('#c_whatsapp', camposCli) && q('#c_whatsapp', camposCli).parentElement.querySelector('label'); if (lWa) lWa.textContent = 'WhatsApp';
     // 23-oct-2026 (dueño: «Debajo del nombre es opcional»): la cédula va justo debajo del nombre, marcada como opcional.
     var fCed = q('#c_cedula', camposCli), filaCed = fCed && fCed.closest('.bcpf-campos > div'), fNom = q('#c_nombre', camposCli) && q('#c_nombre', camposCli).parentElement;
-    if (filaCed && fNom) { camposCli.insertBefore(filaCed, fNom.nextSibling); filaCed.classList.add('bcpf-ced'); var lCed = fCed.parentElement.querySelector('label'); if (lCed) lCed.textContent = 'Cédula (opcional)'; }
+    if (filaCed && fNom) { camposCli.insertBefore(filaCed, fNom.nextSibling); filaCed.classList.add('bcpf-ced'); var lCed = fCed.parentElement.querySelector('label'); if (lCed) lCed.textContent = 'Cédula'; }
     var cliDatos = el('div', 'bcpf-clidatos'); cliDatos.appendChild(camposCli); pad.appendChild(cliDatos);
     // 23-oct-2026 (Opción B PC): cuando la capa de marketing cuelga su casilla «Recibir promociones por WhatsApp» (llega después,
     // por su propio observador), se le agrega el texto corto «Promos» para la píldora de PC. En celular sigue la tarjeta completa.
