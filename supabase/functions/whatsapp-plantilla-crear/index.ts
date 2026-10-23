@@ -15,6 +15,18 @@ const PLANTILLA_PREFACTURA = {
     { type: "footer", text: "BAYOL CELL · Santiago, Moca y Navarrete" },
   ],
 };
+// 23-oct-2026 · «bayolcell_cuentas_pago»: las cuentas bancarias del negocio para que el cliente pague, cuando no ha escrito en
+// 24 h. Variables: 1 nombre, 2 monto («RD$ 4,600.00» o «su compra»), 3 cuentas en UNA línea (Meta no admite saltos de línea
+// dentro de una variable), separadas por « | ».
+const PLANTILLA_CUENTAS = {
+  name: "bayolcell_cuentas_pago",
+  category: "UTILITY",
+  language: "es",
+  components: [
+    { type: "body", text: "Hola {{1}}. Estas son las cuentas de BAYOL CELL para su pago de {{2}}: {{3}}. Cuando transfiera, envíenos el comprobante por este mismo chat. Gracias por preferirnos.", example: { body_text: [["Juan Pérez", "RD$ 4,600.00", "Banco Popular, cuenta de ahorros 123456789 a nombre de BAYOL CELL SRL | Banreservas, cuenta corriente 987654321 a nombre de BAYOL CELL SRL"]] } },
+    { type: "footer", text: "BAYOL CELL · Santiago, Moca y Navarrete" },
+  ],
+};
 const PLANTILLA = {
   name: "bayolcell_seguimiento_consulta",
   category: "UTILITY",
@@ -37,11 +49,27 @@ Deno.serve(async (req) => {
   if (!ok) return json({ ok: false, error: "No autorizado." }, 401);
   const body = await req.json().catch(() => ({}));
   const cual = String(body?.cual ?? "seguimiento");
-  const plantilla = cual === "prefactura" ? PLANTILLA_PREFACTURA : PLANTILLA;
+  const plantilla = cual === "prefactura" ? PLANTILLA_PREFACTURA : cual === "cuentas" ? PLANTILLA_CUENTAS : PLANTILLA;
   const KEY = (Deno.env.get("ZERNIO_API_KEY") || "").trim();
   const { data: lineas } = await db.from("whatsapp_lineas").select("nombre, whatsapp_numero, zernio_account_id").eq("activo", true);
   const cuentas = [...new Map((lineas || []).filter((l: any) => l.zernio_account_id).map((l: any) => [l.zernio_account_id, `${l.nombre} ${l.whatsapp_numero || ""}`.trim()])).entries()];
   const res: any[] = [];
+  // 23-oct-2026 · { accion: 'estado', nombres: [...] }: solo consulta (GET /v1/whatsapp/templates?accountId&name) el estado
+  // que Meta le dio a cada plantilla en cada línea. No crea nada.
+  if (String(body?.accion ?? "") === "estado") {
+    const nombres: string[] = Array.isArray(body?.nombres) && body.nombres.length ? body.nombres.map(String) : [PLANTILLA_PREFACTURA.name, PLANTILLA_CUENTAS.name, PLANTILLA.name];
+    for (const [accountId, linea] of cuentas) {
+      for (const name of nombres) {
+        try {
+          const r = await fetch(`https://zernio.com/api/v1/whatsapp/templates?accountId=${encodeURIComponent(accountId)}&name=${encodeURIComponent(name)}`, { headers: { Authorization: `Bearer ${KEY}` }, signal: AbortSignal.timeout(20000) });
+          const d = await r.json().catch(() => null);
+          const t = (d?.templates || []).map((x: any) => ({ idioma: x.language, estado: x.status, motivo: x.rejected_reason ?? null }));
+          res.push({ linea, plantilla: name, status: r.status, variantes: t, error: d?.error ?? null });
+        } catch (e) { res.push({ linea, plantilla: name, error: String((e as any)?.message || e).slice(0, 120) }); }
+      }
+    }
+    return json({ ok: true, accion: "estado", resultados: res });
+  }
   for (const [accountId, linea] of cuentas) {
     try {
       const r = await fetch("https://zernio.com/api/v1/whatsapp/templates", {
