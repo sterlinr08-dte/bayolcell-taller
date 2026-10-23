@@ -89,7 +89,7 @@
     ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var l = doc.querySelector('label[for="' + id + '"]') || (campo(id) && campo(id).querySelector('label')); if (l) Array.prototype.slice.call(l.childNodes).forEach(function (n) { if (n.nodeType === 3) n.nodeValue = n.nodeValue.replace(/\s*\(Info Plus\)/i, ''); }); });
     var fAlm = campo('rxAlmacen'); if (fAlm) { var cAlm = el('div', 'pcol bcpf-campos'); cAlm.appendChild(fAlm); p1.appendChild(cAlm); }
     // 23-oct-2026 (dueño: «más compacto y ahorra palabras»): las opciones del almacén sin «Localidad» / «Oficina» / «Almacén».
-    function acortarAlm() { var sa = doc.getElementById('rxAlmacen'); if (!sa) return; Array.prototype.forEach.call(sa.options, function (o) { var t = o.textContent.replace(/^\s*(Localidad|Oficina|Almacén)\s+/i, '').trim(); if (t && t !== o.textContent) o.textContent = t; }); }
+    function acortarAlm() { var sa = doc.getElementById('rxAlmacen'); if (!sa) return; Array.prototype.forEach.call(sa.options, function (o) { var t = o.textContent.replace(/^\s*(Localidad|Oficina|Almacén)\s+/i, '').trim().toUpperCase(); if (t && t !== o.textContent) o.textContent = t; // dueño: «NAVARRETE», en mayúsculas }); }
     acortarAlm(); setTimeout(acortarAlm, 1500); setTimeout(acortarAlm, 4000);
     // 22-oct-2026 (dueño: «vendedor arriba también»): el Vendedor vuelve a la franja, como 4.ª casilla.
     var fVenArriba = campo('rxVendedor');

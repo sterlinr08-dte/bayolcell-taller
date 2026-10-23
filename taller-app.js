@@ -20340,8 +20340,9 @@ function _rpInit() {
         const miCod = (meTec && meTec.infoplus_codempleado) ? String(meTec.infoplus_codempleado).trim() : '';
         const miNom = (sessionUser && sessionUser.nombre) || 'Usuario';
         let opts = '';
-        if(miCod && !PREF_VENDEDORES.some(v => v.cod === miCod)) opts += `<option value="${escapeHtml(miCod)}">${escapeHtml(miNom)} (yo)</option>`;
-        opts += PREF_VENDEDORES.map(v => `<option value="${v.cod}">${escapeHtml(v.nom)}${v.cod === miCod ? ' (yo)' : ''}</option>`).join('');
+        if(miCod && !PREF_VENDEDORES.some(v => v.cod === miCod)) opts += `<option value="${escapeHtml(miCod)}">${escapeHtml(miNom)}</option>`;
+        // 23-oct-2026 (dueño: «empleado: solo poner el nombre»): sin el «(yo)».
+        opts += PREF_VENDEDORES.map(v => `<option value="${v.cod}">${escapeHtml(v.nom)}</option>`).join('');
         ven.innerHTML = opts;
         ven.value = miCod || '6';
         // Cada empleada prefactura con su propio código: fija para quien no es administrador
