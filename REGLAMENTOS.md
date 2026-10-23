@@ -16,6 +16,11 @@ La bitácora dice cuándo y por qué se escribió cada una.
 5. **Nunca se muestra un IMEI de otro almacén** en la lista «IMEI en <almacén>»; si Info Plus no cuadra con la
    existencia, la lista sale vacía y se escanea o escribe.
 
+6. **Vendedor y almacén fijos por empleada.** El Vendedor de la prefactura es el código de empleado de Info Plus de
+   quien está conectada (`tecnicos.infoplus_codempleado`: Michelle 748, Kenifer 1020, Yosmeiry 1192, Loribel 249) y
+   queda bloqueado; el Almacén es el de su sucursal, también bloqueado. Solo el administrador puede cambiarlos.
+   Una empleada sin código ve un aviso «usuario no enlazado» y el administrador le asigna el código en su ficha.
+
 ## 2. Descuentos en la prefactura (dueño, 22-oct-2026)
 
 1. El descuento **por línea es en por ciento** y tiene un **tope** que se pone en Configuración → Datos del taller
