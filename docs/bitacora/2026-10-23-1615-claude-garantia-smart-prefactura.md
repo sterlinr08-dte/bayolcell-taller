@@ -52,3 +52,8 @@ El dueño mandó su propia redacción de «GARANTÍA DE LA PIEZA»; reemplaza el
 - Pruebas (11 casos): moto, aire 12000 BTU inverter, Smart TV 43", Motorola con IMEI → celular, y una prefactura con los 5
   tipos → salen los 5 textos en orden. 0 errores JS. Versiones `p35` / `i10`.
 - Pendiente del dueño: números de WhatsApp por sucursal (se guardan en `sucursales.whatsapp`) y revisar los 3 textos nuevos.
+
+## Publicado 16:55 — dueño: «El mismo whatsapp que el teléfono, sí son aires, publícalo»
+- WhatsApp de cada sucursal = su teléfono (`sucursales.whatsapp` se copia de `telefono`). Como son iguales, el ticket muestra una sola línea «Tel.».
+- Confirmado: «Aries» = aires acondicionados.
+- Rama `claude/garantia-prefactura` pasada a `main` (fast-forward) y publicada en bayolcell.com.
