@@ -7,7 +7,7 @@
   'use strict';
   try { if (localStorage.getItem('bc_pfimp_off') === '1') return; } catch (e) {}
   var doc = document;
-  var LS_FMT = 'bc_pref_formato', LS_IMP = 'bc_pref_impresas';
+  var LS_FMT = 'bc_pref_formato', LS_IMP = 'bc_pref_impresas', LS_COP = 'bc_pref_copias'; // 23-oct-2026: copias por PC (1–3)
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function rd(n) { return 'RD$ ' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -167,18 +167,27 @@
   // en «Config. Impresora», el ticket sale DIRECTO a la impresora (sin ventana). Si QZ no está o falla, sigue la ventana de siempre.
   function qzListo() { try { return typeof _qzConectado !== 'undefined' && _qzConectado && typeof qzImpresoraTickets === 'function' && !!qzImpresoraTickets() && typeof qzImprimirHtml === 'function'; } catch (e) { return false; } }
   function sinAutoPrint(html) { return html.replace(/<script>window\.onload=[\s\S]*?<\/script>/, ''); }
+  function copias() { var n = parseInt(lsGet(LS_COP) || '1', 10); return n >= 1 && n <= 3 ? n : 1; }
+  // Para la ventana del navegador: repite el cuerpo del ticket N veces con salto de página (la ventana no sabe de «copias»).
+  function conCopias(html, n) {
+    if (n <= 1) return html;
+    var m = html.match(/<body>([\s\S]*?)(<script>window\.onload[\s\S]*?<\/script>)?<\/body>/); if (!m) return html;
+    var cuerpo = m[1], script = m[2] || '', rep = [];
+    for (var i = 0; i < n; i++) rep.push('<div class="copia-n">' + cuerpo + '</div>');
+    return html.replace(m[0], '<body>' + rep.join('<div style="page-break-after:always;break-after:page"></div>') + script + '</body>');
+  }
   function imprimir(modo) {
     var p = typeof _prefUltima !== 'undefined' ? _prefUltima : null; if (!p) return;
     var d = datos(p), copia = yaImpresa(d.num);
     if (modo === 'pdf') { try { return _htmlAPdf(htmlCarta(d, copia, true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760 }); } catch (e) { return; } }
     if (modo !== 'ticket' && modo !== 'carta') modo = formato();
     if (modo === 'ticket' && qzListo()) {
-      return Promise.resolve(qzImprimirHtml(sinAutoPrint(htmlTicket(d, copia)), 76, null, 1, 'tickets')).then(function (ok) {
+      return Promise.resolve(qzImprimirHtml(sinAutoPrint(htmlTicket(d, copia)), 76, null, copias(), 'tickets')).then(function (ok) {
         if (ok) { marcarImpresa(d.num); try { toast('Prefactura Nº ' + d.num + ' impresa en ' + qzImpresoraTickets() + '.'); } catch (e) {} return true; }
         if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false;
       }, function () { if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false; });
     }
-    if (abrir(modo === 'ticket' ? htmlTicket(d, copia) : htmlCarta(d, copia))) marcarImpresa(d.num);
+    if (abrir(modo === 'ticket' ? conCopias(htmlTicket(d, copia), copias()) : htmlCarta(d, copia))) marcarImpresa(d.num);
   }
 
   // 21-oct-2026 (dueño): no se pregunta al imprimir; el papel se escoge una vez en «Config. Impresora» (cada PC).
@@ -192,21 +201,29 @@
         '<div class="bcpffmt-mut">Se usa al imprimir la prefactura en esta computadora. Con QZ Tray conectado y una impresora de tickets elegida arriba, el ticket sale directo, sin ventana.</div>' +
         '<div class="bcpffmt" role="radiogroup" aria-label="Papel de la prefactura">' +
         '<button type="button" role="radio" data-f="ticket"><i class="ti ti-receipt"></i><span>Ticket 80 mm</span></button>' +
-        '<button type="button" role="radio" data-f="carta"><i class="ti ti-file-text"></i><span>Hoja carta</span></button></div>';
+        '<button type="button" role="radio" data-f="carta"><i class="ti ti-file-text"></i><span>Hoja carta</span></button></div>' +
+        '<div class="bcpffmt-mut" style="margin-top:12px">Copias del ticket</div>' +
+        '<div class="bcpffmt bcpfcop" role="radiogroup" aria-label="Copias del ticket">' +
+        '<button type="button" role="radio" data-c="1">1</button><button type="button" role="radio" data-c="2">2</button><button type="button" role="radio" data-c="3">3</button></div>';
       var h2 = v.querySelector('h2'); if (h2 && h2.nextSibling) v.insertBefore(c, h2.nextSibling); else v.appendChild(c);
       c.addEventListener('click', function (e) {
+        var bc = e.target.closest('[data-c]');
+        if (bc) { lsSet(LS_COP, bc.dataset.c); marcar(); try { toast('Ticket de la prefactura: ' + bc.dataset.c + (bc.dataset.c === '1' ? ' copia' : ' copias') + ' en esta computadora.'); } catch (er) {} return; }
         var b = e.target.closest('[data-f]'); if (!b) return;
         lsSet(LS_FMT, b.dataset.f); marcar();
         try { toast('Prefactura: ' + (b.dataset.f === 'ticket' ? 'ticket 80 mm' : 'hoja carta') + ' en esta computadora.'); } catch (er) {}
       });
     }
-    function marcar() { [].forEach.call(c.querySelectorAll('[data-f]'), function (b) { var on = b.dataset.f === formato(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }); }
+    function marcar() {
+      [].forEach.call(c.querySelectorAll('[data-f]'), function (b) { var on = b.dataset.f === formato(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      [].forEach.call(c.querySelectorAll('[data-c]'), function (b) { var on = Number(b.dataset.c) === copias(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    }
     marcar(); return true;
   }
 
   var css = doc.createElement('style');
   css.textContent = '#bcPfFmtCard{border-top:4px solid #ea580c}#bcPfFmtCard .bcpffmt-mut{color:#64748b;font-size:14px;margin-bottom:12px}' +
-    '#bcPfFmtCard .bcpffmt{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:460px}' +
+    '#bcPfFmtCard .bcpffmt{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:460px}#bcPfFmtCard .bcpfcop{grid-template-columns:1fr 1fr 1fr;max-width:300px}#bcPfFmtCard .bcpfcop button{min-height:52px!important;font-size:18px}' +
     '#bcPfFmtCard .bcpffmt button{min-height:72px!important;padding:10px!important;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:700;color:#0f172a;cursor:pointer;transition:transform .16s ease-out,border-color .16s}' +
     '#bcPfFmtCard .bcpffmt button i{font-size:24px;color:#ea580c}#bcPfFmtCard .bcpffmt button.on{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.15);background:#fff7ed}' +
     '#bcPfFmtCard .bcpffmt button:active{transform:scale(.97)}#bcPfFmtCard .bcpffmt button:focus-visible{outline:3px solid #ea580c;outline-offset:2px}';
