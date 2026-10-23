@@ -51,15 +51,15 @@
       '<div class="dhl"><div class="emp">BAYOL CELL</div><div class="empsub">Prefactura de Info Plus</div></div>' +
       '<div class="dhr"><span class="dtit">Prefactura</span>' +
       '' +
-      '<button type="button" class="ibtn" aria-label="Buscar prefacturas" title="Buscar prefacturas"><i class="ti ti-search" aria-hidden="true"></i></button>' +
-      // 23-oct-2026 (dueño: «habilitar un icono para configurar la impresora, los empleados no tienen acceso»): abre Configuración → Impresora.
+      // 23-oct-2026 (dueño: «habilitar un icono para configurar la impresora, los empleados no tienen acceso»): abre Configuración → Impresora. Va antes de la lupa (dueño, 23-oct).
       '<button type="button" class="ibtn ibtn-imp" aria-label="Configurar impresora" title="Configurar impresora"><i class="ti ti-printer" aria-hidden="true"></i></button>' +
+      '<button type="button" class="ibtn" aria-label="Buscar prefacturas" title="Buscar prefacturas"><i class="ti ti-search" aria-hidden="true"></i></button>' +
       '<span class="dno">Nº</span><span class="dnum">Nueva</span><span class="dfec">' + fechaHoy() + '</span></div>' +
       '<div class="dest"></div>');
     pad.appendChild(dh);
     R.num = q('.dnum', dh); R.est = q('.dest', dh); q('.dhl', dh).appendChild(R.est); // estado debajo de «Prefactura de Info Plus», sin fila propia
     // Lupa de arriba (dueño: «no es copiar, es una lupa»): busca las prefacturas guardadas. Es la única entrada.
-    q('.ibtn', dh).addEventListener('click', function () { try { _rpHistorial(); } catch (e) {} });
+    q('.ibtn:not(.ibtn-imp)', dh).addEventListener('click', function () { try { _rpHistorial(); } catch (e) {} });
     q('.ibtn-imp', dh).addEventListener('click', function () { try { nav('configImpresora', doc.getElementById('menu-configImpresora')); } catch (e) {} });
 
     // Facturar a + Condiciones. 20-oct-2026 (dueño): «ponerla como la tenemos en estudio y quitar todo lo otro … para
