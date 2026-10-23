@@ -766,3 +766,43 @@ html.bc-pf #v-recepcion .bcpf-tot .tdm .dmw { display: inline-flex; align-items:
 html.bc-pf #v-recepcion .bcpf-tot .tdm .dmw i { font: 600 13px var(--pf-mono); color: var(--pf-steel); font-style: normal; }
 html.bc-pf #v-recepcion .bcpf-tot .tdm .dm { width: 112px; height: 46px; border: 0; background: transparent; text-align: right; font: 600 16px var(--pf-mono); color: var(--pf-ink); outline: none; }
 html.bc-pf #v-recepcion .bcpf-tot .tdm .dmw:focus-within { border-color: #fb923c; box-shadow: 0 0 0 3px rgba(251, 146, 60, .18); }
+
+/* 23-oct-2026 (Opción B, dueño: «vamos a ordenar bien esa interface, hay mucho vacío»). Solo PC (≥761 px); el celular no cambia.
+   Fila 1: Cliente · Nivel · Almacén · Vendedor (el Vendedor ya no cae solo en una segunda fila).
+   Fila 2: Nombre · WhatsApp + píldora «Promos» · Cédula (la casilla de promociones deja de ser una tarjeta que abría un hueco). */
+html.bc-pf #v-recepcion .bcpf-promo-t { display: none; } /* el texto corto solo se ve en PC */
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-franja { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  html.bc-pf #v-recepcion .bcpf-franja .bcpf-vend { flex: none; }
+  html.bc-pf #v-recepcion .bcpf-clidatos { margin-top: 12px; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos { grid-template-columns: minmax(0, 2fr) minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos > .bcpf-ced { order: 3; }
+  html.bc-pf #v-recepcion .bcpf-clidatos + .bcpf-busc { margin-top: 14px; } /* aire entre los datos del cliente y el buscador */
+  /* WhatsApp: campo y píldora en la misma línea */
+  html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos > div:has(> #c_whatsapp) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: end; position: relative; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-campos > div:has(> #c_whatsapp) > label { grid-column: 1 / -1; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent {
+    margin: 0; min-height: 48px; padding: 0 6px 0 8px; display: flex; align-items: center; border-radius: 999px;
+    background: #fff; box-shadow: none; border: 1px solid var(--pf-hair); cursor: default;
+  }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-head { gap: 6px; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-icon { width: 26px; height: 26px; border-radius: 8px; font-size: 16px; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-sub,
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-title { display: none; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bcpf-promo-t { display: inline; font-size: 13px; font-weight: 600; color: var(--pf-ink); white-space: nowrap; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-switch { width: 44px; height: 44px; display: grid; place-items: center; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-slider { inset: auto; width: 38px; height: 22px; }
+  /* Sucursal y estado: en una tarjetita que aparece al pasar el ratón o al enfocar la píldora */
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-meta {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; margin: 0; padding: 10px 12px; min-width: 280px;
+    background: #fff; border: 1px solid var(--pf-line); border-radius: 12px; box-shadow: var(--pf-shadow);
+  }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent:hover .bc-mkt-meta,
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent:focus-within .bc-mkt-meta { display: flex; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-meta .bc-mkt-branch { height: 44px !important; min-height: 44px !important; font-size: 13px !important; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-meta .bc-mkt-status { font-size: 12px; }
+  /* El color del borde dice cómo quedó: verde guardado, ámbar aviso, rojo error */
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent:has(.bc-mkt-status.ok) { border-color: #86efac; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent:has(.bc-mkt-status.warn) { border-color: #fcd34d; }
+  html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent:has(.bc-mkt-status.err) { border-color: #fca5a5; }
+}

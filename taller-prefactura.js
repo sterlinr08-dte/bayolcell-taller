@@ -102,6 +102,20 @@
     var fCed = q('#c_cedula', camposCli), filaCed = fCed && fCed.closest('.bcpf-campos > div'), fNom = q('#c_nombre', camposCli) && q('#c_nombre', camposCli).parentElement;
     if (filaCed && fNom) { camposCli.insertBefore(filaCed, fNom.nextSibling); filaCed.classList.add('bcpf-ced'); var lCed = fCed.parentElement.querySelector('label'); if (lCed) lCed.textContent = 'Cédula (opcional)'; }
     var cliDatos = el('div', 'bcpf-clidatos'); cliDatos.appendChild(camposCli); pad.appendChild(cliDatos);
+    // 23-oct-2026 (Opción B PC): cuando la capa de marketing cuelga su casilla «Recibir promociones por WhatsApp» (llega después,
+    // por su propio observador), se le agrega el texto corto «Promos» para la píldora de PC. En celular sigue la tarjeta completa.
+    var fWaCell = q('#c_whatsapp', camposCli) && q('#c_whatsapp', camposCli).parentElement;
+    function promoCorto() {
+      var box = fWaCell && fWaCell.querySelector('.bc-mkt-consent'); if (!box || box.querySelector('.bcpf-promo-t')) return !!box;
+      var t = box.querySelector('.bc-mkt-title'); if (!t) return false;
+      var s = el('span', 'bcpf-promo-t', 'Promos'); t.parentNode.insertBefore(s, t.nextSibling);
+      box.title = 'Recibir promociones por WhatsApp. Pase el ratón para ver la sucursal y el estado.';
+      return true;
+    }
+    if (fWaCell && !promoCorto() && typeof MutationObserver === 'function') {
+      var moWa = new MutationObserver(function () { if (promoCorto()) moWa.disconnect(); });
+      moWa.observe(fWaCell, { childList: true, subtree: true });
+    }
 
     // Equipo, falla y lo demás: opcional (dueño: «la falla … opcional, no obligatorio. Y … los equipos también»).
     var camposEq = el('div', 'bcpf-campos');
