@@ -305,6 +305,8 @@
       var g = res.querySelector('.rx-btn-red');
       acc.hidden = !g; nota.hidden = !!g;
       if (!g) nota.textContent = 'Ya facturada';
+      // 23-oct-2026: si el campo con el foco desapareció al redibujar (precio, cantidad, descuento), no llega focusout.
+      if (b.classList.contains('bcrx-oculta')) { var af = doc.activeElement; if (!af || !v.contains(af) || !af.matches('input,textarea,select')) b.classList.remove('bcrx-oculta'); }
     }
     new MutationObserver(copiar).observe(res, { childList: true, subtree: true, characterData: true });
     copiar();

@@ -165,7 +165,7 @@
       '<div class="tr"><span>Artículos</span><b class="t-art">0</b></div>' +
       '<div class="tr"><span>Subtotal</span><b class="t-sub">RD$ 0.00</b></div>' +
       '<div class="tr td" hidden><span>Descuento por línea</span><b class="t-des">RD$ 0.00</b></div>' +
-      '<div class="tr tdm"><label><span>Descuento RD$</span><span class="dmw"><i>RD$</i><input class="dm" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Descuento en pesos sobre toda la prefactura" onfocus="this.select()" onchange="_rpDescMonto(this.value)"></span></label></div>' +
+      '<div class="tr tdm"><label><span>Descuento RD$</span><span class="dmw"><i>RD$</i><input class="dm" inputmode="decimal" autocomplete="off" placeholder="0.00" enterkeyhint="done" aria-label="Descuento en pesos sobre toda la prefactura" onfocus="this.select()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();this.blur();}" onchange="this.blur();_rpDescMonto(this.value)"></span></label></div>' +
       '<div class="tr tt"><span>Total</span><b class="t-tot">RD$ 0.00</b></div>' +
       '<div class="t-info"></div>');
     R.tArt = q('.t-art', tot); R.tSub = q('.t-sub', tot); R.tDes = q('.t-des', tot); R.tDesF = q('.td', tot); R.tTot = q('.t-tot', tot); R.tInfo = q('.t-info', tot); R.tDm = q('.dm', tot); R.tDmF = q('.tdm', tot);
@@ -438,6 +438,10 @@
       : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' : 'No cobra ni descuenta inventario: se factura en Info Plus.');
     R.bar.querySelector('.bimp').hidden = !(s && s.codprefactura);
     R.bar.querySelector('.bg').hidden = !!facturada; R.bar.querySelector('.bgi').hidden = !!facturada;
+    // 23-oct-2026 (dueño: «cuando pongo descuento el botón de guardar e imprimir desaparece»): al cambiar precio,
+    // cantidad o descuento se redibuja el carrito y el campo con el foco desaparece sin avisar (el navegador no manda
+    // focusout), así que la barra se quedaba escondida. Después de cada pintado se vuelve a mirar quién tiene el foco.
+    if (R.bar.classList.contains('bcpf-oculta')) { var af = doc.activeElement; if (!af || !doc.getElementById('v-recepcion').contains(af) || !af.matches('input,textarea,select')) R.bar.classList.remove('bcpf-oculta'); }
     R.bar.querySelector('.bfin').hidden = !facturada;
   }
 
