@@ -357,14 +357,15 @@
     var c = doc.getElementById('rxArticulos'); if (!c) return;
     var s = st();
     if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos</div>'; return; }
-    c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>#</span><span>Artículo</span><span>IMEI / serie</span><span>Precio</span><span>Desc.</span><span>Cant.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
+    c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>Código</span><span>Artículo</span><span>IMEI / serie</span><span>Precio</span><span>Desc.</span><span>Cant.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
       var cant = it.serial
         ? '<span class="stp fijo" title="La cantidad sale del número de IMEI">' + it.cant + '</span>'
         : '<span class="stp"><button type="button" aria-label="Quitar una unidad" onclick="_rpCant(' + i + ',' + (Number(it.cant) - 1) + ')">−</button>' +
           '<input type="number" min="1" step="1" value="' + it.cant + '" aria-label="Cantidad" onchange="_rpCant(' + i + ',this.value)">' +
           '<button type="button" aria-label="Agregar una unidad" onclick="_rpCant(' + i + ',' + (Number(it.cant) + 1) + ')">+</button></span>';
       return '<div class="bcpf-it">' +
-        '<span class="n">' + ('0' + (i + 1)).slice(-2) + '</span>' +
+        // 23-oct-2026 (dueño: «quitar #, mejor que salgan los códigos»): en PC la primera columna es el código; en celular sigue el 01, 02.
+        '<span class="n"><em class="ni">' + ('0' + (i + 1)).slice(-2) + '</em><em class="nc" title="' + esc(it.cod) + '">' + esc(it.cod) + '</em></span>' +
         '<div class="d"><button type="button" class="dnb" data-ver="' + i + '" title="Ver precios y cambiar la descripción">' + esc(it.desc) + '</button>' +
         '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + '</div></div>' +
         '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +

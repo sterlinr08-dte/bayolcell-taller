@@ -806,3 +806,17 @@ html.bc-pf #v-recepcion .bcpf-promo-t { display: none; } /* el texto corto solo 
   html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent:has(.bc-mkt-status.warn) { border-color: #fcd34d; }
   html.bc-pf #v-recepcion .bcpf-clidatos .bc-mkt-consent:has(.bc-mkt-status.err) { border-color: #fca5a5; }
 }
+
+/* 23-oct-2026 (dueño, foto en PC): «quitar #, mejor que salgan los códigos de los artículos, ahorra más espacio; y la línea
+   divisoria un poco más pronunciada». En PC la primera columna muestra el código (la etiqueta de código bajo el nombre se
+   quita, así cada artículo ocupa una sola línea). En celular sigue el 01, 02 y el código bajo el nombre. */
+html.bc-pf #v-recepcion .bcpf-it { border-bottom: 1px solid rgba(90, 72, 20, .28); }
+html.bc-pf #v-recepcion .bcpf-it .n em { font-style: normal; }
+html.bc-pf #v-recepcion .bcpf-it .n .nc { display: none; }
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-ith,
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: minmax(52px, auto) minmax(0, 1fr) 200px 128px 96px 150px 124px 44px; }
+  html.bc-pf #v-recepcion .bcpf-it .n .ni { display: none; }
+  html.bc-pf #v-recepcion .bcpf-it .n .nc { display: inline-block; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; font: 600 13px/1 var(--pf-mono); color: var(--pf-steel); }
+  html.bc-pf #v-recepcion .bcpf-it .dsub .cod { display: none; }
+}
