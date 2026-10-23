@@ -20534,13 +20534,16 @@ async function _rpCrearPrefactura() {
         // (mandamos 500 y lo tomó como 500 % → total negativo). Se manda el % equivalente al descuento en pesos y en
         // `descuentototal` los pesos. El % por línea viaja en cada línea (`porcentaje`), no aquí.
         codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0,
-        descuento: _tt.subtotal > 0 ? Math.round((_tt.descMonto || 0) / _tt.subtotal * 1000000) / 10000 : 0, descuentototal: _tt.descMonto || 0,
+        // 22-oct-2026 (2.ª prueba del dueño): Info Plus tampoco aplica el `porcentaje` de cada línea. Por eso TODO el
+        // descuento (líneas + pesos) va a la cabecera como un solo %, y las líneas viajan con porcentaje 0 para que
+        // nunca se cuente dos veces. El total que ve el cliente aquí es el que calcula Info Plus.
+        descuento: _tt.subtotal > 0 ? Math.round((_tt.descuento || 0) / _tt.subtotal * 1000000) / 10000 : 0, descuentototal: _tt.descuento || 0,
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
         // 22-oct-2026 · Dagoberto pidió verificar que el comentario «esté puesto»: se manda en `contrato` (como hasta hoy)
         // y también en `comentario`, por si el modelo nuevo lo lee de ahí. Un campo que el modelo no conozca se ignora.
         contrato: obs ? obs.slice(0, 200) : '', comentario: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
-        seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: Number(it.descPct || 0), despachado: 0, descripcionunidad: null }))
+        seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
     _rpState.estado = 'actualizando'; _rpRenderResumen();
     try {
