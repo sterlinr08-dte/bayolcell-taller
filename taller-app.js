@@ -20780,14 +20780,26 @@ async function _rpEnviarCuentasWhatsApp() {
         const { data: h, error: eh } = await supabaseClient.rpc('whatsapp_hilo_para_telefono', { p_linea: linea.id, p_telefono: wa, p_cliente: (_rpState && _rpState.clienteId) || null });
         if(eh) throw eh;
         if(!h || !h.ok) throw new Error(h && h.error === 'sin_permiso' ? 'No tiene acceso a la línea ' + linea.nombre + ' de ' + suc + '.' : (h && h.error) || 'No se pudo abrir el chat.');
-        if(!h.abierto) throw new Error('El cliente debe escribirnos primero por WhatsApp (ventana de 24 h de Meta). Pídale que nos escriba y vuelva a intentar.');
-        const nom = _rpNombreInfoplus(g('c_nombre')); const quien = nom && !/^CONTADO$/i.test(nom) ? ' ' + nom.replace(/^CONTADO\s+/i, '') : '';
+        const nom = _rpNombreInfoplus(g('c_nombre')); const quien = nom && !/^CONTADO$/i.test(nom) ? nom.replace(/^CONTADO\s+/i, '') : '';
         const total = _rpState && _rpState.items && _rpState.items.length ? _rpTotales(_rpState.items).total : 0;
-        const texto = 'Hola' + quien + '. Estas son las cuentas de BAYOL CELL para su pago' + (total > 0 ? ' de ' + money(total) : '') + ':\n\n' + cuentas + '\n\nCuando transfiera, envíenos el comprobante por aquí. Gracias por preferirnos.';
-        const r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto } });
+        const texto = 'Hola' + (quien ? ' ' + quien : '') + '. Estas son las cuentas de BAYOL CELL para su pago' + (total > 0 ? ' de ' + money(total) : '') + ':\n\n' + cuentas + '\n\nCuando transfiera, envíenos el comprobante por aquí. Gracias por preferirnos.';
+        let r;
+        if(h.abierto) {
+            // Conversación abierta (<24 h): texto libre, con las cuentas una debajo de otra.
+            r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto } });
+        } else {
+            // Sin conversación abierta: plantilla «bayolcell_cuentas_pago» (sometida a Meta el 23-oct-2026). Las cuentas van
+            // en UNA línea separadas por « | » porque Meta no admite saltos de línea dentro de una variable.
+            const unaLinea = cuentas.split(/\r?\n/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ');
+            r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto, plantilla: { nombre: 'bayolcell_cuentas_pago', idioma: 'es', variables: [quien || 'cliente', total > 0 ? money(total) : 'su compra', unaLinea] } } });
+        }
         const d = r && r.data;
         if(r && r.error && !d) throw r.error;
-        if(!d || !d.ok) throw new Error((d && (d.mensaje || d.error)) || 'No se pudo enviar.');
+        if(!d || !d.ok) {
+            const msg = (d && (d.mensaje || d.error)) || 'No se pudo enviar.';
+            if(/template|plantilla|132001|not found|does not exist/i.test(String(msg))) throw new Error('La plantilla de cuentas todavía no está aprobada por Meta. El cliente debe escribir primero, o espere la aprobación.');
+            throw new Error(msg);
+        }
         toast('Cuentas de pago enviadas por WhatsApp desde ' + linea.nombre + ' (' + suc + ').');
     } catch(e) { logError('enviar cuentas WhatsApp', e); toastError(getFriendlyError(e, 'No se pudieron enviar las cuentas.')); }
     finally { _rpEnviandoWa = false; }
