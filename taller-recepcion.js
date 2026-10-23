@@ -165,10 +165,13 @@
       }).join('');
       var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
       var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {};
-      var fichas = esServ(a) ? '<span class="pk-ex">Servicio</span>' : Object.keys(alms).map(function (c) {
+      // 23-oct-2026 (dueño): «solamente se iban a visualizar los almacenes que tienen disponible». El almacén elegido
+      // sale siempre (en rojo si está en 0); los demás, solo si tienen existencia.
+      var conAlgo = Object.keys(alms).filter(function (c) { return c === almacen() || (Number(ex[c]) || 0) > 0; });
+      var fichas = esServ(a) ? '<span class="pk-ex">Servicio</span>' : conAlgo.map(function (c) {
         var n = Number(ex[c]) || 0;
         return '<span class="pk-ex' + (n > 0 ? '' : ' out') + (c === almacen() ? ' aqui' : '') + '">' + esc(alms[c]) + ': <b>' + n + '</b></span>';
-      }).join('');
+      }).join('') + (!esServ(a) && conAlgo.length === 1 && !(Number(ex[almacen()]) || 0) ? '<span class="pk-ex out">Sin existencia en las demás tiendas</span>' : '');
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
         '<div class="pk-nvs">' + cajas + '</div>' +
         '<div class="pk-dex"><span>Existencia</span>' + fichas + '</div>' +
@@ -234,7 +237,6 @@
         return directo ? p : (alts[0].split(' ')[0]);
       }).join(' ');
     }
-    estado.soloDisp = (function () { try { return localStorage.getItem('bc_ppk_solodisp') === '1'; } catch (e) { return false; } })();
     function filtrar() {
       var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
       estado.imei = imeiDe(estado.q);
@@ -248,8 +250,6 @@
         for (var i = 0; i < pal.length; i++) { var c = coincide(pal[i], h, toks); if (!c) return false; total += c; }
         punt.set(a, total); return true;
       });
-      // «Solo disponibles»: fuera lo que no tiene existencia en este almacén (los servicios se quedan)
-      if (estado.soloDisp) l = l.filter(function (a) { var e = existe(a); return e === null || e > 0; });
       l = l.slice().sort(function (x, y) {
         if (qq) { var cx = String(x.codigo) === qq, cy = String(y.codigo) === qq; if (cx !== cy) return cx ? -1 : 1; }
         var ex = (existe(x) || 0) > 0, ey = (existe(y) || 0) > 0; if (ex !== ey) return ex ? -1 : 1;
@@ -320,8 +320,7 @@
       slot.innerHTML = '<div class="bcrx-ppk" role="dialog" aria-label="Buscar artículo">' +
         '<div class="bcrx-ppk-top"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Buscar artículo</span>' +
         '<button type="button" class="bcrx-ppk-cat">Catálogo completo</button><button type="button" class="bcrx-ppk-x" aria-label="Cerrar"><i class="ti ti-arrow-left" aria-hidden="true"></i> Cerrar</button></div>' +
-        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo">' +
-        '<button type="button" class="bcrx-ppk-disp' + (estado.soloDisp ? ' on' : '') + '" aria-pressed="' + estado.soloDisp + '" title="Mostrar solo lo que hay en este almacén"><i class="ti ti-package" aria-hidden="true"></i><span>Solo disponibles</span></button></div>' + clienteHTML() +
+        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' + clienteHTML() +
         '<div class="bcrx-ppk-list" role="listbox"></div></div>';
       var inp = q('input', slot);
       inp.value = estado.q;
@@ -334,10 +333,6 @@
         else if (e.key === 'Escape') { e.preventDefault(); cerrarPanel(); }
       });
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
-      q('.bcrx-ppk-disp', slot).addEventListener('click', function () {
-        estado.soloDisp = !estado.soloDisp; try { localStorage.setItem('bc_ppk_solodisp', estado.soloDisp ? '1' : '0'); } catch (e) {}
-        this.classList.toggle('on', estado.soloDisp); this.setAttribute('aria-pressed', String(estado.soloDisp)); filtrar(); pintar(); inp.focus();
-      });
       q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
       q('.bcrx-ppk-list', slot).addEventListener('click', function (e) {
         var b = e.target.closest('.pk-add, .pk-elegir'); if (b) { agregar(Number(b.getAttribute('data-i'))); return; }

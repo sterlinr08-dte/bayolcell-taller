@@ -258,15 +258,6 @@ html.bc-rx #v-recepcion .bcrx-ppk-imei.no { color: #92400e; background: #fffbeb;
 @media (prefers-reduced-motion: reduce) { html.bc-rx #v-recepcion .bcrx-ppk-imei .ti-loader-2 { animation: none; } }
 
 /* 23-oct-2026 (dueño: «ponerlo smart»): buscador de artículos */
-/* Interruptor «Solo disponibles» dentro del campo, a la derecha */
-html.bc-rx #v-recepcion .bcrx-ppk-inp > input { padding-right: 150px !important; }
-html.bc-rx #v-recepcion .bcrx-ppk-disp {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 36px; padding: 0 10px; border-radius: 999px;
-  border: 1.5px solid #e2e8f0; background: #fff; color: #475569; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
-}
-html.bc-rx #v-recepcion .bcrx-ppk-disp i { font-size: 16px; }
-html.bc-rx #v-recepcion .bcrx-ppk-disp.on { border-color: #15803d; background: #f0fdf4; color: #15803d; }
-html.bc-rx #v-recepcion .bcrx-ppk-disp:active { transform: translateY(-50%) scale(.96); }
 /* Lo entendido y el aviso de precio: una línea discreta cada uno */
 html.bc-rx #v-recepcion .bcrx-ppk-ent, html.bc-rx #v-recepcion .bcrx-ppk-nv { display: flex; align-items: center; gap: 6px; margin: 2px 6px 6px; font-size: 13px; font-weight: 600; line-height: 1.3; }
 html.bc-rx #v-recepcion .bcrx-ppk-ent { color: #6d28d9; }
