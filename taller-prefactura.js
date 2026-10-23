@@ -159,8 +159,8 @@
     var qs = el('div', 'bcpf-qs');
     function pildora(ic, txt, fn) { var b = el('button', 'bcpf-q', '<i class="ti ' + ic + '" aria-hidden="true"></i><span>' + txt + '</span>'); b.type = 'button'; b.addEventListener('click', fn); qs.appendChild(b); return b; }
     pildora('ti-file-plus', 'Nueva', function () { nueva(); });
-    // 22-oct-2026 (dueño): enviar la prefactura por WhatsApp desde la línea de la sucursal del almacén.
-    pildora('ti-brand-whatsapp', 'Enviar por WhatsApp', function () { try { _rpEnviarWhatsApp(); } catch (e) {} });
+    // 23-oct-2026 (dueño): la prefactura se envía sola al guardar (si hay WhatsApp). El botón pasa a mandar las CUENTAS DE PAGO.
+    pildora('ti-brand-whatsapp', 'Enviar cuentas de pago', function () { try { _rpEnviarCuentasWhatsApp(); } catch (e) {} });
     // Herramientas rápidas: queda solo «Pedir reseña» a mano (dueño: «puede dejar el asunto de la reseña»); la rifa baja a «Más datos».
     var tools = q('.rx-toolsbox', v);
     var resCard = doc.getElementById('resenaWa') && doc.getElementById('resenaWa').closest('.card');

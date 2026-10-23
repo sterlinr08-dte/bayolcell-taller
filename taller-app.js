@@ -13393,6 +13393,7 @@ function cargarDatosTallerEnForm() {
     set('cfgTallerNombre', d.nombre); set('cfgTallerTel', d.tel);
     set('cfgTallerDir', d.dir); set('cfgTallerPie', d.pie);
     set('cfgDescMaxPct', String(_rpDescMaxPct()));
+    set('cfgCuentasPago', (cache.configTaller && cache.configTaller.cuentas_pago) || '');
 }
 async function guardarDatosTaller() {
     const g = id => (document.getElementById(id)?.value || '').trim();
@@ -13401,7 +13402,8 @@ async function guardarDatosTaller() {
         telefono: g('cfgTallerTel'),
         direccion: g('cfgTallerDir'),
         pie: g('cfgTallerPie') || 'Gracias por su preferencia',
-        prefactura_desc_max_pct: Math.min(100, Math.max(0, parseFloat(g('cfgDescMaxPct').replace(',', '.')) || 0))
+        prefactura_desc_max_pct: Math.min(100, Math.max(0, parseFloat(g('cfgDescMaxPct').replace(',', '.')) || 0)),
+        cuentas_pago: g('cfgCuentasPago').slice(0, 1500)
     };
     // Respaldo local siempre (por si no hay conexión)
     localStorage.setItem('bayol_taller_nombre', datos.nombre);
@@ -20706,6 +20708,9 @@ async function _rpCrearPrefactura() {
         } catch(e) { logError('guardar recepcion_prefactura', e); }
         _rpRenderResumen();
         toast('✅ Prefactura ' + (eraUpdate ? 'actualizada' : 'creada') + ' en Info Plus: Nº ' + num);
+        // 23-oct-2026 (dueño: «enviar la prefactura al WhatsApp que sea después que se le dé a guardar»):
+        // si hay un WhatsApp escrito, la prefactura sale sola al guardar. Sin número, no se envía ni se molesta.
+        if((document.getElementById('c_whatsapp')?.value || '').replace(/\D/g, '').length >= 10) { try { await _rpEnviarWhatsApp(); } catch(e) { logError('envío automático prefactura', e); } }
     } catch(e) { logError('crear prefactura recepcion', e); _rpState.estado = 'error'; _rpRenderResumen(); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.')); }
 }
 let _rpUltima = null;
@@ -20754,6 +20759,39 @@ function _rpTextoWhatsApp(num, suc, total, nombre) {
     return 'Hola' + (quien ? ' ' + quien : '') + '. Le enviamos su prefactura Nº ' + num + ' de BAYOL CELL, sucursal ' + suc + ', por ' + money(total) + '. Gracias por preferirnos.';
 }
 let _rpEnviandoWa = false;
+// 23-oct-2026 (dueño): el botón de WhatsApp de la Prefactura manda las CUENTAS DE PAGO del negocio (Configuración → Datos del taller).
+// Mismo camino que la prefactura: línea de la sucursal del almacén y chat del cliente. Solo texto libre, así que el cliente
+// debe habernos escrito en las últimas 24 h (regla de Meta); si no, se avisa en pantalla y no se envía nada.
+async function _rpEnviarCuentasWhatsApp() {
+    if(_rpEnviandoWa) return;
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    const cuentas = ((cache.configTaller && cache.configTaller.cuentas_pago) || '').trim();
+    if(!cuentas) return toast('Escriba las cuentas en Configuración → Datos del taller → «Cuentas para pagos».', 'error');
+    const wa = g('c_whatsapp').replace(/\D/g, '');
+    if(wa.length < 10) { document.getElementById('c_whatsapp')?.focus(); return toast('Escriba el WhatsApp del cliente.', 'error'); }
+    const almacen = document.getElementById('rxAlmacen')?.value || '1';
+    const suc = _RP_SUCURSAL_DE_ALMACEN[String(almacen)] || 'Santiago';
+    _rpEnviandoWa = true;
+    try {
+        if(!cache.waLineasDirectorio) { const { data, error } = await supabaseClient.rpc('whatsapp_lineas_directorio'); if(error) throw error; cache.waLineasDirectorio = data || []; }
+        const linea = _rpElegirLinea(cache.waLineasDirectorio, almacen, _rpState && _rpState.nivel);
+        if(!linea) throw new Error('No hay línea de WhatsApp para la sucursal ' + suc + '.');
+        if(_rpState && !_rpState.clienteId) { try { _rpState.clienteId = await _rpGuardarClientePorWhatsApp(); } catch(e) { logError('cliente por WhatsApp', e); } }
+        const { data: h, error: eh } = await supabaseClient.rpc('whatsapp_hilo_para_telefono', { p_linea: linea.id, p_telefono: wa, p_cliente: (_rpState && _rpState.clienteId) || null });
+        if(eh) throw eh;
+        if(!h || !h.ok) throw new Error(h && h.error === 'sin_permiso' ? 'No tiene acceso a la línea ' + linea.nombre + ' de ' + suc + '.' : (h && h.error) || 'No se pudo abrir el chat.');
+        if(!h.abierto) throw new Error('El cliente debe escribirnos primero por WhatsApp (ventana de 24 h de Meta). Pídale que nos escriba y vuelva a intentar.');
+        const nom = _rpNombreInfoplus(g('c_nombre')); const quien = nom && !/^CONTADO$/i.test(nom) ? ' ' + nom.replace(/^CONTADO\s+/i, '') : '';
+        const total = _rpState && _rpState.items && _rpState.items.length ? _rpTotales(_rpState.items).total : 0;
+        const texto = 'Hola' + quien + '. Estas son las cuentas de BAYOL CELL para su pago' + (total > 0 ? ' de ' + money(total) : '') + ':\n\n' + cuentas + '\n\nCuando transfiera, envíenos el comprobante por aquí. Gracias por preferirnos.';
+        const r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto } });
+        const d = r && r.data;
+        if(r && r.error && !d) throw r.error;
+        if(!d || !d.ok) throw new Error((d && (d.mensaje || d.error)) || 'No se pudo enviar.');
+        toast('Cuentas de pago enviadas por WhatsApp desde ' + linea.nombre + ' (' + suc + ').');
+    } catch(e) { logError('enviar cuentas WhatsApp', e); toastError(getFriendlyError(e, 'No se pudieron enviar las cuentas.')); }
+    finally { _rpEnviandoWa = false; }
+}
 async function _rpEnviarWhatsApp() {
     if(_rpEnviandoWa) return;
     if(!_rpState || !_rpState.codprefactura) return toast('Guarde la prefactura antes de enviarla.', 'error');
