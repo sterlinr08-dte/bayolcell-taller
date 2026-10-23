@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20261020-u1';
+  var V='20261023-u1';
   var SOCIAL_HUB='20261014-ig1';
   var PERF='20260929-f1';
   var FB_DIRECT='20260920-incr1';
