@@ -31,3 +31,9 @@ Sin probar de punta a punta: PDF real + Zernio (lo prueba el dueño tras publica
 ## Pendiente
 - Desplegar la Edge y someter la plantilla a Meta (llave de un solo uso); esperar APPROVED.
 - Publicar cuando el dueño lo diga.
+
+## Plantilla sometida (00:25)
+- Edge `whatsapp-plantilla-crear` v5 desplegada, llave de un solo uso (15 min) en `_plantilla_llaves`, llamada con
+  `{ cual: 'prefactura' }`: **6/6 líneas = 200, PENDING** (Principal y Al por Mayor Navarrete; Reparación, Servicio al
+  Cliente y Al por Mayor Santiago; Reparación Moca). Luego la Edge quedó desactivada otra vez (v6, 410). La llave se borró.
+- Cuando Meta la apruebe (APPROVED), el botón «Enviar por WhatsApp» funciona también con clientes que no han escrito.
