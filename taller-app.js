@@ -84,7 +84,7 @@ function _sesPintar() {
         return `<div class="bc-ses-fila${s.es_actual ? ' actual' : ''}" data-id="${s.id}">
             <div class="ico"><i class="ti ${d.icono}"></i></div>
             <div style="min-width:0;">
-                <div class="nom">${escapeHtml(admin ? (s.nombre || 'Usuario') : d.titulo)}${s.es_actual ? '<span class="tag">Este dispositivo</span>' : ''}</div>
+                <div class="nom">${escapeHtml(admin ? (s.nombre || 'Usuario') : d.titulo)}${s.es_actual ? '<span class="badge" style="background:#d1fae5; color:#065f46;"><i class="ti ti-circle-check"></i> Este dispositivo</span>' : (Date.now() - new Date(s.vista_en).getTime() > 7 * 86400000 ? '<span class="badge" style="background:#fef3c7; color:#92400e;"><i class="ti ti-clock"></i> Sin usar</span>' : '')}</div>
                 <div class="det"><span>${escapeHtml(admin ? d.titulo : d.so)}</span><span>${escapeHtml(d.nav)}</span>${s.ip ? `<span>${escapeHtml(s.ip)}</span>` : ''}<span>${escapeHtml(_sesHace(s.vista_en))}</span></div>
             </div>
             ${s.es_actual ? '' : `<button type="button" class="btn btn-light" onclick="_sesCerrar('${s.id}')"><i class="ti ti-logout"></i> Cerrar sesión</button>`}

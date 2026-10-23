@@ -544,23 +544,24 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-tel-menu { min-width:230px; }
 .wa-tel-menu .wa-tel-num { padding:6px 12px 4px; font-size:12px; font-weight:700; color:#54656f; letter-spacing:.02em; }
 .wa-tel-menu button { min-height:44px; font-size:14px; }
-/* Sesiones activas (23-oct-2026) */
-.bc-ses-head { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-.bc-ses-ico { width:46px; height:46px; border-radius:14px; background:#ecfdf5; color:#15803d; display:grid; place-items:center; font-size:24px; flex:none; }
-.bc-ses-ico.alerta { background:#fffbeb; color:#b45309; }
-.bc-ses-tit { flex:1; min-width:0; } .bc-ses-tit h3 { margin:0; font-size:16px; } .bc-ses-tit p { margin:2px 0 0; font-size:13px; color:var(--text-muted); }
-.bc-ses-num { text-align:center; min-width:64px; } .bc-ses-num b { display:block; font-size:28px; line-height:1; font-weight:800; color:#0f172a; } .bc-ses-num small { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#94a3b8; }
-.bc-ses-acc { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; } .bc-ses-acc .btn { min-height:44px; font-size:13px; }
+/* Sesiones activas (23-oct-2026): mismas piezas que el resto de Configuración (tarjeta .card, h3 con ícono de color, .badge, .btn-light) */
+.bc-ses-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.bc-ses-tit { flex:1; min-width:0; } .bc-ses-tit h3 { margin:0; }
+#bcSesIco.alerta { color:#b45309 !important; }
+.bc-ses-num { text-align:center; min-width:60px; padding:6px 10px; border-radius:12px; background:#f8fafc; border:1px solid #eef2f7; }
+.bc-ses-num b { display:block; font-size:24px; line-height:1.1; font-weight:800; color:var(--text-dark); } .bc-ses-num small { font-size:10.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:#64748b; }
+.bc-ses-acc { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; } .bc-ses-acc .btn { min-height:44px; font-size:13px; }
 .bc-ses-lista { display:flex; flex-direction:column; gap:8px; }
-.bc-ses-fila { display:grid; grid-template-columns:40px minmax(0,1fr) auto; gap:10px; align-items:center; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
-.bc-ses-fila.actual { border-color:#86efac; background:#f0fdf4; }
-.bc-ses-fila .ico { width:40px; height:40px; border-radius:12px; background:#f1f5f9; color:#334155; display:grid; place-items:center; font-size:20px; }
-.bc-ses-fila .nom { font-size:14px; font-weight:700; color:#0f172a; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-.bc-ses-fila .nom .tag { font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; background:#dcfce7; color:#15803d; }
-.bc-ses-fila .det { font-size:13px; color:#64748b; margin-top:2px; }
+.bc-ses-fila { display:grid; grid-template-columns:40px minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--border-color); border-radius:12px; background:#fff; }
+.bc-ses-fila.actual { border-color:#a7f3d0; background:linear-gradient(180deg,#f0fdf4,#fff); }
+.bc-ses-fila .ico { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#1e3a8a,#0047AB); color:#fff; display:grid; place-items:center; font-size:19px; }
+.bc-ses-fila.actual .ico { background:linear-gradient(135deg,#16a34a,#15803d); }
+.bc-ses-fila .nom { font-size:14px; font-weight:700; color:var(--text-dark); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.bc-ses-fila .nom .badge { font-size:11px; }
+.bc-ses-fila .det { font-size:13px; color:var(--text-muted); margin-top:3px; }
 .bc-ses-fila .det span + span::before { content:" · "; }
 .bc-ses-fila .btn { min-height:44px; font-size:13px; white-space:nowrap; }
-.bc-ses-vacio { text-align:center; color:var(--text-muted); font-size:14px; padding:18px 10px; }
+.bc-ses-vacio { text-align:center; color:var(--text-muted); font-size:13px; padding:24px 10px; }
 @media (max-width:640px) { .bc-ses-fila { grid-template-columns:40px minmax(0,1fr); } .bc-ses-fila .btn { grid-column:1 / -1; } }
 @media (prefers-reduced-motion: reduce) {
     .fade-in-row, .crm-icon-btn.girando i { animation:none; }
@@ -4071,8 +4072,10 @@ body{
                     <!-- Sesiones activas (23-oct-2026, referencia Moxen «Quién entra a tu cuenta»; sin aviso por WhatsApp por ahora) -->
                     <div class="card bc-ses" id="bcSesCard">
                         <div class="bc-ses-head">
-                            <div class="bc-ses-ico" id="bcSesIco"><i class="ti ti-shield-check"></i></div>
-                            <div class="bc-ses-tit"><h3>Sesiones activas</h3><p id="bcSesSub">Dispositivos con el taller abierto.</p></div>
+                            <div class="bc-ses-tit">
+                                <h3><i class="ti ti-shield-check" id="bcSesIco" style="color:#15803d;"></i> Sesiones activas</h3>
+                                <p id="bcSesSub" style="color:var(--text-muted); font-size:13px; margin:4px 0 0;">Dispositivos con el taller abierto.</p>
+                            </div>
                             <div class="bc-ses-num"><b id="bcSesNum">—</b><small>activas</small></div>
                         </div>
                         <div class="bc-ses-acc">
@@ -5650,7 +5653,7 @@ body{
 <div id="printArea" class="print-area"></div>
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
-<script defer src="taller-app.min.js?v=20261023-p24"></script>
+<script defer src="taller-app.min.js?v=20261023-p25"></script>
 <script defer src="taller-recepcion.js?v=20261023-g6"></script>
 <script defer src="taller-prefactura.js?v=20261023-i14"></script>
 <script defer src="bc-prefactura-imprimir.js?v=20261021-i3"></script>
