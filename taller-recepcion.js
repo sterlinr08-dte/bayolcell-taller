@@ -145,7 +145,8 @@
       return '<button type="button" class="bcrx-scan" aria-label="Buscar artículo"><i class="ti ti-scan" aria-hidden="true"></i>' +
         '<span>Buscar o escanear por nombre, código o IMEI</span><kbd>F2</kbd></button>';
     }
-    function cerrarPanel() { slot.innerHTML = barraHTML(); q('.bcrx-scan', slot).addEventListener('click', abrirPanel); }
+    // 23-oct-2026 (dueño, video: «que se limpie la barra cuando la cierro y la abro de nuevo»): al cerrar se olvida lo buscado.
+    function cerrarPanel() { estado.q = ''; estado.hl = 0; estado.lista = []; estado.det = -1; estado.imei = ''; estado.imeiBusq = null; estado.imeiMsg = ''; estado.enterPend = false; estado.entendido = ''; slot.innerHTML = barraHTML(); q('.bcrx-scan', slot).addEventListener('click', abrirPanel); }
     function nivel() { try { return String((_rpState && _rpState.nivel) || 1); } catch (e) { return '1'; } }
     function almacen() { var s = doc.getElementById('rxAlmacen'); return (s && s.value) || '1'; }
     function precioDe(a) { var nv = nivel(); if (a.niveles && a.niveles[nv] != null) return Number(a.niveles[nv]); if (a.niveles && a.niveles['1'] != null) return Number(a.niveles['1']); return Number(a.precio || 0); }
