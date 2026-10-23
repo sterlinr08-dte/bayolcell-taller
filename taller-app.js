@@ -2331,7 +2331,7 @@ function _iniciarVistaRestaurada(v) {
         else if(v === 'cuentasPorPagar' && typeof renderCuentasPorPagar === 'function') renderCuentasPorPagar();
         else if(v === 'catalogoWeb' && typeof renderCatalogo === 'function') renderCatalogo();
         else if(v === 'estadisticas' && typeof renderEstadisticas === 'function') renderEstadisticas();
-        else if(v === 'diagnostico' && typeof cargarConocimiento === 'function') cargarConocimiento();
+        else if(v === 'diagnostico') _bcCargarDiagnostico().then(() => { if(typeof cargarConocimiento === 'function') cargarConocimiento(); });
         else if(v === 'reportes' && typeof inicializarReportes === 'function') inicializarReportes();
         else if(v === 'articulos') { if(typeof actualizarInfoplusCount === 'function') actualizarInfoplusCount(); if(typeof renderInfoplusBusqueda === 'function') renderInfoplusBusqueda(); }
         else if(v === 'piezasSolicitadas' && typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas();
@@ -2418,6 +2418,16 @@ const NAV_PERMISOS = {
     'rifaFactura': 'rifa_factura_ver'
 };
 
+// 23-oct-2026 (carga): los 7 módulos y 2 hojas de Diagnóstico IA (~110 KB) se cargan solo al entrar a esa pantalla.
+// Antes venían en taller.html y se descargaban y ejecutaban en cada arranque. Los módulos se montan solos al cargar.
+let _bcDiagProm = null;
+function _bcCargarDiagnostico() {
+    if(_bcDiagProm) return _bcDiagProm;
+    ['diagnostico-ai-board.css?v=20261010e', 'diagnostico-ai-chat.css?v=20261010b'].forEach(h => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = h; document.head.appendChild(l); });
+    const mods = ['diagnostico-photo-tiles', 'diagnostico-board-data', 'diagnostico-ai-board', 'diagnostico-ai-catalog', 'diagnostico-ai-cortos', 'diagnostico-ai-chat', 'diagnostico-ai-library'];
+    _bcDiagProm = mods.reduce((prom, n) => prom.then(() => new Promise(res => { const sc = document.createElement('script'); sc.src = n + '.js?v=20261019-f1'; sc.async = false; sc.onload = res; sc.onerror = () => { logError('cargar ' + n, new Error('no cargó')); res(); }; document.head.appendChild(sc); })), Promise.resolve());
+    return _bcDiagProm;
+}
 function nav(v, btn) {
     // Salir del CRM: apagar la suscripcion en tiempo real de esa vista
     if(v !== 'crmLinea' && typeof _crmDetenerRealtime === 'function') _crmDetenerRealtime();
@@ -2508,7 +2518,7 @@ function nav(v, btn) {
     if(v === 'ordenes') { setTimeout(() => { if(typeof renderOrders === 'function') renderOrders(); if(typeof renderTallerOrdenes === 'function') renderTallerOrdenes(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
     if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab(localStorage.getItem('bayol_subtab_conta') || 'mensual'); }, 50); }
-    if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
+    if(v === 'diagnostico') { _bcCargarDiagnostico().then(() => setTimeout(() => { cargarConocimiento(); }, 50)); }
     if(v === 'rifaFactura') { setTimeout(() => { if(typeof renderRifaFactura === 'function') renderRifaFactura(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();

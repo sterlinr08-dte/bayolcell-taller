@@ -1,0 +1,41 @@
+name: Minificar taller-app.js
+
+# 23-oct-2026 · Cada vez que cambia taller-app.js en main, este robot regenera taller-app.min.js (la copia comprimida
+# que carga taller.html) y la confirma. Así nadie tiene que acordarse. Ver scripts/minificar.sh y la bitácora del día.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'taller-app.js'
+      - 'scripts/minificar.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minificar-taller
+  cancel-in-progress: true
+
+jobs:
+  minificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Generar taller-app.min.js
+        run: bash scripts/minificar.sh
+      - name: Confirmar si cambió
+        run: |
+          if git diff --quiet -- taller-app.min.js taller-app.min.js.map; then echo "Sin cambios."; exit 0; fi
+          git config user.name "robot-minificar"
+          git config user.email "robot-minificar@users.noreply.github.com"
+          git add taller-app.min.js taller-app.min.js.map
+          git commit -m "Minificar taller-app.js (automático)"
+          git push origin HEAD:main

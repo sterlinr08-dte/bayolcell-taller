@@ -100,29 +100,25 @@
   }
   instalarLoaderPremium();
 
-  try{
-    surfaceCss=document.createElement('link');
-    surfaceCss.rel='stylesheet';
-    surfaceCss.href='taller-surface-cleanup.css?v='+SURFACE;
-    document.head.appendChild(surfaceCss);
-  }catch(e){}
-  try{
-    midnightCss=document.createElement('link');
-    midnightCss.rel='stylesheet';
-    midnightCss.href='taller-midnight-motion.css?v='+MIDNIGHT;
-    document.head.appendChild(midnightCss);
-  }catch(e){}
-  // Afinado del taller (1 oct 2026): un solo acento naranja + celular. Va de último.
-  try{
-    afinadoCss=document.createElement('link');
-    afinadoCss.rel='stylesheet';
-    afinadoCss.href='taller-afinado.css?v='+AFINADO;
-    document.head.appendChild(afinadoCss);
-  }catch(e){}
+  // 23-oct-2026 (carga): estas 3 hojas ya vienen en el <head> de taller.html (ids bcSurfaceCss/bcMidnightCss/bcAfinadoCss).
+  // Si faltaran (HTML viejo en caché), se crean como antes.
+  function capaCss(id,href){var l=document.getElementById(id);if(l)return l;try{l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href=href;document.head.appendChild(l);return l;}catch(e){return null;}}
+  surfaceCss=capaCss('bcSurfaceCss','taller-surface-cleanup.css?v='+SURFACE);
+  midnightCss=capaCss('bcMidnightCss','taller-midnight-motion.css?v='+MIDNIGHT);
+  afinadoCss=capaCss('bcAfinadoCss','taller-afinado.css?v='+AFINADO);
+  // Hojas que se agregan después (CRM): se colocan ANTES de las 3 capas para que estas sigan ganando la cascada,
+  // sin tener que recolocarlas (recolocarlas las volvía a pedir y repintaba la pantalla).
+  function colocarCss(link){try{if(surfaceCss&&surfaceCss.parentNode===document.head)document.head.insertBefore(link,surfaceCss);else document.head.appendChild(link);}catch(e){document.head.appendChild(link);}}
   function reafirmarCapasVisuales(){
-    try{if(surfaceCss&&surfaceCss.parentNode)document.head.appendChild(surfaceCss);}catch(e){}
-    try{if(midnightCss&&midnightCss.parentNode)document.head.appendChild(midnightCss);}catch(e){}
-    try{if(afinadoCss&&afinadoCss.parentNode)document.head.appendChild(afinadoCss);}catch(e){}
+    // Solo recoloca si alguna hoja quedó después de las 3 capas (hoy el CSS del CRM se inserta antes, así que casi nunca).
+    try{
+      var links=Array.prototype.slice.call(document.head.querySelectorAll('link[rel="stylesheet"]')),n=links.length;
+      var ok=n>=3&&links[n-3]===surfaceCss&&links[n-2]===midnightCss&&links[n-1]===afinadoCss;
+      if(ok)return;
+      if(surfaceCss&&surfaceCss.parentNode)document.head.appendChild(surfaceCss);
+      if(midnightCss&&midnightCss.parentNode)document.head.appendChild(midnightCss);
+      if(afinadoCss&&afinadoCss.parentNode)document.head.appendChild(afinadoCss);
+    }catch(e){}
   }
 
   function cargarExtensionesCrmSocial(){
@@ -132,29 +128,29 @@
     var scopeCss=document.createElement('link');
     scopeCss.rel='stylesheet';
     scopeCss.href='crm-social-scope-fix.css?v='+V;
-    document.head.appendChild(scopeCss);
+    colocarCss(scopeCss);
 
     var facebookCss=document.createElement('link');
     facebookCss.rel='stylesheet';
     facebookCss.href='crm-facebook-chat.css?v='+V;
-    document.head.appendChild(facebookCss);
+    colocarCss(facebookCss);
 
     var polishCss=document.createElement('link');
     polishCss.rel='stylesheet';
     polishCss.href='crm-social-polish-v2.css?v='+V;
     polishCss.onload=function(){reafirmarCapasVisuales();};
-    document.head.appendChild(polishCss);
+    colocarCss(polishCss);
 
     var glassCss=document.createElement('link');
     glassCss.rel='stylesheet';
     glassCss.href='crm-liquid-glass-transparent.css?v='+GLASS;
-    document.head.appendChild(glassCss);
+    colocarCss(glassCss);
 
     var effectsCss=document.createElement('link');
     effectsCss.rel='stylesheet';
     effectsCss.href='crm-social-effects.css?v='+V;
     effectsCss.onload=function(){reafirmarCapasVisuales();};
-    document.head.appendChild(effectsCss);
+    colocarCss(effectsCss);
     setTimeout(reafirmarCapasVisuales,300);
 
     var hub=document.createElement('script');

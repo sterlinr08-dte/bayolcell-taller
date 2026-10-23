@@ -15,6 +15,10 @@
 <link rel="manifest" href="taller.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Taller Bayol">
 <meta name="robots" content="noindex, nofollow">
+<!-- Carga (23-oct-2026): abrir las conexiones a Supabase y a los CDN antes de necesitarlas -->
+<link rel="preconnect" href="https://vkhwdvjtowrhkhqavnvk.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <script>/* Velocidad (28-sep-2026): las librerías de imprimir/gráficas cargan en diferido; quien las use espera esta promesa. */
 window.__bayolLibs = new Promise(function (r) { if (document.readyState !== 'loading') r(); else document.addEventListener('DOMContentLoaded', function () { r(); }); });</script>
 <script>/* Modo ligero (21-oct-2026, dueño: «en la PC de Servicio al Cliente se torna lento»). En PCs sencillas o con
@@ -1730,7 +1734,7 @@ body{
   #v-crmLinea .crm-stat .lbl{font-size:7.5px!important;max-width:48px!important}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1738,8 +1742,6 @@ body{
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="crm-glass-mobile.css?v=20260929-f1">
-<link rel="stylesheet" href="diagnostico-ai-board.css?v=20261010e">
-<link rel="stylesheet" href="diagnostico-ai-chat.css?v=20261010b">
 <!-- Tamaño táctil (regla del dueño 18-oct-2026): capa reversible. Apagar: BC_TACTIL=false o localStorage bc_tactil_off=1 -->
 <script>var BC_TACTIL=true;try{if(BC_TACTIL&&localStorage.getItem('bc_tactil_off')!=='1')document.documentElement.classList.add('bc-tactil');}catch(e){if(BC_TACTIL)document.documentElement.classList.add('bc-tactil');}</script>
 <link rel="stylesheet" href="taller-tactil.css?v=20261019-t2">
@@ -1753,6 +1755,14 @@ body{
 <script>var BC_INFO=true;try{if(BC_INFO&&localStorage.getItem('bc_info_off')!=='1')document.documentElement.classList.add('bc-info');}catch(e){if(BC_INFO)document.documentElement.classList.add('bc-info');}</script>
 <link rel="stylesheet" href="taller-info.css?v=20261019-i2">
 <link rel="stylesheet" href="crm-consulta-precio.css?v=20261020-h1">
+<!-- Carga (23-oct-2026): estas 6 hojas las inyectaban los scripts después de DOMContentLoaded y la pantalla cambiaba de aspecto
+     al cargar. Ahora vienen desde el primer pintado, en el mismo orden de cascada; los scripts las reconocen por su id y no las repiten. -->
+<link id="bcReflectorCss" rel="stylesheet" href="bc-reflector.css?v=20261021r3">
+<link id="bcBusquedaCss" rel="stylesheet" href="bc-busqueda.css?v=20261009b3">
+<link id="bcMenuMiniCss" rel="stylesheet" href="taller-sidebar-mini.css?v=20261009m1">
+<link id="bcSurfaceCss" rel="stylesheet" href="taller-surface-cleanup.css?v=20260914-clean1">
+<link id="bcMidnightCss" rel="stylesheet" href="taller-midnight-motion.css?v=20260929-f1">
+<link id="bcAfinadoCss" rel="stylesheet" href="taller-afinado.css?v=20261001-f3">
 </head>
 <body>
 
@@ -5608,20 +5618,14 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261023-p22"></script>
-<script src="taller-recepcion.js?v=20261023-g6"></script>
-<script src="taller-prefactura.js?v=20261023-i14"></script>
-<script src="bc-prefactura-imprimir.js?v=20261021-i3"></script>
-<script src="bc-permisos-listas.js?v=20261021-pl1"></script>
-<script src="taller-info.js?v=20261020-v1"></script>
-<script src="crm-consulta-precio.js?v=20261020-h2"></script>
-<script src="diagnostico-photo-tiles.js?v=20261019-f1"></script>
-<script src="diagnostico-board-data.js?v=20261019-f1"></script>
-<script src="diagnostico-ai-board.js?v=20261019-f1"></script>
-<script src="diagnostico-ai-catalog.js?v=20261019-f1"></script>
-<script src="diagnostico-ai-cortos.js?v=20261019-f1"></script>
-<script src="diagnostico-ai-chat.js?v=20261019-f1"></script>
-<script src="diagnostico-ai-library.js?v=20261019-f1"></script>
-<script src="crm-marketing-consent.js?v=20261022-u9"></script>
+<!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
+<script defer src="taller-app.min.js?v=20261023-p23"></script>
+<script defer src="taller-recepcion.js?v=20261023-g6"></script>
+<script defer src="taller-prefactura.js?v=20261023-i14"></script>
+<script defer src="bc-prefactura-imprimir.js?v=20261021-i3"></script>
+<script defer src="bc-permisos-listas.js?v=20261021-pl1"></script>
+<script defer src="taller-info.js?v=20261020-v1"></script>
+<script defer src="crm-consulta-precio.js?v=20261020-h2"></script>
+<script defer src="crm-marketing-consent.js?v=20261023-u10"></script>
 </body>
 
