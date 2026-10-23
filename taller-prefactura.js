@@ -98,6 +98,9 @@
     // «Facturar a», no en el plegable. Son los que viajan a Info Plus con el código 1.
     var lNom = q('#c_nombre', camposCli) && q('#c_nombre', camposCli).parentElement.querySelector('label'); if (lNom) lNom.textContent = 'Nombre del cliente';
     var lWa = q('#c_whatsapp', camposCli) && q('#c_whatsapp', camposCli).parentElement.querySelector('label'); if (lWa) lWa.textContent = 'WhatsApp';
+    // 23-oct-2026 (dueño: «Debajo del nombre es opcional»): la cédula va justo debajo del nombre, marcada como opcional.
+    var fCed = q('#c_cedula', camposCli), filaCed = fCed && fCed.closest('.bcpf-campos > div'), fNom = q('#c_nombre', camposCli) && q('#c_nombre', camposCli).parentElement;
+    if (filaCed && fNom) { camposCli.insertBefore(filaCed, fNom.nextSibling); filaCed.classList.add('bcpf-ced'); var lCed = fCed.parentElement.querySelector('label'); if (lCed) lCed.textContent = 'Cédula (opcional)'; }
     var cliDatos = el('div', 'bcpf-clidatos'); cliDatos.appendChild(camposCli); pad.appendChild(cliDatos);
 
     // Equipo, falla y lo demás: opcional (dueño: «la falla … opcional, no obligatorio. Y … los equipos también»).
