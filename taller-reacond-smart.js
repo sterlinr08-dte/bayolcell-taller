@@ -8,11 +8,14 @@
  *     Info Plus con el despacho de siempre (por modelo, costo promedio, con IMEI) o solo en el taller.
  * Capa aislada: no cambia ids, onclick ni la lógica de siempre; usa las mismas tablas y los mismos pasos
  * (equipos_refurbish + equipo_historial + asignarFallasSinDueno + _descontarPiezasAlCompletar + despacharTelefonosSeleccionados).
+ * 24-oct-2026 (auditoría R02/R04): el envoltorio de _despTelConfirmar ya NO marca equipos por su cuenta; el cierre en el
+ * taller lo hace _despTelConfirmar (taller-app.js) con los IDs realmente enviados y devuelve { ok, documento, ids }.
+ * Aquí solo se descuentan las piezas pendientes de esos ids (como marcarDespachado) y se refresca la vista.
  * Solo administración (o permiso piezas_aprobar_extra). API: window.BayolReacondSmart
  */
 (function(){'use strict';
 if (window.BayolReacondSmart) return;
-var VERSION = '20261014r1';
+var VERSION = '20261024r1'; // 24-oct-2026 (auditoría R02/R04): el despacho de Info Plus ya cierra los equipos en taller-app.js
 var REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
 var DIAS_LENTO = 7;
 function esc(s){ return (typeof escapeHtml === 'function') ? escapeHtml(s == null ? '' : String(s)) : String(s == null ? '' : s); }
@@ -381,7 +384,7 @@ function abrirDespacho(){
     if (!conCod.length) return mal('Ninguno de los marcados tiene código de Info Plus.');
     pendienteIP = { ids: conCod };
     cerrar('rssDespacho');
-    try { _reacondSel = new Set(conCod); despacharTelefonosSeleccionados(); }
+    try { _reacondSel = new Set(conCod); despacharTelefonosSeleccionados(); vigilarCierreIP(); }
     catch(e) { pendienteIP = null; mal('No se pudo abrir el despacho de Info Plus.'); }
   };
   contar();
@@ -403,16 +406,41 @@ async function marcarDespachados(ids, como){
   }
   await refrescar();
 }
-// El despacho de Info Plus de siempre: cuando sale bien (su ventana se cierra), se marcan los equipos.
+// 24-oct-2026 (auditoría R02): si la ventana de Info Plus (#modalDespTel) se cierra o cancela sin despachar
+// (botón Cancelar, X, o la quita otro flujo), pendienteIP se limpia; antes quedaba vivo y un despacho posterior
+// marcaba los IDs viejos.
+function vigilarCierreIP(){
+  var m = document.getElementById('modalDespTel');
+  if (!m || typeof MutationObserver !== 'function') return;
+  var obs = new MutationObserver(function(){
+    if (document.body.contains(m)) return;
+    obs.disconnect();
+    pendienteIP = null;
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+}
+// 24-oct-2026 (auditoría R02/R04): el despacho de Info Plus de siempre ya cierra en el taller los equipos realmente
+// enviados (lo hace _despTelConfirmar en taller-app.js y devuelve { ok, documento, ids }). Este envoltorio ya no
+// marca nada ni usa la selección original (pend.ids): solo, cuando se vino del asistente y salió bien, descuenta las
+// piezas pendientes de los ids devueltos (igual que marcarDespachado) y refresca. pendienteIP se limpia tras
+// cualquier resultado.
 if (typeof window._despTelConfirmar === 'function') {
   var origDesp = window._despTelConfirmar;
   window._despTelConfirmar = async function(){
     var pend = pendienteIP;
-    var res = await origDesp.apply(this, arguments);
-    if (pend && pendienteIP === pend && !document.getElementById('modalDespTel')) {
-      pendienteIP = null;
+    var res = null;
+    try { res = await origDesp.apply(this, arguments); }
+    finally {
+      // Resultado final (éxito) o ventana ya cerrada → se olvida la selección del asistente. Si solo se canceló el
+      // diálogo de confirmación o Info Plus rechazó y la ventana sigue abierta, se conserva para el reintento.
+      if ((res && res.ok) || !document.getElementById('modalDespTel')) pendienteIP = null;
+    }
+    if (pend && res && res.ok && Array.isArray(res.ids) && res.ids.length) {
       try { _reacondSel = new Set(); } catch(_){}
-      await marcarDespachados(pend.ids, 'Info Plus');
+      var piezas = 0;
+      for (var i = 0; i < res.ids.length; i++) { try { var d = await _descontarPiezasAlCompletar(res.ids[i]); piezas += (d && d.n) || 0; } catch(e){ try { logError('Descontar piezas tras despacho IP', e); } catch(_){} } }
+      if (piezas) ok(piezas + ' pieza(s) pendiente(s) descontada(s) de Info Plus (despacho Nº ' + (res.documento || '?') + ').');
+      await refrescar();
     }
     return res;
   };
