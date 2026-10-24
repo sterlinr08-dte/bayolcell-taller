@@ -11,6 +11,7 @@
     if (m.dataset.bcdFoco === '1') return; m.dataset.bcdFoco = '1';
     anterior.set(m, doc.activeElement);
     if (!m.hasAttribute('tabindex')) m.setAttribute('tabindex', '-1');
+    if (!m.hasAttribute('role')) { m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); } // ventanas creadas por código, sin id
     setTimeout(function () {
       if (!m.classList.contains('active')) return;
       var f = visibles(m); var primero = f.find(function (x) { return !x.matches('.modal-close,[aria-label="Cerrar"],.btn-light'); }) || f[0];
