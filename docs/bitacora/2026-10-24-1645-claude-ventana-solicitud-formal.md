@@ -19,3 +19,9 @@ hoja de estilos de las ventanas del taller (`label` en bloque y mayúsculas), qu
 ## Pruebas
 `scripts/pruebas/flow-financiamiento.cjs` 390/1280 OK (f7; casilla obligatoria, 44/48/54 px); captura a 390 px del banco.
 Sin publicar; rama `claude/ventana-solicitud-formal`.
+
+## Actualización 16:50 RD · se quita el «Modo de prueba»
+Dueño: «¿El modo de prueba que sale ya se puede quitar?». Sí: solo lo veía el administrador y ya cumplió (página y Flow
+publicados). Capa **f8** (`taller.html` u21): la ventana queda con Forma de envío, Equipo, Precio, la casilla de confirmación
+y el botón. El servidor conserva `prueba:true` solo para pruebas internas con llave de un solo uso. Prueba del banco
+actualizada (envía `prueba:false`): 390/1280 OK.

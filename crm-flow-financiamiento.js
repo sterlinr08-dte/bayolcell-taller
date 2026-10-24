@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f7';
+  window.__bcFlowFinanciamiento = '20261024-f8';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -124,7 +124,6 @@
     const hilo = thread();
     if (!hilo) return window.toast?.('Abra primero el chat del cliente.', 'error');
     if (typeof abrirModalGenerico !== 'function') return;
-    const esAdmin = admin();
     abrirModalGenerico('Solicitud de financiamiento', `
       <form class="bcff-form" id="bcffForm" autocomplete="off">
         <p class="bcff-ayuda">El cliente recibe un enlace con el equipo y el precio ya indicados. Al completarlo, la solicitud aparece en este chat con la referencia para el banco.</p>
@@ -135,7 +134,6 @@
         </div>
         <label class="bcff-campo"><span>Precio (RD$)</span><input id="bcffPrecio" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Ej.: 38500" required></label>
         <label class="bcff-chk"><input type="checkbox" id="bcffInformado"><span>Confirmo que informé al cliente el equipo y el precio.</span></label>
-        ${esAdmin ? '<label class="bcff-chk"><input type="checkbox" id="bcffPrueba"><span>Modo de prueba (solo para mi número).</span></label>' : ''}
         <button type="submit" class="bcff-enviar" id="bcffEnviar"><i class="ti ti-send"></i> Enviar al cliente</button>
       </form>`, { ancho: '480px' });
     const form = document.getElementById('bcffForm'); if (!form) return;

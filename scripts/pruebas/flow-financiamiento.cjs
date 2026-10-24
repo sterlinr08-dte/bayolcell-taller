@@ -27,12 +27,12 @@ const { chromium } = require('playwright'); const fs = require('fs'); const S = 
     await new Promise(r => setTimeout(r, 150));
     const eq = document.getElementById('bcffEquipo'), pr = document.getElementById('bcffPrecio'), env = document.getElementById('bcffEnviar');
     out.ventana = !!(eq && pr && env); if (eq) { out.campoAlto = Math.round(eq.getBoundingClientRect().height); out.campoLetra = parseFloat(getComputedStyle(eq).fontSize); out.enviarAlto = Math.round(env.getBoundingClientRect().height); }
-    if (eq) { eq.value = 'iPhone 13 128GB'; pr.value = '38500'; document.getElementById('bcffPrueba').checked = true; env.click(); await new Promise(r => setTimeout(r, 200)); out.sinCasilla = llamadas.length; out.toastCasilla = (document.getElementById('toast') || {}).textContent || ''; document.getElementById('bcffInformado').checked = true; env.click(); await new Promise(r => setTimeout(r, 300)); }
+    if (eq) { eq.value = 'iPhone 13 128GB'; pr.value = '38500'; env.click(); await new Promise(r => setTimeout(r, 200)); out.sinCasilla = llamadas.length; out.toastCasilla = (document.getElementById('toast') || {}).textContent || ''; document.getElementById('bcffInformado').checked = true; env.click(); await new Promise(r => setTimeout(r, 300)); }
     out.llamada = llamadas[0] ? { fn: llamadas[0].n, accion: llamadas[0].body.accion, equipo: llamadas[0].body.equipo, precio: llamadas[0].body.precio, prueba: llamadas[0].body.prueba, hilo: llamadas[0].body.hilo_id } : null;
     out.toast = (document.getElementById('toast') || {}).textContent || '';
     return out;
   });
-  const ok = r.capa !== 'NO CARGÓ' && r.renderEnvuelto && r.botones >= 13 && r.minBtn >= 44 && r.tieneRef && r.formatos.ced && r.formatos.tel && r.formatos.monto && r.plazo && r.copiarTodo && r.fotosAviso && r.botonChat && r.ventana && r.campoAlto >= 48 && r.campoLetra >= 16 && r.enviarAlto >= 54 && r.sinCasilla === 0 && /informe al cliente/.test(r.toastCasilla) && r.llamada && r.llamada.fn === 'whatsapp-flow-financiamiento' && r.llamada.precio === 38500 && /enviado/.test(r.toast);
+  const ok = r.capa !== 'NO CARGÓ' && r.renderEnvuelto && r.botones >= 13 && r.minBtn >= 44 && r.tieneRef && r.formatos.ced && r.formatos.tel && r.formatos.monto && r.plazo && r.copiarTodo && r.fotosAviso && r.botonChat && r.ventana && r.campoAlto >= 48 && r.campoLetra >= 16 && r.enviarAlto >= 54 && r.sinCasilla === 0 && /informe al cliente/.test(r.toastCasilla) && r.llamada && r.llamada.fn === 'whatsapp-flow-financiamiento' && r.llamada.precio === 38500 && r.llamada.prueba === false && /enviado/.test(r.toast);
   if (!ok) fallos++;
   console.log(W, ok ? 'OK' : 'FALLO', JSON.stringify(r), 'errores', errs.filter(e => !/net::|Failed/.test(e)));
   await ctx.close(); }
