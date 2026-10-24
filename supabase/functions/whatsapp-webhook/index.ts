@@ -447,7 +447,8 @@ function textoRespuestaFlow(d: Record<string, string>): string {
 // la foto de la cédula y el comprobante de domicilio. Mensaje automático, marcado como tal.
 function textoPedirFotosFlow(nombre: string | null): string {
   const n = String(nombre || "").trim(); const saludo = n && !/^[+\d\s()-]+$/.test(n) ? `Gracias, ${n.split(/\s+/)[0]}.` : "Gracias.";
-  return `${saludo} Recibimos su solicitud de financiamiento. Para completarla, envíenos por este mismo chat:\n1) Foto de su cédula por ambos lados.\n2) Un comprobante de domicilio (factura de luz, agua, teléfono o cable).\n\nBAYOL CELL`;
+  // Dueño (24-oct): no pedir cédula ni documentos aquí; el banco evalúa primero.
+  return `${saludo} Ya recibimos su solicitud de financiamiento y la pasamos al banco para que la evalúe. Normalmente responden al otro día; en cuanto nos digan algo, le avisamos por aquí.\n\nBAYOL CELL`;
 }
 async function pedirFotosFlow(accountId: string | null, conversationId: string | null, hiloId: string, solicitudId: string | null, nombre: string | null) {
   if (!ZERNIO_API_KEY || !accountId || !conversationId || !solicitudId) return;

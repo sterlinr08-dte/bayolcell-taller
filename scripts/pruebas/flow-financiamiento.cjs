@@ -14,7 +14,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const S = 
     const html = window._waBurbujaMedia(m); const d = document.createElement('div'); d.innerHTML = html; document.body.appendChild(d);
     const btns = [...d.querySelectorAll('button')]; out.botones = btns.length; out.minBtn = Math.min(...btns.map(x => Math.round(x.getBoundingClientRect().height)));
     out.tieneRef = html.includes('Referencia para el banco') && html.includes('Loribel Ventura'); out.formatos = { ced: html.includes('001-1234567-8'), tel: html.includes('809-555-1234'), monto: html.includes('data-bcff-copiar="38500"') };
-    out.plazo = html.includes('12 meses'); out.copiarTodo = html.includes('Copiar solicitud completa') && html.includes('SOLICITUD DE FINANCIAMIENTO') && html.includes('Plazo deseado: 12 meses'); out.fotosAviso = html.includes('Faltan las fotos');
+    out.plazo = html.includes('12 meses'); out.copiarTodo = html.includes('Copiar solicitud completa') && html.includes('SOLICITUD DE FINANCIAMIENTO') && html.includes('Plazo deseado: 12 meses'); out.fotosAviso = html.includes('Pendiente de enviar al banco');
     out.preview = window._waPreviewTexto({ tipo_contenido: 'flow_respuesta' });
     out.burbujaOut = window._waBurbujaMedia({ tipo_contenido: 'flow', meta: { flow: { borrador: true } } });
     // Botón en la caja de escribir: simular la caja

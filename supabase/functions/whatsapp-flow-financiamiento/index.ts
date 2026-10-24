@@ -185,7 +185,8 @@ const plata = (n: number) => "RD$ " + Number(n || 0).toLocaleString("en-US", { m
 export function textoRecibidoWeb(nombre: string, numero: number | null, equipo: string, empleado: string, sucursal: string) {
   const n = String(nombre || "").trim(); const quien = n && !/^[+\d\s()-]+$/.test(n) ? `, ${nombrePropio(n.split(/\s+/)[0])}` : "";
   const num = numero ? ` (No. ${numero})` : "";
-  return `Listo${quien}, ya me llegó su solicitud del ${equipo}${num}.\n\nPara mandarla al banco me falta:\n1) Foto de su cédula por los dos lados.\n2) Una factura de luz, agua o cable con su dirección.\nMe las manda por aquí mismo.\n\nEl banco normalmente responde al otro día. En cuanto me diga algo, le aviso.\n\n${empleado} · Bayol Cell ${sucursal}`.trim();
+  // Dueño (24-oct): sin pedir fotos; primero evalúa el banco.
+  return `Listo${quien}, ya me llegó su solicitud del ${equipo}${num}. ✅\n\nSe la paso al banco para que la evalúe. Normalmente responden al otro día; en cuanto me digan algo, le aviso por aquí.\n\n${empleado} · Bayol Cell ${sucursal}`.trim();
 }
 
 // ---------- Normalizar la respuesta del cliente ----------
@@ -209,7 +210,8 @@ export function textoRespuesta(d: ReturnType<typeof normalizarDatos>) {
 // 24-oct-2026 (dueño: «sí» a pedir las fotos): texto que se manda solo, una vez, cuando llega la respuesta del formulario.
 export function textoPedirFotos(nombre: string) {
   const n = String(nombre || "").trim(); const saludo = n && !/^[+\d\s()-]+$/.test(n) ? `Gracias, ${n.split(/\s+/)[0]}.` : "Gracias.";
-  return `${saludo} Recibimos su solicitud de financiamiento. Para completarla, envíenos por este mismo chat:\n1) Foto de su cédula por ambos lados.\n2) Un comprobante de domicilio (factura de luz, agua, teléfono o cable).\n\nBAYOL CELL`;
+  // Dueño (24-oct): NO pedir cédula ni documentos aquí; el banco evalúa primero la solicitud y los documentos se piden después.
+  return `${saludo} Ya recibimos su solicitud de financiamiento y la pasamos al banco para que la evalúe. Normalmente responden al otro día; en cuanto nos digan algo, le avisamos por aquí.\n\nBAYOL CELL`;
 }
 async function pedirFotos(accountId: string, conversationId: string | null, hiloId: string | null, solicitudId: string | null, nombre: string, textoPropio?: string) {
   if (!conversationId || !hiloId || !solicitudId) return false;
