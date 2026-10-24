@@ -20,3 +20,9 @@ Necesita Playwright y Chromium (en el equipo de pruebas está en `/opt/node22/li
 | T6 | Reimprimir con otra prefactura cargada | imprime la cargada, no la última creada |
 | T7 | Quitar un artículo después del descuento en pesos | aparece «El descuento total … supera el tope» |
 | T8 | Guardar recepción con técnico | la orden lleva `tecnico_asignado_id` y la función devuelve la orden |
+
+## flow-financiamiento.cjs (24-oct-2026)
+Formulario nativo de WhatsApp para la solicitud de financiamiento (`crm-flow-financiamiento.js`): la capa carga, envuelve el
+render de burbujas, la tarjeta de respuesta trae 10 datos con «Copiar» (44 px) y la «Referencia para el banco», el botón
+junto a la caja mide 44 px, la ventana de envío tiene campos de 48 px / 16 px y botón de 54 px, y la llamada al servidor va
+con equipo, precio, hilo y modo de prueba. Correr con `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/flow-financiamiento.cjs`.

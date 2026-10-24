@@ -418,6 +418,32 @@ function dispararAgenteIA(hiloId: string, mensajeClienteId: string | null) {
   if (rt?.waitUntil) rt.waitUntil(promesa);
 }
 
+// ---- 24-oct-2026 · Formulario nativo de financiamiento (Meta Flow) ----
+const PROVINCIAS_FLOW: Record<string, string> = { Dajabon: "Dajabón", Distrito_Nacional: "Distrito Nacional", El_Seibo: "El Seibo", Elias_Pina: "Elías Piña", Hato_Mayor: "Hato Mayor", Hermanas_Mirabal: "Hermanas Mirabal", La_Altagracia: "La Altagracia", La_Romana: "La Romana", La_Vega: "La Vega", Maria_Trinidad_Sanchez: "María Trinidad Sánchez", Monsenor_Nouel: "Monseñor Nouel", Monte_Cristi: "Monte Cristi", Monte_Plata: "Monte Plata", Puerto_Plata: "Puerto Plata", Samana: "Samaná", San_Cristobal: "San Cristóbal", San_Jose_de_Ocoa: "San José de Ocoa", San_Juan: "San Juan", San_Pedro_de_Macoris: "San Pedro de Macorís", Sanchez_Ramirez: "Sánchez Ramírez", Santiago_Rodriguez: "Santiago Rodríguez", Santo_Domingo: "Santo Domingo" };
+function buscarNfmReply(obj: any, prof = 0): any {
+  if (!obj || typeof obj !== "object" || prof > 6) return null;
+  if (obj.nfm_reply && typeof obj.nfm_reply === "object") return obj.nfm_reply;
+  if (obj.type === "nfm_reply" && (obj.response_json || obj.response)) return obj;
+  for (const k of Object.keys(obj)) {
+    const v = (obj as any)[k];
+    if (v && typeof v === "object") { const r = buscarNfmReply(v, prof + 1); if (r) return r; }
+  }
+  return null;
+}
+function normalizarDatosFlow(raw: any): Record<string, string> {
+  const s = (k: string) => String(raw?.[k] ?? "").trim();
+  const prov = s("provincia");
+  return {
+    equipo: s("equipo"), precio: s("precio"), referencia: s("referencia"),
+    cedula: s("cedula").replace(/\D/g, ""), nombres: s("nombres"), telefono: s("telefono"),
+    provincia: PROVINCIAS_FLOW[prov] || prov.replace(/_/g, " "), municipio: s("municipio"), sector: s("sector"), calle: s("calle"), casa: s("casa"),
+  };
+}
+function textoRespuestaFlow(d: Record<string, string>): string {
+  return ["📋 SOLICITUD DE FINANCIAMIENTO (formulario)", `Equipo: ${d.equipo}`, `Precio: ${d.precio}`, `Cédula: ${d.cedula}`, `Nombre: ${d.nombres}`, `Teléfono: ${d.telefono}`,
+    `Dirección: ${d.calle} No. ${d.casa}, ${d.sector}, ${d.municipio}, ${d.provincia}`].join("\n");
+}
+
 async function procesarMensaje(payload: any) {
   const msg = payload.message || {};
   const account = payload.account || {};
@@ -478,8 +504,22 @@ async function procesarMensaje(payload: any) {
     tipoContenido = tipoDeAdjunto(primero.type || primero.originalType || primero.mimeType);
     if (primero.url) mediaPath = await guardarAdjunto(primero.url, tipoContenido);
   }
-  const textoCrudo = typeof msg.text === "string" ? msg.text.trim() : "";
+  let textoCrudo = typeof msg.text === "string" ? msg.text.trim() : "";
   const metaZ = payload.metadata || {};
+  // 24-oct-2026 · Respuesta de un formulario nativo (Meta Flow): llega como `nfm_reply` dentro del evento. Se busca la
+  // clave en el payload (Zernio no documenta en qué nivel la pone) y el JSON de la respuesta se guarda ordenado.
+  const nfm = buscarNfmReply(payload);
+  let flowRespuesta: { flow_token: string | null; datos: Record<string, string> } | null = null;
+  if (nfm) {
+    let raw: any = null;
+    try { raw = typeof nfm.response_json === "string" ? JSON.parse(nfm.response_json) : (nfm.response_json || nfm.response || null); } catch { raw = null; }
+    if (raw && typeof raw === "object") {
+      const datos = normalizarDatosFlow(raw);
+      flowRespuesta = { flow_token: String(raw.flow_token || nfm.flow_token || "") || null, datos };
+      tipoContenido = "flow_respuesta";
+      textoCrudo = textoRespuestaFlow(datos);
+    }
+  }
   // Reacción (18-oct-2026): Zernio solo manda el texto "[reaction]", sin el emoji ni el mensaje al que reacciona
   // (revisado en social_webhook_eventos). Guardarla mostraba una burbuja "[reaction]" que no existe en WhatsApp.
   // No se guarda ni mueve el hilo.
@@ -504,7 +544,7 @@ async function procesarMensaje(payload: any) {
   // Solo se reemplaza el cuerpo si REALMENTE no hay nada que mostrar: si el
   // mensaje trae texto de verdad o un adjunto que si bajamos, ese contenido
   // manda, aunque Zernio haya adjuntado ademas una marca de "sin soporte".
-  const hayContenidoReal = (!!textoCrudo && textoCrudo !== "[Unsupported message]") || adjuntos.length > 0;
+  const hayContenidoReal = (!!textoCrudo && textoCrudo !== "[Unsupported message]") || adjuntos.length > 0 || !!flowRespuesta;
   if (!hayContenidoReal && (textoCrudo === "[Unsupported message]" || sinSoporte)) {
     const code = Number(sinSoporte?.code) || 0;
     if (code === 131060) {
@@ -585,6 +625,7 @@ async function procesarMensaje(payload: any) {
       tipo_msg: (msg as any).type ?? (msg as any).messageType ?? null,
     };
   }
+  if (flowRespuesta) metaMsg.flow = { nombre: "bayolcell_financiamiento", flow_token: flowRespuesta.flow_token, datos: flowRespuesta.datos };
   if (metaZ.forwarded || metaZ.frequentlyForwarded || metaZ.frequently_forwarded) metaMsg.reenviado = true;
   if (metaZ.referral && typeof metaZ.referral === "object") {
     const r = metaZ.referral;
@@ -693,6 +734,27 @@ async function procesarMensaje(payload: any) {
     )
     .select("id")
     .maybeSingle();
+  if (flowRespuesta && mensajeGuardado?.id) {
+    // 24-oct-2026 · Enlazar la respuesta con la solicitud enviada (fin_solicitudes_whatsapp) por su flow_token.
+    try {
+      const ahoraIso = new Date().toISOString();
+      let enlazada = false;
+      if (flowRespuesta.flow_token) {
+        const { data: upd } = await db.from("fin_solicitudes_whatsapp")
+          .update({ estado: "respondido", datos: flowRespuesta.datos, respuesta_wa_message_id: idMensaje(msg), mensaje_in_id: mensajeGuardado.id, respondido_en: eventoTs })
+          .eq("flow_token", flowRespuesta.flow_token).eq("estado", "enviado").select("id");
+        enlazada = !!(upd && upd.length);
+        if (!enlazada) { const { data: ya } = await db.from("fin_solicitudes_whatsapp").select("id").eq("flow_token", flowRespuesta.flow_token).maybeSingle(); enlazada = !!ya; }
+      }
+      if (!enlazada) {
+        await db.from("fin_solicitudes_whatsapp").insert({
+          hilo_id: hiloId, linea_id: lineaId, sucursal_id: sucursalId, telefono: telefonoE164, flow_token: flowRespuesta.flow_token, estado: "respondido",
+          datos: flowRespuesta.datos, equipo: flowRespuesta.datos.equipo || null, referencia: flowRespuesta.datos.referencia || null,
+          respuesta_wa_message_id: idMensaje(msg), mensaje_in_id: mensajeGuardado.id, respondido_en: eventoTs, creado_en: ahoraIso,
+        });
+      }
+    } catch (e) { console.error("flow financiamiento: no se pudo enlazar la respuesta", e); }
+  }
   if (msgError) {
     // F16(c): fallo real (no un duplicado ignorado -- eso no es un error,
     // llega aca sin `msgError` y con `mensajeGuardado` en null). Se lanza
