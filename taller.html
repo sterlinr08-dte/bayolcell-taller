@@ -2495,6 +2495,7 @@ body{
                             <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads<span id="crmLeadsTabBadge" style="display:none; margin-left:4px; font-size:11px; font-weight:800; opacity:.75;"></span></button>
                             <button class="crm-tab-seg" id="crmLineaTabCampanas" onclick="crmLineaTab('campanas')"><i class="ti ti-speakerphone" style="color:#e31e24;"></i> Campañas</button>
                             <button class="crm-tab-seg" id="crmLineaTabRedes" onclick="crmLineaTab('redes')"><i class="ti ti-share"></i> Redes</button>
+                            <button class="crm-tab-seg" id="crmLineaTabSolicitudes" onclick="crmLineaTab('solicitudes')"><i class="ti ti-file-dollar"></i> Solicitudes<span id="crmSolTabBadge" class="bcsol-badge" style="display:none;"></span></button>
                         </div>
                         <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
                             <button class="crm-icon-btn" id="crmAgenteIaBtn" style="display:none;" onclick="_waAbrirConfigAgenteIA()" title="Configurar Agente de IA" aria-label="Configurar Agente de IA"><i class="ti ti-robot"></i></button>
@@ -2521,6 +2522,7 @@ body{
                     <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;" id="leadsFiltros"></div>
                     <div id="leadsLista"></div>
                 </div>
+                <div id="crmLinea-solicitudes" style="display:none;"></div>
                 <div id="crmLinea-campanas" style="display:none;">
                     <iframe id="crmCampanasFrame" src="" style="width:100%;height:100%;border:none;background:#fff;" allow="clipboard-write"></iframe>
                 </div>
@@ -5673,6 +5675,6 @@ body{
 <script defer src="taller-info.js?v=20261023-v3"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
 <script defer src="crm-consulta-precio.js?v=20261020-h2"></script>
-<script defer src="crm-marketing-consent.js?v=20261024-u22"></script>
+<script defer src="crm-marketing-consent.js?v=20261024-u23"></script>
 </body>
 

@@ -34,3 +34,11 @@ resumen con 7 filas, el botón queda apagado hasta marcar el permiso, envía `we
 datos con guiones, muestra «Listo, Nombre» con el número, y con un enlace malo muestra la pantalla «Este enlace no sirve».
 Mide a 390 y 1280 px: botón principal ≥ 54 px, letra de los campos ≥ 16 px, sin desplazamiento horizontal.
 Correr con `node scripts/pruebas/solicitud-web.cjs` (no necesita el servidor del banco).
+
+## solicitudes-crm.cjs (24-oct-2026)
+Pestaña «Solicitudes» del CRM (`crm-solicitudes.js`), con datos inventados. Comprueba a 390 y 1280 px: la pestaña aparece
+sin recortar las demás, mide 44 px y muestra el número de solicitudes en proceso; la lista trae 5 solicitudes (la vencida
+sin llenar no sale); filtros por sucursal, estado y búsqueda por cédula; botones y fichas ≥44 px, campo 48/16, nada en
+MAYÚSCULAS; la ficha muestra todas las filas sin recortes; cambiar a «Enviada al banco» y «Aprobada» llama a la RPC
+`fin_solicitud_seguimiento` y guarda el historial; «Escribir el aviso en el chat» abre el chat y deja el texto en la caja
+sin enviarlo; la tarjeta del chat trae «Ver seguimiento» y abre la ficha. Uso: `node scripts/pruebas/solicitudes-crm.cjs [carpeta-capturas]`.
