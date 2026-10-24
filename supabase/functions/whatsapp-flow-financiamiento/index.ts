@@ -368,8 +368,10 @@ Deno.serve(async (req: Request) => {
   let quien = await identidadVerificada(req);
   const accion = String(body?.accion || "");
   // Llave de un solo uso (misma tabla _plantilla_llaves que usa whatsapp-plantilla-crear): permite crear/publicar el
-  // formulario desde la administración de la base sin una sesión de usuario. Solo para 'publicar', 'sincronizar' y 'estado'.
-  if (!quien.tipo && ["publicar", "sincronizar", "estado"].includes(accion)) {
+  // formulario desde la administración de la base sin una sesión de usuario. Solo para 'publicar', 'sincronizar', 'estado' y
+  // 'enviar' en modo de prueba.
+  // Para 'enviar' la llave solo vale en modo de prueba (prueba:true → borrador), nunca para un envío real a clientes.
+  if (!quien.tipo && (["publicar", "sincronizar", "estado"].includes(accion) || (accion === "enviar" && body?.prueba === true))) {
     const llave = (req.headers.get("x-llave") || "").trim();
     if (llave.length >= 32) {
       const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(llave)))].map((x) => x.toString(16).padStart(2, "0")).join("");

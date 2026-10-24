@@ -88,3 +88,21 @@ obligatorios y cómo se llama exactamente el campo «Referencia».
 de envío «Ya le informé al cliente el equipo y el precio»; sin marcarla no se envía y sale el aviso. Capa `f2`,
 `crm-marketing-consent.js?v=20261024-u15`. Prueba del banco actualizada: sin la casilla no hay llamada al servidor y aparece
 el aviso; con la casilla, se envía. 390 y 1280 px OK.
+
+## Actualización 10:30 RD · prueba real enviada y formulario del banco visto
+- **Prueba real:** el dueño escribió a la línea Reparación +18097072493 (hilo `dc4d807f…`, nombre ESTERLIN ESPINAL). Para
+  poder enviarlo sin sesión de usuario, la llave de un solo uso se aceptó también para `enviar` **solo en modo de prueba**
+  (`prueba:true` → borrador); función **v3**. Envío OK: `solicitud_id efe412c1…`, referencia
+  «Santiago · Prueba Claude · iPhone 13 128GB (PRUEBA) RD$ 38,500.00». Pendiente que el dueño lo complete.
+- **Formulario del banco (12 capturas del dueño, portal Embajadores de Banfondesa, 4 pasos):**
+  1. Tipo de identificación (CÉDULA), número con guiones `000-0000000-0` → el banco **valida la persona y llena solo
+     nombres y apellidos**; teléfono móvil `000-000-0000`.
+  2. Datos domiciliado: provincia → ciudad → distrito municipal → sector (listas encadenadas del banco), calle, casa y
+     **«Referencia (Opcional)»** (texto libre: ahí va `Sucursal · Empleado · Equipo precio`).
+  3. Producto PRÉSTAMOS (sub producto MICROCRÉDITO), monto solicitado y plazo en meses.
+  4. Resumen + documentación adjunta: identificación oficial y comprobante de domicilio; «Enviar» acepta términos.
+- Ajuste a la tarjeta del CRM (capa **f3**, `crm-marketing-consent.js?v=20261024-u16`): «Copiar» entrega la cédula con
+  guiones, el teléfono con guiones (quita el 1 inicial) y una fila **Monto** con el precio sin RD$ ni comas. Prueba del banco
+  actualizada: OK a 390 y 1280.
+- **Decisiones que faltan del dueño:** si el Flow pregunta el plazo deseado (6/12/18/24 meses) o lo pone el empleado;
+  si tras el formulario se le pide al cliente foto de cédula y comprobante de domicilio por el chat; y si Ademi sigue.

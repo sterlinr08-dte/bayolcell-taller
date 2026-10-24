@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f2';
+  window.__bcFlowFinanciamiento = '20261024-f3';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,8 +52,18 @@
   }, true);
 
   // ---------- Burbujas ----------
-  const CAMPOS = [['cedula', 'Cédula'], ['nombres', 'Nombre'], ['telefono', 'Teléfono'], ['provincia', 'Provincia'], ['municipio', 'Municipio'], ['sector', 'Sector'], ['calle', 'Calle'], ['casa', 'No. casa'], ['equipo', 'Equipo'], ['precio', 'Precio']];
-  function datosDe(m) { try { return (m.meta && m.meta.flow && m.meta.flow.datos) || null; } catch (e) { return null; } }
+  const CAMPOS = [['cedula', 'Cédula'], ['nombres', 'Nombre'], ['telefono', 'Teléfono'], ['provincia', 'Provincia'], ['municipio', 'Municipio'], ['sector', 'Sector'], ['calle', 'Calle'], ['casa', 'No. casa'], ['equipo', 'Equipo'], ['precio', 'Precio'], ['monto', 'Monto']];
+  // 24-oct-2026 · El portal del banco (Banfondesa) espera la cédula como 000-0000000-0 y el teléfono como 000-000-0000.
+  function fmtCedula(v) { const d = String(v || '').replace(/\D/g, ''); return d.length === 11 ? d.slice(0, 3) + '-' + d.slice(3, 10) + '-' + d.slice(10) : String(v || ''); }
+  function fmtTel(v) { let d = String(v || '').replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : String(v || ''); }
+  function datosDe(m) {
+    try {
+      const d = (m.meta && m.meta.flow && m.meta.flow.datos) || null; if (!d) return null;
+      const o = Object.assign({}, d); o.cedula = fmtCedula(d.cedula); o.telefono = fmtTel(d.telefono);
+      const n = Number(String(d.precio || '').replace(/[^0-9.]/g, '')); if (n > 0) o.monto = String(Math.round(n)); // el banco pide el monto sin RD$ ni comas
+      return o;
+    } catch (e) { return null; }
+  }
   function tarjetaRespuesta(m) {
     const d = datosDe(m);
     if (!d) return '';
