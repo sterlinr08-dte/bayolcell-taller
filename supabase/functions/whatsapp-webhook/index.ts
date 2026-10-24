@@ -435,13 +435,37 @@ function normalizarDatosFlow(raw: any): Record<string, string> {
   const prov = s("provincia");
   return {
     equipo: s("equipo"), precio: s("precio"), referencia: s("referencia"),
-    cedula: s("cedula").replace(/\D/g, ""), nombres: s("nombres"), telefono: s("telefono"),
+    cedula: s("cedula").replace(/\D/g, ""), nombres: s("nombres"), telefono: s("telefono"), plazo: s("plazo").replace(/\D/g, ""),
     provincia: PROVINCIAS_FLOW[prov] || prov.replace(/_/g, " "), municipio: s("municipio"), sector: s("sector"), calle: s("calle"), casa: s("casa"),
   };
 }
 function textoRespuestaFlow(d: Record<string, string>): string {
   return ["📋 SOLICITUD DE FINANCIAMIENTO (formulario)", `Equipo: ${d.equipo}`, `Precio: ${d.precio}`, `Cédula: ${d.cedula}`, `Nombre: ${d.nombres}`, `Teléfono: ${d.telefono}`,
-    `Dirección: ${d.calle} No. ${d.casa}, ${d.sector}, ${d.municipio}, ${d.provincia}`].join("\n");
+    d.plazo ? `Plazo deseado: ${d.plazo} meses` : "", `Dirección: ${d.calle} No. ${d.casa}, ${d.sector}, ${d.municipio}, ${d.provincia}`].filter(Boolean).join("\n");
+}
+// 24-oct-2026 (dueño: «sí» a pedir las fotos): al llegar la respuesta del formulario se le piden al cliente, una sola vez,
+// la foto de la cédula y el comprobante de domicilio. Mensaje automático, marcado como tal.
+function textoPedirFotosFlow(nombre: string | null): string {
+  const n = String(nombre || "").trim(); const saludo = n && !/^[+\d\s()-]+$/.test(n) ? `Gracias, ${n.split(/\s+/)[0]}.` : "Gracias.";
+  return `${saludo} Recibimos su solicitud de financiamiento. Para completarla, envíenos por este mismo chat:\n1) Foto de su cédula por ambos lados.\n2) Un comprobante de domicilio (factura de luz, agua, teléfono o cable).\n\nBAYOL CELL`;
+}
+async function pedirFotosFlow(accountId: string | null, conversationId: string | null, hiloId: string, solicitudId: string | null, nombre: string | null) {
+  if (!ZERNIO_API_KEY || !accountId || !conversationId || !solicitudId) return;
+  try {
+    const { data: ya } = await db.from("fin_solicitudes_whatsapp").select("fotos_pedidas_en").eq("id", solicitudId).maybeSingle();
+    if (ya?.fotos_pedidas_en) return;
+    const texto = textoPedirFotosFlow(nombre);
+    const resp = await fetch(`https://zernio.com/api/v1/inbox/conversations/${encodeURIComponent(conversationId)}/messages`, {
+      method: "POST", headers: { Authorization: `Bearer ${ZERNIO_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ accountId, message: texto }), signal: AbortSignal.timeout(20000),
+    });
+    const d = await resp.json().catch(() => null);
+    if (!resp.ok || !d?.success) { console.error("flow financiamiento: no se pudo pedir las fotos", resp.status, d?.error || d?.message); return; }
+    const ahora = new Date().toISOString();
+    await db.from("whatsapp_mensajes").insert({ hilo_id: hiloId, direccion: "out", tipo_contenido: "text", cuerpo: texto, wa_message_id: d?.data?.messageId || d?.messageId || null, estado: "enviado", es_automatico: true, creado_en: ahora, meta: { flow: { auto: "pedir_fotos" } } });
+    await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "📎 Se pidieron la cédula y el comprobante" }).eq("id", hiloId);
+    await db.from("fin_solicitudes_whatsapp").update({ fotos_pedidas_en: ahora }).eq("id", solicitudId);
+  } catch (e) { console.error("flow financiamiento: pedir fotos", e); }
 }
 
 async function procesarMensaje(payload: any) {
@@ -738,21 +762,23 @@ async function procesarMensaje(payload: any) {
     // 24-oct-2026 · Enlazar la respuesta con la solicitud enviada (fin_solicitudes_whatsapp) por su flow_token.
     try {
       const ahoraIso = new Date().toISOString();
-      let enlazada = false;
+      let solicitudId: string | null = null;
       if (flowRespuesta.flow_token) {
         const { data: upd } = await db.from("fin_solicitudes_whatsapp")
           .update({ estado: "respondido", datos: flowRespuesta.datos, respuesta_wa_message_id: idMensaje(msg), mensaje_in_id: mensajeGuardado.id, respondido_en: eventoTs })
           .eq("flow_token", flowRespuesta.flow_token).eq("estado", "enviado").select("id");
-        enlazada = !!(upd && upd.length);
-        if (!enlazada) { const { data: ya } = await db.from("fin_solicitudes_whatsapp").select("id").eq("flow_token", flowRespuesta.flow_token).maybeSingle(); enlazada = !!ya; }
+        solicitudId = upd && upd.length ? upd[0].id : null;
+        if (!solicitudId) { const { data: ya } = await db.from("fin_solicitudes_whatsapp").select("id").eq("flow_token", flowRespuesta.flow_token).maybeSingle(); solicitudId = ya?.id || null; }
       }
-      if (!enlazada) {
-        await db.from("fin_solicitudes_whatsapp").insert({
+      if (!solicitudId) {
+        const { data: nueva } = await db.from("fin_solicitudes_whatsapp").insert({
           hilo_id: hiloId, linea_id: lineaId, sucursal_id: sucursalId, telefono: telefonoE164, flow_token: flowRespuesta.flow_token, estado: "respondido",
           datos: flowRespuesta.datos, equipo: flowRespuesta.datos.equipo || null, referencia: flowRespuesta.datos.referencia || null,
           respuesta_wa_message_id: idMensaje(msg), mensaje_in_id: mensajeGuardado.id, respondido_en: eventoTs, creado_en: ahoraIso,
-        });
+        }).select("id").maybeSingle();
+        solicitudId = nueva?.id || null;
       }
+      await pedirFotosFlow(account.id || account.accountId || null, conversationIdZernio, hiloId, solicitudId, nombrePerfil ?? hiloExistente?.nombre_perfil ?? null);
     } catch (e) { console.error("flow financiamiento: no se pudo enlazar la respuesta", e); }
   }
   if (msgError) {

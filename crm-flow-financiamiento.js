@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f3';
+  window.__bcFlowFinanciamiento = '20261024-f4';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,7 +52,7 @@
   }, true);
 
   // ---------- Burbujas ----------
-  const CAMPOS = [['cedula', 'Cédula'], ['nombres', 'Nombre'], ['telefono', 'Teléfono'], ['provincia', 'Provincia'], ['municipio', 'Municipio'], ['sector', 'Sector'], ['calle', 'Calle'], ['casa', 'No. casa'], ['equipo', 'Equipo'], ['precio', 'Precio'], ['monto', 'Monto']];
+  const CAMPOS = [['cedula', 'Cédula'], ['nombres', 'Nombre'], ['telefono', 'Teléfono'], ['provincia', 'Provincia'], ['municipio', 'Municipio'], ['sector', 'Sector'], ['calle', 'Calle'], ['casa', 'No. casa'], ['equipo', 'Equipo'], ['precio', 'Precio'], ['monto', 'Monto'], ['plazo', 'Plazo']];
   // 24-oct-2026 · El portal del banco (Banfondesa) espera la cédula como 000-0000000-0 y el teléfono como 000-000-0000.
   function fmtCedula(v) { const d = String(v || '').replace(/\D/g, ''); return d.length === 11 ? d.slice(0, 3) + '-' + d.slice(3, 10) + '-' + d.slice(10) : String(v || ''); }
   function fmtTel(v) { let d = String(v || '').replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : String(v || ''); }
@@ -61,6 +61,7 @@
       const d = (m.meta && m.meta.flow && m.meta.flow.datos) || null; if (!d) return null;
       const o = Object.assign({}, d); o.cedula = fmtCedula(d.cedula); o.telefono = fmtTel(d.telefono);
       const n = Number(String(d.precio || '').replace(/[^0-9.]/g, '')); if (n > 0) o.monto = String(Math.round(n)); // el banco pide el monto sin RD$ ni comas
+      if (d.plazo) o.plazo = String(d.plazo).replace(/\D/g, '') + ' meses';
       return o;
     } catch (e) { return null; }
   }
@@ -69,12 +70,20 @@
     if (!d) return '';
     const filas = CAMPOS.filter(([k]) => d[k]).map(([k, lbl]) => `<div class="bcff-row"><span class="bcff-k">${lbl}</span><span class="bcff-v">${esc(d[k])}</span><button type="button" class="bcff-c" data-bcff-copiar="${esc(d[k])}" aria-label="Copiar ${lbl}">Copiar</button></div>`).join('');
     const ref = d.referencia || '';
-    const todo = CAMPOS.filter(([k]) => d[k]).map(([k, lbl]) => `${lbl}: ${d[k]}`).join('\n') + (ref ? `\nReferencia: ${ref}` : '');
+    // 24-oct-2026 (dueño): un solo bloque con toda la solicitud, listo para pegarlo en el chat de la gente del banco (Ademi o Banfondesa).
+    const todo = ['SOLICITUD DE FINANCIAMIENTO – BAYOL CELL', ref ? `Referencia: ${ref}` : '', '',
+      `Cédula: ${d.cedula || ''}`, `Nombre: ${d.nombres || ''}`, `Teléfono: ${d.telefono || ''}`,
+      `Dirección: ${[d.calle ? 'Calle ' + d.calle : '', d.casa ? 'No. ' + d.casa : '', d.sector, d.municipio, d.provincia].filter(Boolean).join(', ')}`, '',
+      `Equipo: ${d.equipo || ''}`, `Monto: ${d.precio || ''}`, d.plazo ? `Plazo deseado: ${d.plazo}` : ''].filter(x => x !== null).join('\n').replace(/\n{3,}/g, '\n\n');
+    // Fotos que el cliente mandó después de responder (cédula y comprobante): se cuentan en el mismo chat.
+    let fotos = 0; try { const t = new Date(m.creado_en).getTime(); fotos = (window._waMensajes || (typeof _waMensajes !== 'undefined' ? _waMensajes : [])).filter(x => x.direccion === 'in' && /imag|image|foto|documento|pdf/i.test(x.tipo_contenido || '') && new Date(x.creado_en).getTime() > t).length; } catch (e) {}
+    const fotosTxt = fotos >= 2 ? `<span style="color:#166534">✓ ${fotos} fotos recibidas</span>` : fotos === 1 ? `<span style="color:#b45309">1 foto recibida · falta 1</span>` : `<span style="color:#b45309">Faltan las fotos de cédula y comprobante</span>`;
     return `<div class="bcff-card" onclick="event.stopPropagation()">
       <h4><i class="ti ti-file-dollar"></i> Solicitud de financiamiento</h4>
       ${filas}
       ${ref ? `<div class="bcff-ref"><b>Referencia para el banco</b>${esc(ref)}</div>` : ''}
-      <div class="bcff-acts">${ref ? `<button type="button" class="bcff-c" data-bcff-copiar="${esc(ref)}">Copiar referencia</button>` : ''}<button type="button" class="bcff-c" data-bcff-copiar="${esc(todo)}">Copiar todo</button></div>
+      <div style="font-size:12px;margin-top:8px;font-weight:600">${fotosTxt}</div>
+      <div class="bcff-acts">${ref ? `<button type="button" class="bcff-c" data-bcff-copiar="${esc(ref)}">Copiar referencia</button>` : ''}<button type="button" class="bcff-c" data-bcff-copiar="${esc(todo)}">Copiar solicitud completa</button></div>
     </div>`;
   }
   function envolverRender() {

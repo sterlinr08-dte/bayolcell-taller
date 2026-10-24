@@ -106,3 +106,37 @@ el aviso; con la casilla, se envía. 390 y 1280 px OK.
   actualizada: OK a 390 y 1280.
 - **Decisiones que faltan del dueño:** si el Flow pregunta el plazo deseado (6/12/18/24 meses) o lo pone el empleado;
   si tras el formulario se le pide al cliente foto de cédula y comprobante de domicilio por el chat; y si Ademi sigue.
+
+## Actualización 10:55 RD · las tres decisiones del dueño, aplicadas
+Dueño: «Sí a las tres, cambia a Banfondesa. Esa información la podemos usar tanto para Banfondesa como para el banco de
+Ademi… lo más importante: cédula, dirección, equipo y monto… en la referencia ponle un botón para copiar… que copie todas las
+informaciones para mandársela a la gente de Ademi.»
+
+1. **Plazo en el formulario.** Pantalla DATOS: lista «Plazo que le gustaría» con 6, 12, 18 y 24 meses y la nota «El plazo final
+   lo define el banco». Se guarda en `datos.plazo` (solo dígitos) y la pantalla CONFIRMAR lo repite. **Meta volvió a aceptar
+   el Flow JSON sin errores de validación** (flow `1745286376543075`, versión 1, sigue en DRAFT; no se publicó).
+2. **Fotos pedidas solas.** Al llegar la respuesta del formulario (por el webhook o por `sincronizar`), el sistema manda un
+   mensaje al cliente pidiendo la foto de la cédula (frente) y el comprobante de domicilio, y lo deja en `whatsapp_mensajes`
+   como salida automática. Se pide **una sola vez** (columna nueva `fin_solicitudes_whatsapp.fotos_pedidas_en`). La tarjeta
+   del empleado cuenta las imágenes/documentos que entran después y dice «Faltan las fotos…», «1 foto recibida · falta 1» o
+   «✓ 2 fotos recibidas».
+3. **Banfondesa.** `whatsapp_ia_conocimiento` (servicios y políticas) y 3 filas de `whatsapp_ia_ejemplos` ya dicen Banfondesa
+   en vez de Banco Ademi (0 menciones de Ademi quedan). La información que se pide al cliente sirve para los dos bancos.
+4. **Botón «Copiar solicitud completa»** en la tarjeta: arma el bloque «SOLICITUD DE FINANCIAMIENTO – BAYOL CELL» con
+   referencia, cédula, nombre, teléfono, dirección completa, equipo, monto y plazo deseado, listo para pegarlo a la gente de
+   Ademi o del banco. «Copiar referencia» queda para el campo del portal de Banfondesa.
+
+**Archivos:** `supabase/functions/whatsapp-flow-financiamiento/index.ts` (**v4** desplegada), `supabase/functions/whatsapp-webhook/index.ts`
+(**v41** desplegada, `verify_jwt false`, import map `deno.json`), `crm-flow-financiamiento.js` (capa **f4**),
+`crm-marketing-consent.js?v=20261024-u17`, `taller.html`, migración
+`supabase/migrations/20261024184500_flow_fin_plazo_fotos_banfondesa.sql` (ya aplicada en producción con `execute_sql`; el
+archivo deja el historial), `scripts/pruebas/flow-financiamiento.cjs`.
+
+**Pruebas:** banco local a 390 y 1280 px OK (capa f4 cargada, 14 botones ≥ 44 px, campos 48 px/16 px, botón principal 54 px,
+sin casilla no hay llamada y sale el aviso, fila Plazo «12 meses», bloque completo con «Plazo deseado», aviso de fotos
+pendientes, llamada `enviar` con equipo/precio/prueba). Llave de un solo uso k4 usada solo para `publicar` en borrador;
+copia local borrada, la fila vence sola.
+
+**Pendiente:** que el dueño complete el formulario de prueba en su celular (solicitud `efe412c1…`, enviada antes del cambio
+de plazo: su formulario no trae plazo, es normal); comprobar que llegan la tarjeta y el mensaje automático de las fotos; con
+su «publícalo», publicar el Flow en las 6 líneas y pasar la rama a `main`.

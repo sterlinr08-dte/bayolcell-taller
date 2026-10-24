@@ -44,7 +44,9 @@ const provinciaNombre = (id: string) => (PROVINCIAS.find((p) => p[0] === id) || 
 // ---------- Flow JSON (Meta, versión 6.0) ----------
 // Nota (validación de Meta, 24-oct): un TextInput "number" viaja como número y choca con el esquema string de la siguiente
 // pantalla; la cédula va como texto de 11 caracteres y el servidor le quita todo lo que no sea dígito.
-const CAMPOS = ["equipo", "precio", "referencia", "cedula", "nombres", "telefono", "provincia", "municipio", "sector", "calle", "casa"];
+const CAMPOS = ["equipo", "precio", "referencia", "cedula", "nombres", "telefono", "plazo", "provincia", "municipio", "sector", "calle", "casa"];
+// 24-oct-2026 (dueño: «sí a las tres»): el cliente elige el plazo que le gustaría; el banco define el final.
+const PLAZOS = [["6", "6 meses"], ["12", "12 meses"], ["18", "18 meses"], ["24", "24 meses"]];
 const dataSchema = (claves: string[]) => Object.fromEntries(claves.map((k) => [k, { type: "string", "__example__": k === "precio" ? "RD$ 38,500.00" : "Ejemplo" }]));
 const payloadDe = (deData: string[], deForm: string[]) => ({
   ...Object.fromEntries(deData.map((k) => [k, "${data." + k + "}"])),
@@ -68,14 +70,16 @@ export const FLOW_JSON = {
           { type: "TextInput", name: "cedula", label: "Cédula", "input-type": "text", required: true, "min-chars": 11, "max-chars": 11, "helper-text": "11 dígitos, sin guiones" },
           { type: "TextInput", name: "nombres", label: "Nombres y apellidos", "input-type": "text", required: true, "max-chars": 80 },
           { type: "TextInput", name: "telefono", label: "Teléfono o celular", "input-type": "phone", required: true, "max-chars": 20 },
-          { type: "Footer", label: "Siguiente", "on-click-action": { name: "navigate", next: { type: "screen", name: "DIRECCION" }, payload: payloadDe(["equipo", "precio", "referencia"], ["cedula", "nombres", "telefono"]) } },
+          { type: "Dropdown", name: "plazo", label: "Plazo que le gustaría", required: true, "data-source": PLAZOS.map(([id, title]) => ({ id, title })) },
+          { type: "TextCaption", text: "El plazo final lo define el banco." },
+          { type: "Footer", label: "Siguiente", "on-click-action": { name: "navigate", next: { type: "screen", name: "DIRECCION" }, payload: payloadDe(["equipo", "precio", "referencia"], ["cedula", "nombres", "telefono", "plazo"]) } },
         ],
       },
     },
     {
       id: "DIRECCION",
       title: "Dirección actual",
-      data: dataSchema(["equipo", "precio", "referencia", "cedula", "nombres", "telefono"]),
+      data: dataSchema(["equipo", "precio", "referencia", "cedula", "nombres", "telefono", "plazo"]),
       layout: {
         type: "SingleColumnLayout",
         children: [
@@ -85,7 +89,7 @@ export const FLOW_JSON = {
           { type: "TextInput", name: "sector", label: "Sector", "input-type": "text", required: true, "max-chars": 60 },
           { type: "TextInput", name: "calle", label: "Calle", "input-type": "text", required: true, "max-chars": 80 },
           { type: "TextInput", name: "casa", label: "Número de casa", "input-type": "text", required: true, "max-chars": 20 },
-          { type: "Footer", label: "Siguiente", "on-click-action": { name: "navigate", next: { type: "screen", name: "CONFIRMAR" }, payload: payloadDe(["equipo", "precio", "referencia", "cedula", "nombres", "telefono"], ["provincia", "municipio", "sector", "calle", "casa"]) } },
+          { type: "Footer", label: "Siguiente", "on-click-action": { name: "navigate", next: { type: "screen", name: "CONFIRMAR" }, payload: payloadDe(["equipo", "precio", "referencia", "cedula", "nombres", "telefono", "plazo"], ["provincia", "municipio", "sector", "calle", "casa"]) } },
         ],
       },
     },
@@ -104,6 +108,7 @@ export const FLOW_JSON = {
           { type: "TextBody", text: "Cédula: ${data.cedula}" },
           { type: "TextBody", text: "Nombre: ${data.nombres}" },
           { type: "TextBody", text: "Teléfono: ${data.telefono}" },
+          { type: "TextBody", text: "Plazo deseado: ${data.plazo} meses" },
           { type: "TextBody", text: "Dirección: ${data.calle} No. ${data.casa}, ${data.sector}, ${data.municipio}" },
           { type: "TextCaption", text: "Al enviar, BAYOL CELL usará estos datos solo para su solicitud de financiamiento." },
           { type: "Footer", label: "Enviar solicitud", "on-click-action": { name: "complete", payload: payloadDe(CAMPOS, []) } },
@@ -174,7 +179,7 @@ export function normalizarDatos(raw: any) {
   const s = (k: string) => String(d[k] ?? "").trim();
   return {
     equipo: s("equipo"), precio: s("precio"), referencia: s("referencia"),
-    cedula: s("cedula").replace(/\D/g, ""), nombres: s("nombres"), telefono: s("telefono"),
+    cedula: s("cedula").replace(/\D/g, ""), nombres: s("nombres"), telefono: s("telefono"), plazo: s("plazo").replace(/\D/g, ""),
     provincia: provinciaNombre(s("provincia")), municipio: s("municipio"), sector: s("sector"), calle: s("calle"), casa: s("casa"),
   };
 }
@@ -182,9 +187,27 @@ export function textoRespuesta(d: ReturnType<typeof normalizarDatos>) {
   return [
     "📋 SOLICITUD DE FINANCIAMIENTO (formulario)",
     `Equipo: ${d.equipo}`, `Precio: ${d.precio}`,
-    `Cédula: ${d.cedula}`, `Nombre: ${d.nombres}`, `Teléfono: ${d.telefono}`,
+    `Cédula: ${d.cedula}`, `Nombre: ${d.nombres}`, `Teléfono: ${d.telefono}`, d.plazo ? `Plazo deseado: ${d.plazo} meses` : "",
     `Dirección: ${d.calle} No. ${d.casa}, ${d.sector}, ${d.municipio}, ${d.provincia}`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
+}
+// 24-oct-2026 (dueño: «sí» a pedir las fotos): texto que se manda solo, una vez, cuando llega la respuesta del formulario.
+export function textoPedirFotos(nombre: string) {
+  const n = String(nombre || "").trim(); const saludo = n && !/^[+\d\s()-]+$/.test(n) ? `Gracias, ${n.split(/\s+/)[0]}.` : "Gracias.";
+  return `${saludo} Recibimos su solicitud de financiamiento. Para completarla, envíenos por este mismo chat:\n1) Foto de su cédula por ambos lados.\n2) Un comprobante de domicilio (factura de luz, agua, teléfono o cable).\n\nBAYOL CELL`;
+}
+async function pedirFotos(accountId: string, conversationId: string | null, hiloId: string | null, solicitudId: string | null, nombre: string) {
+  if (!conversationId || !hiloId || !solicitudId) return false;
+  const { data: ya } = await db.from("fin_solicitudes_whatsapp").select("fotos_pedidas_en").eq("id", solicitudId).maybeSingle();
+  if (ya?.fotos_pedidas_en) return false;
+  const texto = textoPedirFotos(nombre);
+  const r = await zernio("POST", `/inbox/conversations/${encodeURIComponent(conversationId)}/messages`, { accountId, message: texto });
+  if (!r.ok || !r.data?.success) { console.error("pedir fotos: Zernio no envió", r.status, r.data?.error || r.data?.message); return false; }
+  const ahora = new Date().toISOString();
+  await db.from("whatsapp_mensajes").insert({ hilo_id: hiloId, direccion: "out", tipo_contenido: "text", cuerpo: texto, wa_message_id: r.data?.data?.messageId || r.data?.messageId || null, estado: "enviado", es_automatico: true, creado_en: ahora, meta: { flow: { auto: "pedir_fotos" } } });
+  await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "📎 Se pidieron la cédula y el comprobante" }).eq("id", hiloId);
+  await db.from("fin_solicitudes_whatsapp").update({ fotos_pedidas_en: ahora }).eq("id", solicitudId);
+  return true;
 }
 
 // Registra una respuesta (desde el webhook o desde la sincronización). Idempotente por flow_token / wa_message_id.
@@ -211,10 +234,13 @@ async function registrarRespuesta(p: { linea_id: string; telefono: string; wa_me
       await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: p.recibido_en, ultimo_inbound_at: p.recibido_en, ultimo_mensaje_preview: "📋 Solicitud de financiamiento recibida" }).eq("id", hiloId);
     }
   }
+  const { data: hiloDatos } = hiloId ? await db.from("whatsapp_hilos").select("zernio_conversation_id, nombre_perfil").eq("id", hiloId).maybeSingle() : { data: null as any };
+  const { data: lineaDatos } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", p.linea_id).maybeSingle();
   if (fila) {
     if (fila.estado === "enviado") {
       await db.from("fin_solicitudes_whatsapp").update({ estado: "respondido", datos, respuesta_wa_message_id: p.wa_message_id, mensaje_in_id: mensajeInId, respondido_en: p.recibido_en }).eq("id", fila.id);
     }
+    if (lineaDatos?.zernio_account_id) await pedirFotos(lineaDatos.zernio_account_id, hiloDatos?.zernio_conversation_id || null, hiloId, fila.id, hiloDatos?.nombre_perfil || "");
     return { id: fila.id, nueva: false };
   }
   // Sin fila previa (token desconocido): se crea una para no perder la respuesta.
@@ -222,6 +248,7 @@ async function registrarRespuesta(p: { linea_id: string; telefono: string; wa_me
     hilo_id: hiloId, linea_id: p.linea_id, telefono: p.telefono, flow_token: p.flow_token, estado: "respondido", datos,
     equipo: datos.equipo || null, referencia: datos.referencia || null, respuesta_wa_message_id: p.wa_message_id, mensaje_in_id: mensajeInId, respondido_en: p.recibido_en,
   }).select("id").maybeSingle();
+  if (creada?.id && lineaDatos?.zernio_account_id) await pedirFotos(lineaDatos.zernio_account_id, hiloDatos?.zernio_conversation_id || null, hiloId, creada.id, hiloDatos?.nombre_perfil || "");
   return { id: creada?.id || null, nueva: true };
 }
 
