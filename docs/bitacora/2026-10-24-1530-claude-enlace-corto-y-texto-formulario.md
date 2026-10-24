@@ -53,3 +53,12 @@ evaluar». Se quita el pedido automático de cédula y comprobante en los tres c
   `20261024220000_fin_sin_fotos_primero_evalua_banco.sql` (aplicada).
 La columna `fotos_pedidas_en` se conserva: ahora marca el envío único del mensaje de recibido.
 Pruebas: `flow-financiamiento.cjs` (f6) y `solicitud-web.cjs` 390/1280 OK.
+
+## Actualización 16:00 RD · texto final del recibido (del dueño) y de dónde salen equipo y precio
+Dueño: «Estar siempre pendiente por si lo llaman del banco por si necesitan alguna información adicional». Recibido final
+(web, Flow de respaldo y webhook v43 / función v8):
+«Listo, Esterlin, ya me llegó su solicitud del iPhone 13 128GB (No. 3). ✅ / Se la paso al banco para que la evalúe. Esté
+siempre pendiente por si lo llaman del banco, por si necesitan alguna información adicional; en cuanto me digan algo, le
+aviso por aquí. / Loribel · Bayol Cell Santiago». La pantalla final de `solicitud.html` dice lo mismo en corto.
+Pregunta del dueño: el equipo y el precio los escribe el empleado en la ventana del CRM al enviar (o los trae la lupa de Info
+Plus con el precio de nivel 1); el cliente no los puede cambiar.

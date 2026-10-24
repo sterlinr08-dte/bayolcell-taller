@@ -186,7 +186,8 @@ export function textoRecibidoWeb(nombre: string, numero: number | null, equipo: 
   const n = String(nombre || "").trim(); const quien = n && !/^[+\d\s()-]+$/.test(n) ? `, ${nombrePropio(n.split(/\s+/)[0])}` : "";
   const num = numero ? ` (No. ${numero})` : "";
   // Dueño (24-oct): sin pedir fotos; primero evalúa el banco.
-  return `Listo${quien}, ya me llegó su solicitud del ${equipo}${num}. ✅\n\nSe la paso al banco para que la evalúe. Normalmente responden al otro día; en cuanto me digan algo, le aviso por aquí.\n\n${empleado} · Bayol Cell ${sucursal}`.trim();
+  // Texto del dueño (24-oct).
+  return `Listo${quien}, ya me llegó su solicitud del ${equipo}${num}. ✅\n\nSe la paso al banco para que la evalúe. Esté siempre pendiente por si lo llaman del banco, por si necesitan alguna información adicional; en cuanto me digan algo, le aviso por aquí.\n\n${empleado} · Bayol Cell ${sucursal}`.trim();
 }
 
 // ---------- Normalizar la respuesta del cliente ----------
@@ -211,7 +212,7 @@ export function textoRespuesta(d: ReturnType<typeof normalizarDatos>) {
 export function textoPedirFotos(nombre: string) {
   const n = String(nombre || "").trim(); const saludo = n && !/^[+\d\s()-]+$/.test(n) ? `Gracias, ${n.split(/\s+/)[0]}.` : "Gracias.";
   // Dueño (24-oct): NO pedir cédula ni documentos aquí; el banco evalúa primero la solicitud y los documentos se piden después.
-  return `${saludo} Ya recibimos su solicitud de financiamiento y la pasamos al banco para que la evalúe. Normalmente responden al otro día; en cuanto nos digan algo, le avisamos por aquí.\n\nBAYOL CELL`;
+  return `${saludo} Ya recibimos su solicitud de financiamiento y la pasamos al banco para que la evalúe. Esté siempre pendiente por si lo llaman del banco, por si necesitan alguna información adicional; en cuanto nos digan algo, le avisamos por aquí.\n\nBAYOL CELL`;
 }
 async function pedirFotos(accountId: string, conversationId: string | null, hiloId: string | null, solicitudId: string | null, nombre: string, textoPropio?: string) {
   if (!conversationId || !hiloId || !solicitudId) return false;

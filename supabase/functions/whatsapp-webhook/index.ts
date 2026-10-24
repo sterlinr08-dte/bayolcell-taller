@@ -448,7 +448,7 @@ function textoRespuestaFlow(d: Record<string, string>): string {
 function textoPedirFotosFlow(nombre: string | null): string {
   const n = String(nombre || "").trim(); const saludo = n && !/^[+\d\s()-]+$/.test(n) ? `Gracias, ${n.split(/\s+/)[0]}.` : "Gracias.";
   // Dueño (24-oct): no pedir cédula ni documentos aquí; el banco evalúa primero.
-  return `${saludo} Ya recibimos su solicitud de financiamiento y la pasamos al banco para que la evalúe. Normalmente responden al otro día; en cuanto nos digan algo, le avisamos por aquí.\n\nBAYOL CELL`;
+  return `${saludo} Ya recibimos su solicitud de financiamiento y la pasamos al banco para que la evalúe. Esté siempre pendiente por si lo llaman del banco, por si necesitan alguna información adicional; en cuanto nos digan algo, le avisamos por aquí.\n\nBAYOL CELL`;
 }
 async function pedirFotosFlow(accountId: string | null, conversationId: string | null, hiloId: string, solicitudId: string | null, nombre: string | null) {
   if (!ZERNIO_API_KEY || !accountId || !conversationId || !solicitudId) return;
