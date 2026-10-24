@@ -8,14 +8,15 @@
   'use strict';
   if (window.__bcSolicitudes) return;
   try { if (localStorage.getItem('bc_solicitudes_off') === '1') return; } catch (e) {}
-  window.__bcSolicitudes = '20261024-s1';
+  window.__bcSolicitudes = '20261024-s2';
 
   const PASOS = [
     ['recibida', 'Recibida', 'rec', 'El cliente llenó la solicitud'],
     ['banco', 'Enviada al banco', 'ban', 'Se la pasamos al banco'],
     ['aprobada', 'Aprobada', 'apr', 'El banco la aprobó'],
-    ['no_aprobada', 'No aprobada', 'no', 'El banco no la aprobó'],
+    ['no_aprobada', 'Rechazada', 'no', 'El banco no la aprobó'],
     ['entregada', 'Entregada', 'ent', 'El cliente retiró su equipo'],
+    ['cancelada', 'Cancelada', 'can', 'El cliente desistió o se anuló'],
   ];
   const SIN_LLENAR = ['sin_llenar', 'Sin llenar', 'sin', 'Esperando que el cliente la llene'];
   const SUCURSALES = ['Santiago', 'Moca', 'Navarrete'];
@@ -62,7 +63,7 @@
 .bcsol-fila .meta{color:var(--s-mut);font-size:12.5px;grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
 .bcsol-pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
 .bcsol-pill i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
-.bcsol-p-rec{background:#f1f5f9;color:#475569}.bcsol-p-ban{background:#fef3c7;color:#b45309}.bcsol-p-apr{background:#f0fdf4;color:#15803d}.bcsol-p-no{background:#fef2f2;color:#b91c1c}.bcsol-p-ent{background:#eff6ff;color:#2563eb}.bcsol-p-sin{background:#fff;color:#64748b;border:1px dashed #cbd5e1}
+.bcsol-p-rec{background:#f1f5f9;color:#475569}.bcsol-p-ban{background:#fef3c7;color:#b45309}.bcsol-p-apr{background:#f0fdf4;color:#15803d}.bcsol-p-no{background:#fef2f2;color:#b91c1c}.bcsol-p-ent{background:#eff6ff;color:#2563eb}.bcsol-p-can{background:#f1f5f9;color:#64748b;text-decoration:line-through}.bcsol-p-sin{background:#fff;color:#64748b;border:1px dashed #cbd5e1}
 .bcsol-vacio{text-align:center;color:var(--s-mut);padding:36px 16px;font-size:14.5px;grid-column:1/-1}
 .bcsol-velo{position:fixed;inset:0;background:rgba(15,23,42,.38);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .22s ease-out;z-index:100040}
 .bcsol-velo.on{opacity:1;pointer-events:auto}
@@ -96,6 +97,8 @@
 .bcsol-paso.hecho .dot{background:#15803d;border-color:#15803d}.bcsol-paso.hecho .dot::after{content:"✓"}
 .bcsol-paso.actual{border-color:#2563eb;background:#eff6ff}.bcsol-paso.actual .dot{border-color:#2563eb;background:#2563eb}.bcsol-paso.actual .dot::after{content:"●";font-size:9px}
 .bcsol-paso.no.actual{border-color:#b91c1c;background:#fef2f2}.bcsol-paso.no.actual .dot{border-color:#b91c1c;background:#b91c1c}
+.bcsol-paso.no:not(.actual) .dot{border-color:#fca5a5}.bcsol-paso.can.actual{border-color:#475569;background:#f1f5f9}.bcsol-paso.can.actual .dot{border-color:#475569;background:#475569}
+.bcsol-cierre{font-size:13px;font-weight:600;color:#64748b;margin:6px 2px -2px}
 .bcsol-paso .txt{flex:1;min-width:0}.bcsol-paso small{display:block;font-weight:500;color:#64748b;font-size:12.5px}
 .bcsol-msg{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:12px 14px;font-size:14px;color:#14532d;line-height:1.45;white-space:pre-line}
 .bcsol-msg.no{background:#fef2f2;border-color:#fecaca;color:#7f1d1d}
@@ -109,7 +112,7 @@
   const clave = s => (s.estado === 'respondido' ? (s.seguimiento || 'recibida') : 'sin_llenar');
   const info = k => (k === 'sin_llenar' ? SIN_LLENAR : paso(k));
   const enProceso = s => s.estado === 'respondido' && ['recibida', 'banco'].includes(s.seguimiento || 'recibida');
-  const cerrada = s => s.estado === 'respondido' && ['no_aprobada', 'entregada'].includes(s.seguimiento);
+  const cerrada = s => s.estado === 'respondido' && ['no_aprobada', 'entregada', 'cancelada'].includes(s.seguimiento);
   function d(s) { return (s && s.datos) || {}; }
   function nombre(s) { return d(s).nombres || (s.estado === 'respondido' ? 'Sin nombre' : fmtTel(s.telefono) || 'Cliente'); }
   function sucursalDe(s) { return s.sucursal_nombre || 'Sin sucursal'; }
@@ -220,21 +223,25 @@
     const hist = Array.isArray(s.seguimiento_historial) ? s.seguimiento_historial : [];
     const ultimo = p => [...hist].reverse().find(h => h && h.paso === p);
     const orden = ['recibida', 'banco', 'aprobada', 'entregada'];
-    const idx = orden.indexOf(s.seguimiento === 'no_aprobada' ? 'banco' : (s.seguimiento || 'recibida'));
+    const cur = s.seguimiento || 'recibida';
+    // Hasta dónde llegó por el camino normal (si está Rechazada o Cancelada, el último paso normal que se marcó).
+    let idx = orden.indexOf(cur);
+    if (idx < 0) { idx = 0; hist.forEach(h => { const i = orden.indexOf(h && h.paso); if (i > idx) idx = i; }); }
     const subtexto = p => {
       if (p === 'recibida') return `${fechaHora(s.respondido_en || s.creado_en)} · ${s.canal === 'web' ? 'Página web' : 'WhatsApp'}`;
       const h = ultimo(p); if (h) return `${fechaHora(h.en)} · ${h.por || ''}`;
-      return 'Tocar para marcar';
+      return paso(p)[3];
+    };
+    const boton = (p, hecho) => {
+      const actual = p === cur;
+      const cls = (actual ? ' actual' : '') + (hecho ? ' hecho' : '') + (p === 'no_aprobada' ? ' no' : '') + (p === 'cancelada' ? ' can' : '');
+      return `<button type="button" class="bcsol-paso${cls}" data-bcsol-paso="${p}"${actual ? ' disabled' : ''}><span class="dot"></span><span class="txt">${esc(paso(p)[1])}<small>${esc(actual || hecho ? subtexto(p) : paso(p)[3])}</small></span></button>`;
     };
     let pasos = '';
     if (lleno) {
-      const lista = s.seguimiento === 'no_aprobada' ? ['recibida', 'banco', 'no_aprobada'] : orden;
-      pasos = lista.map((p, i) => {
-        const pi = orden.indexOf(p); const actual = p === (s.seguimiento || 'recibida'); const hecho = !actual && (p === 'no_aprobada' ? false : pi > -1 && pi <= idx);
-        return `<button type="button" class="bcsol-paso${actual ? ' actual' : ''}${hecho ? ' hecho' : ''}${p === 'no_aprobada' ? ' no' : ''}" data-bcsol-paso="${p}"${actual ? ' disabled' : ''}><span class="dot"></span><span class="txt">${esc(paso(p)[1])}<small>${esc(actual || hecho ? subtexto(p) : paso(p)[3])}</small></span></button>`;
-      }).join('');
-      if (s.seguimiento === 'banco') pasos += `<button type="button" class="bcsol-paso no" data-bcsol-paso="no_aprobada"><span class="dot"></span><span class="txt">No aprobada<small>Tocar si el banco no la aprobó</small></span></button>`;
-      if (s.seguimiento === 'no_aprobada') pasos += `<button type="button" class="bcsol-btn ancho" data-bcsol-paso="banco">Corregir: volver a «Enviada al banco»</button>`;
+      pasos = orden.map((p, i) => boton(p, p !== cur && i <= idx)).join('')
+        + '<div class="bcsol-cierre">Si no sigue adelante</div>'
+        + boton('no_aprobada', false) + boton('cancelada', false);
     }
     const msg = mensajeCliente(s);
     const avisar = msg ? `<div class="bcsol-sec">Avisar al cliente</div><div class="bcsol-msg${s.seguimiento === 'no_aprobada' ? ' no' : ''}">${esc(msg)}</div>

@@ -59,7 +59,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     out.titulo = hoja.querySelector('#bcsolTit').textContent;
     out.cedula = hoja.textContent.includes('001-1234567-8'); out.filasCortadas = [...hoja.querySelectorAll('.bcsol-rec')].filter(x => x.scrollHeight > x.clientHeight + 1).length; out.cerrarIcono = !!hoja.querySelector('.x svg'); out.tel = hoja.textContent.includes('809-555-1234');
     out.botonesMin = Math.min(...[...hoja.querySelectorAll('button')].map(b => Math.round(b.getBoundingClientRect().height)));
-    out.pasos = [...hoja.querySelectorAll('.bcsol-paso')].map(b => b.textContent.trim().split('\n')[0].slice(0, 20));
+    out.pasos = [...hoja.querySelectorAll('.bcsol-paso')].map(b => b.getAttribute('data-bcsol-paso'));
     return out;
   });
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/solicitudes-ficha-${W}.png` });
@@ -69,6 +69,10 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     hoja.querySelector('[data-bcsol-paso="banco"]').click(); await w(300);
     hoja.querySelector('[data-bcsol-paso="aprobada"]').click(); await w(300);
     out.estadoFinal = __BD.tablas.fin_solicitudes_whatsapp.find(x => x.id === 's7').seguimiento;
+    // Cancelar otra solicitud (la No. 5) directo desde «Recibida»/«Aprobada», sin pasar por el banco
+    const hoja2 = hoja; window._bcsolVer('s5'); await w(400); hoja2.querySelector('[data-bcsol-paso="cancelada"]').click(); await w(300);
+    out.cancelada = __BD.tablas.fin_solicitudes_whatsapp.find(x => x.id === 's5').seguimiento;
+    window._bcsolVer('s7'); await w(400);
     out.historial = __BD.tablas.fin_solicitudes_whatsapp.find(x => x.id === 's7').seguimiento_historial.length;
     out.avisoTexto = (hoja.querySelector('.bcsol-msg') || {}).textContent || '';
     out.botonAviso = !!hoja.querySelector('[data-bcsol-act="avisar"]');
@@ -91,7 +95,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   const R = Object.assign({}, r, r2, r3);
   const ok = R.capa !== 'NO CARGÓ' && R.tab && R.tabTexto.startsWith('Solicitudes') && R.tabsRecortadas.length === 0 && R.panelVisible && R.mensajesOculto && R.tabOn && R.badge === '2' && R.filas === 5 &&
     R.chipsMin >= 44 && R.buscaAlto >= 48 && R.buscaLetra >= 16 && !R.mayusculas && R.filtroMoca === 1 && R.filtroBanco === 1 && R.buscarCedula === 1 &&
-    R.hojaAbierta && R.filasCortadas === 0 && R.cerrarIcono && R.titulo === 'Solicitud No. 7' && R.cedula && R.tel && R.botonesMin >= 44 &&
+    R.pasos.join() === 'recibida,banco,aprobada,entregada,no_aprobada,cancelada' && R.cancelada === 'cancelada' && R.hojaAbierta && R.filasCortadas === 0 && R.cerrarIcono && R.titulo === 'Solicitud No. 7' && R.cedula && R.tel && R.botonesMin >= 44 &&
     R.estadoFinal === 'aprobada' && R.historial === 2 && R.botonAviso && /aprobó su solicitud del iPhone 13/.test(R.avisoTexto) && R.badgeTras === '1' &&
     R.chatAbierto === 'h3' && /aprobó/.test(R.cajaTexto) && R.tabMensajesOn && R.panelSolOculto && R.verEnTarjeta && R.verAbre;
   if (!ok) fallos++;
