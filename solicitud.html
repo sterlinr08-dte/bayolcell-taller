@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light only">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Solicitud de financiamiento · Bayol Cell</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Formulario de solicitud de financiamiento de Bayol Cell. Solo abre con el enlace que le envía la tienda.">
+<style>
+:root{--spring:linear(0,0.009,0.035 2.1%,0.141,0.281 6.7%,0.723 12.9%,0.938 16.7%,1.017,1.077,1.121,1.149 24.3%,1.159,1.163,1.161,1.154 29.9%,1.129 32.8%,1.051 39.6%,1.017 43.1%,0.991,0.977 51%,0.974 53.8%,0.975 57.1%,0.997 69.8%,1.003 76.9%,1);--spring-suave:linear(0,0.006,0.025 2.8%,0.101 6.1%,0.539 18.9%,0.721 25.3%,0.849 31.5%,0.937 38.1%,0.968 41.8%,0.991 45.7%,1.006 50.1%,1.015 55%,1.017 63.9%,1.001);--bg:#f8fafc;--sheet:#f8fafc;--card:rgba(255,255,255,.92);--ink:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--wa:#e4572e;--wa-dark:#c2410c;--ok:#15803d;--okbg:#f0fdf4;--okpunto:#22c55e;--warn:#b45309;--focus:#2563eb;--chip:rgba(255,255,255,.86);--sombra:0 1px 2px rgba(15,23,42,.04),0 10px 30px rgba(15,23,42,.07);--vidrio:blur(24px) saturate(180%);--ease:cubic-bezier(.23,1,.32,1);--o1:rgba(255,160,120,.16);--o2:rgba(147,197,253,.22);--o3:rgba(153,246,228,.18)}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button,input,select,label{touch-action:manipulation}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:grid;place-items:center}
+.marco::before{content:"";position:absolute;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(42% 32% at 12% 8%,var(--o1),transparent 70%),radial-gradient(40% 34% at 92% 22%,var(--o2),transparent 70%),radial-gradient(46% 36% at 50% 95%,var(--o3),transparent 70%);filter:blur(36px);animation:flotar 18s ease-in-out infinite alternate}
+@keyframes flotar{from{transform:translate(0,0) scale(1)}to{transform:translate(2%,-3%) scale(1.06)}}
+.marco>*{position:relative;z-index:1}
+.marco{width:min(100vw,420px);height:var(--vh,100dvh);max-height:860px;background:var(--sheet);position:fixed;top:0;left:50%;transform:translateX(-50%);overflow:hidden;display:flex;flex-direction:column;transition:height .18s ease-out}
+@media (min-width:480px){.marco{position:relative;left:auto;transform:none;border-radius:34px;box-shadow:0 30px 80px rgba(0,0,0,.35);height:min(92vh,860px)}}
+/* Cabecera */
+.top{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;position:relative;z-index:3;background:color-mix(in srgb,var(--sheet) 55%,transparent);-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio)}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-14px;height:14px;background:linear-gradient(color-mix(in srgb,var(--sheet) 70%,transparent),transparent);pointer-events:none}
+.top img{width:38px;height:38px;border-radius:11px;box-shadow:var(--sombra)}
+.top b{display:block;font-size:16px;line-height:1.1;letter-spacing:-.01em}
+.top small{color:var(--muted);font-size:12px}
+.top .x{margin-left:auto;width:44px;height:44px;display:grid;place-items:center;color:var(--muted);font-size:22px;border-radius:50%}
+.pasos{list-style:none;margin:0;padding:12px 22px 6px;position:relative;z-index:3;background:color-mix(in srgb,var(--sheet) 55%,transparent);-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio);display:flex;align-items:center;gap:0;transition:opacity .3s,max-height .3s;max-height:60px;overflow:hidden}
+.pasos.oculto{opacity:0;max-height:0;padding-top:0;padding-bottom:0}
+.pasos li{display:flex;align-items:center;flex:1}
+.pasos li:last-child{flex:0}
+.pasos li::after{content:"";flex:1;height:3px;margin:0 6px;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+.pasos li:last-child::after{display:none}
+.pasos li.hecho::after{background:var(--okpunto,var(--ok));transition:background .3s .15s}
+.pasos i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-style:normal;color:var(--muted);background:var(--card);border:2px solid var(--line);box-shadow:var(--sombra);transition:transform .5s var(--spring),background .25s,color .25s,border-color .25s}
+.pasos li.activo i{background:var(--card);border-color:#2563eb;color:#1d4ed8;transform:scale(1.2);box-shadow:0 0 0 0 rgba(37,99,235,.35);animation:pulso 1.6s ease-out infinite}
+.pasos li.hecho i{background:var(--okpunto,var(--ok));border-color:var(--okpunto,var(--ok));color:#fff}
+.pasos li.hecho i::before{content:"✓"}
+.pasos li.hecho i span{display:none}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(37,99,235,.35)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+/* Pantallas */
+.vista{position:relative;flex:1;overflow:hidden}
+.p{position:absolute;inset:0;padding:22px 20px 24px;display:flex;flex-direction:column;gap:16px;overflow:auto;overscroll-behavior:contain;opacity:0;transform:translateX(100%);transition:opacity .35s ease-out,transform .55s var(--spring-suave);pointer-events:none;will-change:transform,opacity;touch-action:pan-y;background:transparent}
+.p.arrastre{transition:none}
+.p>*{opacity:0;transform:translateY(14px);transition:opacity .45s ease-out,transform .6s var(--spring-suave)}
+.p.on>*{opacity:1;transform:none}
+.p.on>*:nth-child(1){transition-delay:.05s}.p.on>*:nth-child(2){transition-delay:.11s}.p.on>*:nth-child(3){transition-delay:.17s}.p.on>*:nth-child(4){transition-delay:.23s}.p.on>*:nth-child(5){transition-delay:.29s}.p.on>*:nth-child(6){transition-delay:.35s}.p.on>*:nth-child(7){transition-delay:.41s}
+.p.arrastre>*{transition:none;opacity:1;transform:none}
+.caja{transform-origin:50% 0}.p.on>.caja{animation:tarjeta .7s var(--spring-suave) both}
+@keyframes tarjeta{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+.rec .r{opacity:0;transform:translateX(-10px);animation:fila .5s var(--spring-suave) forwards}
+.rec .r:nth-child(1){animation-delay:.15s}.rec .r:nth-child(2){animation-delay:.21s}.rec .r:nth-child(3){animation-delay:.27s}.rec .r:nth-child(4){animation-delay:.33s}.rec .r:nth-child(5){animation-delay:.39s}.rec .r:nth-child(6){animation-delay:.45s}.rec .r:nth-child(7){animation-delay:.51s}
+@keyframes fila{to{opacity:1;transform:none}}
+.chips .chip{opacity:0;transform:translateY(12px) scale(.96)}.p.on .chips .chip{opacity:1;transform:none}
+.p.on .chips .chip:nth-child(1){transition-delay:.2s}.p.on .chips .chip:nth-child(2){transition-delay:.26s}.p.on .chips .chip:nth-child(3){transition-delay:.32s}.p.on .chips .chip:nth-child(4){transition-delay:.38s}
+.p.on .chips .chip.sel{transform:scale(1.03)}
+.vista.gesto,.vista.gesto *{user-select:none;-webkit-user-select:none}
+.p.on{opacity:1;transform:none;pointer-events:auto}
+.p.atras{transform:translateX(-30%);opacity:0}
+.paso{font-size:13px;font-weight:700;letter-spacing:0;text-transform:none;color:#1d4ed8}
+h2{font-size:30px;line-height:1.1;letter-spacing:-.025em;margin:0;font-weight:800}
+.ayuda{color:var(--muted);font-size:15px;margin:0;line-height:1.4}
+.caja{border:1px solid rgba(255,255,255,.55);border-radius:18px;padding:14px 16px;background:var(--card);box-shadow:var(--sombra);-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio)}
+.caja .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.caja .v{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.campo{position:relative}
+.campo input,.campo select{width:100%;min-height:58px;border:1.5px solid rgba(255,255,255,.6);border-radius:16px;padding:14px 48px 14px 16px;font:inherit;font-size:20px;color:var(--ink);background:var(--card);box-shadow:var(--sombra);-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio);outline:0;transition:border-color .18s,box-shadow .18s,transform .3s var(--spring-suave);-webkit-appearance:none;appearance:none}
+.campo input::placeholder{color:#aeaeb2}
+.campo select{font-size:18px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 22px) 26px,calc(100% - 16px) 26px;background-size:6px 6px;background-repeat:no-repeat}
+.campo input:focus,.campo select:focus{border-color:var(--focus);box-shadow:0 0 0 4px color-mix(in srgb,var(--focus) 22%,transparent),var(--sombra);transform:translateY(-1px)}
+.campo label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px 14px;letter-spacing:.1px}
+.campo .ok{position:absolute;right:14px;bottom:16px;width:24px;height:24px;border-radius:50%;background:var(--okpunto,var(--ok));color:#fff;display:grid;place-items:center;font-size:14px;font-weight:900;transform:scale(.4);opacity:0;transition:transform .5s var(--spring),opacity .15s}
+.campo.listo .ok{transform:scale(1);opacity:1}
+.campo.listo input{border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
+.campo .err{font-size:13px;color:var(--warn);margin:6px 2px 0;min-height:18px}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{min-height:64px;border:1.5px solid rgba(255,255,255,.6);border-radius:18px;background:var(--card);box-shadow:var(--sombra);-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio);font:inherit;font-size:17px;font-weight:700;color:var(--ink);cursor:pointer;transition:transform .45s var(--spring),opacity .4s ease-out,border-color .18s,background .18s}
+.chip:active{transform:scale(.95);transition-duration:.08s}
+.chip.sel{transform:scale(1.03)}
+.chip.sel{border-color:#2563eb;background:linear-gradient(135deg,rgba(59,130,246,.14),rgba(59,130,246,.05));color:#1d4ed8}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rec .r{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15.5px}
+.rec .r:last-child{border-bottom:0}
+.rec .r span:first-child{color:var(--muted)}
+.rec .r span:last-child{font-weight:600;text-align:right}
+.rec .r button{border:0;background:none;color:var(--focus);font:inherit;font-size:13px;font-weight:700;padding:0 0 0 8px;cursor:pointer}
+.chk{display:flex;gap:12px;align-items:center;min-height:56px;font-size:15px;cursor:pointer;background:var(--card);border:1px solid rgba(255,255,255,.55);border-radius:16px;padding:10px 14px;box-shadow:var(--sombra);-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio)}
+.chk input{width:24px;height:24px;margin:1px 0 0;accent-color:var(--focus);flex:0 0 auto}
+.seg{display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:13.5px}
+.seg .ic{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--okbg);color:var(--ok);display:grid;place-items:center;font-size:12px;font-weight:900}
+/* Pie */
+.pie{padding:10px 20px calc(12px + env(safe-area-inset-bottom));flex:0 0 auto;display:flex;gap:10px;position:relative;z-index:3;background:color-mix(in srgb,var(--sheet) 55%,transparent);-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio)}
+.pie::before{content:"";position:absolute;left:0;right:0;top:-14px;height:14px;background:linear-gradient(transparent,color-mix(in srgb,var(--sheet) 70%,transparent));pointer-events:none}
+.btn{flex:1;min-height:54px;border:0;border-radius:27px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 60%,#1d4ed8 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 22px rgba(37,99,235,.28);color:#fff;font:inherit;font-size:17px;font-weight:700;cursor:pointer;transition:transform .45s var(--spring),opacity .2s,background .2s}
+.btn:active{transform:scale(.96);transition-duration:.08s}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.sec{flex:0 0 auto;width:54px;background:var(--card);border:1px solid rgba(255,255,255,.6);box-shadow:var(--sombra);color:var(--ink);font-size:22px;-webkit-backdrop-filter:var(--vidrio);backdrop-filter:var(--vidrio)}
+/* Éxito */
+.exito{align-items:center;text-align:center;justify-content:center;gap:10px}
+.check{width:96px;height:96px;border-radius:50%;background:var(--okbg);box-shadow:0 0 0 12px color-mix(in srgb,var(--okbg) 50%,transparent);display:grid;place-items:center;margin-bottom:6px}
+.check svg{width:48px;height:48px}
+.check path{stroke:var(--ok);stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60}
+.p.on .check path{animation:dibujar .6s .15s var(--ease) forwards}
+.p.on .check{animation:aparecer .6s var(--spring) both}
+@keyframes aparecer{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes dibujar{to{stroke-dashoffset:0}}
+.foto{display:flex;align-items:center;gap:12px;min-height:56px;border:1.5px dashed var(--line);border-radius:14px;padding:10px 14px;font-size:15px;font-weight:600;cursor:pointer;background:var(--chip)}
+.foto .n{width:28px;height:28px;border-radius:50%;background:var(--sheet);display:grid;place-items:center;font-weight:900;color:var(--muted);flex:0 0 auto}
+.foto.ok{border-style:solid;border-color:var(--ok)}.foto.ok .n{background:var(--ok);color:#fff}
+.nota{font-size:12.5px;color:var(--muted);text-align:center}
+.pill{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#fff3cd;color:#8a5a00;letter-spacing:.3px}
+@media (prefers-reduced-transparency: reduce){.top,.pie,.pasos,.caja,.chip,.chk,.campo input,.campo select,.btn.sec{background:var(--sheet);-webkit-backdrop-filter:none;backdrop-filter:none}.marco::before{display:none}}
+@media (prefers-reduced-motion: reduce){.marco::before{animation:none}.p{transform:none!important;transition:opacity .2s}.p>*,.chips .chip,.rec .r{transition:none!important;animation:none!important;opacity:1!important;transform:none!important}.pasos i,.campo .ok,.chip,.btn{transition:none}.pasos li.activo i{animation:none;transform:none}.p.on .check{animation:none}.p.on .check path{animation:none;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<div class="marco" id="app">
+  <div class="top"><img src="assets/apple-touch-icon.png" alt=""><div><b>Bayol Cell</b><small id="sub">Solicitud de financiamiento</small></div></div>
+  <ol class="pasos" id="pasos" aria-label="Progreso">
+    <li><i><span>1</span></i></li><li><i><span>2</span></i></li><li><i><span>3</span></i></li><li><i><span>4</span></i></li><li><i><span>5</span></i></li>
+  </ol>
+  <div class="vista" id="vista">
+
+    <section class="p on" data-i="0">
+      <div class="paso">Solicitud de financiamiento</div>
+      <h2 id="hola">Un momento…</h2>
+      <div class="caja" id="cajaEq"><div class="k">Equipo</div><div class="v" id="vEquipo">—</div><div class="k" style="margin-top:8px">Precio</div><div class="v" id="vPrecio">—</div></div>
+      <p class="ayuda">Son 5 preguntas cortas, una por pantalla. Lo que escriba lo revisa antes de enviar.</p>
+      <div class="seg"><span class="ic">✓</span><span>El banco es quien aprueba y pone las cuotas y el plazo. Nosotros solo le enviamos la solicitud.</span></div>
+      <div class="seg"><span class="ic">🔒</span><span>Sus datos solo los vemos en Bayol Cell y el banco. No se usan para nada más.</span></div>
+    </section>
+
+    <section class="p" data-i="1">
+      <div class="paso">1 de 5</div>
+      <h2>¿Cuál es su cédula?</h2>
+      <div class="campo" id="cCed"><label for="ced">Cédula</label><input id="ced" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="000-0000000-0"><span class="ok">✓</span><div class="err" id="eCed"></div></div>
+      <p class="ayuda">Los guiones se ponen solos. Solo escriba los números.</p>
+    </section>
+
+    <section class="p" data-i="2">
+      <div class="paso">2 de 5</div>
+      <h2>¿Cómo se llama?</h2>
+      <div class="campo" id="cNom"><label for="nom">Nombre completo, como en la cédula</label><input id="nom" autocomplete="name" enterkeyhint="next" autocapitalize="words" placeholder="Nombre y apellidos"><span class="ok">✓</span><div class="err"></div></div>
+    </section>
+
+    <section class="p" data-i="3">
+      <div class="paso">3 de 5</div>
+      <h2>¿A qué celular le avisamos?</h2>
+      <div class="campo" id="cTel"><label for="tel">Celular</label><input id="tel" inputmode="tel" enterkeyhint="next" placeholder="000-000-0000"><span class="ok">✓</span><div class="err"></div></div>
+      <p class="ayuda" id="telAyuda">Ya pusimos el número de este chat. Si prefiere otro, cámbielo.</p>
+    </section>
+
+    <section class="p" data-i="4">
+      <div class="paso">4 de 5</div>
+      <h2>¿A cuántos meses le gustaría pagarlo?</h2>
+      <div class="chips" id="chips">
+        <button type="button" class="chip" data-v="6">6 meses</button>
+        <button type="button" class="chip" data-v="12">12 meses</button>
+        <button type="button" class="chip" data-v="18">18 meses</button>
+        <button type="button" class="chip" data-v="24">24 meses</button>
+      </div>
+      <p class="ayuda">Es lo que a usted le gustaría. El plazo final lo define el banco.</p>
+    </section>
+
+    <section class="p" data-i="5">
+      <div class="paso">5 de 5</div>
+      <h2>¿Dónde vive?</h2>
+      <p class="ayuda">La dirección de su casa, la misma de la factura de luz o de agua.</p>
+      <div class="campo"><label for="prov">Provincia</label><select id="prov"><option value="">Elegir…</option></select></div>
+      <div class="campo" id="cMun"><label for="mun">Ciudad o municipio</label><input id="mun" enterkeyhint="next" placeholder="Ej.: Santiago"><span class="ok">✓</span><div class="err"></div></div>
+      <div class="campo" id="cSec"><label for="sec">Sector</label><input id="sec" enterkeyhint="next" placeholder="Ej.: Los Jardines"><span class="ok">✓</span><div class="err"></div></div>
+      <div class="fila2">
+        <div class="campo" id="cCal"><label for="cal">Calle</label><input id="cal" enterkeyhint="next" placeholder="Ej.: Calle 5"><span class="ok">✓</span><div class="err"></div></div>
+        <div class="campo" id="cCas"><label for="cas">No. casa</label><input id="cas" inputmode="numeric" enterkeyhint="done" placeholder="12"><span class="ok">✓</span><div class="err"></div></div>
+      </div>
+    </section>
+
+    <section class="p" data-i="6">
+      <div class="paso">Revise que todo esté bien</div>
+      <h2>Su solicitud</h2>
+      <div class="caja rec" id="rec"></div>
+      <label class="chk"><input type="checkbox" id="perm"><span>Doy permiso a Bayol Cell para enviar estos datos al banco.</span></label>
+      <div class="seg"><span class="ic">🔒</span><span>Esto solo lo vemos en Bayol Cell y el banco. No se usa para nada más.</span></div>
+    </section>
+
+    <section class="p exito" data-i="7">
+      <div class="check"><svg viewBox="0 0 52 52"><path d="M14 27 L23 36 L39 18"/></svg></div>
+      <h2 id="listoTit">Listo. Ya nos llegó.</h2>
+      <p class="ayuda" id="listoSub"></p>
+      <p class="ayuda" style="margin-top:4px">Ahora mándenos por este chat la foto de su cédula (los dos lados) y una factura de luz, agua o cable.</p>
+      <p class="ayuda" id="listoPie">La llevamos al banco. Normalmente responden al otro día y le avisamos por WhatsApp.</p>
+    </section>
+
+    <section class="p exito" data-i="9">
+      <div class="check" style="background:#fff1f2;box-shadow:0 0 0 12px rgba(254,226,226,.5)"><span style="font-size:40px;color:#b91c1c;font-weight:900">!</span></div>
+      <h2>Este enlace no sirve</h2>
+      <p class="ayuda" id="errTxt">Pídale uno nuevo a la persona que lo atiende en Bayol Cell.</p>
+    </section>
+
+  </div>
+  <div class="pie">
+    <button type="button" class="btn sec" id="atras" aria-label="Atrás" style="display:none">‹</button>
+    <button type="button" class="btn" id="sig">Empezar</button>
+  </div>
+</div>
+<script>
+(function(){
+  const FN='https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/whatsapp-flow-financiamiento';
+  const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZraHdkdmp0b3dyaGtocWF2bnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMzIwMzUsImV4cCI6MjA5NDkwODAzNX0.t1Vb8peJbT_9F7S3UajxvqklVl3fLm8nytZT02UIzPI';
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const T=new URLSearchParams(location.search).get('t')||'';
+  async function api(body){const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json','apikey':ANON,'Authorization':'Bearer '+ANON},body:JSON.stringify(body)});let d=null;try{d=await r.json()}catch(e){}return d||{ok:false,error:'Sin respuesta del servidor.'}}
+  const pags=$$('.p'); let i=0; const d={plazo:'',ced:'',nom:'',tel:'',prov:'',mun:'',sec:'',cal:'',cas:''}; let info=null, enviando=false;
+  const pasos=$('#pasos'), sig=$('#sig'), atras=$('#atras');
+  const total=5;
+  function fmtCed(v){v=v.replace(/\D/g,'').slice(0,11);let o=v.slice(0,3);if(v.length>3)o+='-'+v.slice(3,10);if(v.length>10)o+='-'+v.slice(10);return o}
+  function fmtTel(v){v=v.replace(/\D/g,'');if(v.length===11&&v[0]==='1')v=v.slice(1);v=v.slice(0,10);let o=v.slice(0,3);if(v.length>3)o+='-'+v.slice(3,6);if(v.length>6)o+='-'+v.slice(6);return o}
+  function validar(){
+    switch(i){
+      case 0:return !!info;
+      case 1:{const ok=d.ced.replace(/\D/g,'').length===11;$('#cCed').classList.toggle('listo',ok);$('#eCed').textContent=(!ok&&d.ced.length>0&&d.ced.replace(/\D/g,'').length<11)?'Faltan números: la cédula tiene 11.':'';return ok}
+      case 2:{const ok=d.nom.trim().split(/\s+/).filter(Boolean).length>=2;$('#cNom').classList.toggle('listo',ok);return ok}
+      case 3:{const ok=d.tel.replace(/\D/g,'').length===10;$('#cTel').classList.toggle('listo',ok);return ok}
+      case 4:return !!d.plazo;
+      case 5:{const m=d.mun.trim().length>=2,a=d.sec.trim().length>=2,b=d.cal.trim().length>=2,c=d.cas.trim().length>=1;$('#cMun').classList.toggle('listo',m);$('#cSec').classList.toggle('listo',a);$('#cCal').classList.toggle('listo',b);$('#cCas').classList.toggle('listo',c);return !!d.prov&&m&&a&&b&&c}
+      case 6:return $('#perm').checked&&!enviando;
+      default:return true}
+  }
+  function pintar(){
+    pags.forEach((p)=>{const k=+p.dataset.i;p.classList.toggle('on',k===i);p.classList.toggle('atras',k<i)});
+    pasos.classList.toggle('oculto',i===0||i>=7);[...pasos.children].forEach((li,k)=>{const n=k+1;li.classList.toggle('hecho',i>=6?true:n<i);li.classList.toggle('activo',n===i)});
+    atras.style.display=(i>0&&i<7)?'':'none';
+    sig.textContent=i===0?'Empezar':i===6?(enviando?'Enviando…':'Enviar solicitud'):i>=7?'Cerrar':'Continuar';
+    sig.disabled=!validar();
+    if(i===6){$('#rec').innerHTML=[['Equipo',info.equipo],['Precio',info.precio],['Pagarlo a',d.plazo+' meses',4],['Cédula',d.ced,1],['Nombre',d.nom,2],['Celular',d.tel,3],['Dirección',`${d.cal} No. ${d.cas}, ${d.sec}, ${d.mun}, ${d.prov}`,5]].map(r=>`<div class="r"><span>${r[0]}</span><span>${esc(r[1])}${r[2]?`<button type="button" data-go="${r[2]}">Cambiar</button>`:''}</span></div>`).join('')}
+    const f=pags.find(p=>+p.dataset.i===i)?.querySelector('input:not([type=checkbox]),select'); if(f&&i>0&&i<6&&window.matchMedia('(min-width:480px)').matches)setTimeout(()=>f.focus(),380);
+  }
+  function esc(t){return String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+  async function enviar(){
+    enviando=true;pintar();
+    const r=await api({accion:'web_enviar',t:T,permiso:$('#perm').checked,datos:{cedula:d.ced,nombres:d.nom,telefono:d.tel,plazo:d.plazo,provincia:d.prov,municipio:d.mun,sector:d.sec,calle:d.cal,casa:d.cas}});
+    enviando=false;
+    if(!r.ok){pintar();alert(r.error||'No se pudo enviar. Intente de nuevo.');return}
+    const nombre=d.nom.split(/\s+/)[0];$('#listoTit').textContent=`Listo, ${nombre}. Ya nos llegó.`;
+    $('#listoSub').textContent=`Solicitud No. ${r.numero} · ${info.equipo} · ${d.plazo} meses`;
+    $('#listoPie').textContent=`${(info.empleado||'Bayol Cell').split(/\s+/)[0]} la lleva al banco. Normalmente responden al otro día y le avisamos por WhatsApp.`;
+    i=7;pintar();
+  }
+  sig.onclick=()=>{if(!validar())return;if(i===6){enviar();return}if(i>=7){try{window.close()}catch(e){}location.href='https://bayolcell.com';return}i++;pintar()};
+  atras.onclick=()=>{if(i>0&&i<7){i--;pintar()}};
+  $('#rec').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){i=+b.dataset.go;pintar()}});
+  $('#ced').addEventListener('input',e=>{e.target.value=fmtCed(e.target.value);d.ced=e.target.value;sig.disabled=!validar();if(d.ced.length===13)setTimeout(()=>{if(i===1&&validar()){i++;pintar()}},350)});
+  $('#tel').addEventListener('input',e=>{e.target.value=fmtTel(e.target.value);d.tel=e.target.value;sig.disabled=!validar()});
+  [['nom','nom'],['mun','mun'],['sec','sec'],['cal','cal'],['cas','cas']].forEach(([id,k])=>$('#'+id).addEventListener('input',e=>{d[k]=e.target.value;sig.disabled=!validar()}));
+  $('#prov').addEventListener('change',e=>{d.prov=e.target.value;sig.disabled=!validar();if(d.prov)$('#mun').focus()});
+  $('#chips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;$$('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');d.plazo=c.dataset.v;sig.disabled=false;setTimeout(()=>{if(i===4){i++;pintar()}},260)});
+  $('#perm').addEventListener('change',()=>sig.disabled=!validar());
+  // El pie sube con el teclado
+  const vv=window.visualViewport;
+  function ajustar(){const h=vv?Math.round(vv.height):window.innerHeight;document.documentElement.style.setProperty('--vh',h+'px');if(vv&&vv.offsetTop)window.scrollTo(0,0)}
+  if(vv){vv.addEventListener('resize',ajustar);vv.addEventListener('scroll',ajustar)}window.addEventListener('resize',ajustar);ajustar();
+  document.addEventListener('keydown',e=>{if(e.key!=='Enter'||i===0||i>=6)return;const pag=pags.find(p=>+p.dataset.i===i);const campos=[...pag.querySelectorAll('input:not([type=checkbox]),select')];const k=campos.indexOf(document.activeElement);if(k>-1&&k<campos.length-1){e.preventDefault();campos[k+1].focus();return}if(!sig.disabled){e.preventDefault();sig.click()}},true);
+  // Deslizar hacia la derecha para volver
+  const vista=$('#vista'); let g=null;
+  function goma(x,w,c=.55){return (x*w*c)/(w+c*Math.abs(x))}
+  const pag=k=>pags.find(p=>+p.dataset.i===k);
+  vista.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;if(i===0||i>=7)return;g={x0:e.clientX,y0:e.clientY,hist:[],dir:null,id:e.pointerId}},{passive:true});
+  vista.addEventListener('pointermove',e=>{if(!g||e.pointerId!==g.id)return;const dx=e.clientX-g.x0,dy=e.clientY-g.y0;
+    if(g.dir===null){if(Math.hypot(dx,dy)<10)return;g.dir=Math.abs(dx)>Math.abs(dy)&&dx>0?'x':'no';if(g.dir==='x'){vista.setPointerCapture(e.pointerId);vista.classList.add('gesto');try{getSelection().removeAllRanges()}catch(_){}pag(i).classList.add('arrastre');if(i>1)pag(i-1).classList.add('arrastre')}}
+    if(g.dir!=='x')return;const w=vista.clientWidth,x=Math.max(0,dx);g.x=x;g.hist.push([performance.now(),x]);if(g.hist.length>6)g.hist.shift();
+    const act=pag(i),prev=pag(i-1);
+    if(i>1){act.style.transform=`translateX(${x}px)`;prev.style.transform=`translateX(${-30+x/w*30}%)`;prev.style.opacity=Math.min(1,x/w*1.6);prev.style.pointerEvents='none';prev.classList.add('on');prev.classList.remove('atras')}
+    else{act.style.transform=`translateX(${goma(x,w)}px)`}});
+  function soltar(e){if(!g||e.pointerId!==g.id)return;const act=pag(i),prev=i>1?pag(i-1):null;const fue=g;g=null;vista.classList.remove('gesto');if(fue.dir!=='x')return;
+    const h=fue.hist,v=h.length>1?(h[h.length-1][1]-h[0][1])/Math.max(1,h[h.length-1][0]-h[0][0])*1000:0;
+    const w=vista.clientWidth,x=fue.x||0;const volver=prev&&(v>350||(x>w*.4&&v>-200));
+    [act,prev].forEach(p=>{if(!p)return;p.classList.remove('arrastre');p.style.transform='';p.style.opacity='';p.style.pointerEvents=''});
+    if(volver){i--;pintar()}else{if(prev){prev.classList.remove('on');prev.classList.add('atras')}pintar()}}
+  vista.addEventListener('pointerup',soltar);vista.addEventListener('pointercancel',soltar);
+  // Cargar la solicitud del enlace
+  (async()=>{
+    pintar();
+    if(!T){i=9;pintar();return}
+    const r=await api({accion:'web_leer',t:T});
+    if(!r.ok){$('#errTxt').textContent=r.error||'Pídale uno nuevo a la persona que lo atiende en Bayol Cell.';i=9;pintar();return}
+    info=r;
+    const emp=(r.empleado||'').split(/\s+/)[0];
+    $('#sub').textContent='Solicitud de financiamiento'+(r.sucursal?' · '+r.sucursal:'');
+    $('#hola').textContent=(r.nombre?`Hola, ${r.nombre.split(/\s+/)[0]}. `:'Hola. ')+(emp?`Le atiende ${emp}.`:'Le atiende Bayol Cell.');
+    $('#vEquipo').textContent=r.equipo;$('#vPrecio').textContent=r.precio;
+    if(r.nombre){$('#nom').value=r.nombre;d.nom=r.nombre}
+    if(r.telefono){$('#tel').value=fmtTel(r.telefono);d.tel=$('#tel').value;$('#cTel').classList.add('listo')}else{$('#telAyuda').textContent='Escriba el celular donde podemos avisarle.'}
+    const sel=$('#prov');(r.provincias||[]).forEach(n=>{const o=document.createElement('option');o.textContent=n;o.value=n;sel.appendChild(o)});
+    sig.disabled=false;
+  })();
+})();
+</script>
+</body>
+</html>

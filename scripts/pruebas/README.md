@@ -20,3 +20,17 @@ Necesita Playwright y Chromium (en el equipo de pruebas está en `/opt/node22/li
 | T6 | Reimprimir con otra prefactura cargada | imprime la cargada, no la última creada |
 | T7 | Quitar un artículo después del descuento en pesos | aparece «El descuento total … supera el tope» |
 | T8 | Guardar recepción con técnico | la orden lleva `tecnico_asignado_id` y la función devuelve la orden |
+
+## flow-financiamiento.cjs (24-oct-2026)
+Formulario nativo de WhatsApp para la solicitud de financiamiento (`crm-flow-financiamiento.js`): la capa carga, envuelve el
+render de burbujas, la tarjeta de respuesta trae 10 datos con «Copiar» (44 px) y la «Referencia para el banco», el botón
+junto a la caja mide 44 px, la ventana de envío tiene campos de 48 px / 16 px y botón de 54 px, y la llamada al servidor va
+con equipo, precio, hilo y modo de prueba. Correr con `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/flow-financiamiento.cjs`.
+
+## solicitud-web.cjs (24-oct-2026)
+Página pública `solicitud.html` (formulario de financiamiento por enlace): con el servidor simulado, carga los datos del enlace
+(saludo con nombre y empleado, equipo, precio, sucursal, celular y nombre ya puestos, provincias), recorre los 5 pasos, arma el
+resumen con 7 filas, el botón queda apagado hasta marcar el permiso, envía `web_enviar` con la llave de 48 caracteres y los
+datos con guiones, muestra «Listo, Nombre» con el número, y con un enlace malo muestra la pantalla «Este enlace no sirve».
+Mide a 390 y 1280 px: botón principal ≥ 54 px, letra de los campos ≥ 16 px, sin desplazamiento horizontal.
+Correr con `node scripts/pruebas/solicitud-web.cjs` (no necesita el servidor del banco).
