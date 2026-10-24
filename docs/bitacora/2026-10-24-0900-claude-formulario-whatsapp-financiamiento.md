@@ -75,3 +75,9 @@ obligatorios y cómo se llama exactamente el campo «Referencia».
 - Meta devolvió una vista previa web del formulario (enlace público sin inicio de sesión, válido unos 30 días; está en
   `whatsapp_flows` no, se obtiene con `publicar` cada vez). Se le pasó al dueño para que lo vea antes de probarlo en su celular.
 - Llaves de un solo uso: ambas copias locales borradas; las filas de `_plantilla_llaves` vencen solas.
+
+## Actualización 09:20 RD · webhook desplegado
+- `whatsapp-webhook` **v40** desplegada (idéntica al repo, SHA-256 comprobado; `verify_jwt false`; conserva el import map
+  `deno.json` que ya tenía la v39, ahora también en el repo). En los 20 minutos siguientes todos los eventos de Zernio
+  respondieron 200 (mensajes normales siguen entrando igual).
+- Estado: todo listo para la prueba real en el celular del dueño (línea Reparación +18097072493, modo de prueba).
