@@ -132,7 +132,7 @@ window.addEventListener('focus', _bcRefreshSession);
 setInterval(_bcRefreshSession, 10 * 60 * 1000);
 // Aviso del navegador si hay cambios sin guardar en la prefactura (recargar/cerrar pestaña)
 window.addEventListener('beforeunload', function(e) {
-    if(typeof _rpState !== 'undefined' && _rpState && _rpState.estado === 'cambios') { e.preventDefault(); e.returnValue = ''; return ''; }
+    if(typeof _rpState !== 'undefined' && _rpState && (_rpState.estado === 'cambios' || _rpState.estado === 'error_historial')) { e.preventDefault(); e.returnValue = ''; return ''; }
 });
 
 /* ============================================================
@@ -2533,7 +2533,7 @@ function nav(v, btn) {
         return;
     }
     // Aviso: cambios sin guardar en la prefactura (cargada del historial y editada)
-    if(typeof _rpState !== 'undefined' && _rpState && _rpState.estado === 'cambios' && v !== 'recepcion' && document.getElementById('v-recepcion')?.classList.contains('active')) {
+    if(typeof _rpState !== 'undefined' && _rpState && (_rpState.estado === 'cambios' || _rpState.estado === 'error_historial') && v !== 'recepcion' && document.getElementById('v-recepcion')?.classList.contains('active')) {
         if(!confirm('Tiene cambios sin guardar en la prefactura.\n\nSi sale sin guardar, los cambios NO surtirán efecto (no se guardaron).\n\n¿Salir sin guardar?')) return;
     }
     // Candado especial: Estadísticas es privado del dueño (por ID), no por rol admin
@@ -20528,6 +20528,10 @@ function _rpProblemasFactura() {
         const stock = _rpStockItem(it);
         if(stock !== null && Number(it.cant) > stock) probs.push(`"${it.desc}": pide ${it.cant} y hay ${stock} en ${_rpAlmNombre()}.`);
     });
+    // 24-oct-2026 (auditoría): el tope de descuento se vuelve a comprobar aquí, porque al quitar un artículo o bajar
+    // un precio después de escribir el descuento en pesos, el % real podía quedar por encima del tope.
+    const _t = _rpTotales(_rpState?.items || []); const tope = _rpDescMaxPct();
+    if(_t.subtotal > 0 && _t.descuento > _t.subtotal * tope / 100 + 0.005) probs.push(`El descuento total (${money(_t.descuento)}) supera el tope de ${tope} % (${money(Math.round(_t.subtotal * tope) / 100)}). Baje el descuento.`);
     return probs;
 }
 function _rpRenderCart() {
@@ -20645,7 +20649,7 @@ function _rpRenderResumen() {
       ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button><button class="btn btn-light btn-sm" onclick="_rpImprimir('pdf')" style="margin-left:4px; color:#b91c1c;" title="Descargar PDF"><i class="ti ti-file-type-pdf"></i></button></div>` : ''}`;
 }
 function _rpEstadoBadge(estado, cod) {
-    const map = { pendiente: ['#fef3c7', '#b45309', 'Pendiente de crear'], cambios: ['#fef9c3', '#a16207', 'Cambios pendientes de sincronizar'], sincronizada: ['#dcfce7', '#16a34a', 'Sincronizada con Info Plus'], actualizando: ['#dbeafe', '#1d4ed8', 'Actualizando prefactura…'], error: ['#fee2e2', '#b91c1c', 'Error de sincronización'], facturada: ['#e0e7ff', '#3730a3', 'Convertida en factura'] };
+    const map = { pendiente: ['#fef3c7', '#b45309', 'Pendiente de crear'], cambios: ['#fef9c3', '#a16207', 'Cambios pendientes de sincronizar'], sincronizada: ['#dcfce7', '#16a34a', 'Sincronizada con Info Plus'], actualizando: ['#dbeafe', '#1d4ed8', 'Actualizando prefactura…'], error: ['#fee2e2', '#b91c1c', 'Error de sincronización'], error_historial: ['#fee2e2', '#b91c1c', 'Creada en Info Plus, sin guardar en el taller: toque Guardar'], facturada: ['#e0e7ff', '#3730a3', 'Convertida en factura'] };
     const [bg, col, txt] = map[estado] || map.pendiente;
     return `<span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:999px;font-size:11px;">${txt}${cod && estado !== 'pendiente' ? ' · Nº ' + escapeHtml(cod) : ''}</span>`;
 }
@@ -20705,16 +20709,29 @@ async function _rpArmarModelo() {
     const ref = { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: g('o_falla'), coment: g('o_observaciones'), cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') };
     return { model, nombre, obs, almacen, vend, nivel, _tt, total, ref };
 }
+// 24-oct-2026 (auditoría): candado contra el doble clic. Mientras Info Plus responde no se vuelve a mandar nada y
+// los botones de Guardar quedan apagados. Un segundo clic solo avisa.
+let _rpGuardando = false;
+function _rpBotonesGuardar(on) {
+    document.querySelectorAll('#v-recepcion [onclick^="_rpGuardar("], #v-recepcion .bcpf-bar .bg, #v-recepcion .bcpf-bar .bgi').forEach(b => { b.disabled = !on; b.setAttribute('aria-busy', on ? 'false' : 'true'); });
+}
 async function _rpCrearPrefactura() {
     if(!_rpState || !_rpState.items.length) return toast('Agregue al menos un artículo o servicio.', 'error');
     if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
+    if(_rpGuardando || _rpState.estado === 'actualizando') return toast('Ya se está guardando. Espere un momento.', 'error');
     const probs = _rpProblemasFactura();
     if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
     const bloqueo = _rpDescCambioBloqueado();
     if(bloqueo) { _rpState.estado = 'cambios'; _rpRenderResumen(); return toastError(bloqueo); }
-    const { model, nombre, obs, almacen, vend, nivel, _tt, total, ref } = await _rpArmarModelo();
-    const g = id => (document.getElementById(id)?.value || '').trim();
+    // El candado se pone ANTES del primer await: dos clics seguidos entraban los dos mientras se armaba el modelo.
+    _rpGuardando = true; _rpBotonesGuardar(false);
+    let armado; try { armado = await _rpArmarModelo(); } catch(e) { _rpGuardando = false; _rpBotonesGuardar(true); throw e; }
+    const { model, nombre, obs, almacen, vend, nivel, _tt, total, ref } = armado;
+    // 24-oct-2026 (auditoría): UN solo documento. Todo lo que se guarda, imprime o envía sale de esta foto, no de la
+    // pantalla (que el usuario puede cambiar mientras Info Plus responde).
+    const foto = { items: JSON.parse(JSON.stringify(_rpState.items)), equipo: ref.equipo, imei: ref.imei, telefono: ref.telefono, documento: ref.cedula, descMonto: Number(_rpState.descMonto || 0) };
     _rpState.estado = 'actualizando'; _rpRenderResumen();
+    let historialOk = false;
     try {
         const { data, error } = await supabaseClient.functions.invoke('infoplus-prefactura-crear', { body: model });
         if(error) throw error;
@@ -20727,19 +20744,50 @@ async function _rpCrearPrefactura() {
         // 22-oct-2026 (dueño): el cliente queda guardado por su número de WhatsApp, sin importar la sucursal.
         try { _rpState.clienteId = await _rpGuardarClientePorWhatsApp(); } catch(e) { logError('cliente por WhatsApp', e); }
         _rpUltima = { num, total, model, ref };
-        try {
-            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: _tt.subtotal, total: total, descuento_monto: Number(_rpState.descMonto || 0), cliente_id: _rpState.clienteId || null, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
-            if(_rpState.localId) { await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', _rpState.localId); }
-            else { row.creado_por = (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'); const { data: ins } = await supabaseClient.from('recepcion_prefacturas').insert([row]).select('id').maybeSingle(); if(ins) _rpState.localId = ins.id; }
-            if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();
-        } catch(e) { logError('guardar recepcion_prefactura', e); }
+        // Si Info Plus ya la creó pero el historial falla, el Nº se recuerda en este equipo para no volver a crearla:
+        // el siguiente «Guardar» la actualiza (codprefactura ya está puesto) y reintenta el historial.
+        _rpRecordarPendiente(num);
+        const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: foto.telefono, documento_visible: foto.documento, equipo: foto.equipo, imei: foto.imei, items: foto.items, subtotal: _tt.subtotal, total: total, descuento_monto: foto.descMonto, cliente_id: _rpState.clienteId || null, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
+        historialOk = await _rpGuardarHistorial(row);
+        if(!historialOk) {
+            // 24-oct-2026 (auditoría): antes decía «✅ creada» y limpiaba la pantalla aunque el historial fallara.
+            _rpState.estado = 'error_historial'; _rpRenderResumen();
+            toastError('Info Plus creó la prefactura Nº ' + num + ', pero NO quedó guardada en el historial del taller. Revise la conexión y toque «Guardar» otra vez: se reintenta sin crear otra.');
+            return false;
+        }
+        _rpOlvidarPendiente(num);
         _rpRenderResumen();
         toast('✅ Prefactura ' + (eraUpdate ? 'actualizada' : 'creada') + ' en Info Plus: Nº ' + num);
         // 23-oct-2026 (dueño: «enviar la prefactura al WhatsApp que sea después que se le dé a guardar»):
         // si hay un WhatsApp escrito, la prefactura sale sola al guardar. Sin número, no se envía ni se molesta.
-        if((document.getElementById('c_whatsapp')?.value || '').replace(/\D/g, '').length >= 10) { try { await _rpEnviarWhatsApp(); } catch(e) { logError('envío automático prefactura', e); } }
-    } catch(e) { logError('crear prefactura recepcion', e); _rpState.estado = 'error'; _rpRenderResumen(); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.')); }
+        // 24-oct-2026: el número sale del documento guardado (foto.telefono), no de lo que haya ahora en pantalla.
+        if(String(foto.telefono || '').replace(/\D/g, '').length >= 10) { try { await _rpEnviarWhatsApp(); } catch(e) { logError('envío automático prefactura', e); } }
+        return true;
+    } catch(e) { logError('crear prefactura recepcion', e); _rpState.estado = 'error'; _rpRenderResumen(); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.')); return false; }
+    finally { _rpGuardando = false; _rpBotonesGuardar(true); }
 }
+// Historial del taller (recepcion_prefacturas): devuelve true solo si quedó guardado. Reintenta una vez.
+async function _rpGuardarHistorial(row) {
+    for(let intento = 0; intento < 2; intento++) {
+        try {
+            if(_rpState.localId) { const { error } = await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', _rpState.localId); if(error) throw error; }
+            else {
+                // Si ya existe una fila con este Nº (reintento tras un corte), se actualiza en vez de duplicar.
+                const { data: ya } = await supabaseClient.from('recepcion_prefacturas').select('id').eq('codprefactura', row.codprefactura).limit(1).maybeSingle();
+                if(ya && ya.id) { _rpState.localId = ya.id; const { error } = await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', ya.id); if(error) throw error; }
+                else { row.creado_por = (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'); const { data: ins, error } = await supabaseClient.from('recepcion_prefacturas').insert([row]).select('id').maybeSingle(); if(error) throw error; if(ins) _rpState.localId = ins.id; }
+            }
+            try { if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas(); } catch(e) {}
+            return true;
+        } catch(e) { logError('guardar recepcion_prefactura (intento ' + (intento + 1) + ')', e); }
+    }
+    return false;
+}
+// Nº de prefacturas creadas en Info Plus que todavía no están en el historial (por equipo).
+const _RP_LS_PEND = 'bc_pf_pendientes';
+function _rpPendientes() { try { return JSON.parse(localStorage.getItem(_RP_LS_PEND) || '[]'); } catch(e) { return []; } }
+function _rpRecordarPendiente(num) { try { const l = _rpPendientes(); if(num && !l.includes(String(num))) { l.push(String(num)); localStorage.setItem(_RP_LS_PEND, JSON.stringify(l.slice(-20))); } } catch(e) {} }
+function _rpOlvidarPendiente(num) { try { localStorage.setItem(_RP_LS_PEND, JSON.stringify(_rpPendientes().filter(x => x !== String(num)))); } catch(e) {} }
 let _rpUltima = null;
 // ---- 22-oct-2026 · Cliente por WhatsApp + envío de la prefactura por WhatsApp (dueño) ----
 // El cliente se guarda en `clientes` por su número de WhatsApp (o cédula) y la prefactura queda ligada (cliente_id):
@@ -20863,7 +20911,12 @@ async function _rpEnviarWhatsApp() {
     if(_rpEnviandoWa) return;
     if(!_rpState || !_rpState.codprefactura) return toast('Guarde la prefactura antes de enviarla.', 'error');
     const g = id => (document.getElementById(id)?.value || '').trim();
-    const wa = g('c_whatsapp').replace(/\D/g, '');
+    // 24-oct-2026 (auditoría): el destinatario es el del documento guardado (_rpUltima.ref.telefono); si en pantalla
+    // hay otro número, se avisa y se usa el guardado. Sin documento guardado, el de pantalla.
+    const waDoc = (_rpUltima && _rpUltima.num === _rpState.codprefactura && _rpUltima.ref && _rpUltima.ref.telefono) ? String(_rpUltima.ref.telefono).replace(/\D/g, '') : '';
+    const waPant = g('c_whatsapp').replace(/\D/g, '');
+    const wa = waDoc.length >= 10 ? waDoc : waPant;
+    if(waDoc.length >= 10 && waPant.length >= 10 && waDoc.slice(-10) !== waPant.slice(-10)) toast('Se envía al WhatsApp con el que se guardó la prefactura (' + waDoc + ').', 'error');
     if(wa.length < 10) { document.getElementById('c_whatsapp')?.focus(); return toast('Escriba el WhatsApp del cliente.', 'error'); }
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
     const suc = _RP_SUCURSAL_DE_ALMACEN[String(almacen)] || 'Santiago';
@@ -20883,9 +20936,12 @@ async function _rpEnviarWhatsApp() {
             // El cliente escribió en las últimas 24 h: va el texto con el PDF de la prefactura.
             if(!_rpUltima || _rpUltima.num !== num) { const m = await _rpArmarModelo(); _rpUltima = { num, total, model: m.model, ref: m.ref }; }
             _prefUltima = _rpUltima;
-            const blob = await imprimirPrefactura('blob');
-            let adjunto = null;
-            if(blob) { const file = new File([blob], 'Prefactura_' + num + '.pdf', { type: 'application/pdf' }); const s = await _waSubirAdjunto(file, 'documentos', 'pdf'); adjunto = { url: s.url, path: s.path, tipo: 'documento', nombre: 'Prefactura_' + num + '.pdf' }; }
+            // 24-oct-2026 (auditoría): el PDF se GENERA aparte (bcPfPdfBlob), nunca pasa por imprimir; y se comprueba
+            // que sea un PDF de verdad antes de adjuntarlo.
+            const blob = await _rpPdfBlob();
+            if(!(blob instanceof Blob) || blob.size < 1000) throw new Error('No se pudo generar el PDF de la prefactura.');
+            const cab = new Uint8Array(await blob.slice(0, 5).arrayBuffer()); if(String.fromCharCode.apply(null, cab) !== '%PDF-') throw new Error('El archivo generado no es un PDF válido.');
+            const file = new File([blob], 'Prefactura_' + num + '.pdf', { type: 'application/pdf' }); const s = await _waSubirAdjunto(file, 'documentos', 'pdf'); const adjunto = { url: s.url, path: s.path, tipo: 'documento', nombre: 'Prefactura_' + num + '.pdf' };
             r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto, adjunto } });
         } else {
             // Sin conversación abierta: solo se permite una plantilla aprobada por Meta.
@@ -20925,7 +20981,21 @@ function _rpDescInfoplus(it, i) {
     }
     return d.slice(0, 100);
 }
-function _rpImprimir(_modo) { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(_modo); } }
+// 24-oct-2026 (auditoría): imprime la prefactura que está EN PANTALLA (la cargada del historial o la recién creada),
+// no la última que se creó en la sesión. Si _rpUltima no coincide con el Nº actual, se rearma desde la pantalla.
+async function _rpDocActual() {
+    if(!_rpState || !_rpState.codprefactura) return null;
+    if(!_rpUltima || _rpUltima.num !== _rpState.codprefactura) { const m = await _rpArmarModelo(); _rpUltima = { num: _rpState.codprefactura, total: m.total, model: m.model, ref: m.ref }; }
+    return _rpUltima;
+}
+async function _rpImprimir(_modo) { const d = await _rpDocActual(); if(!d) return toast('No hay prefactura que imprimir.', 'error'); _prefUltima = d; return imprimirPrefactura(_modo); }
+// PDF en memoria del documento actual, sin imprimir ni abrir ventanas (lo usa el envío por WhatsApp).
+async function _rpPdfBlob() {
+    const d = await _rpDocActual(); if(!d) return null; _prefUltima = d;
+    if(typeof window.bcPfPdfBlob === 'function') return window.bcPfPdfBlob(d);
+    const html = typeof _rpHtmlPrefactura === 'function' ? _rpHtmlPrefactura(d) : '';
+    return html ? _htmlAPdf(html.replace('<script>window.onload=function(){window.print();}<\/script>', ''), 'Prefactura_' + (d.num || 'SN'), { ancho: 760, blob: true }) : null;
+}
 // ---- Historial buscable de prefacturas (para editar cualquiera) ----
 let _rpHistQ = '';
 async function _rpHistorial() {
@@ -20988,17 +21058,19 @@ async function _rpGuardar(imprimir) {
     if(hayItems) {
         const probs = _rpProblemasFactura();
         if(probs.length) { _rpRenderCart(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
-        await _rpCrearPrefactura();
+        const creada = await _rpCrearPrefactura();
+        if(_rpState.estado === 'error_historial') return; // 24-oct-2026: Info Plus la creó pero el taller no la guardó; no se limpia nada
         if(_rpState.estado === 'error') {
             if(_pfNueva && !_pfConEquipo) return; // sin equipo no hay recepción que registrar
             if(!await confirmar('La prefactura dio error en Info Plus.\n\n¿Registrar la recepción de todos modos (sin prefactura)?')) return;
-        } else if(imprimir) {
-            _rpImprimir();
+        } else if(imprimir && creada) {
+            await _rpImprimir();
         }
     }
     if(_rpState && _rpState.soloPrefactura) return; // editar desde la lista: solo la prefactura, no crea orden
     if(_pfNueva && !_pfConEquipo) return; // sin equipo: solo la prefactura
-    if(typeof guardarRecepcion === 'function') guardarRecepcion(false);
+    // 24-oct-2026 (auditoría): se espera a que la orden quede creada (antes se lanzaba sin esperar).
+    if(typeof guardarRecepcion === 'function') return await guardarRecepcion(false);
 }
 // ---- Fase 2: cargar prefacturas guardadas, enlazar y editar desde la lista ----
 let _rpPendingLoad = null;
@@ -21006,7 +21078,11 @@ async function _rpCargarPrefacturas() { try { const { data } = await supabaseCli
 function _rpPrefDeOrden(ordenId) { return (cache.recepcionPrefacturas || []).find(p => p.orden_id === ordenId) || null; }
 function _rpCargarDesdeLista(prefId) { const p = (cache.recepcionPrefacturas || []).find(x => x.id === prefId); if(!p) { toast('Prefactura no encontrada.', 'error'); return; } _rpPendingLoad = { pref: p }; nav('recepcion'); }
 function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x => x.id === ordenId) || {}; const c = findCliente(o.cliente_id) || {}; const e = findEquipo(o.equipo_id) || {}; _rpPendingLoad = { orden: o, cliente: c, equipo: e }; nav('recepcion'); }
+// 24-oct-2026 (auditoría): al cargar otra prefactura u orden se vacían primero los campos del cliente y del equipo,
+// para no arrastrar el teléfono o la cédula del cliente anterior.
+function _rpVaciarCampos() { ['c_nombre','c_whatsapp','c_cedula','c_rnc','e_marca','e_modelo','e_capacidad','e_imei','o_falla','o_observaciones'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); }
 function _rpAplicarCargaPref(p) {
+    _rpVaciarCampos();
     _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), descMonto: Number(p.descuento_monto || 0), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
     if(_rpState.codprefactura) _rpState.descEnviado = _rpDescPctCabecera();
     _rpState.clienteId = p.cliente_id || null;
@@ -21021,6 +21097,7 @@ function _rpAplicarCargaPref(p) {
     toast('Prefactura Nº ' + (p.codprefactura || '') + ' cargada. Edítela y presione "Actualizar prefactura".');
 }
 function _rpAplicarCargaOrden(o, c, e) {
+    _rpVaciarCampos();
     _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, localId: null, ordenId: o.id, soloPrefactura: true, estado: 'pendiente' };
     const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
     set('c_nombre', c.nombre); set('c_whatsapp', c.whatsapp || c.telefono); set('c_cedula', c.cedula); set('e_marca', e.marca); set('e_modelo', e.modelo); set('e_capacidad', e.capacidad); set('e_imei', e.imei); set('o_falla', o.falla_reportada);
@@ -24422,7 +24499,9 @@ async function guardarRecepcion(imprimir) {
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
             cliente_id: clienteId, equipo_id: equipoId, falla_reportada: val("o_falla"), condicion_fisica: val("o_estado_fisico") || 'Sin marcas', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
             tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido',
-            prioridad: val("o_prioridad") || 'normal', fecha_estimada_entrega: val("o_fecha_estimada") || null
+            prioridad: val("o_prioridad") || 'normal', fecha_estimada_entrega: val("o_fecha_estimada") || null,
+            // 24-oct-2026 (auditoría): el técnico elegido en la recepción se guarda en la orden (antes se perdía).
+            tecnico_asignado_id: (document.getElementById('rxTecnico')?.value || '') || null
         }]).select().single();
         requireSupabaseOk(insO, 'Crear orden');
         // Enlazar la prefactura recién creada (si existe) con esta orden
@@ -24444,7 +24523,8 @@ async function guardarRecepcion(imprimir) {
         limpiarRecepcion();
         await loadAll();
         nav("ordenes");
-    } catch(e) { logError("Guardar recepción", e); toastError(getFriendlyError(e)); }
+        return insO.data;
+    } catch(e) { logError("Guardar recepción", e); toastError(getFriendlyError(e)); return false; }
 }
 
 function limpiarRecepcion() {

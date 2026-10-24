@@ -236,6 +236,9 @@
     var p = typeof _prefUltima !== 'undefined' ? _prefUltima : null; if (!p) return;
     var d = datos(p), copia = yaImpresa(d.num);
     if (modo === 'pdf') { try { return _htmlAPdf(htmlCarta(d, copia, true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760 }); } catch (e) { return; } }
+    // 24-oct-2026 (auditoría): 'blob' = PDF en memoria para WhatsApp. Antes esta capa no lo conocía, caía en el papel
+    // configurado, IMPRIMÍA un ticket y devolvía true/false: el adjunto no era un PDF.
+    if (modo === 'blob') return pdfBlob(p);
     if (modo !== 'ticket' && modo !== 'carta') modo = formato();
     if (modo === 'ticket' && qzListo()) {
       // 23-oct-2026 (dueño: «no hace el corte para dividir»): cada copia va como un trabajo aparte, para que la
@@ -251,6 +254,11 @@
     if (abrir(modo === 'ticket' ? conCopias(htmlTicket(d, copia), copias()) : htmlCarta(d, copia))) marcarImpresa(d.num);
   }
 
+  function pdfBlob(p) {
+    p = p || (typeof _prefUltima !== 'undefined' ? _prefUltima : null); if (!p) return Promise.resolve(null);
+    var d = datos(p);
+    try { return Promise.resolve(_htmlAPdf(htmlCarta(d, yaImpresa(d.num), true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760, blob: true })); } catch (e) { return Promise.resolve(null); }
+  }
   // 21-oct-2026 (dueño): no se pregunta al imprimir; el papel se escoge una vez en «Config. Impresora» (cada PC).
   function formato() { return lsGet(LS_FMT) === 'carta' ? 'carta' : 'ticket'; }
   function pintarConfig() {
@@ -328,5 +336,6 @@
   }
 
   window.imprimirPrefactura = imprimir;
+  window.bcPfPdfBlob = pdfBlob; // PDF en memoria sin imprimir (envío por WhatsApp)
   window.bcPfImprimirHtml = { ticket: htmlTicket, carta: htmlCarta, datos: datos, sucursales: function (a) { _sucs = a; } }; // para pruebas
 })();

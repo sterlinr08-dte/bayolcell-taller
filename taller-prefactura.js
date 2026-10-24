@@ -429,7 +429,7 @@
     R.num.classList.toggle('nueva', !(s && s.codprefactura));
     // Estado corto (dueño: «quitar "pendiente de crear", solo "crear", y ponlo smart»): punto de color + una palabra
     var est = (s && s.estado) || 'pendiente';
-    var EST = { pendiente: ['crear', 'Crear'], cambios: ['cambios', 'Cambios sin enviar'], sincronizada: ['ok', 'En Info Plus'], actualizando: ['act', 'Actualizando…'], error: ['err', 'Error'], facturada: ['fact', 'Facturada'] };
+    var EST = { pendiente: ['crear', 'Crear'], cambios: ['cambios', 'Cambios sin enviar'], sincronizada: ['ok', 'En Info Plus'], actualizando: ['act', 'Actualizando…'], error: ['err', 'Error'], error_historial: ['err', 'Sin guardar en el taller'], facturada: ['fact', 'Facturada'] };
     var e2 = EST[est] || EST.pendiente;
     R.est.innerHTML = '<span class="bcpf-est ' + e2[0] + '"><i aria-hidden="true"></i>' + e2[1] + '</span>';
     // Cliente

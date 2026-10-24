@@ -52,3 +52,15 @@
 @media (max-width:1024px){ #app .side-brand .bcm-pin{display:none !important;} }
 @media (prefers-reduced-motion:reduce){ html.bcm-mini body #app aside.sidebar{transition:none !important;} }
 @media print{ html.bcm-mini body #app .main{margin-left:0 !important;} }
+
+/* 24-oct-2026 (dueño: «vamos a mejorar esa barra de scroll»): la barra gris del sistema en el menú lateral se
+   cambia por una fina, oscura y casi invisible, que solo se nota al pasar el ratón. Sin !important innecesarios. */
+body #app aside.sidebar, body #app aside.sidebar .nav{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.22) transparent; }
+body #app aside.sidebar::-webkit-scrollbar, body #app aside.sidebar .nav::-webkit-scrollbar{ width:6px; height:6px; }
+body #app aside.sidebar::-webkit-scrollbar-track, body #app aside.sidebar .nav::-webkit-scrollbar-track{ background:transparent; }
+body #app aside.sidebar::-webkit-scrollbar-thumb, body #app aside.sidebar .nav::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.18); border-radius:999px; border:1px solid transparent; background-clip:padding-box; }
+body #app aside.sidebar:hover::-webkit-scrollbar-thumb, body #app aside.sidebar .nav:hover::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.34); background-clip:padding-box; }
+@media (min-width:1025px){
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav{ scrollbar-color:transparent transparent; }
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav::-webkit-scrollbar-thumb{ background:transparent; }
+}
