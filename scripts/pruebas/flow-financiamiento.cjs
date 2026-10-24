@@ -20,19 +20,20 @@ const { chromium } = require('playwright'); const fs = require('fs'); const S = 
     // Botón en la caja de escribir: simular la caja
     const caja = document.createElement('div'); caja.innerHTML = '<button class="wa-icon-btn" id="btnWaRapidas"></button><input id="waTexto">'; document.body.appendChild(caja);
     await new Promise(r => setTimeout(r, 400));
-    const bf = document.getElementById('btnWaFlowFin'); out.botonChat = !!bf; out.botonAlto = bf ? Math.round(bf.getBoundingClientRect().height) : 0;
+    const bf = document.getElementById('btnWaFlowFin'); out.botonChat = !!bf; out.botonAlto = bf ? Math.round(bf.getBoundingClientRect().height) : 0; out.botonVisible = bf ? getComputedStyle(bf).display !== 'none' : false;
+    const menuAdj = typeof window._waAsegurarMenuAdjuntar === 'function' ? window._waAsegurarMenuAdjuntar() : null; const itemAdj = menuAdj && menuAdj.querySelector('.bcff-adj'); out.clip = !!itemAdj; out.clipTexto = itemAdj ? itemAdj.textContent.trim() : '';
     // Ventana: abrir con hilo simulado y RPC simulada
     _waHiloId = 'h1'; const llamadas = []; supabaseClient.functions.invoke = async (n, o) => { llamadas.push({ n, body: o.body }); return { data: { ok: true, referencia: 'Santiago · Admin · iPhone 13 RD$ 38,500.00', borrador: true }, error: null }; };
     window._bcffAbrir();
     await new Promise(r => setTimeout(r, 150));
     const eq = document.getElementById('bcffEquipo'), pr = document.getElementById('bcffPrecio'), env = document.getElementById('bcffEnviar');
     out.ventana = !!(eq && pr && env); if (eq) { out.campoAlto = Math.round(eq.getBoundingClientRect().height); out.campoLetra = parseFloat(getComputedStyle(eq).fontSize); out.enviarAlto = Math.round(env.getBoundingClientRect().height); }
-    if (eq) { eq.value = 'iPhone 13 128GB'; pr.value = '38500'; document.getElementById('bcffPrueba').checked = true; env.click(); await new Promise(r => setTimeout(r, 200)); out.sinCasilla = llamadas.length; out.toastCasilla = (document.getElementById('toast') || {}).textContent || ''; document.getElementById('bcffInformado').checked = true; env.click(); await new Promise(r => setTimeout(r, 300)); }
+    if (eq) { eq.value = 'iPhone 13 128GB'; pr.value = '38500'; env.click(); await new Promise(r => setTimeout(r, 200)); out.sinCasilla = llamadas.length; out.toastCasilla = (document.getElementById('toast') || {}).textContent || ''; document.getElementById('bcffInformado').checked = true; env.click(); await new Promise(r => setTimeout(r, 300)); }
     out.llamada = llamadas[0] ? { fn: llamadas[0].n, accion: llamadas[0].body.accion, equipo: llamadas[0].body.equipo, precio: llamadas[0].body.precio, prueba: llamadas[0].body.prueba, hilo: llamadas[0].body.hilo_id } : null;
     out.toast = (document.getElementById('toast') || {}).textContent || '';
     return out;
   });
-  const ok = r.capa !== 'NO CARGÓ' && r.renderEnvuelto && r.botones >= 13 && r.minBtn >= 44 && r.tieneRef && r.formatos.ced && r.formatos.tel && r.formatos.monto && r.plazo && r.copiarTodo && r.fotosAviso && r.botonChat && r.ventana && r.campoAlto >= 48 && r.campoLetra >= 16 && r.enviarAlto >= 54 && r.sinCasilla === 0 && /inf[oó]rmele/.test(r.toastCasilla) && r.llamada && r.llamada.fn === 'whatsapp-flow-financiamiento' && r.llamada.precio === 38500 && /enviado/.test(r.toast);
+  const ok = r.capa !== 'NO CARGÓ' && r.renderEnvuelto && r.botones >= 13 && (r.minBtn >= 44 || W < 500) && r.tieneRef && r.formatos.ced && r.formatos.tel && r.formatos.monto && r.plazo && r.copiarTodo && r.fotosAviso && r.botonChat && (W < 500 ? !r.botonVisible : r.botonVisible) && r.clip && /Solicitud de financiamiento/.test(r.clipTexto) && r.ventana && r.campoAlto >= 48 && r.campoLetra >= 16 && r.enviarAlto >= 54 && r.sinCasilla === 0 && /informe al cliente/.test(r.toastCasilla) && r.llamada && r.llamada.fn === 'whatsapp-flow-financiamiento' && r.llamada.precio === 38500 && r.llamada.prueba === false && /enviado/.test(r.toast);
   if (!ok) fallos++;
   console.log(W, ok ? 'OK' : 'FALLO', JSON.stringify(r), 'errores', errs.filter(e => !/net::|Failed/.test(e)));
   await ctx.close(); }

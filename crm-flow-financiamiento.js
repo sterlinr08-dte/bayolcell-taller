@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f6';
+  window.__bcFlowFinanciamiento = '20261024-f9';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -17,7 +17,8 @@
 
   const style = document.createElement('style');
   style.textContent = [
-    '#btnWaFlowFin{color:#0f766e;min-width:44px;min-height:44px}',
+    '#btnWaFlowFin{color:#0f766e;min-width:44px;min-height:44px}@media (max-width:768px){#btnWaFlowFin{display:none!important}}',
+    '#waAdjuntarMenu button.bcff-adj{min-height:44px}',
     '.bcff-card{border:1px solid #99f6e4;background:linear-gradient(180deg,#f0fdfa,#fff);border-radius:12px;padding:10px 10px 6px;margin:4px 0 6px;min-width:240px;max-width:100%}',
     '.bcff-card h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#0f766e;display:flex;align-items:center;gap:6px}',
     '.bcff-row{display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid #e2e8f0}.bcff-row:first-of-type{border-top:0}',
@@ -29,10 +30,10 @@
     '.bcff-ref b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}',
     '.bcff-acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.bcff-acts .bcff-c{flex:1;min-height:44px}',
     '.bcff-out{font-size:11px;color:#0f766e;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px}',
-    '.bcff-form{display:flex;flex-direction:column;gap:10px}.bcff-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:#334155}',
-    '.bcff-form input,.bcff-form select{box-sizing:border-box;width:100%;min-height:48px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:16px;font-weight:400;color:#0f172a}',
+    '#bcffForm.bcff-form{display:flex;flex-direction:column;gap:12px}#bcffForm .bcff-campo{display:flex;flex-direction:column;gap:6px;margin:0}#bcffForm .bcff-campo>span{font-size:13px;font-weight:600;color:#475569;text-transform:none;letter-spacing:0;line-height:1.3}',
+    '#bcffForm input:not([type=checkbox]),#bcffForm select{box-sizing:border-box;width:100%;min-height:48px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:12px;font:inherit;font-size:16px;font-weight:400;color:#0f172a;text-transform:none;background:#fff}#bcffForm input:focus,#bcffForm select:focus{outline:0;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}',
     '.bcff-fila{display:flex;gap:8px;align-items:flex-end}.bcff-fila label{flex:1}.bcff-buscar{min-height:48px;min-width:48px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;cursor:pointer;font-size:18px;color:#0f766e}',
-    '.bcff-ayuda{margin:0;font-size:13px;color:#64748b;line-height:1.4}.bcff-chk{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;color:#334155;font-weight:600}.bcff-chk input{width:22px;height:22px;min-height:0}',
+    '#bcffForm .bcff-ayuda{margin:0;font-size:13.5px;color:#64748b;line-height:1.45;text-transform:none}#bcffForm .bcff-chk{display:flex;flex-direction:row;align-items:center;gap:12px;min-height:48px;padding:0 12px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:14px;color:#334155;font-weight:500;text-transform:none;letter-spacing:0;cursor:pointer;line-height:1.35}#bcffForm .bcff-chk input{width:22px;height:22px;min-height:0;min-width:22px;margin:0;flex:0 0 auto;accent-color:#2563eb}#bcffForm .bcff-chk span{flex:1}',
     '.bcff-enviar{min-height:54px;border-radius:12px;border:0;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(180deg,#128C7E,#075E54);color:#fff}.bcff-enviar:disabled{opacity:.6}',
   ].join('');
   document.head.appendChild(style);
@@ -124,19 +125,17 @@
     const hilo = thread();
     if (!hilo) return window.toast?.('Abra primero el chat del cliente.', 'error');
     if (typeof abrirModalGenerico !== 'function') return;
-    const esAdmin = admin();
     abrirModalGenerico('Solicitud de financiamiento', `
       <form class="bcff-form" id="bcffForm" autocomplete="off">
-        <p class="bcff-ayuda">El cliente recibe un <b>enlace a la página de Bayol</b> con el equipo y el precio ya puestos; llena 5 pasos cortos y la respuesta aparece aquí en el chat con «Copiar» y la referencia para el banco.</p>
-        <label>Cómo lo recibe el cliente<select id="bcffModo"><option value="web" selected>Página de Bayol (enlace, recomendado)</option><option value="flow">Formulario dentro de WhatsApp (respaldo)</option></select></label>
+        <p class="bcff-ayuda">El cliente recibe un enlace con el equipo y el precio ya indicados. Al completarlo, la solicitud aparece en este chat con la referencia para el banco.</p>
+        <label class="bcff-campo"><span>Forma de envío</span><select id="bcffModo"><option value="web" selected>Enlace a la página de Bayol Cell</option><option value="flow">Formulario dentro de WhatsApp</option></select></label>
         <div class="bcff-fila">
-          <label>Equipo o artículo<input id="bcffEquipo" maxlength="120" placeholder="iPhone 13 128GB" required></label>
+          <label class="bcff-campo"><span>Equipo o artículo</span><input id="bcffEquipo" maxlength="120" placeholder="Ej.: iPhone 13 128GB" required></label>
           ${typeof abrirBuscadorArticulos === 'function' ? '<button type="button" class="bcff-buscar" id="bcffBuscar" title="Buscar en Info Plus" aria-label="Buscar en Info Plus"><i class="ti ti-search"></i></button>' : ''}
         </div>
-        <label>Precio (RD$)<input id="bcffPrecio" type="number" inputmode="decimal" min="1" step="0.01" placeholder="38500" required></label>
-        <label class="bcff-chk"><input type="checkbox" id="bcffInformado"> Ya le informé al cliente el equipo y el precio (regla del dueño: el formulario se envía después, nunca antes)</label>
-        ${esAdmin ? '<label class="bcff-chk"><input type="checkbox" id="bcffPrueba"> Modo de prueba (formulario en borrador, solo para probar en mi número)</label>' : ''}
-        <button type="submit" class="bcff-enviar" id="bcffEnviar"><i class="ti ti-send"></i> Enviar formulario al cliente</button>
+        <label class="bcff-campo"><span>Precio (RD$)</span><input id="bcffPrecio" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Ej.: 38500" required></label>
+        <label class="bcff-chk"><input type="checkbox" id="bcffInformado"><span>Confirmo que informé al cliente el equipo y el precio.</span></label>
+        <button type="submit" class="bcff-enviar" id="bcffEnviar"><i class="ti ti-send"></i> Enviar al cliente</button>
       </form>`, { ancho: '480px' });
     const form = document.getElementById('bcffForm'); if (!form) return;
     const eq = document.getElementById('bcffEquipo'), pr = document.getElementById('bcffPrecio'), btn = document.getElementById('bcffEnviar');
@@ -151,7 +150,7 @@
       if (!equipo) return eq.focus();
       if (!(precio > 0)) return pr.focus();
       const inf = document.getElementById('bcffInformado');
-      if (inf && !inf.checked) { window.toast?.('Primero infórmele al cliente el equipo y el precio; después marque la casilla y envíe.', 'error'); return inf.focus(); }
+      if (inf && !inf.checked) { window.toast?.('Antes de enviar, informe al cliente el equipo y el precio y marque la casilla de confirmación.', 'error'); return inf.focus(); }
       const prueba = !!(document.getElementById('bcffPrueba') || {}).checked;
       const modo = ((document.getElementById('bcffModo') || {}).value === 'flow') ? 'flow' : 'web';
       btn.disabled = true; btn.textContent = 'Enviando…';
@@ -168,11 +167,43 @@
         try { window._waRecargarMensajes?.(); } catch (e4) {}
       } catch (err) {
         window.toastError?.(String(err && err.message || err));
-        btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Enviar formulario al cliente';
+        btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Enviar al cliente';
       }
     });
   }
   window._bcffAbrir = abrir;
+
+  // ---------- Dueño (24-oct): en el celular el formulario va dentro del menú del clip (adjuntar) ----------
+  function engancharMenuAdjuntar() {
+    if (typeof window._waAsegurarMenuAdjuntar !== 'function' || window._waAsegurarMenuAdjuntar.__bcff) return;
+    const orig = window._waAsegurarMenuAdjuntar;
+    const envuelto = function () {
+      const menu = orig.apply(this, arguments);
+      try {
+        if (menu && !menu.querySelector('.bcff-adj') && puede()) {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'bcff-adj';
+          b.innerHTML = '<i class="ti ti-forms" style="color:#2563eb;"></i> Solicitud de financiamiento';
+          b.addEventListener('click', () => { try { window._waCerrarFlotantesDelChat?.(); } catch (e) {} abrir(); });
+          menu.appendChild(b);
+        }
+      } catch (e) {}
+      return menu;
+    };
+    envuelto.__bcff = true; window._waAsegurarMenuAdjuntar = envuelto;
+    if (typeof window._waAbrirMenuAdjuntar === 'function' && !window._waAbrirMenuAdjuntar.__bcff) {
+      const origAbrir = window._waAbrirMenuAdjuntar;
+      const abrirEnv = function (ev) {
+        const r = origAbrir.apply(this, arguments);
+        try { // el original calcula la altura para 7 filas; con la fila nueva se recoloca con la altura real
+          const menu = document.getElementById('waAdjuntarMenu'), btn = ev && ev.currentTarget;
+          if (menu && btn && menu.style.display === 'flex') { const rb = btn.getBoundingClientRect(); let top = rb.top - menu.offsetHeight - 6; if (top < 8) top = rb.bottom + 6; menu.style.top = top + 'px'; }
+        } catch (e) {}
+        return r;
+      };
+      abrirEnv.__bcff = true; window._waAbrirMenuAdjuntar = abrirEnv;
+    }
+  }
+  engancharMenuAdjuntar();
 
   // ---------- Arranque: esperar a que el chat exista ----------
   let intentos = 0;
@@ -180,6 +211,7 @@
     intentos++;
     const listo = envolverRender();
     ponerBoton();
+    engancharMenuAdjuntar();
     if ((listo && document.getElementById('btnWaFlowFin')) || intentos > 300) clearInterval(t);
   }, 250);
   new MutationObserver(() => ponerBoton()).observe(document.documentElement, { childList: true, subtree: true });

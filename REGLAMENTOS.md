@@ -59,6 +59,11 @@ La bitácora dice cuándo y por qué se escribió cada una.
 - Avisos **cortos, profesionales y que informen**, sin redundancias ni instrucciones de más. Una o dos frases.
   Ejemplo aprobado: «Esta prefactura no se modificará en Info Plus. Los cambios quedan solo en este sistema.»
 
+- **Orden de formularios y ventanas (24-oct-2026):** etiquetas en minúscula normal (nunca MAYÚSCULAS), textos formales y
+  cortos en usted sin paréntesis explicativos, casillas en fila con su texto dentro de una tarjeta de 48 px, campos 48/16 px,
+  botón principal 54 px. Detalle en `DESIGN.md §4b` (igual en los 3 proyectos). Se aplica a toda ventana nueva y a las
+  existentes cuando se toquen.
+
 ## 5. Reglas generales que ya regían
 
 - Datos de Bayol salen solo de su Info Plus; escribir en Info Plus exige autorización expresa del dueño.
