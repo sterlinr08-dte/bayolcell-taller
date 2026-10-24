@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f1';
+  window.__bcFlowFinanciamiento = '20261024-f2';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -115,6 +115,7 @@
           ${typeof abrirBuscadorArticulos === 'function' ? '<button type="button" class="bcff-buscar" id="bcffBuscar" title="Buscar en Info Plus" aria-label="Buscar en Info Plus"><i class="ti ti-search"></i></button>' : ''}
         </div>
         <label>Precio (RD$)<input id="bcffPrecio" type="number" inputmode="decimal" min="1" step="0.01" placeholder="38500" required></label>
+        <label class="bcff-chk"><input type="checkbox" id="bcffInformado"> Ya le informé al cliente el equipo y el precio (regla del dueño: el formulario se envía después, nunca antes)</label>
         ${esAdmin ? '<label class="bcff-chk"><input type="checkbox" id="bcffPrueba"> Modo de prueba (formulario en borrador, solo para probar en mi número)</label>' : ''}
         <button type="submit" class="bcff-enviar" id="bcffEnviar"><i class="ti ti-send"></i> Enviar formulario al cliente</button>
       </form>`, { ancho: '480px' });
@@ -130,6 +131,8 @@
       const equipo = eq.value.trim(), precio = Number(pr.value);
       if (!equipo) return eq.focus();
       if (!(precio > 0)) return pr.focus();
+      const inf = document.getElementById('bcffInformado');
+      if (inf && !inf.checked) { window.toast?.('Primero infórmele al cliente el equipo y el precio; después marque la casilla y envíe.', 'error'); return inf.focus(); }
       const prueba = !!(document.getElementById('bcffPrueba') || {}).checked;
       btn.disabled = true; btn.textContent = 'Enviando…';
       try {

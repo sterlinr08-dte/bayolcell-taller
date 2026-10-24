@@ -81,3 +81,10 @@ obligatorios y cómo se llama exactamente el campo «Referencia».
   `deno.json` que ya tenía la v39, ahora también en el repo). En los 20 minutos siguientes todos los eventos de Zernio
   respondieron 200 (mensajes normales siguen entrando igual).
 - Estado: todo listo para la prueba real en el celular del dueño (línea Reparación +18097072493, modo de prueba).
+
+## Actualización 09:35 RD · regla del dueño: informar antes de enviar
+«Ese formulario no se envía a clientes sin antes haberle dado las informaciones sobre qué equipo va a financiar.» Ya era así
+(solo lo manda un empleado con equipo y precio; la IA no lo envía). Para dejarlo amarrado: casilla obligatoria en la ventana
+de envío «Ya le informé al cliente el equipo y el precio»; sin marcarla no se envía y sale el aviso. Capa `f2`,
+`crm-marketing-consent.js?v=20261024-u15`. Prueba del banco actualizada: sin la casilla no hay llamada al servidor y aparece
+el aviso; con la casilla, se envía. 390 y 1280 px OK.
