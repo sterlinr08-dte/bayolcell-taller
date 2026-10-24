@@ -40,7 +40,7 @@ html.bc-ligero *,html.bc-ligero *::before,html.bc-ligero *::after{-webkit-backdr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="taller-visual-polish.css?v=20260916-perf1">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20261024-a1">
 
 <style>
 :root {
@@ -4238,7 +4238,7 @@ body{
 </script>
 
 <!-- MODAL: EVALUACIÓN DE EQUIPO (FALLAS + PIEZAS) -->
-<div id="modalEvaluacion" class="modal-backdrop">
+<div id="modalEvaluacion" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:900px; width:95%;">
         <div class="modal-header" style="background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-clipboard-list"></i> <span id="evalTituloModal">Evaluando Equipo</span></h3>
@@ -4348,7 +4348,7 @@ body{
 </div>
 
 <!-- MODAL: CREAR/EDITAR TÉCNICO -->
-<div id="modalPiezasTecnico" class="modal-backdrop">
+<div id="modalPiezasTecnico" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="ti ti-packages"></i> <span id="piezasTecnicoTitulo">Piezas del técnico</span></h3>
@@ -4364,7 +4364,7 @@ body{
     </div>
 </div>
 
-<div id="modalTecnico" class="modal-backdrop">
+<div id="modalTecnico" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="ti ti-user-plus"></i> <span id="modalTecnicoTitulo">Nuevo Empleado</span></h3>
@@ -4453,7 +4453,7 @@ body{
 </div>
 
 <!-- MODAL: LABEL DE VENTA -->
-<div id="modalLabelVenta" class="modal-backdrop">
+<div id="modalLabelVenta" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:900px; width:95%;">
         <div class="modal-header" style="background:linear-gradient(135deg, #5b21b6, #7c3aed); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-tag"></i> Imprimir Label de Venta</h3>
@@ -4540,7 +4540,7 @@ body{
 </div>
 
 <!-- MODAL: CAMBIAR CLAVE -->
-<div id="modalCambiarClave" class="modal-backdrop">
+<div id="modalCambiarClave" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:450px;">
         <div class="modal-header" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-key"></i> Cambiar Contraseña</h3>
@@ -4567,7 +4567,7 @@ body{
 </div>
 
 <!-- MODAL: ASIENTO CONTABLE -->
-<div id="modalAsiento" class="modal-backdrop">
+<div id="modalAsiento" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:780px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-notebook"></i> Nuevo asiento contable</h3>
@@ -4597,7 +4597,7 @@ body{
 </div>
 
 <!-- MODAL: GENERAR ASIENTOS DESDE INFO PLUS -->
-<div id="modalAutoIP" class="modal-backdrop">
+<div id="modalAutoIP" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:860px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-bolt"></i> Generar asientos desde Info Plus</h3>
@@ -4630,7 +4630,7 @@ body{
 </div>
 
 <!-- MODAL: ASIENTO DE APERTURA (saldos iniciales) -->
-<div id="modalApertura" class="modal-backdrop">
+<div id="modalApertura" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:640px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-flag"></i> Asiento de apertura (saldos iniciales)</h3>
@@ -4665,7 +4665,7 @@ body{
 </div>
 
 <!-- MODAL: GENERAR COMPRAS DESDE INFO PLUS -->
-<div id="modalAutoIPC" class="modal-backdrop">
+<div id="modalAutoIPC" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:860px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-shopping-cart"></i> Generar compras desde Info Plus</h3>
@@ -4698,7 +4698,7 @@ body{
 </div>
 
 <!-- MODAL: REGISTRAR GASTO (forma sencilla para el contador) -->
-<div id="modalRegGasto" class="modal-backdrop">
+<div id="modalRegGasto" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:560px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-receipt"></i> Registrar gasto</h3>
@@ -4739,7 +4739,7 @@ body{
 </div>
 
 <!-- MODAL: GASTO SIMPLE (para Estado Mensual — fácil, sin contabilidad) -->
-<div id="modalGastoSimple" class="modal-backdrop">
+<div id="modalGastoSimple" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:520px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-receipt"></i> Registrar gasto</h3>
@@ -4794,7 +4794,7 @@ body{
 </div>
 
 <!-- MODAL: MOVIMIENTO DE EFECTIVO (caja/banco — entradas/salidas/transferencias) -->
-<div id="modalMovEf" class="modal-backdrop">
+<div id="modalMovEf" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:560px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#155e75); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-cash-banknote"></i> Movimiento de efectivo</h3>
@@ -4838,7 +4838,7 @@ body{
 </div>
 
 <!-- MODAL: CUENTA CONTABLE -->
-<div id="modalCuenta" class="modal-backdrop">
+<div id="modalCuenta" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:520px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;" id="modalCuentaTitulo"><i class="ti ti-book"></i> Nueva cuenta</h3>
@@ -4873,7 +4873,7 @@ body{
 </div>
 
 <!-- MODAL: CREAR/EDITAR CATEGORÍA -->
-<div id="modalCategoria" class="modal-backdrop">
+<div id="modalCategoria" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:500px;">
         <div class="modal-header" style="background:linear-gradient(135deg, #0891b2, #0e7490); color:#fff; border-radius:12px 12px 0 0;">            <h3 style="color:#fff;"><i class="ti ti-category"></i> <span id="modalCategoriaTitulo">Nueva Categoría</span></h3>
             <button class="modal-close" onclick="cerrarModalCategoria()" style="color:#fff;">✕</button>
@@ -4923,7 +4923,7 @@ body{
 </div>
 
 <!-- MODAL: CREAR/EDITAR MARCA -->
-<div id="modalMarca" class="modal-backdrop">
+<div id="modalMarca" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:450px;">
         <div class="modal-header" style="background:linear-gradient(135deg, #6366f1, #4338ca); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-brand-apple"></i> <span id="modalMarcaTitulo">Nueva Marca</span></h3>
@@ -4950,7 +4950,7 @@ body{
 </div>
 
 <!-- MODAL: CREAR/EDITAR ROL -->
-<div id="modalRol" class="modal-backdrop">
+<div id="modalRol" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:850px; width:95%;">
         <div class="modal-header" style="background:linear-gradient(135deg, #6366f1, #4338ca); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-shield"></i> <span id="modalRolTitulo">Nuevo Rol</span></h3>
@@ -5113,7 +5113,7 @@ body{
 <input type="file" id="waFileCamara" accept="image/*" capture="environment" style="display:none;" onchange="_waAdjuntoSeleccionado(this,'imagen')">
 
 <!-- MODAL: REGISTRAR DEVOLUCIÓN -->
-<div id="modalDevolucion" class="modal-backdrop">
+<div id="modalDevolucion" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:850px; width:95%;">
         <div class="modal-header" style="background:linear-gradient(135deg, #dc2626, #991b1b); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-rotate-2"></i> Registrar Devolución</h3>
@@ -5188,7 +5188,7 @@ body{
 <!-- MODAL: ASIGNAR TÉCNICO A EQUIPO -->
 <!-- MODAL: Registrar PIEZA USADA (consumo del taller) -->
 <!-- MODAL: Enviar notificación al equipo (MDM) -->
-<div id="modalMdmNotif" class="modal-backdrop">
+<div id="modalMdmNotif" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:460px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-message-2"></i> Enviar notificación al equipo</h3>
@@ -5215,7 +5215,7 @@ body{
     </div>
 </div>
 
-<div id="modalConsumoTaller" class="modal-backdrop">
+<div id="modalConsumoTaller" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:560px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#15803d,#16a34a); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-tool"></i> Registrar pieza usada</h3>
@@ -5245,7 +5245,7 @@ body{
 
 <!-- MODAL: Rifa por Factura (Info Plus) — INDEPENDIENTE de la Rifa de Nexus Pro -->
 <!-- MODAL: Registrar equipo EXISTENTE (previo al sistema) -->
-<div id="modalRegistrarExistente" class="modal-backdrop">
+<div id="modalRegistrarExistente" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:560px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-archive"></i> Registrar equipo existente</h3>
@@ -5280,7 +5280,7 @@ body{
     </div>
 </div>
 
-<div id="modalComparacionIP" class="modal-backdrop">
+<div id="modalComparacionIP" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:1080px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#075985,#0369a1); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-git-compare"></i> Comparar costos con Info Plus</h3>
@@ -5316,7 +5316,7 @@ body{
     </div>
 </div>
 
-<div id="modalAsignarTecnico" class="modal-backdrop">
+<div id="modalAsignarTecnico" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:550px;">
         <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #ef4444); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-user-check"></i> Asignar Técnico</h3>
@@ -5345,7 +5345,7 @@ body{
 </div>
 
 <!-- MODAL: ASIGNAR EN BLOQUE (cantidad de equipos a un técnico) -->
-<div id="modalAsignarLote" class="modal-backdrop">
+<div id="modalAsignarLote" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:520px;">
         <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #ef4444); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-users"></i> Asignar equipos a un técnico</h3>
@@ -5376,7 +5376,7 @@ body{
 </div>
 
 <!-- MODAL: CREAR/EDITAR FALLA -->
-<div id="modalFalla" class="modal-backdrop">
+<div id="modalFalla" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="ti ti-alert-triangle"></i> <span id="modalFallaTitulo">Nueva Falla</span></h3>
@@ -5417,7 +5417,7 @@ body{
 </div>
 
 <!-- MODAL: CREAR PROVEEDOR -->
-<div id="modalProveedor" class="modal-backdrop">
+<div id="modalProveedor" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="ti ti-truck"></i> <span id="modalProvTitulo">Crear Proveedor</span></h3>
@@ -5459,7 +5459,7 @@ body{
 </div>
 
 <!-- MODAL: CREAR ARTICULO -->
-<div id="modalArticulo" class="modal-backdrop">
+<div id="modalArticulo" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="ti ti-database"></i> <span id="modalArtTitulo">Crear Artículo</span></h3>
@@ -5510,7 +5510,7 @@ body{
 </div>
 
 <!-- MODAL: NUEVO PERFIL IMPRESORA -->
-<div id="modalNuevoPerfil" class="modal-backdrop">
+<div id="modalNuevoPerfil" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="ti ti-plus"></i> Crear Nuevo Perfil de Impresora</h3>
@@ -5533,7 +5533,7 @@ body{
 </div>
 
 <!-- MODAL: CONFIGURACIÓN IMPRESORA 2C-LP427B -->
-<div id="modalConfigImpresora" class="modal-backdrop">
+<div id="modalConfigImpresora" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:600px;">
         <div class="modal-header">
             <h3><i class="ti ti-settings"></i> Configurar Impresora 2C-LP427B</h3>
@@ -5594,7 +5594,7 @@ body{
 </div>
 
 <!-- MODAL: NUEVA COMPRA -->
-<div id="modalNuevaCompra" class="modal-backdrop">
+<div id="modalNuevaCompra" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="ti ti-shopping-cart-plus"></i> Nueva Compra</h3>
@@ -5628,7 +5628,7 @@ body{
 </div>
 
 <!-- MODAL: PREVIEW LABELS DIAGNÓSTICO -->
-<div id="modalLabelDiag" class="modal-backdrop">
+<div id="modalLabelDiag" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box" style="max-width:600px;">
         <div class="modal-header">
             <h3><i class="ti ti-printer"></i> <span id="modalLabelTitulo">Vista Previa del Label</span></h3>
