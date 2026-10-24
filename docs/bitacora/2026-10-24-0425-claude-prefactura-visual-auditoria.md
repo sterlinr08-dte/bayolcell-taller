@@ -35,3 +35,6 @@ de bc-pf), `taller-prefactura.css` n10→n11 (fondo oscurecido, Guardar, ventana
 ## Pendiente
 - El dueño adjunta el PDF para contrastar los otros 3 hallazgos.
 - Medir en iPhone real (la auditoría solo revisó el móvil por código).
+
+## Publicado 24-oct 00:25 (RD) — dueño: «Publícalo»
+PR #112 (CI en verde: unit, chromium, webkit) pasado a `main` por fast-forward y publicado en bayolcell.com.
