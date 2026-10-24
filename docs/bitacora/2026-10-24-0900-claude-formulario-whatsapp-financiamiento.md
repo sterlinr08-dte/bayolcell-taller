@@ -60,3 +60,11 @@ Acceso del banco: el dueño ofreció mandarlo; se le pidió **no** hacerlo (regl
 - Si la respuesta de Zernio no trae `nfm_reply` donde se busca, usar `sincronizar` y ajustar el webhook con el payload real.
 - Fase 2: puente al formulario del banco (robot supervisado o pegado asistido). Necesita el enlace y una captura del formulario.
 - Fuera de la ventana de 24 h haría falta una plantilla con botón de flow (no hecha).
+
+## Actualización 09:10 RD · el formulario del banco
+El dueño mandó el enlace: **https://embajadores.banfondesa.com.do/login** («Banfondesa - Ingreso de Prospectos»). Es un portal
+de **Banfondesa** (no Ademi, como dice la base de conocimiento de la IA: hay que confirmar con el dueño si Ademi sigue o cambió).
+Página de entrada pública: aplicación moderna (Next.js/React) con usuario y clave; el formulario de prospectos está detrás del
+inicio de sesión, así que sus campos solo se verán con capturas del dueño o desde la PC de la tienda. **No se pidieron ni se
+recibieron claves.** Para la fase 2 (puente al banco) hacen falta: capturas de cada pantalla del formulario, qué campos son
+obligatorios y cómo se llama exactamente el campo «Referencia».
