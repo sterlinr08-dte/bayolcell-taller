@@ -1,4 +1,4 @@
-# 2026-10-24 08:30 (RD) — Plantilla «bayolcell_cuentas_pago»: tercera consulta a Meta (Navarrete sigue PENDING)
+# 2026-10-24 08:05 (RD) — Plantilla «bayolcell_cuentas_pago»: tercera consulta a Meta (Navarrete sigue PENDING)
 
 ## Pedido del dueño
 «Revisa la plantilla de Navarrete en Meta.»
@@ -7,7 +7,7 @@
 Edge `whatsapp-plantilla-crear` desplegada en versión **solo consulta** (v13, acción `estado`, sin poder crear plantillas),
 llave de un solo uso en `_plantilla_llaves` (vence a las 08:23 RD; la copia local se borró), y de nuevo el tapón 410 (**v14**).
 
-## Estado en Meta (Zernio, 24-oct 08:20 RD)
+## Estado en Meta (Zernio, 24-oct 08:03 RD)
 | Línea | `bayolcell_cuentas_pago` | `bayolcell_prefactura` |
 |---|---|---|
 | Principal +18098934412 (Navarrete) | **PENDING** | APPROVED |
