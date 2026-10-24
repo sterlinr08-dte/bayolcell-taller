@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f9';
+  window.__bcFlowFinanciamiento = '20261024-f10';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -77,13 +77,16 @@
       `Dirección: ${[d.calle ? 'Calle ' + d.calle : '', d.casa ? 'No. ' + d.casa : '', d.sector, d.municipio, d.provincia].filter(Boolean).join(', ')}`, '',
       `Equipo: ${d.equipo || ''}`, `Monto: ${d.precio || ''}`, d.plazo ? `Plazo deseado: ${d.plazo}` : ''].filter(x => x !== null).join('\n').replace(/\n{3,}/g, '\n\n');
     // Fotos que el cliente mandó después de responder (cédula y comprobante): se cuentan en el mismo chat.
-    const fotosTxt = `<span style="color:#1d4ed8">Pendiente de enviar al banco</span>`;
+    // 24-oct-2026: el estado vive en CRM › Solicitudes; desde aquí se abre su ficha de seguimiento.
+    const fl = (m.meta && m.meta.flow) || {};
+    const fotosTxt = `<span style="color:#1d4ed8">Siga el estado en la pestaña Solicitudes</span>`;
+    const verBtn = (fl.solicitud_id || fl.flow_token) ? `<button type="button" class="bcff-c" data-bcsol-ver="${esc(fl.solicitud_id || '')}" data-bcsol-token="${esc(fl.flow_token || '')}" style="flex-basis:100%">Ver seguimiento</button>` : '';
     return `<div class="bcff-card" onclick="event.stopPropagation()">
       <h4><i class="ti ti-file-dollar"></i> Solicitud de financiamiento</h4>
       ${filas}
       ${ref ? `<div class="bcff-ref"><b>Referencia para el banco</b>${esc(ref)}</div>` : ''}
       <div style="font-size:12px;margin-top:8px;font-weight:600">${fotosTxt}</div>
-      <div class="bcff-acts">${ref ? `<button type="button" class="bcff-c" data-bcff-copiar="${esc(ref)}">Copiar referencia</button>` : ''}<button type="button" class="bcff-c" data-bcff-copiar="${esc(todo)}">Copiar solicitud completa</button></div>
+      <div class="bcff-acts">${ref ? `<button type="button" class="bcff-c" data-bcff-copiar="${esc(ref)}">Copiar referencia</button>` : ''}<button type="button" class="bcff-c" data-bcff-copiar="${esc(todo)}">Copiar solicitud completa</button>${verBtn}</div>
     </div>`;
   }
   function envolverRender() {
