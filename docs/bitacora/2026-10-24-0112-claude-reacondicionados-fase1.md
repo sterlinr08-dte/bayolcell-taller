@@ -47,3 +47,8 @@ Versiones: `taller-app.min.js q3`, `taller-reacond-smart.js r1`, `taller-flota.j
 - Fase 2 (OK del dueño): RLS por permiso + trigger de transición (R01), RPC transaccionales (R07, R11, R12), idempotencia IP con
   referencia (R03), V05 completo. Conciliación de datos existentes solo con autorización.
 - `precio_venta_real` nadie lo escribe hoy: «Despachados con precio» será 0 hasta que se cargue.
+
+## Publicado (24-oct-2026, 07:25 RD)
+- El dueño dijo «Publícalo». PR #114 fusionado en `main` por avance rápido (cabeza `b706432`), CI en verde (unit, chromium, webkit).
+- Deploy = GitHub Pages desde `main`; versiones en vivo esperadas: `taller-app.min.js q3`, `taller-reacond-smart.js r1`, `bc-dialogos.js d1`.
+- Fase 2 sigue esperando el OK del dueño.
