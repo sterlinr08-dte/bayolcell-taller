@@ -68,3 +68,10 @@ Página de entrada pública: aplicación moderna (Next.js/React) con usuario y c
 inicio de sesión, así que sus campos solo se verán con capturas del dueño o desde la PC de la tienda. **No se pidieron ni se
 recibieron claves.** Para la fase 2 (puente al banco) hacen falta: capturas de cada pantalla del formulario, qué campos son
 obligatorios y cómo se llama exactamente el campo «Referencia».
+
+## Actualización 09:15 RD · Meta aceptó el formulario (borrador)
+- `whatsapp-flow-financiamiento` **v2** (cédula como texto). Segunda subida del Flow JSON en la línea Reparación +18097072493:
+  **sin errores de validación**. Flow `1745286376543075`, versión 1, estado DRAFT (no publicado).
+- Meta devolvió una vista previa web del formulario (enlace público sin inicio de sesión, válido unos 30 días; está en
+  `whatsapp_flows` no, se obtiene con `publicar` cada vez). Se le pasó al dueño para que lo vea antes de probarlo en su celular.
+- Llaves de un solo uso: ambas copias locales borradas; las filas de `_plantilla_llaves` vencen solas.
