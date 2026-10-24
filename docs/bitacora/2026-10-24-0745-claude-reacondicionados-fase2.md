@@ -96,3 +96,7 @@ la actualización de la base»; devolver y crear lotes ya funcionan contra el se
   al cliente lo tiene) modificara cualquier campo de un equipo. Ahora ese permiso solo abre la puerta para la devolución
   (Despachado → En reparación). Reprobado: servicio modifica equipo → rechazado; servicio registra devolución por RPC → pasa;
   técnico edita notas → pasa. El archivo de migración quedó igual que lo aplicado.
+
+## Publicado (24-oct-2026, 08:20 RD)
+- El dueño dijo «Publícalo». PR #115 fusionado en `main` por avance rápido (cabeza `274c2db`), CI en verde.
+- La base ya tenía la fase 2 completa, así que la pantalla nueva (`taller-app.min.js q4`) funciona de inmediato.
