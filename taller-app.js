@@ -15849,21 +15849,28 @@ async function hacerDespachoRapido() {
     } else toast(`❌ No se pudo hacer el despacho.\n${r.error}`, 'error');
     if(document.getElementById('v-despachos')?.classList.contains('active')) _despachoCargarHistorial();
 }
-// Guarda una fila en el historial. Devuelve la fila guardada (para imprimir).
+// Guarda una fila en el historial. Devuelve la fila guardada (para imprimir) o null si no se pudo guardar.
+// 24-oct-2026 (auditoría R04-d): el error de Supabase se lee y se avisa en pantalla; antes se tragaba en silencio
+// y el despacho quedaba hecho en Info Plus sin conduce ni rastro en el taller.
 async function _despGuardarHistorial({ origen, destino, items, nota, r }) {
     const u = items.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
     const estado = r.ok ? 'ok' : 'error';
     const detalle = r.ok ? ('Despacho ' + (r.numero || '')) : (r.error || 'Error');
+    let fallo = null;
     try {
-        const { data } = await supabaseClient.from('despachos_almacen').insert([{
+        const { data, error } = await supabaseClient.from('despachos_almacen').insert([{
             codarticulo: items.length === 1 ? parseInt(String(items[0].codigo).replace(/[^0-9]/g, ''), 10) : null,
             articulo_nombre: items.length === 1 ? items[0].descripcion : (items.length + ' artículos'),
             cantidad: u, almacen_origen: origen, almacen_destino: destino,
             usuario: sessionUser?.nombre || 'Admin', nota: nota || null, estado, detalle,
             despacho_numero: r.numero, items: items
         }]).select().single();
-        return data;
-    } catch(e) { logError('Guardar despacho', e); return null; }
+        if(error) fallo = error; else return data;
+    } catch(e) { fallo = e; }
+    logError('Guardar despacho', fallo);
+    const ref = r.ok ? `El despacho Nº ${r.numero || '?'} SÍ quedó hecho en Info Plus, pero` : 'El intento fallido de despacho';
+    toastError(`${ref} no se pudo guardar en el historial de despachos del taller (sin conduce).\n${getFriendlyError(fallo)}`);
+    return null;
 }
 async function hacerDespachoAlmacen() {
     if(!tienePermiso('despacho_ver')) return toast('🔒 No tiene permiso.', 'error');
@@ -16582,31 +16589,86 @@ function _despTelEstilos() {
     `;
     document.head.appendChild(st);
 }
+// 24-oct-2026 (auditoría R02/R04): el despacho de teléfonos ahora CIERRA en el taller los equipos realmente
+// enviados a Info Plus (equipos_refurbish → vendido + equipo_historial), tomando los IDs del documento armado en la
+// ventana (ctx.lista) y capturados ANTES de llamar a Info Plus. Antes solo marcaba el envoltorio de
+// taller-reacond-smart.js, con la selección original y solo si se venía del asistente; desde la barra del lote el
+// equipo quedaba en listo_venta y volvía a ofrecerse para despachar.
+// Devuelve siempre un resultado explícito: { ok:true, documento, ids, sinCerrar } o { ok:false, error }.
+let _despEnCurso = false; // evita dos confirmaciones a la vez (doble clic / doble Enter)
 async function _despTelConfirmar() {
-    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marque al menos un teléfono.', 'error');
+    if(_despEnCurso) { toast('Ya hay un despacho en curso; espere a que termine.', 'error'); return { ok: false, error: 'en_curso' }; }
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) { toast('Marque al menos un teléfono.', 'error'); return { ok: false, error: 'sin_equipos' }; }
     const origen = parseInt(document.getElementById('despTelOrigen')?.value, 10);
     const destino = parseInt(document.getElementById('despTelDestino')?.value, 10);
-    if(origen === destino) return toast('El origen y el destino no pueden ser el mismo.', 'error');
+    if(origen === destino) { toast('El origen y el destino no pueden ser el mismo.', 'error'); return { ok: false, error: 'mismo_almacen' }; }
     const { lista } = _despTelCtx;
+    // IDs/IMEI realmente enviados: se congelan aquí, antes de Info Plus, para que ningún cambio posterior de la
+    // selección (ni la selección original con la que se abrió la ventana) decida qué se cierra en el taller.
+    const enviados = lista.flatMap(g => g.equipos.map(e => ({ id: e.id, imei: String(e.imei || '').trim(), modelo: g.modelo || e.modelo || '' })));
+    const ids = enviados.map(e => e.id);
     const items = lista.map(g => ({ codigo: g.codigo, descripcion: g.modelo, cantidad: g.equipos.length, costo: g.equipos.length ? g.total / g.equipos.length : 0 }));
     const seriales = [];
     lista.forEach(g => { const c = parseInt(String(g.codigo).replace(/[^0-9]/g, ''), 10); g.imeis.forEach(im => seriales.push({ numero: im, codarticulo: c })); });
     const totU = items.reduce((s, x) => s + x.cantidad, 0);
-    if(!await confirmar(`¿Despachar ${totU} teléfono(s)\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?\n\nSe registra como un documento en Info Plus (por modelo, costo promedio, con sus IMEI).`)) return;
-    toast('Despachando teléfonos en Info Plus…');
-    const r = await _ejecutarDespachoReal({ origen, destino, items, seriales, nota: 'Despacho teléfonos reacondicionados' });
-    // Para el conduce: cada modelo lleva sus IMEI con el color (solo en el historial; a Info Plus va igual que antes)
-    const itemsHist = items.map((it, i) => ({ ...it, imeis: lista[i].equipos.map(e => ({ imei: String(e.imei || '').trim(), color: _eqColorReal(e) || '' })).filter(x => x.imei) }));
-    const saved = await _despGuardarHistorial({ origen, destino, items: itemsHist, nota: 'Teléfonos reacondicionados', r });
-    if(r.ok) {
-        toast(`Despacho #${r.numero} de teléfonos hecho: ${totU} u.`);
+    _despEnCurso = true;
+    const btnDesp = document.getElementById('dtBtnDesp'); if(btnDesp) btnDesp.disabled = true;
+    try {
+        if(!await confirmar(`¿Despachar ${totU} teléfono(s)\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?\n\nSe registra como un documento en Info Plus (por modelo, costo promedio, con sus IMEI) y los equipos pasan a Despachado en el taller.`)) return { ok: false, error: 'cancelado' };
+        toast('Despachando teléfonos en Info Plus…');
+        const r = await _ejecutarDespachoReal({ origen, destino, items, seriales, nota: 'Despacho teléfonos reacondicionados' });
+        // Para el conduce: cada modelo lleva sus IMEI con el color (solo en el historial; a Info Plus va igual que antes)
+        const itemsHist = items.map((it, i) => ({ ...it, imeis: lista[i].equipos.map(e => ({ imei: String(e.imei || '').trim(), color: _eqColorReal(e) || '' })).filter(x => x.imei) }));
+        const saved = await _despGuardarHistorial({ origen, destino, items: itemsHist, nota: 'Teléfonos reacondicionados', r });
+        if(!r.ok) {
+            toast(`No se pudo despachar: ${r.error}\n(Revise que cada teléfono esté en la localidad de origen.)`, 'error');
+            return { ok: false, error: r.error || 'Info Plus rechazó el despacho' };
+        }
+        const documento = r.numero || '';
+        // --- Cierre en el taller de los equipos enviados: (a) estado + fecha, (b) historial por equipo ---
+        const ahora = new Date().toISOString();
+        let sinCerrar = enviados.slice(), errCierre = null, errHist = null;
+        const { data: upd, error: eUpd } = await supabaseClient.from('equipos_refurbish')
+            .update({ estado_evaluacion: 'vendido', fecha_despacho: ahora }).in('id', ids).select('id');
+        if(eUpd) errCierre = eUpd;
+        else {
+            const cerrados = new Set((upd || []).map(x => x.id));
+            sinCerrar = enviados.filter(e => !cerrados.has(e.id));
+            // Caché local al momento: así _despTelCandidatos y la barra del lote ya no los ofrecen aunque falle la recarga
+            (cache.refurb || []).forEach(x => { if(cerrados.has(x.id)) { x.estado_evaluacion = 'vendido'; x.fecha_despacho = ahora; } });
+            try { cerrados.forEach(id => _reacondSel.delete(id)); } catch(_) {}
+            if(cerrados.size) {
+                const filas = enviados.filter(e => cerrados.has(e.id)).map(e => ({
+                    equipo_id: e.id, estado_anterior: 'listo_venta', estado_nuevo: 'vendido', accion: 'despacho_infoplus',
+                    notas: `Despacho Info Plus Nº ${documento}`, usuario: sessionUser?.nombre || 'Admin'
+                }));
+                const { error: eHist } = await supabaseClient.from('equipo_historial').insert(filas);
+                if(eHist) errHist = eHist;
+            }
+        }
+        // (c) Nunca decir «éxito» a secas si algo del cierre falló: el número de Info Plus y los IMEI quedan a la vista
+        if(errCierre || sinCerrar.length) {
+            logError('Cerrar equipos despachados', errCierre || new Error('Equipos sin cerrar: ' + sinCerrar.map(e => e.id).join(',')));
+            const lst = sinCerrar.map(e => e.imei || e.id).join(', ');
+            toastError(`Info Plus ya tiene el despacho Nº ${documento || '?'}; ${sinCerrar.length} de ${totU} equipo(s) no se pudieron marcar como Despachado en el taller.\nIMEI/ID sin cerrar: ${lst}.\nReintente desde el lote («Despachado solo en el taller»), NO repita el despacho en Info Plus.${errCierre ? '\n' + getFriendlyError(errCierre) : ''}`);
+        } else if(errHist) {
+            logError('Historial de despacho Info Plus', errHist);
+            toastError(`Los ${totU} equipo(s) quedaron Despachados, pero no se pudo anotar el historial del despacho Nº ${documento || '?'}.\n${getFriendlyError(errHist)}`);
+        } else {
+            toast(`Despacho #${documento} de teléfonos hecho: ${totU} u. · ${totU} equipo(s) marcados como Despachado.`);
+        }
         _despTelBorrarBorrador(true);
         document.getElementById('modalDespTel')?.remove();
-        await _ensureInfoplusArticulos(true);
+        _despTelCtx = null;
+        try { await _ensureInfoplusArticulos(true); } catch(e) { logError('Refrescar artículos tras despacho', e); }
         // Reportes por WhatsApp (equipo sin costos / dueño con costo y lote) + imprimir conduce, en una sola ventana
-        _despReporteAbrir(_despInfoDesdeLista(r.numero, origen, destino, lista), saved ? saved.id : null);
-    } else {
-        toast(`No se pudo despachar: ${r.error}\n(Revise que cada teléfono esté en la localidad de origen.)`, 'error');
+        _despReporteAbrir(_despInfoDesdeLista(documento, origen, destino, lista), saved ? saved.id : null);
+        // Recargar la vista del taller (igual que marcarDespachado); si falla, la caché local ya quedó al día
+        try { await loadAll(); if(reacondLoteAbiertoId) renderDetalleLoteReacond(); } catch(e) { logError('Recargar tras despacho', e); }
+        return { ok: true, documento, ids: ids.filter(id => !sinCerrar.some(e => e.id === id)), sinCerrar: sinCerrar.map(e => e.id) };
+    } finally {
+        _despEnCurso = false;
+        const b2 = document.getElementById('dtBtnDesp'); if(b2) b2.disabled = false;
     }
 }
 
