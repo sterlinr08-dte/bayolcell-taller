@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f4';
+  window.__bcFlowFinanciamiento = '20261024-f5';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,7 +30,7 @@
     '.bcff-acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.bcff-acts .bcff-c{flex:1;min-height:44px}',
     '.bcff-out{font-size:11px;color:#0f766e;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px}',
     '.bcff-form{display:flex;flex-direction:column;gap:10px}.bcff-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:#334155}',
-    '.bcff-form input{box-sizing:border-box;width:100%;min-height:48px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:16px;font-weight:400;color:#0f172a}',
+    '.bcff-form input,.bcff-form select{box-sizing:border-box;width:100%;min-height:48px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:16px;font-weight:400;color:#0f172a}',
     '.bcff-fila{display:flex;gap:8px;align-items:flex-end}.bcff-fila label{flex:1}.bcff-buscar{min-height:48px;min-width:48px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;cursor:pointer;font-size:18px;color:#0f766e}',
     '.bcff-ayuda{margin:0;font-size:13px;color:#64748b;line-height:1.4}.bcff-chk{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;color:#334155;font-weight:600}.bcff-chk input{width:22px;height:22px;min-height:0}',
     '.bcff-enviar{min-height:54px;border-radius:12px;border:0;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(180deg,#128C7E,#075E54);color:#fff}.bcff-enviar:disabled{opacity:.6}',
@@ -128,7 +128,8 @@
     const esAdmin = admin();
     abrirModalGenerico('Solicitud de financiamiento', `
       <form class="bcff-form" id="bcffForm" autocomplete="off">
-        <p class="bcff-ayuda">El cliente recibe un formulario <b>dentro de WhatsApp</b> con el equipo y el precio ya puestos. Él solo llena sus datos y su dirección. Al responder, la burbuja trae cada dato con «Copiar» y la referencia para el banco.</p>
+        <p class="bcff-ayuda">El cliente recibe un <b>enlace a la página de Bayol</b> con el equipo y el precio ya puestos; llena 5 pasos cortos y la respuesta aparece aquí en el chat con «Copiar» y la referencia para el banco.</p>
+        <label>Cómo lo recibe el cliente<select id="bcffModo"><option value="web" selected>Página de Bayol (enlace, recomendado)</option><option value="flow">Formulario dentro de WhatsApp (respaldo)</option></select></label>
         <div class="bcff-fila">
           <label>Equipo o artículo<input id="bcffEquipo" maxlength="120" placeholder="iPhone 13 128GB" required></label>
           ${typeof abrirBuscadorArticulos === 'function' ? '<button type="button" class="bcff-buscar" id="bcffBuscar" title="Buscar en Info Plus" aria-label="Buscar en Info Plus"><i class="ti ti-search"></i></button>' : ''}
@@ -153,16 +154,17 @@
       const inf = document.getElementById('bcffInformado');
       if (inf && !inf.checked) { window.toast?.('Primero infórmele al cliente el equipo y el precio; después marque la casilla y envíe.', 'error'); return inf.focus(); }
       const prueba = !!(document.getElementById('bcffPrueba') || {}).checked;
+      const modo = ((document.getElementById('bcffModo') || {}).value === 'flow') ? 'flow' : 'web';
       btn.disabled = true; btn.textContent = 'Enviando…';
       try {
-        const { data, error } = await supabaseClient.functions.invoke('whatsapp-flow-financiamiento', { body: { accion: 'enviar', hilo_id: hilo, equipo, precio, prueba, empleado_nombre: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || null } });
+        const { data, error } = await supabaseClient.functions.invoke('whatsapp-flow-financiamiento', { body: { accion: 'enviar', hilo_id: hilo, equipo, precio, prueba, modo, empleado_nombre: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || null } });
         let d = data;
         if (error && error.context && typeof error.context.json === 'function') { try { d = await error.context.json(); } catch (e2) {} }
         if (!d || d.ok !== true) {
           const msg = (d && (d.mensaje || d.error)) || (error && error.message) || 'No se pudo enviar el formulario.';
           throw new Error(msg === 'ventana_cerrada' ? (d && d.mensaje) || msg : msg);
         }
-        window.toast?.('📋 Formulario enviado al cliente' + (d.borrador ? ' (prueba)' : '') + '. Cuando lo llene, los datos aparecen en el chat.');
+        window.toast?.((d.canal === 'web' ? '📋 Enlace del formulario enviado al cliente' : '📋 Formulario enviado al cliente') + (d.borrador ? ' (prueba)' : '') + '. Cuando lo llene, los datos aparecen en el chat.');
         try { document.getElementById('modalGenerico')?.remove(); } catch (e3) {}
         try { window._waRecargarMensajes?.(); } catch (e4) {}
       } catch (err) {

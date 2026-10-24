@@ -20,6 +20,10 @@ const ZERNIO_API_KEY = (Deno.env.get("ZERNIO_API_KEY") ?? "").trim();
 const ZERNIO = "https://zernio.com/api/v1";
 const TIMEOUT = 20000;
 const NOMBRE_FLOW = "bayolcell_financiamiento";
+// Página web del formulario (GitHub Pages de bayolcell.com). El enlace lleva una llave de un solo uso.
+const WEB_URL = Deno.env.get("FIN_WEB_URL") || "https://bayolcell.com/solicitud.html";
+const WEB_VIGENCIA_MS = 7 * 24 * 60 * 60 * 1000;
+const PLAZOS_OK = ["6", "12", "18", "24"];
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 const cors = {
@@ -173,6 +177,13 @@ async function zernio(metodo: string, ruta: string, body?: unknown) {
 }
 const plata = (n: number) => "RD$ " + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Texto de recibido cuando la solicitud llega por la página web: suena al empleado, con número de solicitud y las fotos que faltan.
+export function textoRecibidoWeb(nombre: string, numero: number | null, equipo: string, empleado: string, sucursal: string) {
+  const n = String(nombre || "").trim(); const quien = n && !/^[+\d\s()-]+$/.test(n) ? `, ${n.split(/\s+/)[0]}` : "";
+  const num = numero ? ` (No. ${numero})` : "";
+  return `Listo${quien}, ya me llegó su solicitud del ${equipo}${num}.\n\nPara mandarla al banco me falta:\n1) Foto de su cédula por los dos lados.\n2) Una factura de luz, agua o cable con su dirección.\nMe las manda por aquí mismo.\n\nEl banco normalmente responde al otro día. En cuanto me diga algo, le aviso.\n\n${empleado} · Bayol Cell ${sucursal}`.trim();
+}
+
 // ---------- Normalizar la respuesta del cliente ----------
 export function normalizarDatos(raw: any) {
   const d = raw && typeof raw === "object" ? raw : {};
@@ -196,11 +207,11 @@ export function textoPedirFotos(nombre: string) {
   const n = String(nombre || "").trim(); const saludo = n && !/^[+\d\s()-]+$/.test(n) ? `Gracias, ${n.split(/\s+/)[0]}.` : "Gracias.";
   return `${saludo} Recibimos su solicitud de financiamiento. Para completarla, envíenos por este mismo chat:\n1) Foto de su cédula por ambos lados.\n2) Un comprobante de domicilio (factura de luz, agua, teléfono o cable).\n\nBAYOL CELL`;
 }
-async function pedirFotos(accountId: string, conversationId: string | null, hiloId: string | null, solicitudId: string | null, nombre: string) {
+async function pedirFotos(accountId: string, conversationId: string | null, hiloId: string | null, solicitudId: string | null, nombre: string, textoPropio?: string) {
   if (!conversationId || !hiloId || !solicitudId) return false;
   const { data: ya } = await db.from("fin_solicitudes_whatsapp").select("fotos_pedidas_en").eq("id", solicitudId).maybeSingle();
   if (ya?.fotos_pedidas_en) return false;
-  const texto = textoPedirFotos(nombre);
+  const texto = textoPropio || textoPedirFotos(nombre);
   const r = await zernio("POST", `/inbox/conversations/${encodeURIComponent(conversationId)}/messages`, { accountId, message: texto });
   if (!r.ok || !r.data?.success) { console.error("pedir fotos: Zernio no envió", r.status, r.data?.error || r.data?.message); return false; }
   const ahora = new Date().toISOString();
@@ -305,7 +316,8 @@ async function accionEnviar(body: any, req: Request, quien: { tipo: string | nul
   const admin = await esAdmin(quien.tipo, quien.refId);
   if (!admin && !(await tienePermiso(req, "financiamientos_crear"))) return json({ ok: false, error: "No tiene permiso para enviar solicitudes de financiamiento (permiso «Crear financiamientos»)." }, 403);
 
-  const { data: hilo } = await db.from("whatsapp_hilos").select("id, linea_id, sucursal_id, telefono_e164, ultimo_inbound_at, asignado_tipo, asignado_id, nombre_perfil").eq("id", hiloId).maybeSingle();
+  const modo = body.modo === "flow" ? "flow" : "web"; // dueño (24-oct): la página web es el camino principal; el Flow nativo queda de respaldo
+  const { data: hilo } = await db.from("whatsapp_hilos").select("id, linea_id, sucursal_id, telefono_e164, ultimo_inbound_at, asignado_tipo, asignado_id, nombre_perfil, zernio_conversation_id").eq("id", hiloId).maybeSingle();
   if (!hilo) return json({ ok: false, error: "Chat no encontrado." }, 404);
   const { data: linea } = await db.from("whatsapp_lineas").select("id, nombre, zernio_account_id, sucursal_id").eq("id", hilo.linea_id).maybeSingle();
   if (!linea?.zernio_account_id) return json({ ok: false, error: "La línea de este chat no está conectada a Zernio." }, 400);
@@ -320,6 +332,7 @@ async function accionEnviar(body: any, req: Request, quien: { tipo: string | nul
   }
 
   const prueba = body.prueba === true;
+  if (modo === "web") return await enviarWeb({ body, quien, hilo, linea, equipo, precioNum, prueba });
   const { data: flows } = await db.from("whatsapp_flows").select("flow_id, estado, version").eq("linea_id", linea.id).eq("nombre", NOMBRE_FLOW).order("version", { ascending: false });
   const flow = (flows || []).find((f: any) => f.estado === "PUBLISHED") || (prueba ? (flows || []).find((f: any) => f.estado === "DRAFT") : null);
   if (!flow) return json({ ok: false, error: prueba ? "Esta línea no tiene el formulario creado todavía." : "El formulario de esta línea aún no está publicado. Pida al administrador publicarlo (o use el modo de prueba)." }, 400);
@@ -366,6 +379,98 @@ async function accionEnviar(body: any, req: Request, quien: { tipo: string | nul
   return json({ ok: true, solicitud_id: sol?.id || null, mensaje_id: msg?.id || null, referencia, borrador: flow.estado !== "PUBLISHED" });
 }
 
+async function enviarWeb(p: { body: any; quien: { tipo: string | null; refId: string | null }; hilo: any; linea: any; equipo: string; precioNum: number; prueba: boolean }) {
+  const { body, quien, hilo, linea, equipo, precioNum, prueba } = p;
+  if (!hilo.zernio_conversation_id) return json({ ok: false, error: "Este chat todavía no tiene conversación en Zernio; espere a que el cliente escriba y vuelva a intentarlo." }, 400);
+  const tec = await datosTecnico(quien.tipo, quien.refId);
+  const empleado = String(tec?.nombre || body.empleado_nombre || (quien.tipo === "usuario" ? "Administración" : "Empleado")).trim();
+  const { data: suc } = await db.from("sucursales").select("nombre").eq("id", linea.sucursal_id).maybeSingle();
+  const sucursal = String(suc?.nombre || linea.nombre || "").trim();
+  const precioTxt = plata(precioNum);
+  const referencia = `${sucursal} · ${empleado} · ${equipo} ${precioTxt}`;
+  const token = [...crypto.getRandomValues(new Uint8Array(24))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const ahora = new Date().toISOString();
+  const { data: sol, error: eSol } = await db.from("fin_solicitudes_whatsapp").insert({
+    hilo_id: hilo.id, linea_id: linea.id, sucursal_id: linea.sucursal_id, sucursal_nombre: sucursal, telefono: hilo.telefono_e164,
+    enviado_por_tipo: quien.tipo, enviado_por_id: quien.refId, enviado_por_nombre: empleado,
+    equipo, precio: precioNum, referencia, estado: "enviado", canal: "web", token, vence_en: new Date(Date.now() + WEB_VIGENCIA_MS).toISOString(),
+  }).select("id, numero").maybeSingle();
+  if (eSol || !sol) return json({ ok: false, error: "No se pudo crear la solicitud: " + String(eSol?.message || "") }, 500);
+  const enlace = `${WEB_URL}?t=${token}`;
+  const nombreCliente = String(hilo.nombre_perfil || "").trim();
+  const saludo = nombreCliente && !/^[+\d\s()-]+$/.test(nombreCliente) ? `Hola ${nombreCliente.split(/\s+/)[0]}` : "Hola";
+  const primerNombre = empleado.split(/\s+/)[0];
+  const texto = `${saludo}, le habla ${primerNombre} de Bayol Cell ${sucursal}. Le dejo el formulario para la solicitud del ${equipo} (${precioTxt}). Llénelo con calma, son cinco pasos cortos, y me llega directo a mí:\n${enlace}${prueba ? "\n\n(prueba)" : ""}`;
+  const r = await zernio("POST", `/inbox/conversations/${encodeURIComponent(hilo.zernio_conversation_id)}/messages`, { accountId: linea.zernio_account_id, message: texto });
+  if (!r.ok || !r.data?.success) {
+    await db.from("fin_solicitudes_whatsapp").update({ estado: "descartado", token: null }).eq("id", sol.id);
+    return json({ ok: false, error: "Zernio no pudo enviar el enlace: " + String(r.data?.error || r.data?.message || r.status) }, 502);
+  }
+  const { data: msg } = await db.from("whatsapp_mensajes").insert({
+    hilo_id: hilo.id, direccion: "out", tipo_contenido: "text", cuerpo: texto, wa_message_id: r.data?.data?.messageId || r.data?.messageId || null, estado: "enviado", es_automatico: false,
+    enviado_por_tipo: quien.tipo, enviado_por_id: quien.refId, creado_en: ahora,
+    meta: { flow: { nombre: NOMBRE_FLOW, canal: "web", solicitud_id: sol.id, equipo, precio: precioNum, referencia, prueba } },
+  }).select("id").maybeSingle();
+  await db.from("fin_solicitudes_whatsapp").update({ mensaje_out_id: msg?.id || null }).eq("id", sol.id);
+  await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultima_respuesta_humana_at: ahora, ultimo_mensaje_preview: "📋 Enlace del formulario de financiamiento enviado" }).eq("id", hilo.id);
+  return json({ ok: true, solicitud_id: sol.id, numero: sol.numero, mensaje_id: msg?.id || null, referencia, canal: "web", borrador: prueba });
+}
+
+// ---------- Página web pública (sin sesión; manda la llave del enlace) ----------
+async function filaPorToken(t: string) {
+  if (!/^[0-9a-f]{48}$/.test(t)) return { fila: null, error: "Enlace no válido." };
+  const { data: fila } = await db.from("fin_solicitudes_whatsapp").select("id, numero, hilo_id, linea_id, sucursal_nombre, telefono, enviado_por_nombre, equipo, precio, referencia, estado, vence_en").eq("token", t).eq("canal", "web").maybeSingle();
+  if (!fila) return { fila: null, error: "Este enlace ya no sirve. Pídale uno nuevo a la persona que lo atiende." };
+  if (fila.estado !== "enviado") return { fila: null, error: "Esta solicitud ya fue enviada. Gracias." };
+  if (fila.vence_en && new Date(fila.vence_en).getTime() < Date.now()) return { fila: null, error: "Este enlace venció. Pídale uno nuevo a la persona que lo atiende." };
+  return { fila, error: null };
+}
+async function accionWebLeer(body: any) {
+  const { fila, error } = await filaPorToken(String(body?.t || ""));
+  if (!fila) return json({ ok: false, error }, 404);
+  const { data: hilo } = await db.from("whatsapp_hilos").select("nombre_perfil").eq("id", fila.hilo_id).maybeSingle();
+  const nombre = String(hilo?.nombre_perfil || "").trim();
+  const tel = String(fila.telefono || "").replace(/\D/g, "").replace(/^1(\d{10})$/, "$1");
+  return json({ ok: true, numero: fila.numero, equipo: fila.equipo, precio: plata(Number(fila.precio)), empleado: fila.enviado_por_nombre, sucursal: fila.sucursal_nombre,
+    nombre: /^[+\d\s()-]+$/.test(nombre) ? "" : nombre, telefono: tel.length === 10 ? tel : "", provincias: PROVINCIAS.map(([, n]) => n) });
+}
+async function accionWebEnviar(body: any) {
+  const { fila, error } = await filaPorToken(String(body?.t || ""));
+  if (!fila) return json({ ok: false, error }, 404);
+  const d = body?.datos && typeof body.datos === "object" ? body.datos : {};
+  const s = (k: string) => String(d[k] ?? "").trim().slice(0, 120);
+  const cedula = s("cedula").replace(/\D/g, ""), nombres = s("nombres").replace(/\s+/g, " "), telefono = s("telefono").replace(/\D/g, "").replace(/^1(\d{10})$/, "$1");
+  const plazo = s("plazo").replace(/\D/g, ""), provincia = s("provincia"), municipio = s("municipio"), sector = s("sector"), calle = s("calle"), casa = s("casa");
+  const faltas: string[] = [];
+  if (cedula.length !== 11) faltas.push("cédula (11 números)");
+  if (nombres.split(" ").filter(Boolean).length < 2) faltas.push("nombre completo");
+  if (telefono.length !== 10) faltas.push("celular (10 números)");
+  if (!PLAZOS_OK.includes(plazo)) faltas.push("plazo");
+  if (!PROVINCIAS.some(([, n]) => n === provincia)) faltas.push("provincia");
+  if (municipio.length < 2) faltas.push("ciudad o municipio");
+  if (sector.length < 2) faltas.push("sector");
+  if (calle.length < 2) faltas.push("calle");
+  if (!casa) faltas.push("número de casa");
+  if (body?.permiso !== true) faltas.push("permiso para enviar los datos al banco");
+  if (faltas.length) return json({ ok: false, error: "Revise: " + faltas.join(", ") + "." }, 400);
+  const datos = { equipo: String(fila.equipo || ""), precio: plata(Number(fila.precio)), referencia: String(fila.referencia || ""), cedula, nombres, telefono, plazo, provincia, municipio, sector, calle, casa };
+  const ahora = new Date().toISOString();
+  // Consumir la llave de forma atómica: solo una respuesta por enlace.
+  const { data: tomada } = await db.from("fin_solicitudes_whatsapp").update({ estado: "respondido", datos, respondido_en: ahora, token: null }).eq("id", fila.id).eq("estado", "enviado").select("id").maybeSingle();
+  if (!tomada) return json({ ok: false, error: "Esta solicitud ya fue enviada. Gracias." }, 409);
+  const { data: nuevo } = await db.from("whatsapp_mensajes").insert({
+    hilo_id: fila.hilo_id, direccion: "in", tipo_contenido: "flow_respuesta", cuerpo: textoRespuesta(datos as any), wa_message_id: null,
+    meta: { flow: { nombre: NOMBRE_FLOW, canal: "web", solicitud_id: fila.id, numero: fila.numero, datos } }, estado: "recibido", es_automatico: false, creado_en: ahora,
+  }).select("id").maybeSingle();
+  await db.from("fin_solicitudes_whatsapp").update({ mensaje_in_id: nuevo?.id || null }).eq("id", fila.id);
+  await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "📋 Solicitud de financiamiento recibida (web)" }).eq("id", fila.hilo_id);
+  const { data: hilo } = await db.from("whatsapp_hilos").select("zernio_conversation_id, nombre_perfil").eq("id", fila.hilo_id).maybeSingle();
+  const { data: linea } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", fila.linea_id).maybeSingle();
+  let aviso = false;
+  if (linea?.zernio_account_id) aviso = await pedirFotos(linea.zernio_account_id, hilo?.zernio_conversation_id || null, fila.hilo_id, fila.id, nombres, textoRecibidoWeb(nombres, fila.numero, String(fila.equipo || ""), String(fila.enviado_por_nombre || "Bayol Cell").split(/\s+/)[0], String(fila.sucursal_nombre || "")));
+  return json({ ok: true, numero: fila.numero, aviso });
+}
+
 async function accionSincronizar(body: any, quien: { tipo: string | null; refId: string | null }) {
   if (!quien.tipo) return json({ ok: false, error: "Sesión no válida." }, 401);
   let q = db.from("whatsapp_flows").select("linea_id, flow_id, estado, whatsapp_lineas:linea_id (zernio_account_id, nombre)").eq("nombre", NOMBRE_FLOW);
@@ -392,8 +497,11 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ ok: false, error: "Método no permitido" }, 405);
   if (!ZERNIO_API_KEY) return json({ ok: false, error: "Falta ZERNIO_API_KEY en el servidor." }, 500);
   const body = await req.json().catch(() => ({}));
-  let quien = await identidadVerificada(req);
   const accion = String(body?.accion || "");
+  // Página web pública: la autoridad es la llave del enlace, no una sesión.
+  if (accion === "web_leer") return await accionWebLeer(body);
+  if (accion === "web_enviar") return await accionWebEnviar(body);
+  let quien = await identidadVerificada(req);
   // Llave de un solo uso (misma tabla _plantilla_llaves que usa whatsapp-plantilla-crear): permite crear/publicar el
   // formulario desde la administración de la base sin una sesión de usuario. Solo para 'publicar', 'sincronizar', 'estado' y
   // 'enviar' en modo de prueba.

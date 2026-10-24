@@ -140,3 +140,34 @@ copia local borrada, la fila vence sola.
 **Pendiente:** que el dueño complete el formulario de prueba en su celular (solicitud `efe412c1…`, enviada antes del cambio
 de plazo: su formulario no trae plazo, es normal); comprobar que llegan la tarjeta y el mensaje automático de las fotos; con
 su «publícalo», publicar el Flow en las 6 líneas y pasar la rama a `main`.
+
+## Actualización 15:10 RD · el dueño eligió la página de Bayol («Hazlo»)
+Tras ver las maquetas (página «Formulario confiable» y demo que se toca), el dueño pidió: textos naturales sin «inicial»
+(con el banco no hay inicial), pantallas más intuitivas y animadas, una pregunta por pantalla, dirección completa en una sola
+pantalla, pasos numerados arriba en vez de barra, botones por encima del teclado, colores claros que den confianza (azul,
+blanco, verde solo en lo logrado), nada de cajas de fotos en la pantalla final, y «Hazlo». Decisión: **la página web de Bayol
+es el camino principal; el Flow nativo de WhatsApp queda de respaldo.**
+
+**Qué se construyó**
+- `solicitud.html` (raíz del repo, GitHub Pages → `https://bayolcell.com/solicitud.html?t=<llave>`): 5 pasos (cédula, nombre,
+  celular, plazo, dirección), resumen con «Cambiar», permiso «Doy permiso a Bayol Cell para enviar estos datos al banco»,
+  pantalla «Listo, Nombre. Ya nos llegó» con número de solicitud, y pantalla «Este enlace no sirve». Cédula con guiones solos y
+  avance automático al completar; celular con guiones; chips de plazo; pasos numerados que se marcan; deslizar hacia la
+  derecha para volver; pie que sube con el teclado (`visualViewport`); `enterkeyhint`; solo tema claro (`color-scheme: light
+  only`); fondo con manchas difuminadas suaves; respeta «reducir movimiento/transparencia». `noindex`. Llave de 48 hex en
+  `?t=`; la página habla con la Edge por `web_leer` / `web_enviar` con la clave anon.
+- Edge `whatsapp-flow-financiamiento` **v5**: `enviar` acepta `modo: 'web' | 'flow'` (web por defecto). En web crea la fila
+  (`canal='web'`, `token`, `vence_en` +7 días, `numero` de serie), manda por Zernio un texto con la voz del empleado («Hola
+  Juan, le habla Loribel de Bayol Cell Santiago. Le dejo el formulario… son cinco pasos cortos…») + enlace, y lo guarda como
+  mensaje `text` saliente. Acciones públicas sin sesión: `web_leer` (datos del enlace si está vigente y en estado `enviado`)
+  y `web_enviar` (valida todo en el servidor, consume la llave de forma atómica, guarda `datos`, inserta el mensaje
+  `flow_respuesta` para que la tarjeta del CRM salga igual que con el Flow, y manda el texto de recibido con número y las
+  fotos que faltan, una sola vez). Las reglas siguen: lo manda un empleado con permiso y casilla; la IA no.
+- Migración `20261024210000_fin_solicitud_web.sql` (aplicada): columnas `canal`, `token` (única), `vence_en`, `numero`
+  (identidad).
+- CRM capa **f5** (`crm-marketing-consent.js?v=20261024-f5`, `taller.html` u18): selector «Cómo lo recibe el cliente»:
+  Página de Bayol (enlace, recomendado) / Formulario dentro de WhatsApp (respaldo). La tarjeta de respuesta no cambia.
+- Pruebas: `scripts/pruebas/solicitud-web.cjs` nuevo (390 y 1280: OK) y `flow-financiamiento.cjs` (390 y 1280: OK con f5).
+
+**Pendiente:** la página solo existe en producción cuando la rama pase a `main` (GitHub Pages). La prueba real en el celular
+del dueño (enlace de prueba a su número) se hace justo después del «publícalo»; hasta entonces el enlace daría 404.
