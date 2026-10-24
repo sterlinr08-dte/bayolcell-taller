@@ -32,7 +32,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const S = 
     out.toast = (document.getElementById('toast') || {}).textContent || '';
     return out;
   });
-  const ok = r.capa !== 'NO CARGÓ' && r.renderEnvuelto && r.botones >= 13 && r.minBtn >= 44 && r.tieneRef && r.formatos.ced && r.formatos.tel && r.formatos.monto && r.plazo && r.copiarTodo && r.fotosAviso && r.botonChat && r.ventana && r.campoAlto >= 48 && r.campoLetra >= 16 && r.enviarAlto >= 54 && r.sinCasilla === 0 && /inf[oó]rmele/.test(r.toastCasilla) && r.llamada && r.llamada.fn === 'whatsapp-flow-financiamiento' && r.llamada.precio === 38500 && /enviado/.test(r.toast);
+  const ok = r.capa !== 'NO CARGÓ' && r.renderEnvuelto && r.botones >= 13 && r.minBtn >= 44 && r.tieneRef && r.formatos.ced && r.formatos.tel && r.formatos.monto && r.plazo && r.copiarTodo && r.fotosAviso && r.botonChat && r.ventana && r.campoAlto >= 48 && r.campoLetra >= 16 && r.enviarAlto >= 54 && r.sinCasilla === 0 && /informe al cliente/.test(r.toastCasilla) && r.llamada && r.llamada.fn === 'whatsapp-flow-financiamiento' && r.llamada.precio === 38500 && /enviado/.test(r.toast);
   if (!ok) fallos++;
   console.log(W, ok ? 'OK' : 'FALLO', JSON.stringify(r), 'errores', errs.filter(e => !/net::|Failed/.test(e)));
   await ctx.close(); }
