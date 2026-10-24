@@ -79,6 +79,8 @@ listas y sincronización.
 - `reaction.received` en Zernio (dueño). «te sale» en `social-automatizaciones`.
 - Revisar sugerencias reales de la IA (tono/largo) y el gasto diario tras el 25-oct.
 
+- **Regla de orden de formularios (dueño, 24-oct):** etiquetas sin MAYÚSCULAS, textos formales en usted, casillas en fila dentro de tarjeta de 48 px, campos 48/16, botón 54; la capa gana a la cascada y se prueba a 390 px. `DESIGN.md §4b`, igual en los 3 proyectos. En el chat móvil, «Solicitud de financiamiento» va en el menú del clip (capa f9, PR #118 sin publicar).
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
