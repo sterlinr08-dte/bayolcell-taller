@@ -81,3 +81,18 @@ El conector aceptó por separado los 3 `create trigger` (verificados en `pg_trig
 `reacond_crear_lote`. **Solo falta `reacond_guardar_evaluacion`** (trae `DELETE` y el conector la retiene). Para el dueño se dejó
 `docs/sql/PEGAR-reacond-evaluacion.sql` con ese único bloque. Hasta pegarlo, la pantalla de evaluación avisará «falta aplicar
 la actualización de la base»; devolver y crear lotes ya funcionan contra el servidor. Los candados de permisos ya están activos.
+
+## Actualización 08:10 RD · base completa y probada
+- El dueño pegó `docs/sql/PEGAR-reacond-evaluacion.sql` en el SQL Editor. Verificado: 6 funciones y 3 triggers presentes.
+- **17 pruebas en la base real con identidades de técnicos reales** (Michelle = servicio al cliente, Josiel = técnico,
+  Loribel = administradora), cada una dentro de un bloque que se deshace solo (ningún dato quedó cambiado):
+  técnico despacha desde En reparación → rechazado; desde Listo para venta → pasa; cambia costo de compra → rechazado;
+  regresa un Despachado a reparación → rechazado; aprueba calidad → pasa (su rol lo permite); servicio crea lote → rechazado;
+  administradora despacha desde cualquier estado → pasa (sin candados); RPC devolución de equipo no despachado → rechazada;
+  de un Despachado → pasa y limpia `fecha_despacho`/`completado`; lote con código repetido → rechazado; lote con IMEI repetido →
+  rechazado **y no se creó ningún lote**; lote correcto → 2 equipos; evaluación por RPC → `evaluado`, costo 1,000, 1 falla,
+  1 tarea; evaluación de un Despachado → rechazada; reserva de Info Plus dos veces → 1.ª gana, 2.ª no, liberar funciona.
+- **Hallazgo y corrección (guardia v2):** la primera versión dejaba que un rol con solo «Registrar devoluciones» (servicio
+  al cliente lo tiene) modificara cualquier campo de un equipo. Ahora ese permiso solo abre la puerta para la devolución
+  (Despachado → En reparación). Reprobado: servicio modifica equipo → rechazado; servicio registra devolución por RPC → pasa;
+  técnico edita notas → pasa. El archivo de migración quedó igual que lo aplicado.

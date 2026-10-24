@@ -45,16 +45,18 @@ begin
   end if;
 
   -- UPDATE
+  v_old := coalesce(old.estado_evaluacion, '');
+  v_new := coalesce(new.estado_evaluacion, '');
   v_asignado := v_ref is not null and (old.tecnico_asignado_id = v_ref or new.tecnico_asignado_id = v_ref);
-  if not (p_cambiar or p_desp or p_otros or p_propios or p_dev or p_crear or p_aprobar) then
+  -- Puerta general: quien solo registra devoluciones entra únicamente para la devolución (Despachado → En reparación).
+  if not (p_cambiar or p_desp or p_otros or p_propios or p_crear or p_aprobar
+          or (p_dev and v_old = 'vendido' and v_new = 'en_proceso')) then
     raise exception 'No tiene permiso para modificar equipos reacondicionados.' using errcode = '42501';
   end if;
   if new.costo_compra is distinct from old.costo_compra and not p_costos then
     raise exception 'Solo quien ve los costos de compra puede cambiar el costo del equipo.' using errcode = '42501';
   end if;
 
-  v_old := coalesce(old.estado_evaluacion, '');
-  v_new := coalesce(new.estado_evaluacion, '');
   if v_new is distinct from v_old
      or (new.fecha_despacho is not null and old.fecha_despacho is null)
      or (coalesce(new.completado, false) and not coalesce(old.completado, false)) then
