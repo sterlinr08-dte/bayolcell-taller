@@ -46,8 +46,9 @@ La bitácora dice cuándo y por qué se escribió cada una.
 
 ## 3. Comentario de la prefactura (22-oct-2026)
 
-- El comentario se guarda en el taller, sale al imprimir y se manda a Info Plus en `comentario` (campo «Comentario»
-  de la prefactura; comprobado por el dueño con la 118932). `contrato` va vacío.
+- El comentario se guarda en el taller, sale al imprimir y se manda a Info Plus **en los dos campos, `contrato` y
+  `comentario`**, con el mismo texto (23-oct-2026: al quitar `contrato` dejó de salir en la Factura; el dueño confirmó el
+  24-oct que con los dos vuelve a salir). No volver a dejar `contrato` vacío.
 - **Toda prefactura del taller lleva el comentario fijo «bayolcell.com:»** seguido de lo que se escriba (dueño, 22-oct),
   para identificar en Info Plus que se hizo desde el taller.
 - Cliente de contado (cód. 1): el nombre va como «CONTADO <nombre>». La API solo toma `nombre`; cédula y teléfono
