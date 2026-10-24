@@ -25,3 +25,15 @@ Dueño: «¿El modo de prueba que sale ya se puede quitar?». Sí: solo lo veía
 publicados). Capa **f8** (`taller.html` u21): la ventana queda con Forma de envío, Equipo, Precio, la casilla de confirmación
 y el botón. El servidor conserva `prueba:true` solo para pruebas internas con llave de un solo uso. Prueba del banco
 actualizada (envía `prueba:false`): 390/1280 OK.
+
+## Actualización 17:00 RD · regla para todo el sistema y formulario en el clip del chat móvil
+Dueño: «Sobre la corrección, vamos a aplicarlo en todo el sistema como reglamento del orden, y en la ventana de chat en la web
+móvil el formulario vamos a ponerlo en el ícono del adjunto».
+- **Regla escrita** en `DESIGN.md §4b` (misma sección en `nexus-pro`, `bayolcell-taller` y `studio-rd`, con bitácora en cada
+  uno) y resumida en `REGLAMENTOS.md §4`: etiquetas sin mayúsculas, textos formales en usted, casillas en fila dentro de
+  tarjeta de 48 px, campos 48/16, botón 54, probar a 390 px. Las ventanas existentes se corrigen al tocarlas (sin rediseño
+  masivo).
+- **Capa f9** (`taller.html` u22): «Solicitud de financiamiento» aparece como opción del menú del clip (adjuntar) del chat de
+  WhatsApp, con ícono de formulario, en celular y PC; en celular (≤ 768 px) se esconde el botón propio del formulario y queda
+  solo en el clip. Como el menú original calcula su altura para 7 filas, la capa lo recoloca con la altura real al abrirse.
+- Prueba del banco: a 390 px el botón propio está oculto y el clip trae la opción; a 1280 px están los dos. OK.

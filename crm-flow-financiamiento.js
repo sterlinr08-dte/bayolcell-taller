@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f8';
+  window.__bcFlowFinanciamiento = '20261024-f9';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -17,7 +17,8 @@
 
   const style = document.createElement('style');
   style.textContent = [
-    '#btnWaFlowFin{color:#0f766e;min-width:44px;min-height:44px}',
+    '#btnWaFlowFin{color:#0f766e;min-width:44px;min-height:44px}@media (max-width:768px){#btnWaFlowFin{display:none!important}}',
+    '#waAdjuntarMenu button.bcff-adj{min-height:44px}',
     '.bcff-card{border:1px solid #99f6e4;background:linear-gradient(180deg,#f0fdfa,#fff);border-radius:12px;padding:10px 10px 6px;margin:4px 0 6px;min-width:240px;max-width:100%}',
     '.bcff-card h4{margin:0 0 8px;font-size:13px;font-weight:800;color:#0f766e;display:flex;align-items:center;gap:6px}',
     '.bcff-row{display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid #e2e8f0}.bcff-row:first-of-type{border-top:0}',
@@ -172,12 +173,45 @@
   }
   window._bcffAbrir = abrir;
 
+  // ---------- Dueño (24-oct): en el celular el formulario va dentro del menú del clip (adjuntar) ----------
+  function engancharMenuAdjuntar() {
+    if (typeof window._waAsegurarMenuAdjuntar !== 'function' || window._waAsegurarMenuAdjuntar.__bcff) return;
+    const orig = window._waAsegurarMenuAdjuntar;
+    const envuelto = function () {
+      const menu = orig.apply(this, arguments);
+      try {
+        if (menu && !menu.querySelector('.bcff-adj') && puede()) {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'bcff-adj';
+          b.innerHTML = '<i class="ti ti-forms" style="color:#2563eb;"></i> Solicitud de financiamiento';
+          b.addEventListener('click', () => { try { window._waCerrarFlotantesDelChat?.(); } catch (e) {} abrir(); });
+          menu.appendChild(b);
+        }
+      } catch (e) {}
+      return menu;
+    };
+    envuelto.__bcff = true; window._waAsegurarMenuAdjuntar = envuelto;
+    if (typeof window._waAbrirMenuAdjuntar === 'function' && !window._waAbrirMenuAdjuntar.__bcff) {
+      const origAbrir = window._waAbrirMenuAdjuntar;
+      const abrirEnv = function (ev) {
+        const r = origAbrir.apply(this, arguments);
+        try { // el original calcula la altura para 7 filas; con la fila nueva se recoloca con la altura real
+          const menu = document.getElementById('waAdjuntarMenu'), btn = ev && ev.currentTarget;
+          if (menu && btn && menu.style.display === 'flex') { const rb = btn.getBoundingClientRect(); let top = rb.top - menu.offsetHeight - 6; if (top < 8) top = rb.bottom + 6; menu.style.top = top + 'px'; }
+        } catch (e) {}
+        return r;
+      };
+      abrirEnv.__bcff = true; window._waAbrirMenuAdjuntar = abrirEnv;
+    }
+  }
+  engancharMenuAdjuntar();
+
   // ---------- Arranque: esperar a que el chat exista ----------
   let intentos = 0;
   const t = setInterval(() => {
     intentos++;
     const listo = envolverRender();
     ponerBoton();
+    engancharMenuAdjuntar();
     if ((listo && document.getElementById('btnWaFlowFin')) || intentos > 300) clearInterval(t);
   }, 250);
   new MutationObserver(() => ponerBoton()).observe(document.documentElement, { childList: true, subtree: true });
