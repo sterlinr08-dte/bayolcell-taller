@@ -28,3 +28,12 @@
 ## Pruebas
 `scripts/pruebas/solicitud-web.cjs` 390/1280 OK; esbuild OK; `og:title` presente. Envío de prueba real al dueño con el texto
 nuevo tras desplegar v6 (ver actualización).
+
+## Actualización 15:40 RD · la prueba No. 2 funcionó de punta a punta
+El dueño llenó la solicitud de prueba No. 2 desde el enlace: entró como `respondido` (canal web), la tarjeta `flow_respuesta`
+quedó en su chat (cédula de 11 dígitos, celular de 10, plazo 12 meses, dirección) y el mensaje de recibido con las fotos
+salió un segundo después (`fotos_pedidas_en`). Dos detalles vistos en esa prueba y corregidos aquí:
+- el nombre salía en MAYÚSCULAS como viene del perfil de WhatsApp («Listo, ESTERLIN») → ahora con mayúscula inicial en el
+  saludo, en el recibido y en el campo del formulario;
+- la provincia quedaba en la primera de la lista (Azua) → ahora se sugiere la de la sucursal (Santiago/Navarrete → Santiago,
+  Moca → Espaillat) y el cliente puede cambiarla.

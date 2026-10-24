@@ -300,6 +300,7 @@ h2{font-size:30px;line-height:1.1;letter-spacing:-.025em;margin:0;font-weight:80
     if(r.nombre){$('#nom').value=r.nombre;d.nom=r.nombre}
     if(r.telefono){$('#tel').value=fmtTel(r.telefono);d.tel=$('#tel').value;$('#cTel').classList.add('listo')}else{$('#telAyuda').textContent='Escriba el celular donde podemos avisarle.'}
     const sel=$('#prov');(r.provincias||[]).forEach(n=>{const o=document.createElement('option');o.textContent=n;o.value=n;sel.appendChild(o)});
+    if(r.provincia_sugerida&&(r.provincias||[]).includes(r.provincia_sugerida)){sel.value=r.provincia_sugerida;d.prov=r.provincia_sugerida}
     sig.disabled=false;
   })();
 })();

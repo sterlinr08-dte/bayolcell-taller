@@ -183,7 +183,7 @@ const plata = (n: number) => "RD$ " + Number(n || 0).toLocaleString("en-US", { m
 
 // Texto de recibido cuando la solicitud llega por la página web: suena al empleado, con número de solicitud y las fotos que faltan.
 export function textoRecibidoWeb(nombre: string, numero: number | null, equipo: string, empleado: string, sucursal: string) {
-  const n = String(nombre || "").trim(); const quien = n && !/^[+\d\s()-]+$/.test(n) ? `, ${n.split(/\s+/)[0]}` : "";
+  const n = String(nombre || "").trim(); const quien = n && !/^[+\d\s()-]+$/.test(n) ? `, ${nombrePropio(n.split(/\s+/)[0])}` : "";
   const num = numero ? ` (No. ${numero})` : "";
   return `Listo${quien}, ya me llegó su solicitud del ${equipo}${num}.\n\nPara mandarla al banco me falta:\n1) Foto de su cédula por los dos lados.\n2) Una factura de luz, agua o cable con su dirección.\nMe las manda por aquí mismo.\n\nEl banco normalmente responde al otro día. En cuanto me diga algo, le aviso.\n\n${empleado} · Bayol Cell ${sucursal}`.trim();
 }
@@ -447,8 +447,10 @@ async function accionWebLeer(body: any) {
   const { data: hilo } = await db.from("whatsapp_hilos").select("nombre_perfil").eq("id", fila.hilo_id).maybeSingle();
   const nombre = String(hilo?.nombre_perfil || "").trim();
   const tel = String(fila.telefono || "").replace(/\D/g, "").replace(/^1(\d{10})$/, "$1");
+  const suc = String(fila.sucursal_nombre || "").toLowerCase();
+  const provinciaSugerida = /moca/.test(suc) ? "Espaillat" : /santiago|navarrete|licey|tamboril|villa gonz/.test(suc) ? "Santiago" : "";
   return json({ ok: true, numero: fila.numero, equipo: fila.equipo, precio: plata(Number(fila.precio)), empleado: fila.enviado_por_nombre, sucursal: fila.sucursal_nombre,
-    nombre: /^[+\d\s()-]+$/.test(nombre) ? "" : nombre, telefono: tel.length === 10 ? tel : "", provincias: PROVINCIAS.map(([, n]) => n) });
+    nombre: /^[+\d\s()-]+$/.test(nombre) ? "" : nombrePropio(nombre), telefono: tel.length === 10 ? tel : "", provincias: PROVINCIAS.map(([, n]) => n), provincia_sugerida: provinciaSugerida });
 }
 async function accionWebEnviar(body: any) {
   const { fila, error } = await filaPorToken(String(body?.t || ""));
