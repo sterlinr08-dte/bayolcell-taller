@@ -12203,7 +12203,7 @@ function renderEquipoReacondCard(eq, num) {
     const tomado = tecnico && dAsig != null ? 'Tomado ' + (dAsig === 0 ? 'hoy' : 'hace ' + _bcfDiasTxt(dAsig)) : (tecnico ? '' : 'Por asignar');
     return `<article class="bcf-card${sel ? ' bcf-sel' : ''}${alerta ? ' bcf-alerta' : ''}" data-tono="${tono}" onclick="${accionPrincipal}" title="Clic para continuar">
         <header class="bcf-h">
-            <input type="checkbox" class="bcf-chk" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked); this.closest('.bcf-card').classList.toggle('bcf-sel', this.checked)" ${sel ? 'checked' : ''} title="Seleccionar (para asignar o 'Pasar a')" aria-label="Seleccionar equipo #${num}">
+            <label class="bcf-chk-wrap" onclick="event.stopPropagation()" title="Seleccionar (para asignar o 'Pasar a')"><input type="checkbox" class="bcf-chk" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked); this.closest('.bcf-card').classList.toggle('bcf-sel', this.checked)" ${sel ? 'checked' : ''} aria-label="Seleccionar equipo #${num}"></label>
             <div class="bcf-tit"><b>${escapeHtml(eq.modelo || 'Sin modelo')}</b></div>
             <span class="bcf-tag bcf-t-${tono}">${tagTxt}</span>
         </header>
@@ -14451,7 +14451,7 @@ async function abrirPanelProceso(equipoId) {
     // ====== MODAL ======
     const modalHtml = `
         <div class="modal-box" style="max-width:850px; width:95%;">
-            <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border-radius:12px 12px 0 0;">
+            <div class="modal-header" style="background:linear-gradient(135deg, #b45309, #92400e); color:#fff; border-radius:12px 12px 0 0;">
                 <h3 style="color:#fff;"><i class="ti ti-tool"></i> Panel de Reparación</h3>
                 <button class="modal-close" onclick="cerrarPanelProceso()" style="color:#fff;">✕</button>
             </div>
@@ -17559,7 +17559,7 @@ async function _descontarPiezasAlCompletar(equipoId) {
     if(!pend.length) return { n: 0, total: 0, fallidas: 0 };
     let n = 0, fallidas = 0;
     const liberar = async (pz) => {
-        const { error: eL } = await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: null }).eq('id', pz.id).eq('infoplus_desc_cant', -1);
+        const { error: eL } = await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 0 }) /* la columna es NOT NULL: 0 = pendiente */.eq('id', pz.id).eq('infoplus_desc_cant', -1);
         if(eL) logError('_descontarPiezasAlCompletar (liberar reserva)', eL);
     };
     for(const pz of pend) {

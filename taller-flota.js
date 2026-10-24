@@ -33,7 +33,7 @@ var CSS = `
 .bcf-card:focus-visible{outline:2px solid #FF6B35;outline-offset:2px;}
 .bcf-card.bcf-sel{border:2px solid #FF6B35;padding:15px;box-shadow:0 0 0 4px rgba(255,107,53,.12),0 16px 30px -20px rgba(214,82,37,.45);}
 .bcf-h{display:flex;align-items:flex-start;gap:10px;}
-.bcf-chk{width:20px!important;height:20px!important;margin:2px 0 0!important;flex:none;accent-color:#FF6B35;cursor:pointer;}
+/* 24-oct-2026 (auditoría V01): la casilla va dentro de una etiqueta de 44×44 px */ .bcf-chk-wrap{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-12px -8px -12px -12px;cursor:pointer;} .bcf-chk{width:20px!important;height:20px!important;margin:2px 0 0!important;flex:none;accent-color:#FF6B35;cursor:pointer;}
 .bcf-tit{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
 .bcf-tit b{font-size:15px;font-weight:750;color:#0f172a;line-height:1.25;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .bcf-sub{margin-top:-8px;font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
