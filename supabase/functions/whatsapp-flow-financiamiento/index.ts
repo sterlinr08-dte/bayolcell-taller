@@ -21,7 +21,11 @@ const ZERNIO = "https://zernio.com/api/v1";
 const TIMEOUT = 20000;
 const NOMBRE_FLOW = "bayolcell_financiamiento";
 // Página web del formulario (GitHub Pages de bayolcell.com). El enlace lleva una llave de un solo uso.
-const WEB_URL = Deno.env.get("FIN_WEB_URL") || "https://bayolcell.com/solicitud.html";
+const WEB_URL = Deno.env.get("FIN_WEB_URL") || "https://bayolcell.com/solicitud"; // GitHub Pages sirve solicitud.html sin la extensión
+// Llave corta (10 letras y números) para que el enlace se vea limpio; sigue siendo de un solo uso y vence a los 7 días.
+const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+const llaveCorta = (n = 10) => [...crypto.getRandomValues(new Uint8Array(n))].map((x) => ALFABETO[x % ALFABETO.length]).join("");
+const nombrePropio = (s: string) => String(s || "").trim().toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (m) => m.toUpperCase());
 const WEB_VIGENCIA_MS = 7 * 24 * 60 * 60 * 1000;
 const PLAZOS_OK = ["6", "12", "18", "24"];
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -388,7 +392,7 @@ async function enviarWeb(p: { body: any; quien: { tipo: string | null; refId: st
   const sucursal = String(suc?.nombre || linea.nombre || "").trim();
   const precioTxt = plata(precioNum);
   const referencia = `${sucursal} · ${empleado} · ${equipo} ${precioTxt}`;
-  const token = [...crypto.getRandomValues(new Uint8Array(24))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const token = llaveCorta(10);
   const ahora = new Date().toISOString();
   const { data: sol, error: eSol } = await db.from("fin_solicitudes_whatsapp").insert({
     hilo_id: hilo.id, linea_id: linea.id, sucursal_id: linea.sucursal_id, sucursal_nombre: sucursal, telefono: hilo.telefono_e164,
@@ -398,9 +402,21 @@ async function enviarWeb(p: { body: any; quien: { tipo: string | null; refId: st
   if (eSol || !sol) return json({ ok: false, error: "No se pudo crear la solicitud: " + String(eSol?.message || "") }, 500);
   const enlace = `${WEB_URL}?t=${token}`;
   const nombreCliente = String(hilo.nombre_perfil || "").trim();
-  const saludo = nombreCliente && !/^[+\d\s()-]+$/.test(nombreCliente) ? `Hola ${nombreCliente.split(/\s+/)[0]}` : "Hola";
-  const primerNombre = empleado.split(/\s+/)[0];
-  const texto = `${saludo}, le habla ${primerNombre} de Bayol Cell ${sucursal}. Le dejo el formulario para la solicitud del ${equipo} (${precioTxt}). Llénelo con calma, son cinco pasos cortos, y me llega directo a mí:\n${enlace}${prueba ? "\n\n(prueba)" : ""}`;
+  const saludo = nombreCliente && !/^[+\d\s()-]+$/.test(nombreCliente) ? `Hola ${nombrePropio(nombreCliente.split(/\s+/)[0])} 👋` : "Hola 👋";
+  const primerNombre = nombrePropio(empleado.split(/\s+/)[0]);
+  const texto = [
+    saludo,
+    `Soy ${primerNombre}, de Bayol Cell ${sucursal}.`,
+    "",
+    `📱 ${equipo}`,
+    `💰 ${precioTxt}`,
+    "",
+    "Aquí tiene su solicitud de financiamiento. Son 5 pasos cortos y me llega directo a mí:",
+    `👉 ${enlace}`,
+    "",
+    "Cualquier duda, me escribe por aquí.",
+    ...(prueba ? ["", "(prueba)"] : []),
+  ].join("\n");
   const r = await zernio("POST", `/inbox/conversations/${encodeURIComponent(hilo.zernio_conversation_id)}/messages`, { accountId: linea.zernio_account_id, message: texto });
   if (!r.ok || !r.data?.success) {
     await db.from("fin_solicitudes_whatsapp").update({ estado: "descartado", token: null }).eq("id", sol.id);
@@ -418,7 +434,7 @@ async function enviarWeb(p: { body: any; quien: { tipo: string | null; refId: st
 
 // ---------- Página web pública (sin sesión; manda la llave del enlace) ----------
 async function filaPorToken(t: string) {
-  if (!/^[0-9a-f]{48}$/.test(t)) return { fila: null, error: "Enlace no válido." };
+  if (!/^([0-9a-f]{48}|[A-Za-z0-9]{10,12})$/.test(t)) return { fila: null, error: "Enlace no válido." };
   const { data: fila } = await db.from("fin_solicitudes_whatsapp").select("id, numero, hilo_id, linea_id, sucursal_nombre, telefono, enviado_por_nombre, equipo, precio, referencia, estado, vence_en").eq("token", t).eq("canal", "web").maybeSingle();
   if (!fila) return { fila: null, error: "Este enlace ya no sirve. Pídale uno nuevo a la persona que lo atiende." };
   if (fila.estado !== "enviado") return { fila: null, error: "Esta solicitud ya fue enviada. Gracias." };
