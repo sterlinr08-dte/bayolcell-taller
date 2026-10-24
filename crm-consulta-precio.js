@@ -96,7 +96,7 @@
     velo = doc.createElement('div');
     velo.className = 'cp-velo';
     velo.innerHTML = '<div class="cp-ppk" role="dialog" aria-modal="true" aria-label="Consultar precio">' +
-      '<div class="cp-top" title="Arrastre para mover la ventana"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Consulta de artículos</span><span class="cp-sub">Precio cliente final</span>' +
+      '<div class="cp-top" title="Arrastre para mover la ventana"><span class="t"><i class="ti ti-currency-dollar" aria-hidden="true"></i> Consulta de artículos</span><span class="cp-sub">Precio cliente final</span>' +
       '<button type="button" class="cp-x" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>' +
       '<div class="cp-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
       '<div class="cp-list"></div></div>';
@@ -144,7 +144,7 @@
       if (h.querySelector(':scope > .cp-btn')) return;
       var b = doc.createElement('button');
       b.type = 'button'; b.className = 'cp-btn'; b.title = 'Consultar precio y existencia de un artículo';
-      b.innerHTML = '<i class="ti ti-search" aria-hidden="true"></i><span>Consulta</span>'; // dueño 20-oct: «cambiar el nombre Precios y poner Consulta»
+      b.innerHTML = '<i class="ti ti-currency-dollar" aria-hidden="true"></i><span>Consulta</span>'; // 24-oct (dueño): «pon el botón de consulta con el signo de pesos» (antes era una lupa, igual a la de buscar en el chat). dueño 20-oct: «cambiar el nombre Precios y poner Consulta»
       b.addEventListener('click', abrir);
       var antes = h.querySelector(':scope > .wa-focus-btn, :scope > .wa-call-btn, :scope > span, :scope > button.wa-tab-btn:last-child');
       h.insertBefore(b, antes && antes !== h.firstElementChild ? antes : null);
