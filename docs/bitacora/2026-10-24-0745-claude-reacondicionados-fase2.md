@@ -75,3 +75,9 @@ Rama `claude/reacond-fase2` (desde `main` 6b4ea5f). PR: ver siguiente entrada o 
 - Las tablas de piezas, tareas, fallas e historial conservan la política abierta (los técnicos las escriben a diario); su
   endurecimiento queda para otra fase si el dueño lo pide.
 - Conciliación de datos existentes: solo con autorización específica (sin cambios).
+
+## Actualización 07:55 RD · base casi completa
+El conector aceptó por separado los 3 `create trigger` (verificados en `pg_trigger`), `reacond_registrar_devolucion` y
+`reacond_crear_lote`. **Solo falta `reacond_guardar_evaluacion`** (trae `DELETE` y el conector la retiene). Para el dueño se dejó
+`docs/sql/PEGAR-reacond-evaluacion.sql` con ese único bloque. Hasta pegarlo, la pantalla de evaluación avisará «falta aplicar
+la actualización de la base»; devolver y crear lotes ya funcionan contra el servidor. Los candados de permisos ya están activos.
