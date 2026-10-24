@@ -31,3 +31,7 @@ Nota: en el banco no hay jsPDF (CDN bloqueado), por eso `imprimirPrefactura('blo
 
 ## Siguiente paso
 El dueño revisa el PR; con «publícalo» pasa a `main`.
+
+## Publicado 24-oct 00:05 (RD) — dueño: «Publícalo»
+PR #111 (CI en verde: unit, chromium, webkit) pasado a `main` por fast-forward y publicado en bayolcell.com.
+Pendiente del dueño: probar en la tienda el envío por WhatsApp con chat abierto (debe llegar un PDF) y el doble clic.
