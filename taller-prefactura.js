@@ -392,13 +392,17 @@
     cerrarPop();
     var s = st(); var it = s && s.items[i]; if (!it) return;
     var nv = it.niveles || {}, act = String((s && s.nivel) || 1);
+    // 24-oct-2026 (dueño: «un cliente final puede ponerse precio al por mayor o extremo» y «se puede modificar la
+    // descripción»): solo el administrador elige otro nivel o cambia la descripción. El empleado ve los precios de los
+    // demás niveles solo como referencia, y únicamente puede «usar» el del nivel elegido en la cabecera.
+    var admin = false; try { admin = typeof isAdminUser === 'function' && !!isAdminUser(); } catch (e) {}
     var filas = NIV.map(function (n) {
-      var v = Number(nv[n[0]]) || 0;
-      return '<tr' + (n[0] === act ? ' class="act"' : '') + '><td>' + n[1] + '</td><td>' + (v > 0 ? '<button type="button" data-usar="' + v + '" aria-label="Usar ' + plata(v) + '">' + plata(v) + '</button>' : '—') + '</td></tr>';
+      var v = Number(nv[n[0]]) || 0, puede = admin || n[0] === act;
+      return '<tr' + (n[0] === act ? ' class="act"' : '') + '><td>' + n[1] + '</td><td>' + (v > 0 ? (puede ? '<button type="button" data-usar="' + v + '" aria-label="Usar ' + plata(v) + '">' + plata(v) + '</button>' : '<span class="ppro">' + plata(v) + '</span>') : '—') + '</td></tr>';
     }).join('');
     var pop = el('div', 'bcpf-pop', '<div class="pph"><b>' + esc(it.desc) + '</b><span>' + esc(it.cod) + '</span></div>' +
-      (it.niveles ? '<table><tbody>' + filas + '</tbody></table><p class="ppx">Toque un precio para usarlo en esta línea.</p>' : '') +
-      '<label class="ppd"><span>Descripción</span><input value="' + esc(it.desc) + '" autocomplete="off"></label>');
+      (it.niveles ? '<table><tbody>' + filas + '</tbody></table><p class="ppx">' + (admin ? 'Toque un precio para usarlo en esta línea.' : 'Solo se puede usar el precio del nivel elegido arriba.') + '</p>' : '') +
+      (admin ? '<label class="ppd"><span>Descripción</span><input value="' + esc(it.desc) + '" autocomplete="off"></label>' : ''));
     pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Precios de ' + it.desc);
     btn.parentElement.appendChild(pop);
     pop.addEventListener('click', function (e) {
@@ -406,8 +410,10 @@
       cerrarPop(); try { _rpPrecio(i, u.getAttribute('data-usar')); } catch (er) {}
     });
     var inp = q('.ppd input', pop);
-    inp.addEventListener('change', function () { try { _rpDesc(i, inp.value); } catch (er) {} pintarCarrito(); });
-    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+    if (inp) {
+      inp.addEventListener('change', function () { try { _rpDesc(i, inp.value); } catch (er) {} pintarCarrito(); });
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+    }
   }
   doc.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('#v-recepcion .dnb');

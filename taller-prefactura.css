@@ -864,3 +864,6 @@ html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk-fondo { display: block; posit
 @media (prefers-reduced-transparency: reduce) { html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk-fondo { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(15,23,42,.55); } }
 /* 24-oct-2026 (auditoría visual: «se mezclan textos de atrás»): la ventana del buscador va blanca sólida, sin transparencia. */
 html.bc-pf body #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { background: #fff !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* 24-oct-2026: precio de otro nivel solo como referencia (empleado) */
+html.bc-pf #v-recepcion .bcpf-pop .ppro { color: #64748b; font-variant-numeric: tabular-nums; }
