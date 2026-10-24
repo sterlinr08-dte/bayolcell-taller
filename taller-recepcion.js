@@ -320,7 +320,9 @@
     }
     var CHIPS = [['pantalla', 'Pantallas'], ['bateria', 'Baterías'], ['cargador', 'Cargadores'], ['auricular', 'Auriculares'], ['protector', 'Protectores'], ['celular', 'Celulares']];
     function abrirPanel() {
-      slot.innerHTML = '<div class="bcrx-ppk" role="dialog" aria-label="Buscar artículo">' +
+      // 24-oct-2026 (auditoría visual): fondo oscurecido detrás de la ventana (solo cuando flota, html.bc-pf) y el foco
+      // encerrado con Tab mientras esté abierta. Tocar el fondo la cierra.
+      slot.innerHTML = '<div class="bcrx-ppk-fondo" aria-hidden="true"></div><div class="bcrx-ppk" role="dialog" aria-modal="true" aria-label="Buscar artículo">' +
         '<div class="bcrx-ppk-top"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Buscar artículo</span>' +
         '<button type="button" class="bcrx-ppk-cat">Catálogo completo</button><button type="button" class="bcrx-ppk-x" aria-label="Cerrar"><i class="ti ti-arrow-left" aria-hidden="true"></i> Cerrar</button></div>' +
         '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
@@ -329,6 +331,18 @@
         '<div class="bcrx-ppk-list" role="listbox"></div></div>';
       var inp = q('input', slot);
       inp.value = estado.q;
+      q('.bcrx-ppk-fondo', slot).addEventListener('click', cerrarPanel);
+      q('.bcrx-ppk', slot).addEventListener('keydown', function (e) {
+        // Escape cierra desde cualquier parte de la ventana (antes solo desde el campo de texto).
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrarPanel(); return; }
+        if (e.key !== 'Tab') return;
+        var dlg = q('.bcrx-ppk', slot);
+        var f = Array.prototype.filter.call(dlg.querySelectorAll('button,input,select,textarea,[tabindex]:not([tabindex="-1"])'), function (x) { return !x.disabled && x.offsetParent !== null; });
+        if (!f.length) return;
+        var i = f.indexOf(doc.activeElement);
+        if (e.shiftKey && (i <= 0)) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+      });
       inp.addEventListener('input', function () { estado.q = inp.value; filtrar(); if (estado.imei) { estado.lista = []; estado.imeiMsg = ''; } pintar(); });
       inp.addEventListener('keydown', function (e) {
         var n = Math.min(estado.lista.length, MAXF);

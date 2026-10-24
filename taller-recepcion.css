@@ -155,15 +155,15 @@ html.bc-rx #v-recepcion .bcrx-ppk-head,
 html.bc-rx #v-recepcion .bcrx-ppk-row {
   display: grid; grid-template-columns: 70px minmax(0, 1fr) 96px 120px 44px; align-items: center; column-gap: 10px;
 }
-html.bc-rx #v-recepcion .bcrx-ppk-head { padding: 6px 8px; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .03em; }
+html.bc-rx #v-recepcion .bcrx-ppk-head { padding: 6px 8px; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .03em; }
 html.bc-rx #v-recepcion .bcrx-ppk-head span:nth-child(3), html.bc-rx #v-recepcion .bcrx-ppk-head span:nth-child(4) { text-align: right; }
 html.bc-rx #v-recepcion .bcrx-ppk-row { min-height: 52px; padding: 4px 4px 4px 8px; border-radius: 12px; cursor: pointer; }
 html.bc-rx #v-recepcion .bcrx-ppk-row + .bcrx-ppk-row { border-top: 1px solid #f1f5f9; }
 html.bc-rx #v-recepcion .bcrx-ppk-row:hover, html.bc-rx #v-recepcion .bcrx-ppk-row.hl { background: #fff7ed; }
-html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-nom { color: #94a3b8; }
+html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-nom { color: #64748b; }
 html.bc-rx #v-recepcion .pk-cod { font: 600 12.5px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b; }
 html.bc-rx #v-recepcion .pk-nom { font-size: 14px; font-weight: 700; color: #0f172a; line-height: 1.25; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-html.bc-rx #v-recepcion .pk-nom small { display: block; font-size: 12px; font-weight: 600; color: #94a3b8; }
+html.bc-rx #v-recepcion .pk-nom small { display: block; font-size: 12px; font-weight: 600; color: #64748b; }
 html.bc-rx #v-recepcion .pk-tag { font-size: 10.5px; font-weight: 800; color: #7c3aed; background: #f5f3ff; border-radius: 6px; padding: 1px 5px; vertical-align: 1px; }
 html.bc-rx #v-recepcion .pk-stk { text-align: right; }
 html.bc-rx #v-recepcion .bcrx-stk { font-size: 12.5px; font-weight: 800; color: #15803d; background: #f0fdf4; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
@@ -232,7 +232,7 @@ html.bc-rx #v-recepcion .bcrx-ppk-det .pk-elegir:active { transform: scale(.97);
 /* 20-oct-2026 (dueño: «como STUDIO exactamente»): ficha de existencia, precio tachado, cliente, niveles con «—» y existencia por almacén */
 html.bc-rx #v-recepcion .bcrx-stk { text-transform: uppercase; letter-spacing: .02em; }
 html.bc-rx #v-recepcion .bcrx-stk.srv { color: #475569; background: #f1f5f9; }
-html.bc-rx #v-recepcion .pk-pre s { display: block; font-size: 12px; font-weight: 700; color: #94a3b8; }
+html.bc-rx #v-recepcion .pk-pre s { display: block; font-size: 12px; font-weight: 700; color: #64748b; }
 html.bc-rx #v-recepcion .bcrx-ppk-cli { margin: 0 14px 6px; font-size: 13px; font-weight: 700; color: #2563eb; }
 html.bc-rx #v-recepcion .bcrx-ppk-x { width: auto !important; padding: 0 12px !important; display: inline-flex !important; align-items: center; gap: 4px; font-size: 14px !important; font-weight: 700; color: #0f172a !important; border: 1px solid rgba(0,0,0,.16) !important; }
 html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv.act small, html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv.act b { color: #2563eb; }
@@ -264,7 +264,7 @@ html.bc-rx #v-recepcion .bcrx-ppk-ent { color: #6d28d9; }
 html.bc-rx #v-recepcion .bcrx-ppk-nv { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 6px 10px; }
 html.bc-rx #v-recepcion .bcrx-ppk-nv i, html.bc-rx #v-recepcion .bcrx-ppk-ent i { font-size: 16px; flex: none; }
 /* Sin existencia aquí: toda la fila en gris, al final de la lista */
-html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-pre, html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-cod { color: #94a3b8; }
+html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-pre, html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-cod { color: #64748b; }
 html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-add { background: #cbd5e1; }
 /* Fila compacta en el celular: nombre en una línea con «…», código y existencia pequeños; 5–6 artículos por pantalla */
 @media (max-width: 640px) {
@@ -304,3 +304,6 @@ html.bc-rx #v-recepcion .bcrx-ppk-chip.on { background: #e4572e; border-color: #
   html.bc-rx #v-recepcion .bcrx-ppk-chip { flex: 0 0 auto; padding: 0 12px; scroll-snap-align: start; }
   html.bc-rx #v-recepcion .bcrx-ppk-chip:last-child { margin-right: 12px; }
 }
+
+/* 24-oct-2026 (auditoría visual): el fondo oscurecido solo existe cuando la ventana flota (html.bc-pf, en taller-prefactura.css). */
+html.bc-rx #v-recepcion .bcrx-ppk-fondo { display: none; }

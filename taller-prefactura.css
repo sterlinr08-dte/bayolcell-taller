@@ -136,7 +136,7 @@ html.bc-pf #v-recepcion .bcpf-it .dsub .ime { background: var(--pf-acc-soft); co
 html.bc-pf #v-recepcion .bcpf-it .imp { grid-area: i; font: 800 15px/44px var(--pf-mono); color: #0f172a; white-space: nowrap; }
 html.bc-pf #v-recepcion .bcpf-it .del {
   grid-area: x; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; border: 1px solid rgba(0,0,0,.1);
-  background: #fff; color: #94a3b8; cursor: pointer; padding: 0; font-size: 16px;
+  background: #fff; color: #64748b; cursor: pointer; padding: 0; font-size: 16px;
 }
 html.bc-pf #v-recepcion .bcpf-it .del:hover { color: #b91c1c; background: #fbe9e9; border-color: #f5c2c2; }
 html.bc-pf #v-recepcion .bcpf-it .l2 { grid-area: l; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
@@ -262,7 +262,8 @@ html.bc-pf #v-recepcion .bcpf-bar .bb {
 }
 html.bc-pf #v-recepcion .bcpf-bar .bb i { font-size: 18px; }
 html.bc-pf #v-recepcion .bcpf-bar .bgi { background: #0a0a0a; border-color: #0a0a0a; color: #fffefa; }
-html.bc-pf #v-recepcion .bcpf-bar .bg { background: linear-gradient(135deg, #f06a3c, var(--pf-acc)); border-color: var(--pf-acc-dark); color: #fff; box-shadow: 0 4px 12px rgba(228,87,46,.3); }
+/* 24-oct-2026 (auditoría visual): blanco sobre naranja claro daba 3.3:1; con el naranja oscuro pasa de 4.5:1. */
+html.bc-pf #v-recepcion .bcpf-bar .bg { background: linear-gradient(135deg, #cf4a22, #b8401f); border-color: #a33718; color: #fff; box-shadow: 0 4px 12px rgba(184,64,31,.32); }
 html.bc-pf #v-recepcion .bcpf-bar .bb[hidden] { display: none; }
 html.bc-pf #v-recepcion .bcpf-bar .bfin { font-size: 14px; font-weight: 700; color: #b91c1c; }
 html.bc-pf #v-recepcion .bcpf-bar .bb:active,
@@ -855,3 +856,11 @@ html.bc-pf #v-recepcion .bcpf-it .n .nc { display: none; }
   html.bc-pf body #v-recepcion .bcpf-hist,
   html.bc-pf #v-recepcion.active .bcpf-bar { zoom: .75; }
 }
+
+/* 24-oct-2026 (auditoría visual): fondo oscurecido y desenfocado detrás del buscador flotante (DESIGN.md: rgba(15,23,42,.35) + blur 6). */
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk-fondo { display: block; position: fixed; inset: 0; z-index: 9400; background: rgba(15,23,42,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: bcpfFondo .18s ease-out; }
+@keyframes bcpfFondo { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk-fondo { animation: none; } }
+@media (prefers-reduced-transparency: reduce) { html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk-fondo { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(15,23,42,.55); } }
+/* 24-oct-2026 (auditoría visual: «se mezclan textos de atrás»): la ventana del buscador va blanca sólida, sin transparencia. */
+html.bc-pf body #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { background: #fff !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }

@@ -52,7 +52,8 @@
       '<div class="dhr"><span class="dtit">Prefactura</span>' +
       '' +
       // 23-oct-2026 (dueño: «habilitar un icono para configurar la impresora, los empleados no tienen acceso»): abre Configuración → Impresora. Va antes de la lupa (dueño, 23-oct).
-      '<button type="button" class="ibtn ibtn-imp" aria-label="Configurar impresora" title="Configurar impresora"><i class="ti ti-printer" aria-hidden="true"></i></button>' +
+      // 24-oct-2026 (auditoría visual): engranaje en vez de impresora, para que no parezca que imprime.
+      '<button type="button" class="ibtn ibtn-imp" aria-label="Configurar impresora" title="Impresora: configurar"><i class="ti ti-settings" aria-hidden="true"></i></button>' +
       '<button type="button" class="ibtn" aria-label="Buscar prefacturas" title="Buscar prefacturas"><i class="ti ti-search" aria-hidden="true"></i></button>' +
       '<span class="dno">Nº</span><span class="dnum">Nueva</span><span class="dfec">' + fechaHoy() + '</span></div>' +
       '<div class="dest"></div>');
