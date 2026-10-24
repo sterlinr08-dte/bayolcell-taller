@@ -7436,14 +7436,28 @@ async function agregarEquipoAlLote() {
     if(!imei) return toast('Este equipo requiere IMEI / Serial.', 'error');
 
     const esGarantia = !!document.getElementById('eq_garantia')?.checked;
-    // El IMEI no se puede repetir, EXCEPTO si es por garantía (el mismo equipo regresa)
-    if(imei && !esGarantia) {
+    // 24-oct-2026 (auditoría) R13: el IMEI es único en la base (imei_unico). Una garantía NO crea otro
+    // equipo: si el IMEI ya existe se ofrece abrir el equipo existente para registrar la devolución.
+    if(imei) {
         const imeiNorm = imei.toLowerCase().trim();
         const rep = (cache.refurb || []).find(r => (r.imei || '').toLowerCase().trim() === imeiNorm);
         if(rep) {
-            const loteRep = cache.lotes.find(l => l.id === rep.lote_id);
+            const loteRep = (cache.lotes || []).find(l => l.id === rep.lote_id);
             const dondeTxt = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote';
-            return toast(`Ese IMEI (${imei}) ya está registrado en ${dondeTxt}. Si el equipo volvió por garantía, marque la casilla "Es por garantía".`, 'error');
+            if(!esGarantia) {
+                return toast(`Ese IMEI (${imei}) ya está registrado en ${dondeTxt}. Si el equipo volvió por garantía, marque la casilla "Es por garantía" para abrir el equipo existente.`, 'error');
+            }
+            const esDespachado = rep.estado_evaluacion === 'vendido';
+            const abrir = await confirmar(`Ese IMEI ya existe en reacondicionados (${rep.modelo || 'equipo'} · ${dondeTxt}).\n\nPara una garantía no se crea otro equipo: se registra la devolución sobre el existente.\n\n${esDespachado ? '¿Abrir el registro de devolución de ese equipo?' : 'Ese equipo todavía no está despachado. ¿Abrir su ficha?'}`, { peligro: false, ok: 'Sí, abrir' });
+            if(!abrir) return;
+            if(esDespachado && typeof abrirModalNuevaDevolucion === 'function') {
+                await abrirModalNuevaDevolucion();
+                if(typeof smartSelectSetValue === 'function') smartSelectSetValue('ss-dev-equipo', rep.id);
+                if(typeof cargarHistorialEquipoDevolucion === 'function') cargarHistorialEquipoDevolucion(rep.id);
+            } else if(typeof abrirPanelProceso === 'function') {
+                abrirPanelProceso(rep.id);
+            }
+            return;
         }
     }
 
@@ -7484,7 +7498,13 @@ async function agregarEquipoAlLote() {
         if(typeof _eqImeiValidar === 'function') _eqImeiValidar();
         document.getElementById('eq_imei')?.focus();
         await loadAll();
-    } catch(e) { logError('Agregar equipo al lote', e); toastError(getFriendlyError(e)); }
+    } catch(e) {
+        logError('Agregar equipo al lote', e);
+        // 24-oct-2026 (auditoría) R13: choque con la restricción única del IMEI (otra sesión o caché desactualizada).
+        const esImeiDuplicado = e && (e.code === '23505' || /imei_unico/i.test(String(e.message || e.details || '')));
+        if(esImeiDuplicado) return toastError('Ese IMEI ya existe en reacondicionados. Para una garantía, abra el equipo existente y registre la devolución; no se crea otro equipo.');
+        toastError(getFriendlyError(e));
+    }
 }
 
 let _eqLote = { chip: '', page: 1, size: 10 };
@@ -7760,6 +7780,18 @@ let _reacondSel = new Set(); // equipos marcados con casilla para asignar en blo
 let _reacondFiltroTec = ''; // filtrar la lista por técnico (clic en su chip)
 const _REACOND_ESTADOS_REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
 const _REACOND_ESTADOS_TRABAJO = [..._REACOND_ESTADOS_REPARACION, 'listo_revision'];
+// 24-oct-2026 (auditoría) R14: todo insert a equipo_historial pasa por aquí para leer {error}
+// y dejarlo en consola (antes se ignoraba). Devuelve true si quedó escrito.
+async function _histInsert(filas) {
+    const lista = Array.isArray(filas) ? filas : [filas];
+    const ctx = (lista[0] && (lista[0].accion || lista[0].estado_nuevo)) || 'sin contexto';
+    try {
+        const { error } = await supabaseClient.from('equipo_historial')
+            .insert(lista);
+        if(error) { logError('Historial equipo: ' + ctx, error); return false; }
+        return true;
+    } catch(e) { logError('Historial equipo: ' + ctx, e); return false; }
+}
 function _reacondTienePiezasPendientes(filas) {
     return (filas || []).some(p => {
         const esSolicitudOperativa = !!p.agregada_por_tecnico || !!p.pieza_id;
@@ -7894,15 +7926,16 @@ async function _reacondPasarA(destino) {
         // Historial (best-effort)
         try {
             const filas = equiposCache.map(r => ({ equipo_id: r.id, estado_anterior: r.estado_evaluacion, estado_nuevo: patch.estado_evaluacion, accion: 'pasar_a_' + destino, notas: 'Cambio masivo a ' + (labels[destino] || destino), usuario: (sessionUser && sessionUser.nombre) || '', fecha: new Date().toISOString() }));
-            if(filas.length) await supabaseClient.from('equipo_historial').insert(filas);
+            if(filas.length) await _histInsert(filas);
         } catch(_) {}
         // Actualizar cache local
         equiposCache.forEach(r => { Object.assign(r, patch); });
         _reacondSel = new Set();
         // Al registrar la salida (estado interno 'vendido'), descontar automáticamente las piezas pendientes.
         let _totDesc = 0;
-        if(destino === 'vendido') { for(const id of ids) { const rr = await _descontarPiezasAlCompletar(id); _totDesc += rr.n; } }
-        toast(`✅ ${ids.length} equipo(s) pasado(s) a "${labels[destino] || destino}".${_totDesc ? ' 🧩 ' + _totDesc + ' pieza(s) descontada(s).' : ''}`);
+        let _totFall = 0;
+        if(destino === 'vendido') { for(const id of ids) { const rr = await _descontarPiezasAlCompletar(id); _totDesc += rr.n; _totFall += (rr.fallidas || 0) + (rr.error ? 1 : 0); } }
+        toast(`✅ ${ids.length} equipo(s) pasado(s) a "${labels[destino] || destino}".${_totDesc ? ' 🧩 ' + _totDesc + ' pieza(s) descontada(s).' : ''}${_totFall ? ' ⚠️ Hubo piezas sin descontar; revise las fichas.' : ''}`, _totFall ? 'error' : undefined);
         renderDetalleLoteReacond();
     } catch(e) { logError('Pasar a estado', e); toastError(getFriendlyError(e)); }
 }
@@ -9124,7 +9157,7 @@ async function guardarEquipoExistente(btn) {
         const { data: ins, error } = await supabaseClient.from('equipos_refurbish').insert([fila]).select('id').single();
         if(error) throw error;
         try {
-            await supabaseClient.from('equipo_historial').insert([{
+            await _histInsert([{
                 equipo_id: ins.id, estado_anterior: null, estado_nuevo: estado,
                 accion: '📦 Registrado como equipo existente (antes del sistema)',
                 usuario: sessionUser?.nombre || 'Admin'
@@ -12309,11 +12342,13 @@ function renderRentabilidadReacond() {
     // (misma formula "costo final" que ya usan la ficha del equipo y el despacho — antes este panel
     // la omitia y por eso mostraba mas ganancia de la real en equipos con flete).
     const inv = (e) => (Number(e.costo_compra) || 0) + (Number(e.costo_repuestos) || 0) + calcularFleteEquipo(e);
-    const esVendido = (e) => e.estado_evaluacion === 'vendido';
-    const tieneP = (e) => e.precio_venta_real != null && Number(e.precio_venta_real) > 0;
+    // 24-oct-2026 (auditoría) R15: "vendido" en el taller significa DESPACHADO al almacén (no es una venta;
+    // la venta real está en Info Plus). Solo cuenta como venta con precio el equipo completado y con precio_venta_real > 0.
+    const esVendido = (e) => e.estado_evaluacion === 'vendido' || !!e.completado; // despachado/salida registrada
+    const tieneP = (e) => !!e.completado && e.precio_venta_real != null && Number(e.precio_venta_real) > 0;
 
-    // === VENTAS DEL PERÍODO (por fecha de despacho) ===
-    const vendidosRango = equipos.filter(e => esVendido(e) && fechaEnRango(e.fecha_despacho || e.creado_en));
+    // === DESPACHOS DEL PERÍODO (por fecha de despacho) ===
+    const vendidosRango = equipos.filter(e => esVendido(e) && fechaEnRango(e.fecha_despacho || e.fecha_completado || e.creado_en));
     let ingresos = 0, inversionRecup = 0, conPrecio = 0, sinPrecio = 0;
     let sumEstim = 0, sumRealVsEstim = 0, conEstim = 0;
     vendidosRango.forEach(e => {
@@ -12393,8 +12428,8 @@ function renderRentabilidadReacond() {
             </div>
             <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:#475569;">
                 <span>Inversión: <b>${money(l.invTotal)}</b></span>
-                <span>Vendido: <b>${l.vendidos}/${l.total}</b> (${l.pctVendido}%)</span>
-                <span>Recuperado: <b style="color:#16a34a;">${money(l.ingresos)}</b></span>
+                <span>Despachados con precio: <b>${l.vendidos}/${l.total}</b> (${l.pctVendido}%)</span>
+                <span>Recuperado (estimado): <b style="color:#16a34a;">${money(l.ingresos)}</b></span>
                 ${l.pendiente > 0 ? `<span>Pendiente: <b style="color:#b45309;">${money(l.pendiente)}</b></span>` : ''}
             </div>
         </div>`;
@@ -12406,14 +12441,14 @@ function renderRentabilidadReacond() {
         const col = t.ganancia >= 0 ? '#16a34a' : '#dc2626';
         return `<div style="margin-bottom:9px;">
             <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">
-                <span style="font-weight:600;">${escapeHtml(t.nombre)} <span style="color:var(--text-muted); font-weight:400;">(${t.n} vendido${t.n === 1 ? '' : 's'})</span></span>
+                <span style="font-weight:600;">${escapeHtml(t.nombre)} <span style="color:var(--text-muted); font-weight:400;">(${t.n} despachado${t.n === 1 ? '' : 's'} con precio)</span></span>
                 <span style="font-weight:800; color:${col};">${money(t.ganancia)}</span>
             </div>
             <div style="background:#e2e8f0; border-radius:5px; height:8px; overflow:hidden;">
                 <div style="width:${pct}%; height:100%; background:${col}; border-radius:5px;"></div>
             </div>
         </div>`;
-    }).join('') : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin ventas con precio en el período.</div>`;
+    }).join('') : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin despachos con precio en el período.</div>`;
 
     const filasEstancados = estancados.length ? estancados.map(({ e, dias }) => {
         const alerta = dias >= 30;
@@ -12428,42 +12463,44 @@ function renderRentabilidadReacond() {
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
                 <div>
                     <h3 style="margin:0 0 3px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Centro de Rentabilidad</h3>
-                    <p style="color:var(--text-muted); font-size:12px; margin:0;">Inversión, ventas y ganancia real de los reacondicionados.</p>
+                    <p style="color:var(--text-muted); font-size:12px; margin:0;">Inversión, despachos y margen estimado de los reacondicionados. <b>La venta real está en Info Plus.</b></p>
                 </div>
                 <button class="btn btn-light" onclick="refrescarVista(renderRentabilidadReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:12px 0 14px;">
-                <span style="font-size:12px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Ventas del período:</span>
+                <span style="font-size:12px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Despachos del período:</span>
                 ${periodoBtn(1, 'Hoy')}${periodoBtn(15, '15 días')}${periodoBtn(30, '1 mes')}${periodoBtn(90, '3 meses')}${periodoBtn('todo', 'Todo')}
             </div>
             <div class="kpi-grid">
-                ${kpi('💰 Ingresos por ventas', money(ingresos), '#16a34a', `${conPrecio} equipo(s)`)}
+                ${kpi('📦 Despachados', String(vendidosRango.length), '#475569', `${conPrecio} con precio · ${sinPrecio} sin precio`)}
+                ${kpi('💰 Despachados con precio', money(ingresos), '#16a34a', `${conPrecio} equipo(s)`)}
                 ${kpi('🛒 Inversión recuperada', money(inversionRecup), '#0891b2')}
-                ${kpi('📈 Ganancia neta', money(ganancia), gColor, `margen ${margen.toFixed(1)}%`)}
+                ${kpi('📈 Margen estimado (solo con precio)', money(ganancia), gColor, `margen ${margen.toFixed(1)}%`)}
                 ${kpi('🎯 Ticket promedio', money(ticketProm), '#6366f1')}
             </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:9px;"><i class="ti ti-info-circle"></i> La venta real está en Info Plus. Aquí el margen se estima solo con los equipos despachados que tienen precio registrado.</div>
             ${conEstim ? `<div style="font-size:11px; color:var(--text-muted); margin-top:9px;"><i class="ti ti-target-arrow"></i> Estimado vs real: se vendió ${sumRealVsEstim >= sumEstim ? 'por encima' : 'por debajo'} de lo estimado (${money(sumRealVsEstim)} real vs ${money(sumEstim)} estimado en ${conEstim} equipo(s)).</div>` : ''}
-            ${sinPrecio ? `<div style="background:#fef3c7; border:1px solid #fcd34d; color:#92400e; font-size:11px; border-radius:8px; padding:8px 10px; margin-top:10px;"><i class="ti ti-alert-triangle"></i> ${sinPrecio} equipo(s) vendido(s) sin precio registrado (se despacharon antes de pedir el monto). No suman a los ingresos.</div>` : ''}
+            ${sinPrecio ? `<div style="background:#fef3c7; border:1px solid #fcd34d; color:#92400e; font-size:11px; border-radius:8px; padding:8px 10px; margin-top:10px;"><i class="ti ti-alert-triangle"></i> ${sinPrecio} equipo(s) despachado(s) sin precio registrado. No suman al margen estimado; la venta real se consulta en Info Plus.</div>` : ''}
         </div>
 
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px;">
             <div class="card" style="margin:0;">
                 <h4 style="margin:0 0 4px; font-size:14px;"><i class="ti ti-snowflake" style="color:#0891b2;"></i> Capital congelado en inventario</h4>
-                <p style="font-size:11px; color:var(--text-muted); margin:0 0 10px;">Dinero invertido en equipos que todavía no se han vendido.</p>
+                <p style="font-size:11px; color:var(--text-muted); margin:0 0 10px;">Dinero invertido en equipos que todavía no se han despachado.</p>
                 <div style="font-size:26px; font-weight:800; color:#b45309;">${money(capitalCongelado)}</div>
                 <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">${enInventario.length} equipo(s) en inventario</div>
                 <h5 style="margin:8px 0 4px; font-size:12px; color:#475569;">⏳ Más tiempo sin venderse</h5>
                 ${filasEstancados}
             </div>
             <div class="card" style="margin:0;">
-                <h4 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-trophy" style="color:#16a34a;"></i> Ganancia por técnico <span style="font-size:11px; color:var(--text-muted); font-weight:400;">(${_repFiltroFechas.label})</span></h4>
+                <h4 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-trophy" style="color:#16a34a;"></i> Margen estimado por técnico <span style="font-size:11px; color:var(--text-muted); font-weight:400;">(${_repFiltroFechas.label})</span></h4>
                 ${filasTec}
             </div>
         </div>
 
         <div class="card" style="margin-top:14px;">
             <h4 style="margin:0 0 4px; font-size:14px;"><i class="ti ti-stack-2" style="color:#6366f1;"></i> Rentabilidad por lote</h4>
-            <p style="font-size:11px; color:var(--text-muted); margin:0 0 12px;">Ganancia ya realizada (unidades vendidas) y capital aún pendiente por recuperar, por cada lote de compra.</p>
+            <p style="font-size:11px; color:var(--text-muted); margin:0 0 12px;">Margen estimado (solo despachados con precio) y capital aún pendiente por recuperar, por cada lote de compra.</p>
             ${filasLotes}
         </div>`;
 }
@@ -13022,9 +13059,12 @@ function renderPiezasEvaluacion() {
         total += subtotal;
         const esIP = !!p.pieza_codigo;
         const descontada = (Number(p.infoplus_desc_cant) || 0) > 0;
+        const enProceso = Number(p.infoplus_desc_cant) === -1; // 24-oct-2026 (auditoría) R08: reservada por otra sesión
         const estadoBadge = !esIP ? '' : (descontada
             ? ` <span style="font-size:10px; font-weight:800; background:#dcfce7; color:#166534; padding:2px 8px; border-radius:8px;">✓ descontada (Alm. ${p.infoplus_desc_almacen || 6})</span>`
-            : ` <span style="font-size:10px; font-weight:800; background:#fef9c3; color:#854d0e; padding:2px 8px; border-radius:8px;">⏳ por descontar</span>`);
+            : (enProceso
+                ? ` <span style="font-size:10px; font-weight:800; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:8px;">⏳ descontando…</span>`
+                : ` <span style="font-size:10px; font-weight:800; background:#fef9c3; color:#854d0e; padding:2px 8px; border-radius:8px;">⏳ por descontar</span>`));
         const costoLinea = verCosto
             ? `<div style="font-size:11px; color:var(--text-muted);">Costo unitario: ${money(p.costo_unitario || 0)} · Subtotal: <b style="color:var(--blue-btn);">${money(subtotal)}</b></div>`
             : '';
@@ -13152,9 +13192,20 @@ async function guardarEvaluacion(marcarEvaluado = false) {
     }
     
     try {
+        // 24-oct-2026 (auditoría) R07: sin RPC no se puede hacer borrar+insertar en una sola transacción.
+        // Mínimo cliente: se guardan en memoria las filas que se borran y, si el insert falla, se reinsertan.
+        const _reinsertar = async (tabla, filas) => {
+            if(!filas || !filas.length) return;
+            const { error } = await supabaseClient.from(tabla).insert(filas);
+            if(error) { logError('Reinsertar ' + tabla + ' tras fallo', error); toastError('No se pudieron recuperar las filas anteriores de ' + tabla + '. Revise el equipo antes de continuar.'); }
+            else toast('Se restauraron las filas anteriores; no se perdió información.');
+        };
         // 1. Borrar fallas previas y guardar nuevas
-        await supabaseClient.from('equipo_fallas').delete().eq('equipo_id', equipoId);
-        
+        const { data: fallasPrevias, error: eFp } = await supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId);
+        if(eFp) throw eFp;
+        const { error: eDelF } = await supabaseClient.from('equipo_fallas').delete().eq('equipo_id', equipoId);
+        if(eDelF) throw eDelF;
+
         if(fallasArray.length > 0) {
             const fallasObj = (cache.fallas || []).filter(f => _evalState.fallasSeleccionadas.has(f.id));
             const cats = cache.fallaCategorias || [];
@@ -13170,13 +13221,16 @@ async function guardarEvaluacion(marcarEvaluado = false) {
                 };
             });
             const { error: e1 } = await supabaseClient.from('equipo_fallas').insert(inserts);
-            if(e1) throw e1;
+            if(e1) { await _reinsertar('equipo_fallas', fallasPrevias); throw e1; }
         }
-        
+
         // 2. Guardar piezas: PRESERVAR las que ya se descontaron de Info Plus (infoplus_desc_cant>0).
         //    Solo se borran/reescriben las que están "por descontar"; las descontadas quedan intactas
-        //    para que el descuento nunca se repita.
-        await supabaseClient.from('equipo_piezas_pedidas').delete().eq('equipo_id', equipoId).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
+        //    para que el descuento nunca se repita. (-1 = descuento en proceso en otra sesión: tampoco se toca.)
+        const { data: piezasPrevias, error: ePp } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
+        if(ePp) throw ePp;
+        const { error: eDelP } = await supabaseClient.from('equipo_piezas_pedidas').delete().eq('equipo_id', equipoId).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
+        if(eDelP) throw eDelP;
 
         const piezasPorGuardar = _evalState.piezasSeleccionadas.filter(p => (Number(p.infoplus_desc_cant) || 0) === 0);
         if(piezasPorGuardar.length > 0) {
@@ -13190,7 +13244,7 @@ async function guardarEvaluacion(marcarEvaluado = false) {
                 estado: p.estado || 'pendiente'
             }));
             const { error: e2 } = await supabaseClient.from('equipo_piezas_pedidas').insert(insertsPz);
-            if(e2) throw e2;
+            if(e2) { await _reinsertar('equipo_piezas_pedidas', piezasPrevias); throw e2; }
         }
         
         // 3. Actualizar notas y estado del equipo
@@ -13200,8 +13254,10 @@ async function guardarEvaluacion(marcarEvaluado = false) {
         } else {
             updateData.estado_evaluacion = 'en_evaluacion';
         }
-        // Actualizar costo de repuestos (suma de piezas)
-        const totalPiezas = _evalState.piezasSeleccionadas.reduce((s, p) => s + (p.cantidad || 1) * (p.costo_unitario || 0), 0);
+        // Actualizar costo de repuestos (suma de piezas). 24-oct-2026 (auditoría) R10: sin devueltas ni rechazadas.
+        const totalPiezas = _evalState.piezasSeleccionadas
+            .filter(p => !['devuelta','rechazada'].includes(p.estado))
+            .reduce((s, p) => s + (p.cantidad || 1) * (p.costo_unitario || 0), 0);
         updateData.costo_repuestos = totalPiezas;
         
         const { error: e3 } = await supabaseClient
@@ -13212,7 +13268,7 @@ async function guardarEvaluacion(marcarEvaluado = false) {
         
         toast(marcarEvaluado ? 'Evaluación guardada y equipo marcado como evaluado.' : 'Evaluación guardada.');
         cerrarModalEvaluacion();
-        // Crear tareas automáticas desde las fallas del catálogo (solo si no hay tareas aún)
+        // Crear tareas automáticas desde las fallas del catálogo (sincroniza: crea las nuevas, quita las pendientes que ya no están)
         const fallasObjTareas = (cache.fallas || []).filter(f => _evalState.fallasSeleccionadas.has(f.id));
         const textosFallas = fallasObjTareas.map(f => f.nombre_corto || f.nombre);
         await loadAll();
@@ -13767,7 +13823,7 @@ async function confirmarAsignarTecnico() {
         
         // Registrar en historial
         const tecnico = (cache.tecnicos || []).find(t => t.id === tecnicoId);
-        await supabaseClient.from('equipo_historial').insert([{
+        await _histInsert([{
             equipo_id: equipoId,
             estado_anterior: 'evaluado',
             estado_nuevo: 'en_proceso',
@@ -13862,7 +13918,7 @@ async function pasarSeleccionListoVenta() {
         const ids = sel.map(e => e.id);
         const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'listo_venta' }).in('id', ids);
         if(error) throw error;
-        for(const e of sel) { try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: e.id, estado_anterior: 'evaluado', estado_nuevo: 'listo_venta', accion: 'Pasado a Listo para venta sin reparación (en bloque)', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {} }
+        for(const e of sel) { try { await _histInsert([{ equipo_id: e.id, estado_anterior: 'evaluado', estado_nuevo: 'listo_venta', accion: 'Pasado a Listo para venta sin reparación (en bloque)', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {} }
         toast(`✅ ${sel.length} equipo(s) a Listo para venta.`);
         _reacondSel = new Set();
         await loadAll();
@@ -13897,7 +13953,7 @@ async function confirmarAsignarLote(btn) {
         // Historial + fallas sin dueño por cada equipo
         for(const e of elegidos) {
             try {
-                await supabaseClient.from('equipo_historial').insert([{ equipo_id: e.id, estado_anterior: 'evaluado', estado_nuevo: 'en_proceso', accion: `Asignado a ${tecnico?.nombre || 'técnico'} (en bloque)`, notas: nota || null, usuario: sessionUser?.nombre || 'Admin' }]);
+                await _histInsert([{ equipo_id: e.id, estado_anterior: 'evaluado', estado_nuevo: 'en_proceso', accion: `Asignado a ${tecnico?.nombre || 'técnico'} (en bloque)`, notas: nota || null, usuario: sessionUser?.nombre || 'Admin' }]);
                 await asignarFallasSinDueno('equipo', e.id, tecnicoId);
             } catch(_e) {}
         }
@@ -14053,18 +14109,29 @@ async function completarTarea(tareaId, tipo, refId) {
         const todasHechas = tareasRef.length > 0 && tareasRef.every(t => t.estado === 'hecha');
         
         if(todasHechas) {
-            const msg = tipo === 'equipo'
-                ? '✅ Todas las tareas completadas.\n\n¿Marcar el equipo como FINALIZADO para que la administración lo reciba?'
-                : '✅ Todas las tareas completadas.\n\n¿Marcar la orden como FINALIZADA (lista para entregar)?';
-            if(await confirmar(msg, {peligro:false, ok:'Sí, continuar'})) {
-                if(tipo === 'equipo') {
-                    await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'listo_revision' }).eq('id', refId);
-                    toast('✅ Equipo marcado como finalizado.');
+            if(tipo === 'equipo') {
+                // 24-oct-2026 (auditoría) R06: no forzar listo_revision con un update directo. Solo se ofrece si el
+                // equipo sigue en taller, y pasa por cambiarEstadoProceso (valida piezas y fallas, deja historial).
+                const eqAct = (cache.refurb || []).find(r => r.id === refId);
+                const estAct = eqAct ? (eqAct.estado_evaluacion || '') : '';
+                const enTaller = ['tecnico_recibio', 'en_reparacion', 'en_proceso'].includes(estAct);
+                const yaAdelante = ['listo_revision', 'listo_venta', 'vendido', 'entregado'].includes(estAct);
+                if(enTaller) {
+                    if(await confirmar('✅ Todas las tareas completadas.\n\n¿Marcar el equipo como FINALIZADO para que la administración lo reciba?', {peligro:false, ok:'Sí, continuar'})) {
+                        await cambiarEstadoProceso(refId, 'listo_revision');
+                    }
+                } else if(yaAdelante) {
+                    toast('Tarea completada; el equipo conserva su estado.');
                 } else {
-                    await supabaseClient.from('ordenes_reparacion').update({ estado: 'finalizado', fecha_finalizado: new Date().toISOString() }).eq('id', refId);
-                    toast('✅ Orden finalizada.');
+                    toast('Tarea completada; el equipo conserva su estado (' + (estAct || 'sin estado') + ').');
                 }
-                await loadAll();
+            } else {
+                if(await confirmar('✅ Todas las tareas completadas.\n\n¿Marcar la orden como FINALIZADA (lista para entregar)?', {peligro:false, ok:'Sí, continuar'})) {
+                    const { error: eOrd } = await supabaseClient.from('ordenes_reparacion').update({ estado: 'finalizado', fecha_finalizado: new Date().toISOString() }).eq('id', refId);
+                    if(eOrd) throw eOrd;
+                    toast('✅ Orden finalizada.');
+                    await loadAll();
+                }
             }
         }
         
@@ -14107,18 +14174,32 @@ async function refrescarPanelTareas(tipo, refId) {
     }
 }
 
-// Crea tareas automáticamente desde una lista de fallas (textos), SOLO si no existen tareas aún.
-// Las tareas se crean SIN asignar. Devuelve cuántas creó.
+// Crea tareas automáticamente desde una lista de fallas (textos). Las tareas se crean SIN asignar. Devuelve cuántas creó.
+// 24-oct-2026 (auditoría) R07: antes devolvía 0 si ya había tareas (una segunda evaluación no actualizaba nada).
+// Ahora SINCRONIZA: crea solo las tareas cuya descripción no exista y elimina las tareas PENDIENTES (no hechas)
+// cuya falla ya no está. Para no borrar tareas escritas a mano, solo se eliminan las que coinciden con una falla del catálogo.
 async function crearTareasDesdeFallas(tipo, refId, listaFallas) {
-    if(!refId || !Array.isArray(listaFallas) || listaFallas.length === 0) return 0;
-    // Opción A: solo crear si el equipo/orden no tiene tareas aún
-    const yaExisten = (cache.tareas || []).filter(t => t.tipo === tipo && t.ref_id === refId);
-    if(yaExisten.length > 0) return 0;
+    if(!refId || !Array.isArray(listaFallas)) return 0;
+    const norm = s => (s || '').toString().trim().toLowerCase();
+    const existentes = (cache.tareas || []).filter(t => t.tipo === tipo && t.ref_id === refId);
+    // En órdenes las fallas son texto libre (falla_reportada): se conserva el comportamiento anterior
+    // (solo crear si no hay tareas) para no borrar ni duplicar tareas escritas por el técnico.
+    if(tipo !== 'equipo' && existentes.length > 0) return 0;
     // Limpiar y filtrar textos vacíos/duplicados
     const textos = [...new Set(listaFallas.map(s => (s || '').toString().trim()).filter(Boolean))];
-    if(textos.length === 0) return 0;
+    const textosNorm = new Set(textos.map(norm));
+    const existentesNorm = new Set(existentes.map(t => norm(t.descripcion)));
+    // Tareas pendientes que vinieron del catálogo de fallas y cuya falla ya no está seleccionada
+    const catalogoNorm = new Set((cache.fallas || []).flatMap(f => [norm(f.nombre_corto), norm(f.nombre)]).filter(Boolean));
+    const huerfanas = existentes.filter(t => t.estado !== 'hecha' && catalogoNorm.has(norm(t.descripcion)) && !textosNorm.has(norm(t.descripcion)));
+    if(huerfanas.length) {
+        const { error: eDel } = await supabaseClient.from('tareas_trabajo').delete().in('id', huerfanas.map(t => t.id));
+        if(eDel) logError('Quitar tareas de fallas retiradas', eDel);
+    }
+    const nuevos = textos.filter(txt => !existentesNorm.has(norm(txt)));
+    if(nuevos.length === 0) return 0;
     try {
-        const inserts = textos.map(txt => ({
+        const inserts = nuevos.map(txt => ({
             tipo: tipo, ref_id: refId,
             descripcion: txt,
             tecnico_id: null, // sin asignar
@@ -14127,7 +14208,7 @@ async function crearTareasDesdeFallas(tipo, refId, listaFallas) {
         }));
         const { error } = await supabaseClient.from('tareas_trabajo').insert(inserts);
         if(error) throw error;
-        return textos.length;
+        return nuevos.length;
     } catch(e) { logError('Crear tareas desde fallas', e); return 0; }
 }
 
@@ -14637,23 +14718,40 @@ async function marcarListoVentaDirecto(equipoId) {
     if(_reacondTienePiezasPendientes((cache.piezasReacond || []).filter(p => p.equipo_id === equipoId))) {
         return toast('Este equipo todavía tiene piezas pendientes. Resuelva la solicitud antes de pasarlo a Listo para venta.', 'error');
     }
+    // 24-oct-2026 (auditoría) R05: tampoco pasa directo a venta con fallas/tareas abiertas.
+    // El admin puede forzarlo, pero debe dejar una justificación que queda en el historial.
+    const pendFallas = fallasPendientesDe('equipo', equipoId);
+    let notaForzado = null;
+    if(pendFallas > 0) {
+        if(!isAdminUser()) return toast(`Este equipo tiene ${pendFallas} falla(s)/tarea(s) sin resolver. Márquelas como hechas (✓) antes de pasarlo a Listo para venta.`, 'error');
+        if(!await confirmar(`⚠️ Este equipo tiene ${pendFallas} falla(s)/tarea(s) SIN resolver.\n\nComo administrador puede pasarlo a Listo para venta de todos modos, pero debe justificarlo.\n\n¿Continuar?`)) return;
+        const just = await pedirTexto('Justificación (obligatoria) para pasar a Listo para venta con fallas abiertas:', { multilinea: true, placeholder: 'Ej.: la falla es cosmética y se vende así' });
+        if(just === null) return;
+        if(!just.trim()) return toast('Debe escribir la justificación.', 'error');
+        notaForzado = `Forzado por admin con ${pendFallas} falla(s) abierta(s). Justificación: ${just.trim()}`;
+    }
     if(!await confirmar('¿Este equipo NO requiere reparación y pasa directo a "🛒 Listo para venta"?')) return;
-    await cambiarEstadoProceso(equipoId, 'listo_venta');
+    await cambiarEstadoProceso(equipoId, 'listo_venta', notaForzado);
 }
-async function cambiarEstadoProceso(equipoId, nuevoEstado) {
+// notaHistorial (opcional): texto que se guarda en el historial del cambio (p. ej. justificación del admin).
+async function cambiarEstadoProceso(equipoId, nuevoEstado, notaHistorial) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     const estadoAnterior = eq.estado_evaluacion;
-    if(nuevoEstado === 'listo_revision' && estadoAnterior === 'tecnico_recibio') {
+    // 24-oct-2026 (auditoría) R05: el chequeo de piezas aplica al ir a calidad o a venta desde CUALQUIER origen
+    // (antes solo desde tecnico_recibio, y por eso se colaba desde espera_pieza o reasignado).
+    if(nuevoEstado === 'listo_revision' || nuevoEstado === 'listo_venta') {
         const pendientes = _reacondTienePiezasPendientes((cache.piezasReacond || []).filter(p => p.equipo_id === equipoId));
-        if(pendientes) return toast('Este equipo todavía tiene piezas pendientes. Confirme su recepción o resuelva la solicitud antes de enviarlo a calidad.', 'error');
+        if(pendientes) return toast('Este equipo todavía tiene piezas pendientes. Confirme su recepción o resuelva la solicitud antes de ' + (nuevoEstado === 'listo_venta' ? 'pasarlo a Listo para venta.' : 'enviarlo a calidad.'), 'error');
     }
     // No permitir pasar a revisión final si quedan fallas pendientes
+    let notaHist = notaHistorial || null;
     if(nuevoEstado === 'listo_revision') {
         const pend = fallasPendientesDe('equipo', equipoId);
         if(pend > 0) {
             if(isAdminUser()) {
                 if(!await confirmar(`⚠️ Este equipo tiene ${pend} falla(s) SIN resolver.\n\nComo administrador, puede pasarlo a revisión de todos modos.\n\n¿Forzar?`)) return;
+                notaHist = [notaHist, `Forzado por admin con ${pend} falla(s) abierta(s).`].filter(Boolean).join(' · ');
             } else {
                 return toast(`⚠️ No puede pasar a revisión todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marque todas las fallas como resueltas (✓) primero.`, 'error');
             }
@@ -14662,9 +14760,10 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado) {
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: nuevoEstado }).eq('id', equipoId);
         if(error) throw error;
-        await supabaseClient.from('equipo_historial').insert([{
+        await _histInsert([{
             equipo_id: equipoId, estado_anterior: estadoAnterior, estado_nuevo: nuevoEstado,
             accion: 'Cambio de estado',
+            notas: notaHist,
             usuario: sessionUser?.nombre || 'Usuario'
         }]);
         toast('Estado actualizado.');
@@ -14698,10 +14797,18 @@ async function marcarPiezaRecibida(piezaId) {
         // Obtener la pieza pedida para saber su vínculo al inventario y cantidad
         const { data: pp, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
         if(e0) throw e0;
-        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ 
+        // 24-oct-2026 (auditoría) R09: solo se confirma si venía 'entregada' o 'aprobada'. Si no afectó fila,
+        // ya estaba recibida (doble clic u otra sesión) y NO se vuelve a descontar el stock.
+        const { data: upd, error } = await supabaseClient.from('equipo_piezas_pedidas').update({
             estado: 'recibida'
-        }).eq('id', piezaId);
+        }).eq('id', piezaId).in('estado', ['entregada', 'aprobada']).select('id');
         if(error) throw error;
+        if(!upd || !upd.length) {
+            toast('Ya estaba recibida. No se descontó stock de nuevo.');
+            await loadAll();
+            if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+            return;
+        }
         // Bajar del stock del inventario (solo si está vinculada con pieza_id)
         if(pp && pp.pieza_id) {
             await ajustarStockInventario(pp.pieza_id, -(pp.cantidad || 1));
@@ -14716,15 +14823,18 @@ async function marcarPiezaRecibida(piezaId) {
 }
 
 // Ajusta el stock de una pieza del inventario (delta puede ser negativo para restar o positivo para sumar)
+// 24-oct-2026 (auditoría) R09: el UPDATE lo hace el servidor con la RPC ajustar_stock_pieza (atómico),
+// ya no se calcula desde la caché (dos sesiones a la vez pisaban el valor). Devuelve {ok, cantidad, truncado}.
 async function ajustarStockInventario(piezaId, delta) {
     try {
-        const pieza = (cache.piezas || []).find(p => p.id === piezaId);
-        const actual = pieza ? (pieza.cantidad || 0) : 0;
-        const nuevo = Math.max(0, actual + delta);
-        const { error } = await supabaseClient.from('piezas_inventario').update({ cantidad: nuevo }).eq('id', piezaId);
+        const { data, error } = await supabaseClient.rpc('ajustar_stock_pieza', { p_pieza_id: piezaId, p_delta: delta });
         if(error) throw error;
+        const r = (data && typeof data === 'object') ? data : {};
+        if(r.ok === false) throw new Error(r.error || 'La base no aceptó el ajuste de stock.');
+        if(r.truncado) toast('Stock insuficiente: quedó en 0.', 'error');
         await loadAll();
-    } catch(e) { logError('Ajustar stock inventario', e); toastError(getFriendlyError(e)); }
+        return r;
+    } catch(e) { logError('Ajustar stock inventario', e); toastError(getFriendlyError(e)); return null; }
 }
 
 /* ---------- DEVOLUCIÓN DE PIEZAS ---------- */
@@ -14767,21 +14877,18 @@ async function aprobarDevolucionPieza(piezaId) {
             await ajustarStockInventario(pieza.pieza_id, (pieza.cantidad || 1));
         }
         
-        // Descontar del costo de repuestos del equipo
+        // Descontar del costo de repuestos del equipo.
+        // 24-oct-2026 (auditoría) R10: se recalcula desde la base (sin devueltas/rechazadas) en vez de restar desde la caché.
         if(pieza && pieza.equipo_id) {
-            const eq = (cache.refurb || []).find(r => r.id === pieza.equipo_id);
-            if(eq) {
-                const costoPieza = (pieza.cantidad || 1) * (pieza.costo_unitario || 0);
-                const nuevoCostoRepuestos = Math.max(0, (eq.costo_repuestos || 0) - costoPieza);
-                await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: nuevoCostoRepuestos }).eq('id', pieza.equipo_id);
-                // Historial
-                await supabaseClient.from('equipo_historial').insert([{
-                    equipo_id: pieza.equipo_id, estado_anterior: 'pieza_entregada', estado_nuevo: 'pieza_devuelta',
-                    accion: `🔄 Pieza devuelta: ${pieza.pieza_nombre} (−${money(costoPieza)})`,
-                    notas: pieza.motivo_devolucion_pieza || null,
-                    usuario: sessionUser?.nombre || 'Admin'
-                }]);
-            }
+            const costoPieza = (pieza.cantidad || 1) * (pieza.costo_unitario || 0);
+            await _recalcularCostoRepuestos(pieza.equipo_id);
+            // Historial
+            await _histInsert([{
+                equipo_id: pieza.equipo_id, estado_anterior: 'pieza_entregada', estado_nuevo: 'pieza_devuelta',
+                accion: `🔄 Pieza devuelta: ${pieza.pieza_nombre} (−${money(costoPieza)})`,
+                notas: pieza.motivo_devolucion_pieza || null,
+                usuario: sessionUser?.nombre || 'Admin'
+            }]);
         }
         
         toast('✅ Devolución aprobada. Pieza devuelta y costo actualizado.');
@@ -14863,7 +14970,7 @@ async function guardarReasignacion() {
         }).eq('id', equipoId);
         if(error) throw error;
         
-        await supabaseClient.from('equipo_historial').insert([{
+        await _histInsert([{
             equipo_id: equipoId, estado_anterior: eq.estado_evaluacion, estado_nuevo: 'reasignado',
             accion: `👥 Reasignado a ${nuevoTec?.nombre || 'otro técnico'}`,
             notas: motivo,
@@ -14912,7 +15019,7 @@ async function recibirEquipoReasignado(equipoId, modo) {
                 .in('estado', ['recibida', 'entregada', 'aprobada', 'pendiente']);
         }
         
-        await supabaseClient.from('equipo_historial').insert([{
+        await _histInsert([{
             equipo_id: equipoId, estado_anterior: 'reasignado', estado_nuevo: 'en_proceso',
             accion: modo === 'limpio' ? '📦 Equipo recibido LIMPIO (nueva reparación)' : '📦 Equipo recibido con piezas actuales',
             usuario: sessionUser?.nombre || 'Técnico'
@@ -17132,10 +17239,14 @@ function _invImprimir() {
 
 async function _recalcularCostoRepuestos(equipoId) {
     try {
-        const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('cantidad,costo_unitario').eq('equipo_id', equipoId);
+        // 24-oct-2026 (auditoría) R10: las piezas devueltas o rechazadas no suman al costo del equipo.
+        const { data, error } = await supabaseClient.from('equipo_piezas_pedidas').select('cantidad,costo_unitario')
+            .eq('equipo_id', equipoId).not('estado', 'in', '("devuelta","rechazada")');
+        if(error) throw error;
         const total = (data || []).reduce((s, p) => s + (Number(p.cantidad)||1) * (Number(p.costo_unitario)||0), 0);
-        await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: total }).eq('id', equipoId);
-    } catch(e) { logError('Recalcular costo repuestos', e); }
+        const { error: eU } = await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: total }).eq('id', equipoId);
+        if(eU) throw eU;
+    } catch(e) { logError('Recalcular costo repuestos', e); toastError('No se pudo actualizar el costo de repuestos del equipo: ' + getFriendlyError(e)); }
 }
 // Flete (gasto de envío del lote) que le toca a un equipo, repartido PROPORCIONAL al costo de compra
 function calcularFleteEquipo(eq) {
@@ -17391,6 +17502,7 @@ async function _descontarPiezaPendiente(piezaId, skipRefresh) {
         if(e0 || !pz) throw (e0 || new Error('Pieza no encontrada'));
         if(!pz.pieza_codigo) { toast('Esta pieza no es de Info Plus (no se descuenta).', 'error'); return false; }
         if((Number(pz.infoplus_desc_cant) || 0) > 0) { toast('Esta pieza ya fue descontada.', 'error'); return false; }
+        if(Number(pz.infoplus_desc_cant) === -1) { toast('Esta pieza se está descontando en otra sesión. Espere y actualice.', 'error'); return false; } // 24-oct-2026 (auditoría) R08
         const full = _findInfoplusArt(pz.pieza_codigo) || {};
         const elec = await _piezaElegirAlmacen({ descripcion: pz.pieza_nombre, codigo: pz.pieza_codigo }, full.existencias || {});
         if(elec.accion === 'cancelar') return false;
@@ -17425,29 +17537,74 @@ async function descontarPiezasPendientesEquipo(equipoId) {
 }
 // Al registrar la salida: descuenta automáticamente sus piezas "por descontar" del Taller
 // (almacén 6). Si no hay stock suficiente en el Taller, PREGUNTA de cuál almacén descontar.
+// 24-oct-2026 (auditoría) R08:
+//  - no descuenta piezas devueltas/rechazadas;
+//  - lee {error} de la consulta y avisa (antes devolvía 0/0 en silencio);
+//  - antes de llamar a Info Plus RESERVA la fila (infoplus_desc_cant = -1) de forma atómica; si otra sesión
+//    ya la tomó se salta; si Info Plus falla se libera (vuelve a null);
+//  - no pisa el estado si la pieza ya está 'recibida' (solo anota infoplus_desc_*);
+//  - si Info Plus descontó pero el update local falló, avisa con el detalle y lo deja en el historial del equipo.
+// Devuelve { n, total, fallidas, error }.
 async function _descontarPiezasAlCompletar(equipoId) {
-    try {
-        const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('*')
-            .eq('equipo_id', equipoId).not('pieza_codigo', 'is', null).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
-        const pend = data || [];
-        if(!pend.length) return { n: 0, total: 0 };
-        let n = 0;
-        for(const pz of pend) {
+    const { data, error } = await supabaseClient.from('equipo_piezas_pedidas').select('*')
+        .eq('equipo_id', equipoId).not('pieza_codigo', 'is', null)
+        .not('estado', 'in', '("devuelta","rechazada")')
+        .or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
+    if(error) {
+        logError('_descontarPiezasAlCompletar (leer piezas)', error);
+        toastError('No se pudieron leer las piezas por descontar de Info Plus: ' + getFriendlyError(error) + '. Descuéntelas desde la ficha del equipo.');
+        return { n: 0, total: 0, fallidas: 0, error: true };
+    }
+    const pend = data || [];
+    if(!pend.length) return { n: 0, total: 0, fallidas: 0 };
+    let n = 0, fallidas = 0;
+    const liberar = async (pz) => {
+        const { error: eL } = await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: null }).eq('id', pz.id).eq('infoplus_desc_cant', -1);
+        if(eL) logError('_descontarPiezasAlCompletar (liberar reserva)', eL);
+    };
+    for(const pz of pend) {
+        let ipHecho = false; // true cuando Info Plus ya descontó: en ese caso NO se libera la reserva
+        try {
             const cant = Number(pz.cantidad) || 1;
+            // Reservar la fila: solo gana la sesión que la pase de null/0 a -1.
+            const { data: res, error: eRes } = await supabaseClient.from('equipo_piezas_pedidas')
+                .update({ infoplus_desc_cant: -1 }).eq('id', pz.id)
+                .or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0').select('id');
+            if(eRes) { logError('_descontarPiezasAlCompletar (reservar)', eRes); fallidas++; continue; }
+            if(!res || !res.length) continue; // otra sesión la tomó
             const full = _findInfoplusArt(pz.pieza_codigo) || {};
             const ex6 = Number((full.existencias || {})['6']) || 0;
             let almDesc = 6; // Taller por defecto
             if(ex6 < cant) {
                 // No hay suficiente en el Taller -> preguntar de cuál almacén
                 const elec = await _piezaElegirAlmacen({ descripcion: pz.pieza_nombre, codigo: pz.pieza_codigo }, full.existencias || {});
-                if(elec.accion === 'cancelar' || elec.accion === 'solocosto') continue;
+                if(elec.accion === 'cancelar' || elec.accion === 'solocosto') { await liberar(pz); continue; }
                 almDesc = elec.almacen || 6;
             }
-            const r = await _infoplusAjustePieza(pz.pieza_codigo, cant, pz.costo_unitario, false, _comentarioPieza('Salida', pz.pieza_nombre, equipoId), almDesc);
-            if(r.ok) { await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: cant, infoplus_desc_almacen: almDesc, estado: 'aprobada' }).eq('id', pz.id); n++; }
+            const comentario = _comentarioPieza('Salida', pz.pieza_nombre, equipoId);
+            const r = await _infoplusAjustePieza(pz.pieza_codigo, cant, pz.costo_unitario, false, comentario, almDesc);
+            if(!r.ok) { await liberar(pz); fallidas++; continue; }
+            ipHecho = true;
+            const patch = { infoplus_desc_cant: cant, infoplus_desc_almacen: almDesc };
+            if(pz.estado !== 'recibida') patch.estado = 'aprobada';
+            const { error: eU } = await supabaseClient.from('equipo_piezas_pedidas').update(patch).eq('id', pz.id);
+            if(eU) {
+                fallidas++;
+                logError('_descontarPiezasAlCompletar (anotar descuento)', eU);
+                const detalle = `Info Plus SÍ descontó «${pz.pieza_nombre || pz.pieza_codigo}» (cód. ${pz.pieza_codigo}, ${cant} ud., almacén ${almDesc}, comentario: ${comentario}) pero no se pudo anotar en el sistema: ${getFriendlyError(eU)}. Anótelo a mano para que no se descuente dos veces.`;
+                toastError(detalle);
+                await _histInsert([{ equipo_id: equipoId, estado_anterior: pz.estado || null, estado_nuevo: 'descuento_sin_anotar', accion: '⚠️ Descuento Info Plus sin anotar', notas: detalle, usuario: sessionUser?.nombre || 'Sistema' }]);
+                continue;
+            }
+            n++;
+        } catch(e) {
+            fallidas++;
+            logError('_descontarPiezasAlCompletar', e);
+            if(!ipHecho) await liberar(pz);
         }
-        return { n, total: pend.length };
-    } catch(e) { logError('_descontarPiezasAlCompletar', e); return { n: 0, total: 0 }; }
+    }
+    if(fallidas) toastError(`${fallidas} pieza(s) no se pudieron descontar de Info Plus. Revise la ficha del equipo.`);
+    return { n, total: pend.length, fallidas };
 }
 // 22-oct-2026 (dueño): las piezas del cuadro de costo se ven como los renglones de una factura: Pieza · Cant. · Costo · Total,
 // con cabecera, columnas alineadas y la línea del total. Editar/quitar (admin) a 44 px.
@@ -17476,9 +17633,12 @@ function _piezasDescuentoHTML(piezas) {
     const pendientes = ip.filter(p => (Number(p.infoplus_desc_cant) || 0) === 0);
     const filas = ip.map(p => {
         const desc = (Number(p.infoplus_desc_cant) || 0) > 0;
+        const enProceso = Number(p.infoplus_desc_cant) === -1; // 24-oct-2026 (auditoría) R08: reservada por otra sesión
         const right = desc
             ? `<span style="font-size:11px; font-weight:700; color:#166534; white-space:nowrap;">✓ descontada (Alm. ${p.infoplus_desc_almacen || 6})</span>`
-            : `<button class="btn btn-light" style="padding:3px 9px; font-size:11px; color:#0369a1; border-color:#7dd3fc; white-space:nowrap;" onclick="_descontarPiezaPendiente('${p.id}')"><i class="ti ti-arrow-down-circle"></i> Descontar</button>`;
+            : (enProceso
+                ? `<span style="font-size:11px; font-weight:700; color:#1d4ed8; white-space:nowrap;">⏳ descontando…</span>`
+                : `<button class="btn btn-light" style="padding:3px 9px; font-size:11px; color:#0369a1; border-color:#7dd3fc; white-space:nowrap;" onclick="_descontarPiezaPendiente('${p.id}')"><i class="ti ti-arrow-down-circle"></i> Descontar</button>`);
         const tag = desc ? '' : ' <span style="font-size:9px; font-weight:800; background:#fef9c3; color:#854d0e; padding:1px 6px; border-radius:7px;">⏳</span>';
         return `<div class="cbx-tr ip2"><div class="pz"><span class="nm" title="${escapeHtml(p.pieza_nombre || 'Pieza')}">${escapeHtml(p.pieza_nombre || 'Pieza')}</span>${tag}</div><div class="n inv">${right}</div></div>`;
     }).join('');
@@ -17574,6 +17734,13 @@ async function enviarRefurbExterno(equipoId) {
             taller_externo: destinoFull
         }).eq('id', equipoId);
         if(error) throw error;
+        // 24-oct-2026 (auditoría) R14: este cambio de estado no dejaba rastro en el historial.
+        await _histInsert([{
+            equipo_id: equipoId, estado_anterior: eq.estado_evaluacion || null, estado_nuevo: 'reparacion_externa',
+            accion: '🔧 Enviado a reparación externa: ' + destino.trim(),
+            notas: nota.trim() || null,
+            usuario: sessionUser?.nombre || 'Usuario'
+        }]);
         toast('🔧 Equipo enviado a reparación externa: ' + destino.trim());
         await loadAll();
         if(typeof abrirPanelProceso === 'function') abrirPanelProceso(equipoId);
@@ -17624,7 +17791,7 @@ async function aprobarTerminado(equipoId) {
             fecha_terminado: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
-        await supabaseClient.from('equipo_historial').insert([{
+        await _histInsert([{
             equipo_id: equipoId, estado_anterior: 'listo_revision', estado_nuevo: 'listo_venta',
             accion: 'Aprobado por admin → Listo para venta',
             usuario: sessionUser?.nombre || 'Admin'
@@ -17653,7 +17820,7 @@ async function marcarEquipoCompletado(equipoId) {
             estado_evaluacion: 'vendido', completado: true, fecha_completado: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
-        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: 'Salida cerrada administrativamente', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        try { await _histInsert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: 'Salida cerrada administrativamente', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
         toast('Salida cerrada.');
         cerrarPanelProceso();
         const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
@@ -17676,7 +17843,7 @@ async function marcarEquipoListo(equipoId) {
             estado_evaluacion: 'listo_venta', completado: false, fecha_terminado: eq.fecha_terminado || new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
-        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_anterior: antes, estado_nuevo: 'listo_venta', accion: 'Marcado como Listo para venta', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        try { await _histInsert([{ equipo_id: equipoId, estado_anterior: antes, estado_nuevo: 'listo_venta', accion: 'Marcado como Listo para venta', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
         toast('Equipo marcado como Listo para venta.');
         const mf = document.getElementById('modalFichaEquipo'); if(mf) mf.remove();
         const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
@@ -17698,14 +17865,15 @@ async function marcarDespachado(equipoId) {
             fecha_despacho: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
-        await supabaseClient.from('equipo_historial').insert([{
+        await _histInsert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
             accion: 'Salida registrada → Despachado',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
         // Descontar automáticamente las piezas "por descontar" (del Taller; si no hay, pregunta)
         const _rd = await _descontarPiezasAlCompletar(equipoId);
-        toast(_rd.n ? `Salida registrada. ${_rd.n} pieza(s) descontada(s) de Info Plus.` : 'Equipo marcado como Despachado.');
+        if(_rd.fallidas || _rd.error) toast(`Salida registrada, pero ${_rd.fallidas || 'algunas'} pieza(s) NO se descontaron de Info Plus. Revise la ficha del equipo.`, 'error');
+        else toast(_rd.n ? `Salida registrada. ${_rd.n} pieza(s) descontada(s) de Info Plus.` : 'Equipo marcado como Despachado.');
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
@@ -21403,6 +21571,9 @@ function detectarPiezasNoUtilizadas(soloTecnicoId) {
         const eq = (cache.refurb || []).find(e => e.id === p.equipo_id);
         if(!eq) return false;
         const equipoTerminado = terminados.includes(eq.estado_evaluacion);
+        // 24-oct-2026 (auditoría) V06: una pieza 'recibida' ya descontada de Info Plus (infoplus_desc_cant > 0)
+        // fue consumida en la reparación; no es sobrante.
+        if(p.estado === 'recibida' && (Number(p.infoplus_desc_cant) || 0) > 0) return false;
         // Caso A: tiene la pieza (entregada o en uso) y el equipo ya terminó → sobrante
         const tieneYTermino = ['entregada','recibida'].includes(p.estado) && equipoTerminado;
         // Caso B: entregada pero nunca confirmada (limbo), sin importar estado del equipo
@@ -21427,20 +21598,22 @@ function construirAlertaPiezasNoUsadas(soloTecnicoId) {
             <td>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</td>
             <td style="font-size:12px;">${escapeHtml(tecNombre)}</td>
             <td><span class="badge" style="background:${et.bg}; color:${et.color}; font-size:11px;">${et.txt}</span></td>
-            <td style="font-size:11px; color:#9a3412;">${motivo}</td>
+            <td style="font-size:11px; color:#1d4ed8;">${motivo}</td>
         </tr>`;
     }).join('');
+    // 24-oct-2026 (auditoría) V05/V06: es una lista de consulta ("por conciliar"), no una alarma: colores azules,
+    // y la tabla va dentro de <details> cerrado para no robar pantalla.
     return `
-        <div style="background:#fff7ed; border:2px solid #fb923c; border-radius:10px; padding:12px; margin-bottom:15px;">
-            <div style="font-weight:700; color:#9a3412; margin-bottom:8px;"><i class="ti ti-alert-triangle"></i> Piezas No Utilizadas (${noUsadas.length}) — requieren revisión</div>
-            <div style="font-size:12px; color:#9a3412; margin-bottom:10px;">Estas piezas están en manos de un técnico pero el equipo ya terminó, o no fueron confirmadas. Conviene devolverlas al inventario o confirmar su uso.</div>
+        <details style="background:rgba(59,130,246,.08); border:1px solid rgba(59,130,246,.35); border-radius:10px; padding:10px 12px; margin-bottom:15px; color:#1d4ed8;">
+            <summary style="font-weight:700; cursor:pointer; min-height:44px; display:flex; align-items:center; gap:6px; list-style:none;"><i class="ti ti-list-check"></i> ${noUsadas.length} pieza${noUsadas.length === 1 ? '' : 's'} por conciliar · Ver casos</summary>
+            <div style="font-size:12px; color:#1d4ed8; margin:6px 0 10px;">Piezas en manos de un técnico cuyo equipo ya terminó, o entregadas sin confirmar. Conviene devolverlas al inventario o confirmar su uso.</div>
             <div style="overflow-x:auto;">
                 <table class="data-table" style="width:100%; font-size:13px;">
                     <thead><tr><th>Pieza</th><th style="text-align:center;">Cant.</th><th>Equipo</th><th>Técnico</th><th>Estado</th><th>Motivo</th></tr></thead>
                     <tbody>${filas}</tbody>
                 </table>
             </div>
-        </div>`;
+        </details>`;
 }
 
 // ============================================================
@@ -23283,15 +23456,20 @@ async function guardarDevolucion() {
                 tecnico_asignado_id: tecnicoId,
                 fecha_asignacion: new Date().toISOString(),
                 fecha_terminado: null,
+                // 24-oct-2026 (auditoría) R11: al volver por garantía se limpian las marcas de salida,
+                // si no el equipo seguía contando como completado/despachado en los reportes.
+                completado: false,
+                fecha_completado: null,
+                fecha_despacho: null,
                 veces_devuelto: vecesDevueltoNuevo,
                 ultima_devolucion: new Date().toISOString(),
                 ciclo_actual: cicloNuevo
             })
             .eq('id', equipoId);
         if(eqError) throw eqError;
-        
-        // 3. Historial
-        await supabaseClient.from('equipo_historial').insert([{
+
+        // 3. Historial (si falla, se avisa: no se anuncia éxito a secas)
+        const histOk = await _histInsert([{
             equipo_id: equipoId,
             estado_anterior: 'vendido',
             estado_nuevo: 'en_proceso',
@@ -23299,8 +23477,9 @@ async function guardarDevolucion() {
             notas: `Motivo: ${motivo}${problemasStr ? ' | Problemas: ' + problemasStr : ''}${diagnostico ? ' | Diagnóstico: ' + diagnostico : ''}`,
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        
-        toast('🔄 Devolución registrada. Equipo vuelto a "En Proceso".');
+
+        if(histOk) toast('🔄 Devolución registrada. Equipo vuelto a "En Proceso".');
+        else toast('Devolución registrada y equipo vuelto a "En Proceso", pero NO se pudo escribir el historial del equipo. Avise al administrador.', 'error');
         cerrarModalDevolucion();
         await loadAll();
         cargarDevoluciones();
