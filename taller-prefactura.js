@@ -377,13 +377,16 @@
         '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + '</div></div>' +
         '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
-        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio" onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"></label>' +
+        // 24-oct-2026 (dueño: «bloquea el precio libre para empleados, solamente en servicio»): el empleado solo escribe el
+        // precio en las líneas de Servicio; en artículos del catálogo la casilla es de solo lectura. El administrador, libre.
+        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio"' + (precioLibre(it) ? ' onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"' : ' readonly tabindex="-1" title="Precio del catálogo"') + '></label>' +
         '<label class="ldc"><span>Desc.</span><span class="dcw"><input class="dc" inputmode="decimal" autocomplete="off" value="' + (Number(it.descPct) || 0) + '" aria-label="Descuento en por ciento" onfocus="this.select()" onchange="_rpDescPct(' + i + ',this.value)"><i>%</i></span></label>' +
         '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';
     }).join('') + '</div>';
   }
 
+  function precioLibre(it) { try { if (typeof isAdminUser === 'function' && isAdminUser()) return true; } catch (e) {} return !!(it && it.servicio); }
   // Clic en el nombre del artículo: sus precios por nivel (Cliente final · Por mayor · Extremo); tocar uno lo usa.
   // Aquí también se cambia la descripción (antes el nombre era un campo de texto).
   var NIV = [['1', 'Cliente final'], ['2', 'Por mayor'], ['3', 'Extremo']];

@@ -20586,7 +20586,11 @@ function _rpCant(i, v) {
     if(s !== null && s >= 1 && n > s) { n = s; toast('Solo hay ' + s + ' en ' + _rpAlmNombre() + '.', 'error'); }
     it.cant = n; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
 }
-function _rpPrecio(i, v) { _rpState.items[i].precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+// 24-oct-2026 (dueño): el empleado solo cambia el precio en líneas de Servicio; en artículos del catálogo no (el admin sí).
+function _rpPrecio(i, v) {
+    const it = _rpState.items[i]; if(!it) return;
+    if(!(typeof isAdminUser === 'function' && isAdminUser()) && !it.servicio) { toast('El precio del catálogo no se cambia. Pida al administrador.', 'error'); _rpRenderCart(); return; }
+    _rpState.items[i].precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 // 20-oct-2026 (dueño, como STUDIO): descuento por línea en %. Importe = precio × cantidad − descuento.
 // Descuento máximo (%) de la prefactura: Configuración → Datos del taller (config_taller.prefactura_desc_max_pct; 10 si no está).
 function _rpDescMaxPct() { const v = Number(cache.configTaller && cache.configTaller.prefactura_desc_max_pct); return (isFinite(v) && v >= 0 && v <= 100) ? v : 10; }

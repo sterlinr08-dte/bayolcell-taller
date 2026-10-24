@@ -867,3 +867,5 @@ html.bc-pf body #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { background: #fff !impo
 
 /* 24-oct-2026: precio de otro nivel solo como referencia (empleado) */
 html.bc-pf #v-recepcion .bcpf-pop .ppro { color: #64748b; font-variant-numeric: tabular-nums; }
+
+html.bc-pf #v-recepcion .bcpf-it .pin[readonly] { background: #f8fafc; color: #475569; border-color: transparent; cursor: default; }
