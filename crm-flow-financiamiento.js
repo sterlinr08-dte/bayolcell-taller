@@ -7,7 +7,7 @@
   'use strict';
   if (window.__bcFlowFinanciamiento) return;
   try { if (localStorage.getItem('bc_flow_fin_off') === '1') return; } catch (e) {}
-  window.__bcFlowFinanciamiento = '20261024-f5';
+  window.__bcFlowFinanciamiento = '20261024-f6';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const plata = n => 'RD$ ' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -76,8 +76,7 @@
       `Dirección: ${[d.calle ? 'Calle ' + d.calle : '', d.casa ? 'No. ' + d.casa : '', d.sector, d.municipio, d.provincia].filter(Boolean).join(', ')}`, '',
       `Equipo: ${d.equipo || ''}`, `Monto: ${d.precio || ''}`, d.plazo ? `Plazo deseado: ${d.plazo}` : ''].filter(x => x !== null).join('\n').replace(/\n{3,}/g, '\n\n');
     // Fotos que el cliente mandó después de responder (cédula y comprobante): se cuentan en el mismo chat.
-    let fotos = 0; try { const t = new Date(m.creado_en).getTime(); fotos = (window._waMensajes || (typeof _waMensajes !== 'undefined' ? _waMensajes : [])).filter(x => x.direccion === 'in' && /imag|image|foto|documento|pdf/i.test(x.tipo_contenido || '') && new Date(x.creado_en).getTime() > t).length; } catch (e) {}
-    const fotosTxt = fotos >= 2 ? `<span style="color:#166534">✓ ${fotos} fotos recibidas</span>` : fotos === 1 ? `<span style="color:#b45309">1 foto recibida · falta 1</span>` : `<span style="color:#b45309">Faltan las fotos de cédula y comprobante</span>`;
+    const fotosTxt = `<span style="color:#1d4ed8">Pendiente de enviar al banco</span>`;
     return `<div class="bcff-card" onclick="event.stopPropagation()">
       <h4><i class="ti ti-file-dollar"></i> Solicitud de financiamiento</h4>
       ${filas}

@@ -6,7 +6,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Solicitud de financiamiento · Bayol Cell</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Formulario de solicitud de financiamiento de Bayol Cell. Solo abre con el enlace que le envía la tienda.">
+<meta name="description" content="Son 5 pasos cortos. Sus datos solo los ve Bayol Cell y el banco.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bayol Cell">
+<meta property="og:title" content="Solicitud de financiamiento · Bayol Cell">
+<meta property="og:description" content="Son 5 pasos cortos. Sus datos solo los ve Bayol Cell y el banco.">
+<meta property="og:url" content="https://bayolcell.com/solicitud">
+<meta property="og:image" content="https://bayolcell.com/assets/og-bayolcell.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f8fafc">
 <style>
 :root{--spring:linear(0,0.009,0.035 2.1%,0.141,0.281 6.7%,0.723 12.9%,0.938 16.7%,1.017,1.077,1.121,1.149 24.3%,1.159,1.163,1.161,1.154 29.9%,1.129 32.8%,1.051 39.6%,1.017 43.1%,0.991,0.977 51%,0.974 53.8%,0.975 57.1%,0.997 69.8%,1.003 76.9%,1);--spring-suave:linear(0,0.006,0.025 2.8%,0.101 6.1%,0.539 18.9%,0.721 25.3%,0.849 31.5%,0.937 38.1%,0.968 41.8%,0.991 45.7%,1.006 50.1%,1.015 55%,1.017 63.9%,1.001);--bg:#f8fafc;--sheet:#f8fafc;--card:rgba(255,255,255,.92);--ink:#0f172a;--muted:#64748b;--line:rgba(15,23,42,.08);--wa:#e4572e;--wa-dark:#c2410c;--ok:#15803d;--okbg:#f0fdf4;--okpunto:#22c55e;--warn:#b45309;--focus:#2563eb;--chip:rgba(255,255,255,.86);--sombra:0 1px 2px rgba(15,23,42,.04),0 10px 30px rgba(15,23,42,.07);--vidrio:blur(24px) saturate(180%);--ease:cubic-bezier(.23,1,.32,1);--o1:rgba(255,160,120,.16);--o2:rgba(147,197,253,.22);--o3:rgba(153,246,228,.18)}
 
@@ -188,7 +196,7 @@ h2{font-size:30px;line-height:1.1;letter-spacing:-.025em;margin:0;font-weight:80
       <div class="check"><svg viewBox="0 0 52 52"><path d="M14 27 L23 36 L39 18"/></svg></div>
       <h2 id="listoTit">Listo. Ya nos llegó.</h2>
       <p class="ayuda" id="listoSub"></p>
-      <p class="ayuda" style="margin-top:4px">Ahora mándenos por este chat la foto de su cédula (los dos lados) y una factura de luz, agua o cable.</p>
+      <p class="ayuda" style="margin-top:4px">Se la pasamos al banco para que la evalúe. Esté pendiente por si lo llaman del banco para alguna información adicional.</p>
       <p class="ayuda" id="listoPie">La llevamos al banco. Normalmente responden al otro día y le avisamos por WhatsApp.</p>
     </section>
 
@@ -292,6 +300,7 @@ h2{font-size:30px;line-height:1.1;letter-spacing:-.025em;margin:0;font-weight:80
     if(r.nombre){$('#nom').value=r.nombre;d.nom=r.nombre}
     if(r.telefono){$('#tel').value=fmtTel(r.telefono);d.tel=$('#tel').value;$('#cTel').classList.add('listo')}else{$('#telAyuda').textContent='Escriba el celular donde podemos avisarle.'}
     const sel=$('#prov');(r.provincias||[]).forEach(n=>{const o=document.createElement('option');o.textContent=n;o.value=n;sel.appendChild(o)});
+    if(r.provincia_sugerida&&(r.provincias||[]).includes(r.provincia_sugerida)){sel.value=r.provincia_sugerida;d.prov=r.provincia_sugerida}
     sig.disabled=false;
   })();
 })();
