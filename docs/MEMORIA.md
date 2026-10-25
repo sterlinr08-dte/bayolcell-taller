@@ -83,6 +83,8 @@ listas y sincronización.
 
 - **Pestaña «Solicitudes» del CRM (24-oct, rama `claude/solicitudes-crm`, SIN publicar):** seguimiento de solicitudes de financiamiento del banco (Recibida → Enviada al banco → Aprobada/No aprobada → Entregada), filtro por sucursal, «Avisar al cliente» deja el texto escrito en el chat (no envía solo). Nombre «Solicitudes» sin logo (dueño). Base ya aplicada: columnas `seguimiento*` y RPC `fin_solicitud_seguimiento`. Bit. 2026-10-24-1726.
 
+- **Solicitudes (CRM) tras la auditoría (24-oct, PR #122, PUBLICADO):** cada técnico ve solo su sucursal (y lo que envió); cuentas «usuario» ven todo; pasos en orden y corrección con motivo; nadie escribe la tabla directo. Pendiente: responsable/próxima gestión, constancia de permiso del cliente, enlaces duplicados.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
