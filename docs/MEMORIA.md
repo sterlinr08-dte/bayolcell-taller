@@ -85,6 +85,8 @@ listas y sincronización.
 
 - **Solicitudes (CRM) tras la auditoría (24-oct, PR #122, PUBLICADO):** cada técnico ve solo su sucursal (y lo que envió); cuentas «usuario» ven todo; pasos en orden y corrección con motivo; nadie escribe la tabla directo. Pendiente: responsable/próxima gestión, constancia de permiso del cliente, enlaces duplicados.
 
+- **Solicitudes: responsable y próxima gestión (25-oct, PR #123, PUBLICADO):** bandeja «Atender hoy» por defecto; responsable = quien envió; el paso propone la próxima gestión (banco → mañana 10:00; aprobada → hoy). Horas: hoy 4:00 p. m., mañana 10:00 a. m.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
