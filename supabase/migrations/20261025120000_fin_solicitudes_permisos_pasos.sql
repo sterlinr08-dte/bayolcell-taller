@@ -42,6 +42,7 @@ begin
   if not normal and nota is null then raise exception 'Escriba el motivo de la corrección.' using errcode = '22023'; end if;
   select actor_type, actor_ref_id into t, rid from public.app_actor_identity();
   if t = 'tecnico' and rid is not null then select nombre into quien from public.tecnicos where id = rid; end if;
+  if t = 'usuario' and rid is not null then select nombre into quien from public.usuarios where id = rid; end if;
   quien := coalesce(nullif(trim(quien),''), case when public.app_is_admin() then 'Administración' else 'Empleado' end);
   update public.fin_solicitudes_whatsapp set seguimiento = p_seguimiento, seguimiento_en = now(),
     seguimiento_historial = coalesce(seguimiento_historial,'[]'::jsonb) || jsonb_build_array(jsonb_build_object(
