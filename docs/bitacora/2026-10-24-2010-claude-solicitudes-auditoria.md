@@ -28,7 +28,8 @@ Se verificó cada hallazgo contra `main` actual y la base real antes de tocar na
 | R01 | El aviso solo se escribe si el chat abierto sigue siendo el de la solicitud y pregunta antes de reemplazar un borrador. |
 | R02 | Respuesta del formulario de WhatsApp: token de otra línea no se acepta; equipo, precio y referencia salen de la solicitud original. |
 
-## Pendiente de decisión del dueño (borrador NO aplicado: `docs/sql/BORRADOR-solicitudes-permisos.sql`)
+## Decisión del dueño (25-oct): «Cada uno su sucursal» y corregir «Cualquiera, con motivo»
+Migración `20261025120000_fin_solicitudes_permisos_pasos.sql` (se aplica al publicar). Las cuentas «usuario» la base las trata como admin y ven todo.
 - S01: ¿cada empleado ve solo su sucursal (y lo que él envió) o todas? Loribel e Yves necesitan sucursal y permiso.
 - S02: quitar a la pantalla el permiso de escribir la tabla (solo la función del servidor).
 - S03 en el servidor: pasos en orden y corrección solo con motivo y permiso de aprobar.

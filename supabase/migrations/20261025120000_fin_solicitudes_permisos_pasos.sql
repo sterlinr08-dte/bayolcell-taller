@@ -1,10 +1,12 @@
--- BORRADOR (NO APLICADO) · 25-oct-2026 · Auditoría Solicitudes, Fase 1: S01 (quién ve), S02 (nadie edita directo), S03 (pasos en orden).
--- Se aplica SOLO cuando el dueño decida: (1) si cada empleado ve solo su sucursal o todas, y (2) quién puede corregir un paso.
--- Supuestos de este borrador (los recomendados):
+-- 25-oct-2026 · Auditoría Solicitudes, Fase 1: S01 (quién ve), S02 (nadie edita directo), S03 (pasos en orden).
+-- Decisión del dueño (25-oct): «Cada uno su sucursal» y corregir: «Cualquiera, con motivo». Se aplica al publicar (PR #122).
+-- Nota: la base trata a TODA cuenta de tipo «usuario» como administrador (app_is_admin), así que esas cuentas ven todo.
+-- Reglas:
 --   · Ver y dar seguimiento: administrador, o empleado con permiso de financiamiento (crear, ver o aprobar),
 --     solo de SU sucursal o de las solicitudes que él mismo envió.
 --   · Pasos normales: Recibida → Enviada al banco → Aprobada → Entregada; Rechazada solo desde «Enviada al banco»;
---     Cancelada desde cualquier paso abierto. Cualquier otro cambio es una CORRECCIÓN: exige motivo y permiso de aprobar (o admin).
+--     Cancelada desde cualquier paso abierto. Cualquier otro cambio es una CORRECCIÓN: la puede hacer quien vea la solicitud,
+--     siempre escribiendo el motivo (queda en el historial).
 
 create or replace function public.fin_solicitud_visible(p_sucursal uuid, p_enviado_por uuid)
 returns boolean language sql stable security definer set search_path to 'public' as $$
@@ -37,11 +39,7 @@ begin
   if r.seguimiento = p_seguimiento then return r; end if;
   normal := (r.seguimiento, p_seguimiento) in (('recibida','banco'),('banco','aprobada'),('banco','no_aprobada'),('aprobada','entregada'))
          or (p_seguimiento = 'cancelada' and r.seguimiento in ('recibida','banco','aprobada'));
-  if not normal then
-    if not (public.app_is_admin() or public.app_actor_tiene_permiso('financiamientos_aprobar')) then
-      raise exception 'Ese cambio es una corrección y necesita permiso de aprobar financiamientos.' using errcode = '42501'; end if;
-    if nota is null then raise exception 'Escriba el motivo de la corrección.' using errcode = '22023'; end if;
-  end if;
+  if not normal and nota is null then raise exception 'Escriba el motivo de la corrección.' using errcode = '22023'; end if;
   select actor_type, actor_ref_id into t, rid from public.app_actor_identity();
   if t = 'tecnico' and rid is not null then select nombre into quien from public.tecnicos where id = rid; end if;
   quien := coalesce(nullif(trim(quien),''), case when public.app_is_admin() then 'Administración' else 'Empleado' end);
