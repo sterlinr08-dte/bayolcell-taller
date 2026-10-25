@@ -4,7 +4,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
 (async () => { const b = await chromium.launch(); let fallos = 0;
  for (const W of [390, 1280]) { const ctx = await b.newContext({ viewport: { width: W, height: W < 500 ? 844 : 900 } });
   await ctx.route(/supabase-js|googleapis|gstatic|unpkg|cdnjs/, r => { const u = r.request().url(); if (/supabase-js/.test(u)) return r.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(B + '/supabase-stub.js', 'utf8') }); r.fulfill({ status: 200, contentType: /css/.test(u) ? 'text/css' : 'application/javascript', body: '' }); });
-  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 160)));
+  const p = await ctx.newPage(); const errs = []; p.on('dialog', d => d.accept(d.type() === 'prompt' ? 'Prueba de corrección' : undefined)); p.on('pageerror', e => errs.push(e.message.slice(0, 160)));
   await p.addInitScript(() => { try { localStorage.setItem('bayol_subtab_crmlinea', 'mensajes'); } catch (e) {} });
   await p.goto('http://127.0.0.1:8788/taller.html?f=' + Date.now(), { waitUntil: 'load', timeout: 120000 }); await p.waitForTimeout(3500);
   const r = await p.evaluate(async (W) => {
@@ -83,6 +83,15 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     out.cajaTexto = (document.getElementById('waTexto') || {}).value || '';
     out.tabMensajesOn = document.getElementById('crmLineaTabWa').classList.contains('on');
     out.panelSolOculto = getComputedStyle(document.getElementById('crmLinea-solicitudes')).display === 'none';
+    // Auditoría R01: si se cambia de chat mientras abre, el aviso no se escribe en el chat equivocado
+    document.getElementById('waTexto') && (document.getElementById('waTexto').value = '');
+    window._bcsolVer('s7'); await w(400);
+    const errores = []; const te0 = window.toastError; window.toastError = m => { errores.push(String(m)); };
+    const ah = window.abrirHiloWhatsapp; window.abrirHiloWhatsapp = async (id) => { await ah(id); _waHiloId = 'h9'; };
+    document.querySelector('.bcsol-hoja [data-bcsol-act="avisar"]').click(); for (let i = 0; i < 40; i++) { await w(150); if (_waHiloId === 'h9') break; } await w(2500);
+    window.abrirHiloWhatsapp = ah;
+    window.toastError = te0;
+    out.r01SinEscribir = errores.some(m => /No se escribió el aviso/.test(m));
     // Tarjeta del chat con «Ver seguimiento»
     const html = window._waBurbujaMedia({ id: 'mx', direccion: 'in', tipo_contenido: 'flow_respuesta', meta: { flow: { solicitud_id: 's6', datos: { nombres: 'María', cedula: '03104567891', equipo: 'A55', precio: 'RD$ 24,900.00' } } } });
     out.verEnTarjeta = /data-bcsol-ver="s6"/.test(html);
@@ -93,11 +102,12 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     return out;
   });
   const R = Object.assign({}, r, r2, r3);
-  const ok = R.capa !== 'NO CARGÓ' && R.tab && R.tabTexto.startsWith('Solicitudes') && R.tabsRecortadas.length === 0 && R.panelVisible && R.mensajesOculto && R.tabOn && R.badge === '2' && R.filas === 5 &&
+  const errsReales = errs.filter(e => !/net::|Failed/.test(e));
+  const ok = errsReales.length === 0 && R.capa !== 'NO CARGÓ' && R.tab && R.tabTexto.startsWith('Solicitudes') && R.tabsRecortadas.length === 0 && R.panelVisible && R.mensajesOculto && R.tabOn && R.badge === '3' && R.filas === 5 &&
     R.chipsMin >= 44 && R.buscaAlto >= 48 && R.buscaLetra >= 16 && !R.mayusculas && R.filtroMoca === 1 && R.filtroBanco === 1 && R.buscarCedula === 1 &&
     R.pasos.join() === 'recibida,banco,aprobada,entregada,no_aprobada,cancelada' && R.cancelada === 'cancelada' && R.hojaAbierta && R.filasCortadas === 0 && R.cerrarIcono && R.titulo === 'Solicitud No. 7' && R.cedula && R.tel && R.botonesMin >= 44 &&
-    R.estadoFinal === 'aprobada' && R.historial === 2 && R.botonAviso && /aprobó su solicitud del iPhone 13/.test(R.avisoTexto) && R.badgeTras === '1' &&
-    R.chatAbierto === 'h3' && /aprobó/.test(R.cajaTexto) && R.tabMensajesOn && R.panelSolOculto && R.verEnTarjeta && R.verAbre;
+    R.estadoFinal === 'aprobada' && R.historial === 2 && R.botonAviso && /aprobó su solicitud del iPhone 13/.test(R.avisoTexto) && R.badgeTras === '2' &&
+    R.chatAbierto === 'h3' && /aprobó/.test(R.cajaTexto) && R.tabMensajesOn && R.panelSolOculto && R.verEnTarjeta && R.verAbre && R.r01SinEscribir;
   if (!ok) fallos++;
   console.log(W, ok ? 'OK' : 'FALLO', JSON.stringify(R), 'errores', errs.filter(e => !/net::|Failed/.test(e)));
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/solicitudes-chat-${W}.png` });

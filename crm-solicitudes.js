@@ -8,7 +8,7 @@
   'use strict';
   if (window.__bcSolicitudes) return;
   try { if (localStorage.getItem('bc_solicitudes_off') === '1') return; } catch (e) {}
-  window.__bcSolicitudes = '20261024-s2';
+  window.__bcSolicitudes = '20261025-s3';
 
   const PASOS = [
     ['recibida', 'Recibida', 'rec', 'El cliente llenó la solicitud'],
@@ -98,6 +98,7 @@
 .bcsol-paso.actual{border-color:#2563eb;background:#eff6ff}.bcsol-paso.actual .dot{border-color:#2563eb;background:#2563eb}.bcsol-paso.actual .dot::after{content:"●";font-size:9px}
 .bcsol-paso.no.actual{border-color:#b91c1c;background:#fef2f2}.bcsol-paso.no.actual .dot{border-color:#b91c1c;background:#b91c1c}
 .bcsol-paso.no:not(.actual) .dot{border-color:#fca5a5}.bcsol-paso.can.actual{border-color:#475569;background:#f1f5f9}.bcsol-paso.can.actual .dot{border-color:#475569;background:#475569}
+.bcsol-hist{margin:0;padding:0 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:#0f172a}.bcsol-hist span{color:#64748b;font-size:13px}.bcsol-hist small{display:block;color:#64748b;font-size:12.5px}
 .bcsol-cierre{font-size:13px;font-weight:600;color:#64748b;margin:6px 2px -2px}
 .bcsol-paso .txt{flex:1;min-width:0}.bcsol-paso small{display:block;font-weight:500;color:#64748b;font-size:12.5px}
 .bcsol-msg{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:12px 14px;font-size:14px;color:#14532d;line-height:1.45;white-space:pre-line}
@@ -111,7 +112,7 @@
   const paso = k => PASOS.find(p => p[0] === k) || PASOS[0];
   const clave = s => (s.estado === 'respondido' ? (s.seguimiento || 'recibida') : 'sin_llenar');
   const info = k => (k === 'sin_llenar' ? SIN_LLENAR : paso(k));
-  const enProceso = s => s.estado === 'respondido' && ['recibida', 'banco'].includes(s.seguimiento || 'recibida');
+  const enProceso = s => s.estado === 'respondido' && ['recibida', 'banco', 'aprobada'].includes(s.seguimiento || 'recibida'); // auditoría S09: aprobada = falta entregar
   const cerrada = s => s.estado === 'respondido' && ['no_aprobada', 'entregada', 'cancelada'].includes(s.seguimiento);
   function d(s) { return (s && s.datos) || {}; }
   function nombre(s) { return d(s).nombres || (s.estado === 'respondido' ? 'Sin nombre' : fmtTel(s.telefono) || 'Cliente'); }
@@ -135,10 +136,19 @@
 
   async function cargar() {
     const c = db(); if (!c) return;
-    const { data, error } = await c.from('fin_solicitudes_whatsapp').select(COLS).order('creado_en', { ascending: false }).limit(300);
-    if (error) throw error;
+    // Auditoría S06 (25-oct-2026): las abiertas se traen TODAS (sin tope); de las cerradas o sin llenar, las 300 más recientes.
+    const [abiertas, resto] = await Promise.all([
+      c.from('fin_solicitudes_whatsapp').select(COLS).eq('estado', 'respondido').in('seguimiento', ['recibida', 'banco', 'aprobada']).order('creado_en', { ascending: false }),
+      c.from('fin_solicitudes_whatsapp').select(COLS).order('creado_en', { ascending: false }).limit(300),
+    ]);
+    if (abiertas.error) throw abiertas.error;
+    if (resto.error) throw resto.error;
+    const vistos = new Set(); const data = [];
+    [...(abiertas.data || []), ...(resto.data || [])].forEach(x => { if (!vistos.has(x.id)) { vistos.add(x.id); data.push(x); } });
+    data.sort((a, b) => String(b.creado_en).localeCompare(String(a.creado_en)));
     const ahora = Date.now();
     filas = (data || []).filter(s => s.estado === 'respondido' || (s.estado === 'enviado' && (!s.vence_en || new Date(s.vence_en).getTime() > ahora)));
+    if (abierta) { const fresca = filas.find(x => x.id === abierta.id); if (fresca && fresca !== abierta) { const cambio = fresca.seguimiento !== abierta.seguimiento; abierta = fresca; if (hoja && hoja.classList.contains('on')) { pintarHoja(); if (cambio) aviso(`Otro compañero actualizó la solicitud No. ${fresca.numero}.`, 'info'); } } }
     pintarBadge();
   }
   function pintarBadge() {
@@ -179,10 +189,10 @@
       const eq = [d(s).equipo || s.equipo, precioTxt(s), plazoTxt(s)].filter(Boolean).join(' · ');
       return `<button type="button" class="bcsol-fila" data-bcsol-id="${esc(s.id)}"><span class="nom">${esc(nombre(s))}</span><span>${pill(clave(s))}</span><span class="eq">${esc(eq)}</span><span class="meta"><span>No. ${esc(s.numero)}</span><span>${esc(fecha(s.respondido_en || s.creado_en))}</span><span>${esc(sucursalDe(s))}</span>${s.enviado_por_nombre ? `<span>${esc(primerNombre(s.enviado_por_nombre))}</span>` : ''}</span></button>`;
     }).join('') : `<div class="bcsol-vacio">${filas.length ? 'No hay solicitudes con ese filtro.' : 'Todavía no hay solicitudes. Se envían desde el chat con el clip 📎 › «Solicitud de financiamiento».'}</div>`;
-    const enProc = filas.filter(enProceso).length;
+    const enProc = filas.filter(s => enProceso(s) && (suc === 'Todas' || sucursalDe(s) === suc)).length;
     const busca = cont.querySelector('.bcsol-busca input');
     const teniaFoco = busca && document.activeElement === busca;
-    cont.innerHTML = `<div class="bcsol-sub">Solicitudes de financiamiento · <b>${enProc}</b> en proceso</div>
+    cont.innerHTML = `<div class="bcsol-sub">Solicitudes de financiamiento · <b>${enProc}</b> en proceso${suc !== 'Todas' ? ' en ' + esc(suc) : ''}</div>
       <div class="bcsol-chips" role="group" aria-label="Sucursal">${chipsSuc}</div>
       <div class="bcsol-chips bcsol-est" role="group" aria-label="Estado">${chipsEst}</div>
       <div class="bcsol-busca"><input type="search" placeholder="Buscar por nombre, cédula o número" autocomplete="off" value="${esc(q)}" aria-label="Buscar solicitud"></div>
@@ -243,6 +253,8 @@
         + '<div class="bcsol-cierre">Si no sigue adelante</div>'
         + boton('no_aprobada', false) + boton('cancelada', false);
     }
+    // Auditoría S12: historial completo, en orden, con quién, cuándo y la nota si hubo.
+    const historialHtml = hist.length ? `<div class="bcsol-sec">Historial de cambios</div><ol class="bcsol-hist">${hist.map(h => `<li><b>${esc(paso(h.paso)[1])}</b>${h.de ? ` <span>(antes: ${esc(paso(h.de)[1])})</span>` : ''}<small>${esc(fechaHora(h.en))}${h.por ? ' · ' + esc(h.por) : ''}${h.nota ? ' · «' + esc(h.nota) + '»' : ''}</small></li>`).join('')}</ol>` : '';
     const msg = mensajeCliente(s);
     const avisar = msg ? `<div class="bcsol-sec">Avisar al cliente</div><div class="bcsol-msg${s.seguimiento === 'no_aprobada' ? ' no' : ''}">${esc(msg)}</div>
       <div class="bcsol-acts"><button type="button" class="bcsol-btn prim" data-bcsol-act="avisar">Escribir el aviso en el chat</button></div>` : '';
@@ -255,7 +267,8 @@
       <div class="bcsol-acts"><button type="button" class="bcsol-btn" data-bcsol-act="chat">Abrir chat</button><button type="button" class="bcsol-btn" data-bcsol-act="ref">Copiar referencia</button><button type="button" class="bcsol-btn ancho" data-bcsol-act="todo">Copiar solicitud completa</button></div>
       <div class="bcsol-sec">Seguimiento</div>
       <div class="bcsol-pasos">${pasos}</div>
-      ${avisar}` : `
+      ${avisar}
+      ${historialHtml}` : `
       <div>${pill(k)}</div>
       <div class="bcsol-rec"><div class="r"><span>Celular</span><span>${esc(fmtTel(s.telefono))}</span></div><div class="r"><span>Equipo</span><span>${esc(s.equipo || '')}</span></div><div class="r"><span>Monto</span><span>${esc(plata(s.precio))}</span></div><div class="r"><span>Enviada</span><span>${esc(fechaHora(s.creado_en))}${s.enviado_por_nombre ? ' · ' + esc(primerNombre(s.enviado_por_nombre)) : ''}</span></div></div>
       <p style="margin:0;color:#64748b;font-size:14px;line-height:1.45">El cliente todavía no ha llenado el formulario. Cuando lo llene, aparecerá aquí como «Recibida».</p>
@@ -271,13 +284,24 @@
   async function cambiarPaso(p) {
     const s = abierta; if (!s || guardando || p === s.seguimiento) return;
     const c = db(); if (!c) return;
+    // Auditoría S03: los pasos en orden se marcan directo; cualquier otro cambio es una corrección y pide el motivo.
+    const de = s.seguimiento || 'recibida';
+    const normal = [['recibida', 'banco'], ['banco', 'aprobada'], ['banco', 'no_aprobada'], ['aprobada', 'entregada']].some(([x, y]) => x === de && y === p)
+      || (p === 'cancelada' && ['recibida', 'banco', 'aprobada'].includes(de));
+    let nota = null;
+    if (!normal) {
+      nota = window.prompt(`Va a cambiar de «${paso(de)[1]}» a «${paso(p)[1]}». Escriba el motivo de la corrección:`, '');
+      if (nota === null) return;
+      nota = String(nota).trim();
+      if (!nota) { avisoError('Para corregir el paso hay que escribir el motivo.'); return; }
+    } else if (['aprobada', 'no_aprobada', 'entregada', 'cancelada'].includes(p) && !window.confirm(`¿Confirma que la solicitud No. ${s.numero} queda «${paso(p)[1]}»?`)) return;
     guardando = true; hoja.classList.add('bcsol-cargando');
     try {
-      const { data, error } = await c.rpc('fin_solicitud_seguimiento', { p_id: s.id, p_seguimiento: p, p_nota: null });
+      const { data, error } = await c.rpc('fin_solicitud_seguimiento', { p_id: s.id, p_seguimiento: p, p_nota: nota });
       if (error) throw error;
       const nuevo = Array.isArray(data) ? data[0] : data;
-      if (nuevo && nuevo.id) Object.assign(s, nuevo);
-      else { s.seguimiento = p; s.seguimiento_en = new Date().toISOString(); s.seguimiento_historial = (s.seguimiento_historial || []).concat([{ paso: p, en: s.seguimiento_en, por: (window.sessionUser && sessionUser.nombre) || '' }]); }
+      if (!nuevo || !nuevo.id || nuevo.seguimiento !== p) throw new Error('El servidor no confirmó el cambio. Toque la pestaña Solicitudes para recargar y vuelva a intentarlo.');
+      Object.assign(s, nuevo);
       aviso(`Solicitud No. ${s.numero}: ${paso(p)[1]}`);
       pintarHoja(); pintar(); pintarBadge();
     } catch (e) {
@@ -303,8 +327,22 @@
       if (!ok) { avisoError('No encontré ese chat en esta línea. Puede estar asignado a otro compañero.'); return; }
       await abrirHiloWhatsapp(s.hilo_id);
       if (texto) {
-        for (let i = 0; i < 20; i++) { const t = document.getElementById('waTexto'); if (t) { t.value = texto; t.dispatchEvent(new Event('input', { bubbles: true })); try { t.focus(); } catch (e) {} break; } await esperar(100); }
-        aviso('El aviso quedó escrito en el chat. Revíselo y tóquelo para enviarlo.');
+        // Auditoría R01 (25-oct-2026): solo se escribe si el chat abierto sigue siendo el de esta solicitud, y sin borrar lo que ya había.
+        let escrito = false;
+        for (let i = 0; i < 20; i++) {
+          const t = document.getElementById('waTexto');
+          const mismo = typeof _waHiloId !== 'undefined' && String(_waHiloId) === String(s.hilo_id);
+          if (!mismo) break;
+          if (t) {
+            const previo = String(t.value || '').trim();
+            if (previo && previo !== texto.trim() && !window.confirm('Ya hay un mensaje escrito en este chat. ¿Desea reemplazarlo por el aviso del banco?')) { aviso('Se dejó el mensaje que ya estaba escrito.', 'info'); return; }
+            t.value = texto; t.dispatchEvent(new Event('input', { bubbles: true })); try { t.focus(); } catch (e) {}
+            escrito = true; break;
+          }
+          await esperar(100);
+        }
+        if (escrito) aviso('El aviso quedó escrito en el chat. Revíselo y tóquelo para enviarlo.');
+        else avisoError('No se escribió el aviso: se cambió de chat o la caja de escribir no estaba lista. Ábralo de nuevo desde la solicitud.');
       }
     } catch (e) { avisoError('No se pudo abrir el chat.'); }
   }
@@ -338,6 +376,7 @@
     try {
       if (!filas.length) await cargar();
       let s = id ? filas.find(x => String(x.id) === String(id)) : null;
+      if (!s && id) { const c = db(); const r = c && await c.from('fin_solicitudes_whatsapp').select(COLS).eq('id', id).maybeSingle(); if (r && r.data) { s = r.data; filas.unshift(s); } }
       if (!s && token) { const c = db(); const r = c && await c.from('fin_solicitudes_whatsapp').select(COLS).eq('flow_token', token).maybeSingle(); if (r && r.data) { s = r.data; if (!filas.some(x => x.id === s.id)) filas.unshift(s); } }
       if (!s) { avisoError('No encontré esa solicitud.'); return; }
       abrir(s.id);

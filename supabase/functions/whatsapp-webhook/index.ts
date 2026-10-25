@@ -464,7 +464,7 @@ async function pedirFotosFlow(accountId: string | null, conversationId: string |
     if (!resp.ok || !d?.success) { console.error("flow financiamiento: no se pudo pedir las fotos", resp.status, d?.error || d?.message); return; }
     const ahora = new Date().toISOString();
     await db.from("whatsapp_mensajes").insert({ hilo_id: hiloId, direccion: "out", tipo_contenido: "text", cuerpo: texto, wa_message_id: d?.data?.messageId || d?.messageId || null, estado: "enviado", es_automatico: true, creado_en: ahora, meta: { flow: { auto: "pedir_fotos" } } });
-    await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "📎 Se pidieron la cédula y el comprobante" }).eq("id", hiloId);
+    await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "✅ Se le confirmó al cliente que llegó su solicitud" }).eq("id", hiloId);
     await db.from("fin_solicitudes_whatsapp").update({ fotos_pedidas_en: ahora }).eq("id", solicitudId);
   } catch (e) { console.error("flow financiamiento: pedir fotos", e); }
 }

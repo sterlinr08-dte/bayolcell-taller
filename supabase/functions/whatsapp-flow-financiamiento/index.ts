@@ -223,7 +223,7 @@ async function pedirFotos(accountId: string, conversationId: string | null, hilo
   if (!r.ok || !r.data?.success) { console.error("pedir fotos: Zernio no envió", r.status, r.data?.error || r.data?.message); return false; }
   const ahora = new Date().toISOString();
   await db.from("whatsapp_mensajes").insert({ hilo_id: hiloId, direccion: "out", tipo_contenido: "text", cuerpo: texto, wa_message_id: r.data?.data?.messageId || r.data?.messageId || null, estado: "enviado", es_automatico: true, creado_en: ahora, meta: { flow: { auto: "pedir_fotos" } } });
-  await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "📎 Se pidieron la cédula y el comprobante" }).eq("id", hiloId);
+  await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "✅ Se le confirmó al cliente que llegó su solicitud" }).eq("id", hiloId);
   await db.from("fin_solicitudes_whatsapp").update({ fotos_pedidas_en: ahora }).eq("id", solicitudId);
   return true;
 }
@@ -232,7 +232,11 @@ async function pedirFotos(accountId: string, conversationId: string | null, hilo
 async function registrarRespuesta(p: { linea_id: string; telefono: string; wa_message_id: string | null; flow_token: string | null; raw: any; recibido_en: string; hilo_id?: string | null; mensaje_in_id?: string | null }) {
   const datos = normalizarDatos(p.raw);
   let fila: any = null;
-  if (p.flow_token) { const { data } = await db.from("fin_solicitudes_whatsapp").select("id, estado, hilo_id, referencia").eq("flow_token", p.flow_token).maybeSingle(); fila = data; }
+  if (p.flow_token) { const { data } = await db.from("fin_solicitudes_whatsapp").select("id, estado, hilo_id, linea_id, equipo, precio, referencia").eq("flow_token", p.flow_token).maybeSingle(); fila = data; }
+  // Auditoría R02 (25-oct-2026): un token de otra línea no se acepta; y el equipo, el precio y la referencia salen de la
+  // solicitud que mandó el empleado, no de lo que venga en la respuesta.
+  if (fila && fila.linea_id && p.linea_id && String(fila.linea_id) !== String(p.linea_id)) { console.error("flow: token de otra línea", fila.id); fila = null; p = { ...p, flow_token: null }; }
+  if (fila) { if (fila.equipo) datos.equipo = String(fila.equipo); if (Number(fila.precio) > 0) datos.precio = plata(Number(fila.precio)); if (fila.referencia) datos.referencia = String(fila.referencia); }
   let hiloId = p.hilo_id || fila?.hilo_id || null;
   if (!hiloId) {
     const { data: h } = await db.from("whatsapp_hilos").select("id").eq("linea_id", p.linea_id).eq("telefono_e164", p.telefono).maybeSingle();
@@ -256,7 +260,8 @@ async function registrarRespuesta(p: { linea_id: string; telefono: string; wa_me
   const { data: lineaDatos } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", p.linea_id).maybeSingle();
   if (fila) {
     if (fila.estado === "enviado") {
-      await db.from("fin_solicitudes_whatsapp").update({ estado: "respondido", datos, respuesta_wa_message_id: p.wa_message_id, mensaje_in_id: mensajeInId, respondido_en: p.recibido_en }).eq("id", fila.id);
+      const { error: eUp } = await db.from("fin_solicitudes_whatsapp").update({ estado: "respondido", datos, respuesta_wa_message_id: p.wa_message_id, mensaje_in_id: mensajeInId, respondido_en: p.recibido_en }).eq("id", fila.id).eq("estado", "enviado");
+      if (eUp) console.error("flow: no se guardó la respuesta", fila.id, eUp.message);
     }
     if (lineaDatos?.zernio_account_id) await pedirFotos(lineaDatos.zernio_account_id, hiloDatos?.zernio_conversation_id || null, hiloId, fila.id, hiloDatos?.nombre_perfil || "");
     return { id: fila.id, nueva: false };
@@ -440,7 +445,7 @@ async function filaPorToken(t: string) {
   if (!/^([0-9a-f]{48}|[A-Za-z0-9]{10,12})$/.test(t)) return { fila: null, error: "Enlace no válido." };
   const { data: fila } = await db.from("fin_solicitudes_whatsapp").select("id, numero, hilo_id, linea_id, sucursal_nombre, telefono, enviado_por_nombre, equipo, precio, referencia, estado, vence_en").eq("token", t).eq("canal", "web").maybeSingle();
   if (!fila) return { fila: null, error: "Este enlace ya no sirve. Pídale uno nuevo a la persona que lo atiende." };
-  if (fila.estado !== "enviado") return { fila: null, error: "Esta solicitud ya fue enviada. Gracias." };
+  if (fila.estado !== "enviado") return { fila: null, error: "Esta solicitud ya fue enviada. Gracias.", yaRecibida: fila.estado === "respondido" ? fila : null };
   if (fila.vence_en && new Date(fila.vence_en).getTime() < Date.now()) return { fila: null, error: "Este enlace venció. Pídale uno nuevo a la persona que lo atiende." };
   return { fila, error: null };
 }
@@ -456,14 +461,17 @@ async function accionWebLeer(body: any) {
     nombre: /^[+\d\s()-]+$/.test(nombre) ? "" : nombrePropio(nombre), telefono: tel.length === 10 ? tel : "", provincias: PROVINCIAS.map(([, n]) => n), provincia_sugerida: provinciaSugerida });
 }
 async function accionWebEnviar(body: any) {
-  const { fila, error } = await filaPorToken(String(body?.t || ""));
+  const r0: any = await filaPorToken(String(body?.t || ""));
+  const { fila, error } = r0;
+  // Auditoría S05 (25-oct-2026): si el cliente reintenta porque se le cortó la respuesta, se le confirma lo que ya llegó.
+  if (!fila && r0.yaRecibida) return json({ ok: true, numero: r0.yaRecibida.numero, ya_recibida: true });
   if (!fila) return json({ ok: false, error }, 404);
   const d = body?.datos && typeof body.datos === "object" ? body.datos : {};
   const s = (k: string) => String(d[k] ?? "").trim().slice(0, 120);
   const cedula = s("cedula").replace(/\D/g, ""), nombres = s("nombres").replace(/\s+/g, " "), telefono = s("telefono").replace(/\D/g, "").replace(/^1(\d{10})$/, "$1");
   const plazo = s("plazo").replace(/\D/g, ""), provincia = s("provincia"), municipio = s("municipio"), sector = s("sector"), calle = s("calle"), casa = s("casa");
   const faltas: string[] = [];
-  if (cedula.length !== 11) faltas.push("cédula (11 números)");
+  if (cedula.length !== 11 || /^(\d)\1{10}$/.test(cedula)) faltas.push("cédula (11 números válidos)");
   if (nombres.split(" ").filter(Boolean).length < 2) faltas.push("nombre completo");
   if (telefono.length !== 10) faltas.push("celular (10 números)");
   if (!PLAZOS_OK.includes(plazo)) faltas.push("plazo");
@@ -477,8 +485,13 @@ async function accionWebEnviar(body: any) {
   const datos = { equipo: String(fila.equipo || ""), precio: plata(Number(fila.precio)), referencia: String(fila.referencia || ""), cedula, nombres, telefono, plazo, provincia, municipio, sector, calle, casa };
   const ahora = new Date().toISOString();
   // Consumir la llave de forma atómica: solo una respuesta por enlace.
-  const { data: tomada } = await db.from("fin_solicitudes_whatsapp").update({ estado: "respondido", datos, respondido_en: ahora, token: null }).eq("id", fila.id).eq("estado", "enviado").select("id").maybeSingle();
-  if (!tomada) return json({ ok: false, error: "Esta solicitud ya fue enviada. Gracias." }, 409);
+  // El enlace se conserva (ya no vale para cambiar nada: estado «respondido») para poder confirmar un reintento.
+  const { data: tomada, error: eTomar } = await db.from("fin_solicitudes_whatsapp").update({ estado: "respondido", datos, respondido_en: ahora }).eq("id", fila.id).eq("estado", "enviado").select("id").maybeSingle();
+  if (eTomar) { console.error("web_enviar: no se guardó", fila.id, eTomar.message); return json({ ok: false, error: "No pudimos guardar su solicitud. Intente de nuevo en un momento." }, 500); }
+  if (!tomada) return json({ ok: true, numero: fila.numero, ya_recibida: true });
+  // Desde aquí la solicitud YA está guardada: lo que falle después (tarjeta del chat o aviso) no se le reporta como error al cliente.
+  let aviso = false;
+  try {
   const { data: nuevo } = await db.from("whatsapp_mensajes").insert({
     hilo_id: fila.hilo_id, direccion: "in", tipo_contenido: "flow_respuesta", cuerpo: textoRespuesta(datos as any), wa_message_id: null,
     meta: { flow: { nombre: NOMBRE_FLOW, canal: "web", solicitud_id: fila.id, numero: fila.numero, datos } }, estado: "recibido", es_automatico: false, creado_en: ahora,
@@ -487,8 +500,8 @@ async function accionWebEnviar(body: any) {
   await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: "📋 Solicitud de financiamiento recibida (web)" }).eq("id", fila.hilo_id);
   const { data: hilo } = await db.from("whatsapp_hilos").select("zernio_conversation_id, nombre_perfil").eq("id", fila.hilo_id).maybeSingle();
   const { data: linea } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", fila.linea_id).maybeSingle();
-  let aviso = false;
   if (linea?.zernio_account_id) aviso = await pedirFotos(linea.zernio_account_id, hilo?.zernio_conversation_id || null, fila.hilo_id, fila.id, nombres, textoRecibidoWeb(nombres, fila.numero, String(fila.equipo || ""), String(fila.enviado_por_nombre || "Bayol Cell").split(/\s+/)[0], String(fila.sucursal_nombre || "")));
+  } catch (e) { console.error("web_enviar: guardada, pero falló la tarjeta o el aviso", fila.id, String((e as any)?.message || e)); }
   return json({ ok: true, numero: fila.numero, aviso });
 }
 
