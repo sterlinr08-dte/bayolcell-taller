@@ -14,15 +14,19 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     const h = (n) => new Date(Date.now() - n * 3600000).toISOString();
     const fila = (o) => Object.assign({ estado: 'respondido', canal: 'web', linea_id: 'l1', hilo_id: 'h3', seguimiento: 'recibida', seguimiento_historial: [], vence_en: null }, o);
     __BD.tablas.fin_solicitudes_whatsapp = [
-      fila({ id: 's7', numero: 7, sucursal_id: 'suc-sti', sucursal_nombre: 'Santiago', enviado_por_nombre: 'Loribel Ventura', equipo: 'iPhone 13 128GB', precio: 38500, telefono: '18095551234', creado_en: h(2), respondido_en: h(1), datos: { nombres: 'Juan Pérez', cedula: '00112345678', telefono: '8095551234', provincia: 'Santiago', municipio: 'Santiago', sector: 'Los Jardines', calle: '5', casa: '12', equipo: 'iPhone 13 128GB', precio: 'RD$ 38,500.00', plazo: '12', referencia: 'Santiago · Loribel Ventura · iPhone 13 128GB RD$ 38,500.00' } }),
-      fila({ id: 's6', numero: 6, sucursal_nombre: 'Moca', enviado_por_nombre: 'Carlos Peña', equipo: 'Samsung A55 256GB', precio: 24900, creado_en: h(30), respondido_en: h(29), seguimiento: 'banco', seguimiento_historial: [{ paso: 'banco', en: h(28), por: 'Carlos Peña' }], datos: { nombres: 'María Rodríguez', cedula: '03104567891', telefono: '8297001122', equipo: 'Samsung A55 256GB', precio: 'RD$ 24,900.00', plazo: '18' } }),
-      fila({ id: 's5', numero: 5, sucursal_nombre: 'Navarrete', enviado_por_nombre: 'Yudelka Reyes', equipo: 'Redmi Note 14', precio: 11500, creado_en: h(50), respondido_en: h(49), seguimiento: 'aprobada', datos: { nombres: 'Pedro Jiménez', cedula: '40222334456', telefono: '8493339988', equipo: 'Redmi Note 14', precio: 'RD$ 11,500.00', plazo: '6' } }),
+      fila({ id: 's7', numero: 7, responsable_tipo: 'usuario', responsable_id: 'u-lori', responsable_nombre: 'Loribel Ventura', proxima_gestion_en: h(2), proxima_accion: 'Pasar la solicitud al banco', sucursal_id: 'suc-sti', sucursal_nombre: 'Santiago', enviado_por_nombre: 'Loribel Ventura', equipo: 'iPhone 13 128GB', precio: 38500, telefono: '18095551234', creado_en: h(2), respondido_en: h(1), datos: { nombres: 'Juan Pérez', cedula: '00112345678', telefono: '8095551234', provincia: 'Santiago', municipio: 'Santiago', sector: 'Los Jardines', calle: '5', casa: '12', equipo: 'iPhone 13 128GB', precio: 'RD$ 38,500.00', plazo: '12', referencia: 'Santiago · Loribel Ventura · iPhone 13 128GB RD$ 38,500.00' } }),
+      fila({ id: 's6', numero: 6, responsable_tipo: 'tecnico', responsable_id: 't-carlos', responsable_nombre: 'Carlos Peña', proxima_gestion_en: new Date(Date.now() + 5 * 60000).toISOString(), proxima_accion: 'Preguntar al banco', sucursal_nombre: 'Moca', enviado_por_nombre: 'Carlos Peña', equipo: 'Samsung A55 256GB', precio: 24900, creado_en: h(30), respondido_en: h(29), seguimiento: 'banco', seguimiento_historial: [{ paso: 'banco', en: h(28), por: 'Carlos Peña' }], datos: { nombres: 'María Rodríguez', cedula: '03104567891', telefono: '8297001122', equipo: 'Samsung A55 256GB', precio: 'RD$ 24,900.00', plazo: '18' } }),
+      fila({ id: 's5', numero: 5, responsable_tipo: 'tecnico', responsable_id: 't-yud', responsable_nombre: 'Yudelka Reyes', proxima_gestion_en: new Date(Date.now() + 3 * 86400000).toISOString(), proxima_accion: 'Avisar al cliente y citarlo para retirar', sucursal_nombre: 'Navarrete', enviado_por_nombre: 'Yudelka Reyes', equipo: 'Redmi Note 14', precio: 11500, creado_en: h(50), respondido_en: h(49), seguimiento: 'aprobada', datos: { nombres: 'Pedro Jiménez', cedula: '40222334456', telefono: '8493339988', equipo: 'Redmi Note 14', precio: 'RD$ 11,500.00', plazo: '6' } }),
       fila({ id: 's4', numero: 4, sucursal_nombre: 'Santiago', enviado_por_nombre: 'Loribel Ventura', equipo: 'Televisor LG 55"', precio: 31000, creado_en: h(90), respondido_en: h(89), seguimiento: 'entregada', datos: { nombres: 'Rosa Martínez', cedula: '03155566677', equipo: 'Televisor LG 55"', precio: 'RD$ 31,000.00', plazo: '12' } }),
       fila({ id: 's8', numero: 8, estado: 'enviado', sucursal_nombre: 'Santiago', enviado_por_nombre: 'Loribel Ventura', equipo: 'iPhone 15', precio: 52000, telefono: '18294440000', creado_en: h(0.5), vence_en: new Date(Date.now() + 86400000).toISOString(), datos: null }),
       fila({ id: 's9', numero: 9, estado: 'enviado', sucursal_nombre: 'Moca', equipo: 'Vencida', precio: 1, creado_en: h(300), vence_en: h(100), datos: null }),
     ];
     const llamadas = []; const rpc0 = supabaseClient.rpc;
-    supabaseClient.rpc = (n, a) => { if (n === 'fin_solicitud_seguimiento') { llamadas.push(a); const s = __BD.tablas.fin_solicitudes_whatsapp.find(x => x.id === a.p_id); s.seguimiento_historial = (s.seguimiento_historial || []).concat([{ paso: a.p_seguimiento, de: s.seguimiento, en: new Date().toISOString(), por: 'Admin' }]); s.seguimiento = a.p_seguimiento; return Promise.resolve({ data: Object.assign({}, s), error: null }); } return rpc0(n, a); };
+    window.__gest = [];
+    supabaseClient.rpc = (n, a) => {
+      if (n === 'fin_solicitud_responsables') return Promise.resolve({ data: [{ tipo: 'usuario', id: 'u-lori', nombre: 'Loribel Ventura' }, { tipo: 'tecnico', id: 't-carlos', nombre: 'Carlos Peña' }], error: null });
+      if (n === 'fin_solicitud_gestion') { __gest.push(a); const s = __BD.tablas.fin_solicitudes_whatsapp.find(x => x.id === a.p_id); Object.assign(s, { responsable_tipo: a.p_responsable_tipo, responsable_id: a.p_responsable_id, responsable_nombre: a.p_responsable_id === 'u-lori' ? 'Loribel Ventura' : 'Carlos Peña', proxima_gestion_en: a.p_proxima, proxima_accion: a.p_accion }); s.seguimiento_historial = (s.seguimiento_historial || []).concat([{ paso: 'gestion', en: new Date().toISOString(), por: 'Admin', responsable: s.responsable_nombre, proxima: a.p_proxima, accion: a.p_accion, nota: a.p_nota }]); return Promise.resolve({ data: Object.assign({}, s), error: null }); }
+      if (n === 'fin_solicitud_seguimiento') { llamadas.push(a); const s = __BD.tablas.fin_solicitudes_whatsapp.find(x => x.id === a.p_id); s.seguimiento_historial = (s.seguimiento_historial || []).concat([{ paso: a.p_seguimiento, de: s.seguimiento, en: new Date().toISOString(), por: 'Admin' }]); s.seguimiento = a.p_seguimiento; return Promise.resolve({ data: Object.assign({}, s), error: null }); } return rpc0(n, a); };
     nav('crmLinea'); await w(1500);
     if (typeof _crmLineaActualId === 'undefined' || !_crmLineaActualId) { seleccionarLineaCRM('l1', 'Santiago', 'Reparación'); await w(1500); }
     const tab = document.getElementById('crmLineaTabSolicitudes');
@@ -34,7 +38,8 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     out.mensajesOculto = getComputedStyle(document.getElementById('crmLinea-mensajes')).display === 'none';
     out.tabOn = tab.classList.contains('on');
     out.badge = document.getElementById('crmSolTabBadge').textContent;
-    out.filas = panel.querySelectorAll('.bcsol-fila').length; // 5 (la vencida no sale)
+    out.filas = panel.querySelectorAll('.bcsol-fila').length; // «Atender hoy»: s7 atrasada + s6 hoy
+    out.proxEnTarjeta = !!panel.querySelector('.bcsol-fila .bcsol-prox .bcsol-ava') && /Atrasada/.test(panel.textContent);
     out.sub = (panel.querySelector('.bcsol-sub') || {}).textContent || '';
     out.chipsMin = Math.min(...[...panel.querySelectorAll('.bcsol-chip')].map(c => Math.round(c.getBoundingClientRect().height)));
     out.buscaAlto = Math.round(panel.querySelector('.bcsol-busca input').getBoundingClientRect().height); out.buscaLetra = parseFloat(getComputedStyle(panel.querySelector('.bcsol-busca input')).fontSize);
@@ -42,8 +47,9 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     // Filtros
     panel.querySelector('[data-bcsol-suc="Moca"]').click(); await w(80); out.filtroMoca = panel.querySelectorAll('.bcsol-fila').length;
     panel.querySelector('[data-bcsol-suc="Todas"]').click(); await w(80);
-    panel.querySelector('[data-bcsol-est="banco"]').click(); await w(80); out.filtroBanco = panel.querySelectorAll('.bcsol-fila').length;
-    panel.querySelector('[data-bcsol-est="todas"]').click(); await w(80);
+    panel.querySelector('[data-bcsol-band="atr"]').click(); await w(80); out.filtroBanco = panel.querySelectorAll('.bcsol-fila').length;
+    panel.querySelector('[data-bcsol-band="abiertas"]').click(); await w(80); out.abiertas = panel.querySelectorAll('.bcsol-fila').length;
+    panel.querySelector('[data-bcsol-band="hoy"]').click(); await w(80);
     const inp = panel.querySelector('.bcsol-busca input'); inp.value = '001-1234567'; inp.dispatchEvent(new Event('input', { bubbles: true })); await w(80); out.buscarCedula = panel.querySelectorAll('.bcsol-fila').length;
     const inp2 = panel.querySelector('.bcsol-busca input'); inp2.value = ''; inp2.dispatchEvent(new Event('input', { bubbles: true })); await w(80);
     out._shotLista = true;
@@ -98,16 +104,26 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     const d = document.createElement('div'); d.innerHTML = html; document.body.appendChild(d);
     d.querySelector('[data-bcsol-ver]').click(); await w(500);
     out.verAbre = document.querySelector('.bcsol-hoja').classList.contains('on') && document.querySelector('#bcsolTit').textContent.includes('6');
+    // Gestión: la No. 6 (hoy) pasa a mañana con otra acción y nota
+    await w(300);
+    const hj = document.querySelector('.bcsol-hoja');
+    out.opcionesResp = hj.querySelectorAll('#bcsolResp option').length;
+    hj.querySelector('[data-bcsol-cuando="man"]').click(); hj.querySelector('[data-bcsol-que="Llamar al cliente"]').click();
+    hj.querySelector('#bcsolNota').value = 'No contestó'; hj.querySelector('[data-bcsol-act="gestion"]').click(); await w(400);
+    const g = __gest[0] || {}; const pm = new Date(g.p_proxima || 0); const man = new Date(); man.setDate(man.getDate() + 1);
+    out.gestion = { resp: g.p_responsable_id, accion: g.p_accion, nota: g.p_nota, manana10: pm.getDate() === man.getDate() && pm.getHours() === 10 };
+    out.histGestion = /Gestión/.test(hj.textContent) && /No contestó/.test(hj.textContent);
+    out.badgeGestion = document.getElementById('crmSolTabBadge').textContent;
     d.remove();
     return out;
   });
   const R = Object.assign({}, r, r2, r3);
   const errsReales = errs.filter(e => !/net::|Failed/.test(e));
-  const ok = errsReales.length === 0 && R.capa !== 'NO CARGÓ' && R.tab && R.tabTexto.startsWith('Solicitudes') && R.tabsRecortadas.length === 0 && R.panelVisible && R.mensajesOculto && R.tabOn && R.badge === '3' && R.filas === 5 &&
+  const ok = errsReales.length === 0 && R.capa !== 'NO CARGÓ' && R.tab && R.tabTexto.startsWith('Solicitudes') && R.tabsRecortadas.length === 0 && R.panelVisible && R.mensajesOculto && R.tabOn && R.badge === '2' && R.proxEnTarjeta && R.abiertas === 3 && R.filas === 2 &&
     R.chipsMin >= 44 && R.buscaAlto >= 48 && R.buscaLetra >= 16 && !R.mayusculas && R.filtroMoca === 1 && R.filtroBanco === 1 && R.buscarCedula === 1 &&
     R.pasos.join() === 'recibida,banco,aprobada,entregada,no_aprobada,cancelada' && R.cancelada === 'cancelada' && R.hojaAbierta && R.filasCortadas === 0 && R.cerrarIcono && R.titulo === 'Solicitud No. 7' && R.cedula && R.tel && R.botonesMin >= 44 &&
     R.estadoFinal === 'aprobada' && R.historial === 2 && R.botonAviso && /aprobó su solicitud del iPhone 13/.test(R.avisoTexto) && R.badgeTras === '2' &&
-    R.chatAbierto === 'h3' && /aprobó/.test(R.cajaTexto) && R.tabMensajesOn && R.panelSolOculto && R.verEnTarjeta && R.verAbre && R.r01SinEscribir;
+    R.chatAbierto === 'h3' && /aprobó/.test(R.cajaTexto) && R.tabMensajesOn && R.panelSolOculto && R.verEnTarjeta && R.verAbre && R.opcionesResp >= 3 && R.gestion.resp === 't-carlos' && R.gestion.accion === 'Llamar al cliente' && R.gestion.nota === 'No contestó' && R.gestion.manana10 && R.histGestion && R.badgeGestion === '1' && R.r01SinEscribir;
   if (!ok) fallos++;
   console.log(W, ok ? 'OK' : 'FALLO', JSON.stringify(R), 'errores', errs.filter(e => !/net::|Failed/.test(e)));
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/solicitudes-chat-${W}.png` });

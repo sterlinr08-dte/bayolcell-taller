@@ -8,7 +8,7 @@
   'use strict';
   if (window.__bcSolicitudes) return;
   try { if (localStorage.getItem('bc_solicitudes_off') === '1') return; } catch (e) {}
-  window.__bcSolicitudes = '20261025-s3';
+  window.__bcSolicitudes = '20261025-s4';
 
   const PASOS = [
     ['recibida', 'Recibida', 'rec', 'El cliente llenó la solicitud'],
@@ -20,7 +20,7 @@
   ];
   const SIN_LLENAR = ['sin_llenar', 'Sin llenar', 'sin', 'Esperando que el cliente la llene'];
   const SUCURSALES = ['Santiago', 'Moca', 'Navarrete'];
-  const COLS = 'id,numero,estado,canal,sucursal_id,sucursal_nombre,enviado_por_nombre,equipo,precio,datos,referencia,hilo_id,linea_id,telefono,creado_en,respondido_en,vence_en,seguimiento,seguimiento_en,seguimiento_historial';
+  const COLS = 'id,numero,estado,canal,sucursal_id,sucursal_nombre,enviado_por_nombre,equipo,precio,datos,referencia,hilo_id,linea_id,telefono,creado_en,respondido_en,vence_en,seguimiento,seguimiento_en,seguimiento_historial,responsable_tipo,responsable_id,responsable_nombre,proxima_gestion_en,proxima_accion';
 
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const db = () => (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
@@ -34,7 +34,7 @@
   function fmtTel(v) { let d = String(v || '').replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); return d.length === 10 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : String(v || ''); }
   function plata(v) { const n = Number(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return n > 0 ? 'RD$ ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''; }
 
-  let filas = [], suc = null, est = 'todas', q = '', abierta = null, cargando = false, guardando = false;
+  let filas = [], suc = null, est = 'todas', band = 'hoy', responsables = {}, selG = { cuando: null, que: null }, q = '', abierta = null, cargando = false, guardando = false;
 
   // ---------- Estilos (solo esta pestaña y su ficha) ----------
   const css = document.createElement('style');
@@ -99,6 +99,23 @@
 .bcsol-paso.no.actual{border-color:#b91c1c;background:#fef2f2}.bcsol-paso.no.actual .dot{border-color:#b91c1c;background:#b91c1c}
 .bcsol-paso.no:not(.actual) .dot{border-color:#fca5a5}.bcsol-paso.can.actual{border-color:#475569;background:#f1f5f9}.bcsol-paso.can.actual .dot{border-color:#475569;background:#475569}
 .bcsol-hist{margin:0;padding:0 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:#0f172a}.bcsol-hist span{color:#64748b;font-size:13px}.bcsol-hist small{display:block;color:#64748b;font-size:12.5px}
+.bcsol-b-hoy.on{background:#b45309!important;border-color:#b45309!important}.bcsol-b-atr.on{background:#b91c1c!important;border-color:#b91c1c!important}.bcsol-chip .n.rojo{background:#fee2e2;color:#b91c1c}
+.bcsol-prox{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:6px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:13px;color:#475569}
+.bcsol-prox .que{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bcsol-ava{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;flex:0 0 auto}.bcsol-ava.grande{width:40px;height:40px;font-size:14px}
+.bcsol-cuando{font-weight:700;border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap}
+.c-hoy{background:#fef3c7;color:#b45309}.c-atr{background:#fee2e2;color:#b91c1c}.c-ok{background:#f1f5f9;color:#475569}.c-sin{background:#fff;border:1px dashed #cbd5e1;color:#64748b}
+.bcsol-gest{border:1.5px solid #e2e8f0;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:12px;background:#fbfcfe}
+.bcsol-gest .fila2{display:flex;align-items:flex-end;gap:10px}.bcsol-gest .campo{display:flex;flex-direction:column;gap:6px;flex:1;margin:0}
+.bcsol-hoja .bcsol-gest .campo,.bcsol-hoja .bcsol-gest .campo *{text-transform:none!important;letter-spacing:0!important}
+.bcsol-hoja .bcsol-gest .campo>span,.bcsol-hoja .bcsol-gest .lbl{text-transform:none!important;letter-spacing:0!important;font-size:13px;font-weight:600;color:#475569;display:block;margin-bottom:6px}.bcsol-gest .lbl em{font-style:normal;font-weight:500;color:#64748b}
+.bcsol-gest select,.bcsol-gest textarea{box-sizing:border-box;width:100%;min-height:48px;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;background:#fff;color:#0f172a}
+.bcsol-gest textarea{min-height:72px;resize:vertical}
+.bcsol-opc{display:flex;gap:8px;flex-wrap:wrap}
+.bcsol-opc button{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #e2e8f0;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#0f172a;cursor:pointer}
+.bcsol-opc button.on{background:#2563eb;border-color:#2563eb;color:#fff}
+.bcsol-btn.azul{min-height:54px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-size:16px;box-shadow:0 8px 20px rgba(37,99,235,.25)}
+.bcsol-hist li.g b{color:#2563eb}
 .bcsol-cierre{font-size:13px;font-weight:600;color:#64748b;margin:6px 2px -2px}
 .bcsol-paso .txt{flex:1;min-width:0}.bcsol-paso small{display:block;font-weight:500;color:#64748b;font-size:12.5px}
 .bcsol-msg{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:12px 14px;font-size:14px;color:#14532d;line-height:1.45;white-space:pre-line}
@@ -114,6 +131,32 @@
   const info = k => (k === 'sin_llenar' ? SIN_LLENAR : paso(k));
   const enProceso = s => s.estado === 'respondido' && ['recibida', 'banco', 'aprobada'].includes(s.seguimiento || 'recibida'); // auditoría S09: aprobada = falta entregar
   const cerrada = s => s.estado === 'respondido' && ['no_aprobada', 'entregada', 'cancelada'].includes(s.seguimiento);
+  // 25-oct: responsable y próxima gestión (maqueta aprobada por el dueño).
+  const ACCIONES = ['Pasar la solicitud al banco', 'Llamar al cliente', 'Preguntar al banco', 'Esperar respuesta del banco', 'Avisar al cliente y citarlo para retirar', 'Otro'];
+  const CUANDO = [['hoy', 'Hoy en la tarde'], ['man', 'Mañana'], ['3d', 'En 3 días'], ['sem', 'En una semana']];
+  const COLORES = ['#2563eb', '#7c3aed', '#0d9488', '#db2777', '#ea580c', '#0891b2', '#65a30d'];
+  const colorDe = n => { let h = 0; for (const ch of String(n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return COLORES[h % COLORES.length]; };
+  const iniciales = n => String(n || '?').trim().split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
+  function finDeHoy() { const f = new Date(); f.setHours(23, 59, 59, 999); return f; }
+  function bandaDe(s) {
+    if (s.estado !== 'respondido') return 'sin_llenar';
+    if (cerrada(s)) return 'cerrada';
+    if (!s.responsable_id) return 'sin';
+    if (!s.proxima_gestion_en) return 'sin';
+    const t = new Date(s.proxima_gestion_en).getTime();
+    if (t < Date.now()) return 'atr';
+    if (t <= finDeHoy().getTime()) return 'hoy';
+    return 'ok';
+  }
+  function enBanda(s, b) { const t = bandaDe(s); if (b === 'hoy') return t === 'hoy' || t === 'atr'; if (b === 'abiertas') return ['hoy', 'atr', 'ok', 'sin'].includes(t); if (b === 'cerradas') return t === 'cerrada'; return t === b; }
+  function cuandoHtml(s) {
+    const t = bandaDe(s); if (t === 'cerrada' || t === 'sin_llenar') return '';
+    if (t === 'sin') return `<span class="bcsol-cuando c-sin">${s.responsable_id ? 'Sin fecha' : 'Sin responsable'}</span>`;
+    const f = new Date(s.proxima_gestion_en);
+    if (t === 'atr') { const dd = Math.max(1, Math.round((Date.now() - f.getTime()) / 86400000)); return `<span class="bcsol-cuando c-atr">${(Date.now() - f.getTime()) < 86400000 ? 'Atrasada' : `Atrasada ${dd} día${dd > 1 ? 's' : ''}`}</span>`; }
+    if (t === 'hoy') return `<span class="bcsol-cuando c-hoy">Hoy ${esc(f.toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' }))}</span>`;
+    return `<span class="bcsol-cuando c-ok">${esc(fechaHora(f))}</span>`;
+  }
   function d(s) { return (s && s.datos) || {}; }
   function nombre(s) { return d(s).nombres || (s.estado === 'respondido' ? 'Sin nombre' : fmtTel(s.telefono) || 'Cliente'); }
   function sucursalDe(s) { return s.sucursal_nombre || 'Sin sucursal'; }
@@ -153,7 +196,7 @@
   }
   function pintarBadge() {
     const b = document.getElementById('crmSolTabBadge'); if (!b) return;
-    const n = filas.filter(enProceso).length;
+    const n = filas.filter(s => ['hoy', 'atr'].includes(bandaDe(s))).length;
     b.textContent = n > 99 ? '99+' : String(n); b.style.display = n ? '' : 'none';
   }
   async function contarPronto() { try { await cargar(); } catch (e) { /* sin permiso o sin conexión: la pestaña lo dirá al abrirla */ } }
@@ -171,7 +214,7 @@
   }
   function filtradas() {
     const t = q.trim().toLowerCase().replace(/[-\s]/g, '');
-    return filas.filter(s => (suc === 'Todas' || sucursalDe(s) === suc) && (est === 'todas' || clave(s) === est) &&
+    return filas.filter(s => (suc === 'Todas' || sucursalDe(s) === suc) && (t ? true : enBanda(s, band)) &&
       (!t || [nombre(s), d(s).cedula, d(s).telefono, s.telefono, String(s.numero), d(s).equipo || s.equipo].join(' ').toLowerCase().replace(/[-\s]/g, '').includes(t)));
   }
   function pill(k) { const i = info(k); return `<span class="bcsol-pill bcsol-p-${i[2]}"><i></i>${esc(i[1])}</span>`; }
@@ -182,19 +225,19 @@
     const sucs = ['Todas', ...SUCURSALES, ...extra];
     const chipsSuc = sucs.map(x => { const n = filas.filter(s => (x === 'Todas' || sucursalDe(s) === x) && !cerrada(s)).length; return `<button type="button" class="bcsol-chip${suc === x ? ' on' : ''}" data-bcsol-suc="${esc(x)}">${esc(x)}<span class="n">${n}</span></button>`; }).join('');
     const base = filas.filter(s => suc === 'Todas' || sucursalDe(s) === suc);
-    const claves = [['todas', 'Todas'], ...PASOS.map(p => [p[0], p[1]]), [SIN_LLENAR[0], SIN_LLENAR[1]]];
-    const chipsEst = claves.map(([k, t]) => { const n = k === 'todas' ? base.length : base.filter(s => clave(s) === k).length; if (k === 'sin_llenar' && !n && est !== k) return ''; return `<button type="button" class="bcsol-chip${est === k ? ' on' : ''}" data-bcsol-est="${k}">${esc(t)}<span class="n">${n}</span></button>`; }).join('');
-    const lista = filtradas();
+    const BANDAS = [['hoy', 'Atender hoy', 'hoy'], ['atr', 'Atrasadas', 'atr'], ['sin', 'Sin responsable', ''], ['abiertas', 'Todas abiertas', ''], ['cerradas', 'Cerradas', ''], ['sin_llenar', 'Sin llenar', '']];
+    const chipsEst = BANDAS.map(([k, t, c]) => { const n = base.filter(s => enBanda(s, k)).length; if (k === 'sin_llenar' && !n && band !== k) return ''; return `<button type="button" class="bcsol-chip bcsol-b-${c || 'n'}${band === k ? ' on' : ''}" data-bcsol-band="${k}">${esc(t)}<span class="n${k === 'atr' && n ? ' rojo' : ''}">${n}</span></button>`; }).join('');
+    const lista = filtradas().sort((a, b) => { const fa = a.proxima_gestion_en ? new Date(a.proxima_gestion_en).getTime() : 9e15, fb = b.proxima_gestion_en ? new Date(b.proxima_gestion_en).getTime() : 9e15; return fa - fb || String(b.creado_en).localeCompare(String(a.creado_en)); });
     const filasHtml = lista.length ? lista.map(s => {
       const eq = [d(s).equipo || s.equipo, precioTxt(s), plazoTxt(s)].filter(Boolean).join(' · ');
-      return `<button type="button" class="bcsol-fila" data-bcsol-id="${esc(s.id)}"><span class="nom">${esc(nombre(s))}</span><span>${pill(clave(s))}</span><span class="eq">${esc(eq)}</span><span class="meta"><span>No. ${esc(s.numero)}</span><span>${esc(fecha(s.respondido_en || s.creado_en))}</span><span>${esc(sucursalDe(s))}</span>${s.enviado_por_nombre ? `<span>${esc(primerNombre(s.enviado_por_nombre))}</span>` : ''}</span></button>`;
-    }).join('') : `<div class="bcsol-vacio">${filas.length ? 'No hay solicitudes con ese filtro.' : 'Todavía no hay solicitudes. Se envían desde el chat con el clip 📎 › «Solicitud de financiamiento».'}</div>`;
-    const enProc = filas.filter(s => enProceso(s) && (suc === 'Todas' || sucursalDe(s) === suc)).length;
+      return `<button type="button" class="bcsol-fila" data-bcsol-id="${esc(s.id)}"><span class="nom">${esc(nombre(s))}</span><span>${pill(clave(s))}</span><span class="eq">${esc(eq)}</span><span class="meta"><span>No. ${esc(s.numero)}</span><span>${esc(fecha(s.respondido_en || s.creado_en))}</span><span>${esc(sucursalDe(s))}</span></span>${['hoy', 'atr', 'ok', 'sin'].includes(bandaDe(s)) ? `<span class="bcsol-prox">${s.responsable_nombre ? `<span class="bcsol-ava" style="background:${colorDe(s.responsable_nombre)}">${esc(iniciales(s.responsable_nombre))}</span>` : '<span class="bcsol-ava" style="background:#cbd5e1">?</span>'}<span class="que">${s.responsable_nombre ? esc(primerNombre(s.responsable_nombre)) + ' · ' + esc(s.proxima_accion || 'Sin próxima acción') : 'Nadie la tiene asignada'}</span>${cuandoHtml(s)}</span>` : ''}</button>`;
+    }).join('') : `<div class="bcsol-vacio">${filas.length ? (band === 'hoy' && !q ? 'Nada pendiente para hoy. 👌' : 'No hay solicitudes con ese filtro.') : 'Todavía no hay solicitudes. Se envían desde el chat con el clip 📎 › «Solicitud de financiamiento».'}</div>`;
+    const enProc = filas.filter(s => ['hoy', 'atr'].includes(bandaDe(s)) && (suc === 'Todas' || sucursalDe(s) === suc)).length;
     const busca = cont.querySelector('.bcsol-busca input');
     const teniaFoco = busca && document.activeElement === busca;
-    cont.innerHTML = `<div class="bcsol-sub">Solicitudes de financiamiento · <b>${enProc}</b> en proceso${suc !== 'Todas' ? ' en ' + esc(suc) : ''}</div>
+    cont.innerHTML = `<div class="bcsol-sub">Solicitudes de financiamiento · <b>${enProc}</b> por atender hoy${suc !== 'Todas' ? ' en ' + esc(suc) : ''}</div>
       <div class="bcsol-chips" role="group" aria-label="Sucursal">${chipsSuc}</div>
-      <div class="bcsol-chips bcsol-est" role="group" aria-label="Estado">${chipsEst}</div>
+      <div class="bcsol-chips bcsol-est" role="group" aria-label="Bandeja">${chipsEst}</div>
       <div class="bcsol-busca"><input type="search" placeholder="Buscar por nombre, cédula o número" autocomplete="off" value="${esc(q)}" aria-label="Buscar solicitud"></div>
       <div class="bcsol-lista">${filasHtml}</div>`;
     if (teniaFoco) { const i = cont.querySelector('.bcsol-busca input'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
@@ -222,7 +265,7 @@
   }
   function abrir(id) {
     const s = filas.find(x => String(x.id) === String(id)); if (!s) return;
-    asegurarHoja(); abierta = s; pintarHoja();
+    asegurarHoja(); abierta = s; selG = { cuando: null, que: null }; pintarHoja(); cargarResponsables(s);
     requestAnimationFrame(() => { velo.classList.add('on'); hoja.classList.add('on'); });
   }
   function cerrar() { if (!hoja) return; velo.classList.remove('on'); hoja.classList.remove('on'); abierta = null; }
@@ -254,7 +297,7 @@
         + boton('no_aprobada', false) + boton('cancelada', false);
     }
     // Auditoría S12: historial completo, en orden, con quién, cuándo y la nota si hubo.
-    const historialHtml = hist.length ? `<div class="bcsol-sec">Historial de cambios</div><ol class="bcsol-hist">${hist.map(h => `<li><b>${esc(paso(h.paso)[1])}</b>${h.de ? ` <span>(antes: ${esc(paso(h.de)[1])})</span>` : ''}<small>${esc(fechaHora(h.en))}${h.por ? ' · ' + esc(h.por) : ''}${h.nota ? ' · «' + esc(h.nota) + '»' : ''}</small></li>`).join('')}</ol>` : '';
+    const historialHtml = hist.length ? `<div class="bcsol-sec">Historial de cambios</div><ol class="bcsol-hist">${hist.map(h => h.paso === 'gestion' ? `<li class="g"><b>Gestión</b> <span>${h.responsable_antes && h.responsable_antes !== h.responsable ? 'responsable: ' + esc(h.responsable) + ' · ' : ''}próxima: ${esc(String(h.accion || '').toLowerCase())} (${esc(fechaHora(h.proxima))})</span><small>${esc(fechaHora(h.en))}${h.por ? ' · ' + esc(h.por) : ''}${h.nota ? ' · «' + esc(h.nota) + '»' : ''}</small></li>` : `<li><b>${esc(paso(h.paso)[1])}</b>${h.de ? ` <span>(antes: ${esc(paso(h.de)[1])})</span>` : ''}<small>${esc(fechaHora(h.en))}${h.por ? ' · ' + esc(h.por) : ''}${h.nota ? ' · «' + esc(h.nota) + '»' : ''}</small></li>`).join('')}</ol>` : '';
     const msg = mensajeCliente(s);
     const avisar = msg ? `<div class="bcsol-sec">Avisar al cliente</div><div class="bcsol-msg${s.seguimiento === 'no_aprobada' ? ' no' : ''}">${esc(msg)}</div>
       <div class="bcsol-acts"><button type="button" class="bcsol-btn prim" data-bcsol-act="avisar">Escribir el aviso en el chat</button></div>` : '';
@@ -265,6 +308,7 @@
       <div class="bcsol-sec">Lo que financia</div>
       <div class="bcsol-rec"><div class="r"><span>Equipo</span><span>${esc(x.equipo || s.equipo || '')}</span></div><div class="r"><span>Monto</span><span>${esc(precioTxt(s))}</span></div>${plazoTxt(s) ? `<div class="r"><span>Plazo deseado</span><span>${esc(plazoTxt(s))}</span></div>` : ''}<div class="r"><span>Referencia</span><span style="font-size:13px">${esc(referencia(s))}</span></div></div>
       <div class="bcsol-acts"><button type="button" class="bcsol-btn" data-bcsol-act="chat">Abrir chat</button><button type="button" class="bcsol-btn" data-bcsol-act="ref">Copiar referencia</button><button type="button" class="bcsol-btn ancho" data-bcsol-act="todo">Copiar solicitud completa</button></div>
+      ${gestionHtml(s)}
       <div class="bcsol-sec">Seguimiento</div>
       <div class="bcsol-pasos">${pasos}</div>
       ${avisar}
@@ -273,6 +317,55 @@
       <div class="bcsol-rec"><div class="r"><span>Celular</span><span>${esc(fmtTel(s.telefono))}</span></div><div class="r"><span>Equipo</span><span>${esc(s.equipo || '')}</span></div><div class="r"><span>Monto</span><span>${esc(plata(s.precio))}</span></div><div class="r"><span>Enviada</span><span>${esc(fechaHora(s.creado_en))}${s.enviado_por_nombre ? ' · ' + esc(primerNombre(s.enviado_por_nombre)) : ''}</span></div></div>
       <p style="margin:0;color:#64748b;font-size:14px;line-height:1.45">El cliente todavía no ha llenado el formulario. Cuando lo llene, aparecerá aquí como «Recibida».</p>
       <div class="bcsol-acts"><button type="button" class="bcsol-btn ancho" data-bcsol-act="chat">Abrir chat</button></div>`;
+  }
+  function gestionHtml(s) {
+    if (s.estado !== 'respondido' || cerrada(s)) return '';
+    const lista = responsables[s.sucursal_id || 'todas'];
+    const opciones = lista ? lista.map(r => `<option value="${esc(r.tipo + ':' + r.id)}"${String(r.id) === String(s.responsable_id) ? ' selected' : ''}>${esc(r.nombre)}</option>`).join('') : '';
+    const actual = s.responsable_id && lista && !lista.some(r => String(r.id) === String(s.responsable_id)) ? `<option value="${esc(s.responsable_tipo + ':' + s.responsable_id)}" selected>${esc(s.responsable_nombre || 'Responsable')}</option>` : '';
+    return `<div class="bcsol-sec">Quién la lleva y qué toca</div>
+      <div class="bcsol-gest">
+        <div class="fila2">${s.responsable_nombre ? `<span class="bcsol-ava grande" style="background:${colorDe(s.responsable_nombre)}">${esc(iniciales(s.responsable_nombre))}</span>` : ''}<label class="campo"><span>Responsable</span><select id="bcsolResp"><option value="">${lista ? '— Elegir —' : 'Cargando…'}</option>${actual}${opciones}</select></label></div>
+        <div><span class="lbl">Próxima gestión${s.proxima_gestion_en ? ` <em>(ahora: ${esc(fechaHora(s.proxima_gestion_en))})</em>` : ''}</span><div class="bcsol-opc">${CUANDO.map(([k, t]) => `<button type="button" data-bcsol-cuando="${k}" class="${selG.cuando === k ? 'on' : ''}">${t}</button>`).join('')}</div></div>
+        <div><span class="lbl">Qué hay que hacer</span><div class="bcsol-opc">${ACCIONES.map(t => `<button type="button" data-bcsol-que="${esc(t)}" class="${(selG.que || s.proxima_accion) === t ? 'on' : ''}">${esc(t)}</button>`).join('')}</div></div>
+        <label class="campo"><span>Qué pasó en esta gestión (opcional)</span><textarea id="bcsolNota" maxlength="300" placeholder="Ej.: Llamé al cliente, no contestó. Le dejé mensaje."></textarea></label>
+        <button type="button" class="bcsol-btn azul" data-bcsol-act="gestion">Guardar gestión</button>
+      </div>`;
+  }
+  async function cargarResponsables(s) {
+    const k = s.sucursal_id || 'todas'; if (responsables[k]) return;
+    const c = db(); if (!c) return;
+    try {
+      const { data, error } = await c.rpc('fin_solicitud_responsables', { p_sucursal: s.sucursal_id || null });
+      if (error) throw error;
+      responsables[k] = (data || []).map(r => ({ tipo: r.tipo, id: r.id, nombre: r.nombre }));
+    } catch (e) { responsables[k] = []; }
+    if (abierta && (abierta.sucursal_id || 'todas') === k) { const nota = (hoja.querySelector('#bcsolNota') || {}).value || ''; pintarHoja(); const n2 = hoja.querySelector('#bcsolNota'); if (n2) n2.value = nota; }
+  }
+  function fechaDe(k) {
+    const f = new Date();
+    if (k === 'hoy') { f.setHours(16, 0, 0, 0); if (f.getTime() < Date.now()) f.setTime(Date.now() + 30 * 60000); return f; }
+    f.setDate(f.getDate() + (k === 'man' ? 1 : k === '3d' ? 3 : 7)); f.setHours(10, 0, 0, 0); return f;
+  }
+  async function guardarGestion() {
+    const s = abierta; if (!s || guardando) return;
+    const sel = hoja.querySelector('#bcsolResp'); const v = sel ? sel.value : '';
+    if (!v) { avisoError('Elija el responsable.'); return; }
+    if (!selG.cuando) { avisoError('Elija cuándo es la próxima gestión.'); return; }
+    const [tipo, id] = v.split(':');
+    const nota = ((hoja.querySelector('#bcsolNota') || {}).value || '').trim();
+    const c = db(); if (!c) return;
+    guardando = true; hoja.classList.add('bcsol-cargando');
+    try {
+      const { data, error } = await c.rpc('fin_solicitud_gestion', { p_id: s.id, p_responsable_tipo: tipo, p_responsable_id: id, p_proxima: fechaDe(selG.cuando).toISOString(), p_accion: selG.que || s.proxima_accion || 'Llamar al cliente', p_nota: nota || null });
+      if (error) throw error;
+      const nuevo = Array.isArray(data) ? data[0] : data;
+      if (!nuevo || !nuevo.id) throw new Error('El servidor no confirmó la gestión. Recargue la pestaña y vuelva a intentarlo.');
+      Object.assign(s, nuevo); selG = { cuando: null, que: null };
+      aviso(`Gestión guardada: ${primerNombre(s.responsable_nombre)} · ${fechaHora(s.proxima_gestion_en)}`);
+      pintarHoja(); pintar(); pintarBadge();
+    } catch (e) { avisoError((e && e.message) || 'No se pudo guardar la gestión.'); }
+    finally { guardando = false; hoja.classList.remove('bcsol-cargando'); }
   }
   async function copiar(texto, btn) {
     try {
@@ -348,20 +441,24 @@
   }
   function clicHoja(e) {
     const p = e.target.closest('[data-bcsol-paso]'); if (p) { cambiarPaso(p.getAttribute('data-bcsol-paso')); return; }
+    const cu = e.target.closest('[data-bcsol-cuando]'); if (cu) { selG.cuando = cu.getAttribute('data-bcsol-cuando'); marcarOpc(cu); return; }
+    const qq = e.target.closest('[data-bcsol-que]'); if (qq) { selG.que = qq.getAttribute('data-bcsol-que'); marcarOpc(qq); return; }
     const a = e.target.closest('[data-bcsol-act]'); if (!a || !abierta) return;
     const t = a.getAttribute('data-bcsol-act');
     if (t === 'chat') abrirChat(abierta);
     else if (t === 'ref') copiar(referencia(abierta), a);
     else if (t === 'todo') copiar(textoCompleto(abierta), a);
     else if (t === 'avisar') abrirChat(abierta, mensajeCliente(abierta));
+    else if (t === 'gestion') guardarGestion();
   }
+  function marcarOpc(btn) { [...btn.parentElement.children].forEach(b => b.classList.toggle('on', b === btn)); }
 
   // ---------- Eventos de la lista ----------
   document.addEventListener('click', e => {
     const cont = document.getElementById('crmLinea-solicitudes');
     if (cont && cont.contains(e.target)) {
       const cs = e.target.closest('[data-bcsol-suc]'); if (cs) { suc = cs.getAttribute('data-bcsol-suc'); pintar(); return; }
-      const ce = e.target.closest('[data-bcsol-est]'); if (ce) { est = ce.getAttribute('data-bcsol-est'); pintar(); return; }
+      const ce = e.target.closest('[data-bcsol-band]'); if (ce) { band = ce.getAttribute('data-bcsol-band'); pintar(); return; }
       const f = e.target.closest('[data-bcsol-id]'); if (f) { abrir(f.getAttribute('data-bcsol-id')); return; }
     }
     // Desde la tarjeta del chat: «Ver seguimiento»
