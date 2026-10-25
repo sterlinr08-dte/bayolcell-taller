@@ -1,0 +1,12 @@
+{
+  // Bayol Cell en Cloudflare (sitio estático = "assets"), igual que NEXUS PRO y STUDIO RD.
+  // No hay build: se sirve el repositorio tal cual. Prueba en *.workers.dev antes de mover bayolcell.com
+  // (que sigue en GitHub Pages hasta que el dueño lo apruebe). Las cabeceras de caché están en _headers.
+  "name": "bayolcell-taller",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}

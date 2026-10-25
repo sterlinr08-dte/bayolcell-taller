@@ -1,0 +1,28 @@
+# Cabeceras para Cloudflare (GitHub Pages ignora este archivo).
+# HTML: siempre se revisa si hay versión nueva (así un cambio publicado se ve al recargar).
+/*.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache
+/solicitud
+  Cache-Control: no-cache
+/taller
+  Cache-Control: no-cache
+# JS y CSS: el sistema los pide siempre con ?v=…; cada cambio cambia la dirección, así que se pueden guardar mucho tiempo.
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+# Imágenes y videos: un día, y mientras se revisa se usa la copia guardada.
+/assets/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/img/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+# Seguridad básica
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+# La carpeta bde/ carga sus archivos sin ?v=: se revisa siempre.
+/bde/*
+  ! Cache-Control
+  Cache-Control: no-cache

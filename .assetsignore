@@ -1,0 +1,23 @@
+# Cloudflare sirve el repo tal cual (wrangler.jsonc). Esto NUNCA se publica:
+# código interno, historial, funciones del servidor, SQL, documentación, pruebas y herramientas locales.
+.git
+.git/
+.wrangler/
+.claude/
+.agents/
+.github/
+node_modules/
+docs/
+supabase/
+scripts/
+tests/
+tools/
+videos-remotion/
+*.md
+*.sql
+*.cjs
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
+.gitignore
