@@ -7774,6 +7774,7 @@ let _reacondSel = new Set(); // equipos marcados con casilla para asignar en blo
 let _reacondFiltroTec = ''; // filtrar la lista por técnico (clic en su chip)
 const _REACOND_ESTADOS_REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
 const _REACOND_ESTADOS_TRABAJO = [..._REACOND_ESTADOS_REPARACION, 'listo_revision'];
+const _REACOND_ESTADOS_EVALUACION = ['pendiente', 'en_evaluacion', 'evaluado'];
 // 24-oct-2026 (auditoría) R14: todo insert a equipo_historial pasa por aquí para leer {error}
 // y dejarlo en consola (antes se ignoraba). Devuelve true si quedó escrito.
 // 24-oct-2026 (auditoría, fase 2): llamada a una función del servidor que hace todo-o-nada. Si falla, lanza el mensaje
@@ -12735,6 +12736,10 @@ async function empezarEvaluacion(equipoId) {
                 .update({ estado_evaluacion: 'en_evaluacion' })
                 .eq('id', equipoId);
             if(error) throw error;
+            // 26-oct-2026 (prueba de punta a punta): este paso no dejaba rastro en el historial ni en la caché.
+            eq.estado_evaluacion = 'en_evaluacion';
+            await _histInsert([{ equipo_id: equipoId, estado_anterior: 'pendiente', estado_nuevo: 'en_evaluacion',
+                accion: 'Diagnóstico iniciado', usuario: sessionUser?.nombre || 'Usuario' }]);
         }
         
         await abrirModalEvaluacion(equipoId);
@@ -13189,6 +13194,13 @@ async function guardarEvaluacion(marcarEvaluado = false) {
     const equipoId = _evalState.equipoId;
     if(!equipoId) return toast('No hay equipo activo.', 'error');
 
+    // 26-oct-2026 (prueba de punta a punta): la evaluación solo se edita mientras el equipo está en diagnóstico.
+    // Antes, «Editar evaluación» en un equipo en reparación, calidad o Listo lo regresaba a «Diagnosticado».
+    const _eqEval = (cache.refurb || []).find(r => r.id === equipoId);
+    const _estEval = (_eqEval && _eqEval.estado_evaluacion) || 'pendiente';
+    if(!_REACOND_ESTADOS_EVALUACION.includes(_estEval)) {
+        return toast('Este equipo ya salió de diagnóstico. Las fallas nuevas se agregan como falla adicional en su panel de reparación.', 'error');
+    }
     const notas = document.getElementById('eval_notas').value.trim() || null;
     const fallasArray = Array.from(_evalState.fallasSeleccionadas);
     if(marcarEvaluado && !fallasArray.length && !notas) {
@@ -13218,6 +13230,14 @@ async function guardarEvaluacion(marcarEvaluado = false) {
             p_equipo: equipoId, p_notas: notas, p_fallas: fallas, p_piezas: piezas, p_marcar_evaluado: !!marcarEvaluado,
             p_tareas: textosFallas, p_catalogo: catalogo, p_creado_por: creadoPor
         });
+        // 26-oct-2026: la función del servidor no escribe el historial visible. Si cambió el estado, se anota aquí
+        // (si una versión nueva de la función ya lo escribe, devuelve historial:true y no se repite).
+        const _estNuevo = (r && r.estado) || (marcarEvaluado ? 'evaluado' : 'en_evaluacion');
+        if(_estNuevo !== _estEval && !(r && r.historial)) {
+            await _histInsert([{ equipo_id: equipoId, estado_anterior: _estEval, estado_nuevo: _estNuevo,
+                accion: _estNuevo === 'evaluado' ? 'Diagnóstico terminado' : 'Diagnóstico guardado',
+                notas: textosFallas.length ? 'Fallas: ' + textosFallas.join(', ') : notas, usuario: sessionUser?.nombre || 'Usuario' }]);
+        }
 
         toast(marcarEvaluado ? 'Evaluación guardada y equipo marcado como evaluado.' : 'Evaluación guardada.');
         cerrarModalEvaluacion();
@@ -14643,7 +14663,7 @@ async function verHistorialEquipoReacond(equipoId) {
                 ${seccion('<i class="ti ti-history"></i> Línea de tiempo', `<div style="margin-top:4px;">${timelineHtml}</div>`)}
             </div>
             <div class="modal-footer">
-                ${eq.estado_evaluacion !== 'vendido' ? `<button class="btn btn-light" onclick="cerrarHistorialEquipo(); continuarEvaluacion('${equipoId}')"><i class="ti ti-pencil"></i> Editar evaluación</button>` : ''}
+                ${_REACOND_ESTADOS_EVALUACION.includes(eq.estado_evaluacion || 'pendiente') ? `<button class="btn btn-light" onclick="cerrarHistorialEquipo(); continuarEvaluacion('${equipoId}')"><i class="ti ti-pencil"></i> Editar evaluación</button>` : ''}
                 <button class="btn btn-blue" onclick="cerrarHistorialEquipo()">Cerrar</button>
             </div>
         </div>`;
@@ -14707,7 +14727,11 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado, notaHistorial) {
         }
     }
     try {
-        const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: nuevoEstado }).eq('id', equipoId);
+        // 26-oct-2026 (prueba de punta a punta): al pasar directo a Listo también queda la fecha de terminado,
+        // igual que al aprobar calidad (antes quedaba vacía y la tarjeta y los reportes no tenían fecha).
+        const _patchEst = { estado_evaluacion: nuevoEstado };
+        if(nuevoEstado === 'listo_venta') _patchEst.fecha_terminado = new Date().toISOString();
+        const { error } = await supabaseClient.from('equipos_refurbish').update(_patchEst).eq('id', equipoId);
         if(error) throw error;
         await _histInsert([{
             equipo_id: equipoId, estado_anterior: estadoAnterior, estado_nuevo: nuevoEstado,
@@ -17833,20 +17857,28 @@ async function marcarEquipoListo(equipoId) {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) { logError('marcarEquipoListo', e); toastError(getFriendlyError(e)); }
 }
+const _despachoEnCurso = new Set();
 async function marcarDespachado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
         return toast('No tiene permiso para despachar equipos.', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
+    // 26-oct-2026 (prueba de punta a punta): solo sale lo que está Listo, y un doble toque no registra dos salidas
+    // (antes se duplicaba el historial y se pisaba la fecha de despacho de un equipo ya despachado).
+    if(eq.estado_evaluacion !== 'listo_venta') return toast(eq.estado_evaluacion === 'vendido' ? 'Este equipo ya tiene la salida registrada.' : 'Solo se registra la salida de un equipo en Listo.', 'error');
+    if(_despachoEnCurso.has(equipoId)) return;
+    _despachoEnCurso.add(equipoId);
     // El taller es para CONTROL: "despachar" = entregar al almacén principal (no es una venta, no se pide precio)
-    if(!await confirmar(`¿Registrar la salida de "${eq.modelo}"?\n\nEl equipo pasará a Despachado.`)) return;
     try {
-        const { error } = await supabaseClient.from('equipos_refurbish').update({
+        if(!await confirmar(`¿Registrar la salida de "${eq.modelo}"?\n\nEl equipo pasará a Despachado.`)) return;
+        const { data: _salio, error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido',
             fecha_despacho: new Date().toISOString()
-        }).eq('id', equipoId);
+        }).eq('id', equipoId).eq('estado_evaluacion', 'listo_venta').select('id');
         if(error) throw error;
+        if(Array.isArray(_salio) && !_salio.length) { toast('Este equipo ya tiene la salida registrada.', 'error'); await loadAll(); return; }
+        eq.estado_evaluacion = 'vendido';
         await _histInsert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
             accion: 'Salida registrada → Despachado',
@@ -17861,7 +17893,7 @@ async function marcarDespachado(equipoId) {
     } catch(e) {
         logError('Marcar despachado', e);
         toastError(getFriendlyError(e));
-    }
+    } finally { _despachoEnCurso.delete(equipoId); }
 }
 
 // Ficha limpia para un equipo DESPACHADO (sin proceso de reparación): fallas, costo e imprimir label
@@ -23419,6 +23451,18 @@ async function guardarDevolucion() {
             p_equipo: equipoId, p_motivo: motivo, p_problemas: problemasStr, p_cliente: cliente || null,
             p_diagnostico: diagnostico || null, p_tecnico: tecnicoId, p_usuario: sessionUser?.nombre || 'Admin'
         });
+        // 26-oct-2026 (prueba de punta a punta): el ciclo nuevo arrancaba sin ninguna tarea abierta, y el técnico podía
+        // pasarlo a calidad sin trabajo. Se abre una tarea con el motivo (si el servidor ya la creó, no se repite).
+        try {
+            const { data: _abiertas } = await supabaseClient.from('tareas_trabajo').select('id,estado')
+                .eq('tipo', 'equipo').eq('ref_id', equipoId);
+            if(!(_abiertas || []).some(t => t.estado !== 'hecha')) {
+                const { error: eT } = await supabaseClient.from('tareas_trabajo').insert([{ tipo: 'equipo', ref_id: equipoId,
+                    descripcion: ('Devolución: ' + motivo).slice(0, 200), tecnico_id: tecnicoId, estado: 'pendiente',
+                    creado_por: _uuidONull(sessionUser?.id) }]);
+                if(eT) logError('Tarea de la devolución', eT);
+            }
+        } catch(eT) { logError('Tarea de la devolución', eT); }
         toast('🔄 Devolución registrada. Equipo vuelto a "En Proceso".');
         cerrarModalDevolucion();
         await loadAll();

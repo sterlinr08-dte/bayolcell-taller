@@ -49,3 +49,12 @@ celular, título sin mayúsculas ni «ADMIN», secciones del menú en letra norm
 el paréntesis en la ⓘ, campos 48/16, Guardar 54 px, ⓘ que abren y cierran, KPI de Reportes en rejilla, dinero «RD$ 0.00», sin
 desplazamiento horizontal ni errores; y Reportes sin Chart.js no congela la página. Uso: `node scripts/pruebas/ui-global.cjs`
 (`PUERTO=xxxx` para otro puerto).
+## reacond-flujo-completo.cjs (26-oct-2026)
+Reacondicionados de punta a punta con las RPC del servidor simuladas igual que la base: crear lote (y lote repetido),
+empezar y guardar evaluación, asignar técnico, pedir/entregar/recibir pieza (stock baja una sola vez), candados de pieza y
+de tareas, tareas hechas → calidad → Listo, salida con doble toque (una sola salida y una sola baja en Info Plus), salida
+repetida bloqueada, devolución con ciclo 2 y tarea abierta, equipo directo a Listo con fecha, editar evaluación de un equipo
+en Listo (no lo regresa), salida en bloque y bloque que no salta etapas. Al final revisa historial (cada cambio de estado con
+su renglón y su estado anterior real), costo de repuestos y flete del lote. 25 pasos a 390 y 1280 px.
+Uso: `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/reacond-flujo-completo.cjs [carpeta-capturas]`
+(`PUERTO=…` si el servidor corre en otro puerto).
