@@ -21656,7 +21656,7 @@ function construirMisPiezasTodas(miId, kind) {
             origen: `${eq.marca||''} ${eq.modelo||''}`.trim() || 'Reacond', tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en
         });
     });
-    if(!items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No has solicitado piezas todavía.</div>`;
+    if(!items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No ha solicitado piezas todavía.</div>`;
     items.sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
     
     const etiq = (e) => {

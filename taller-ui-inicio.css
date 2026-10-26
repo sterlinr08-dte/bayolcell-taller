@@ -1,0 +1,197 @@
+/* BAYOL CELL · Inicio (v-dashboard) y Mi trabajo (v-miTrabajo) — capa visual (26-oct-2026).
+   Solo afecta a esas dos pantallas. Apagar: localStorage bc_ui_inicio_off='1' (o BC_UI_INICIO=false en taller.html).
+   Reglas: rótulos sin MAYÚSCULAS, números tabulares, punto de color en su propio espacio (nunca encima del rótulo),
+   contraste mínimo 4.5:1 en texto, toques de 44 px, campos 48/16, botón principal 54 px, sin saltos al cargar.
+   Gana la cascada por el prefijo html.bc-ui-inicio (más peso que #app .view:not(#v-crmLinea) …) y !important. */
+
+/* ── 1. Tarjetas KPI (Inicio y Mi trabajo) ─────────────────────────────────────────── */
+html.bc-ui-inicio #app #v-dashboard .kpi-box,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box{
+  --kc:#94a3b8;
+  display:flex !important; flex-direction:column; justify-content:space-between; gap:6px;
+  min-height:88px !important; padding:14px !important;
+  border:1px solid rgba(15,23,42,.08) !important; border-top:1px solid rgba(15,23,42,.08) !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.94) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 1px 2px rgba(15,23,42,.05),0 8px 20px -14px rgba(15,23,42,.30) !important;
+}
+html.bc-ui-inicio #app #v-dashboard .kpi-box small,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box small{
+  display:flex !important; align-items:center; gap:7px; min-width:0; max-width:none !important;
+  font-size:13px !important; line-height:1.25 !important; font-weight:600 !important;
+  color:#475569 !important; text-transform:none !important; letter-spacing:0 !important;
+  white-space:normal; overflow-wrap:anywhere;
+}
+/* punto de color: elemento en línea ANTES del rótulo; ocupa su propio espacio y no se encima */
+html.bc-ui-inicio #app #v-dashboard .kpi-box small::before,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box small::before{
+  content:""; flex:none; width:8px; height:8px; border-radius:50%; background:var(--kc);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--kc) 18%,transparent);
+}
+html.bc-ui-inicio #app #v-dashboard .kpi-box strong,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box strong{
+  align-self:flex-start; margin:0 !important; font-size:26px !important; line-height:1.1 !important; font-weight:800 !important;
+  color:#0f172a !important; letter-spacing:-.02em !important;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+/* esqueleto de carga: mismo alto que el número, sin salto cuando llega el dato */
+html.bc-ui-inicio #app #v-dashboard .kpi-box strong.skeleton{ display:block; width:2.2em; height:1.1em; }
+/* ícono: esquina inferior derecha, en la fila del número (el rótulo va arriba y usa todo el ancho) */
+html.bc-ui-inicio #app #v-dashboard .kpi-box > i[class*="ti-"],
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box > i[class*="ti-"]{
+  right:12px !important; bottom:12px !important; top:auto !important;
+  width:30px !important; min-width:30px !important; height:30px !important; padding:0 !important;
+  display:flex !important; align-items:center; justify-content:center; font-size:17px !important;
+  border-radius:10px !important; opacity:1 !important;
+  color:color-mix(in srgb,var(--kc) 80%,#0f172a) !important;
+  background:color-mix(in srgb,var(--kc) 12%,#fff) !important;
+  border:1px solid color-mix(in srgb,var(--kc) 22%,#fff) !important;
+  box-shadow:none !important; text-shadow:none !important; transform:none !important;
+}
+html.bc-ui-inicio #app #v-dashboard .kpi-box.clickable,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box[onclick]{ cursor:pointer; transition:transform .16s cubic-bezier(.22,1,.36,1),box-shadow .16s ease !important; }
+html.bc-ui-inicio #app #v-dashboard .kpi-box.clickable:hover,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box[onclick]:hover{ transform:translateY(-1px) !important; box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 0 0 1px rgba(15,23,42,.06),0 12px 24px -14px rgba(15,23,42,.35) !important; }
+html.bc-ui-inicio #app #v-dashboard .kpi-box.clickable:active,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box[onclick]:active{ transform:scale(.97) !important; }
+html.bc-ui-inicio #app #v-dashboard .kpi-box:focus-visible,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-box:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(59,130,246,.30) !important; }
+
+/* Color de cada indicador (DESIGN.md: verde = listo, ámbar = pendiente, rojo solo para problemas, azul = entrada) */
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kHoy){--kc:#2563eb;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kDiag){--kc:#f59e0b;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kRep){--kc:#FF6B35;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kPiezas){--kc:#d97706;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kListos){--kc:#22c55e;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kRefurb){--kc:#14b8a6;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kdPend){--kc:#94a3b8;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kdEval){--kc:#3b82f6;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kdProc){--kc:#FF6B35;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kdCalidad){--kc:#a855f7;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kdListoV){--kc:#22c55e;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kdDesp){--kc:#14b8a6;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#kdDev){--kc:#ef4444;}
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#wvHoy),
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#wv7),
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#wv30),
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#wvTotal),
+html.bc-ui-inicio #v-dashboard .kpi-box:has(#wvUnicas){--kc:#0891b2;}
+html.bc-ui-inicio #app #v-miTrabajo #miTrabajoResumen > .kpi-box:nth-child(1){--kc:#3b82f6;}   /* Disponibles */
+html.bc-ui-inicio #app #v-miTrabajo #miTrabajoResumen > .kpi-box:nth-child(2){--kc:#FF6B35;}   /* Mis órdenes */
+html.bc-ui-inicio #app #v-miTrabajo #miTrabajoResumen > .kpi-box:nth-child(3){--kc:#f59e0b;}   /* Mis reacond. */
+html.bc-ui-inicio #app #v-miTrabajo #miTrabajoResumen > .kpi-box:nth-child(4){--kc:#ef4444;}   /* Fallas pend. */
+html.bc-ui-inicio #app #v-miTrabajo #miTrabajoResumen > .kpi-box:has(.ti-arrows-exchange){--kc:#d97706;} /* Reasignadas a mí */
+
+/* Rejillas: Inicio 6 por fila; Reacondicionados (7) en una sola fila en la PC */
+html.bc-ui-inicio #app #v-dashboard .kpi-row,
+html.bc-ui-inicio #app #v-miTrabajo .kpi-row{ gap:12px !important; align-items:stretch; }
+@media (min-width:1100px){
+  html.bc-ui-inicio #app #v-dashboard > h3 + .kpi-row{ grid-template-columns:repeat(7,minmax(0,1fr)) !important; }
+  html.bc-ui-inicio #app #v-miTrabajo #miTrabajoResumen{ grid-template-columns:repeat(auto-fill,minmax(190px,1fr)) !important; }
+}
+@media (max-width:760px){
+  html.bc-ui-inicio #app #v-dashboard .kpi-row,
+  html.bc-ui-inicio #app #v-miTrabajo .kpi-row{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:8px !important; }
+  html.bc-ui-inicio #app #v-dashboard .kpi-box,
+  html.bc-ui-inicio #app #v-miTrabajo .kpi-box{ min-height:80px !important; padding:12px !important; }
+  html.bc-ui-inicio #app #v-dashboard .kpi-box strong,
+  html.bc-ui-inicio #app #v-miTrabajo .kpi-box strong{ font-size:23px !important; }
+  html.bc-ui-inicio #app #v-dashboard .kpi-box > i[class*="ti-"],
+  html.bc-ui-inicio #app #v-miTrabajo .kpi-box > i[class*="ti-"]{ right:10px !important; bottom:10px !important; width:28px !important; min-width:28px !important; height:28px !important; font-size:16px !important; }
+}
+
+/* Mi trabajo: «Registro de Ticket» ya tiene su botón con el número debajo del formulario (una sola entrada por función) */
+html.bc-ui-inicio #app #v-miTrabajo #miTrabajoResumen > .kpi-box[onclick^="abrirRegistroTickets"]{ display:none !important; }
+/* sin saltos al cargar: se reserva el alto mientras llegan los datos */
+html.bc-ui-inicio #miTrabajoResumen:empty{ min-height:88px; }
+html.bc-ui-inicio #miTrabajoIncentivosWrap:not([style*="none"]) #miTrabajoIncentivos:empty{ min-height:260px; }
+html.bc-ui-inicio #miTrabajoContenido:empty{ min-height:240px; }
+
+/* ── 2. Títulos de sección ─────────────────────────────────────────────────────────── */
+html.bc-ui-inicio #app #v-dashboard > h3{
+  text-transform:none !important; letter-spacing:0 !important; font-size:16px !important; font-weight:700 !important;
+  color:#0f172a !important; margin:22px 0 10px !important;
+}
+
+/* ── 3. Órdenes recientes (Inicio) ─────────────────────────────────────────────────── */
+/* cada fila ya es una tarjeta con sus rótulos: el encabezado de columnas sobra */
+html.bc-ui-inicio #app #v-dashboard .recent-orders-table thead{ display:none !important; }
+html.bc-ui-inicio #app #v-dashboard .layout-dashboard{ align-items:start !important; }
+html.bc-ui-inicio #app #v-dashboard #recentOrders > tr{
+  display:block; background:none !important; border:0 !important; box-shadow:none !important;
+  padding:0 !important; margin:0 0 8px !important; border-radius:0 !important;
+}
+html.bc-ui-inicio #app #v-dashboard #recentOrders > tr > td{ display:block; }
+html.bc-ui-inicio #app #v-dashboard .recent-order-card{ border-radius:14px !important; }
+html.bc-ui-inicio #app #v-dashboard .recent-order-label{
+  font-size:12px !important; font-weight:600 !important; letter-spacing:0 !important; color:#64748b !important;
+  text-transform:lowercase !important;
+}
+html.bc-ui-inicio #app #v-dashboard .recent-order-label::first-letter{ text-transform:uppercase; }
+html.bc-ui-inicio #app #v-dashboard .recent-order-number{ white-space:nowrap; font-variant-numeric:tabular-nums; }
+html.bc-ui-inicio #app #v-dashboard .layout-dashboard .btn{ min-height:48px !important; }
+
+/* ── 4. Panel inteligente: contraste de los textos verdes y de tendencia ─────────────── */
+html.bc-ui-inicio #dashboardSmart [style*="color:#16a34a"]:not([style*="background"]){ color:#15803d !important; }
+html.bc-ui-inicio #dashboardSmart [style*="color:#7c3aed"]:not([style*="background"]){ color:#6d28d9 !important; }
+html.bc-ui-inicio #dashboardSmart div[style*="font-size:20px"]{ font-variant-numeric:tabular-nums; }
+html.bc-ui-inicio #dashboardDemoras [style*="color:#16a34a"]:not([style*="background"]){ color:#15803d !important; }
+
+/* ── 5. Mi trabajo: formulario «Registrar Ticket» (DESIGN §4b) ──────────────────────── */
+html.bc-ui-inicio #miTrabajoIncentivos label{
+  display:block; font-size:13px !important; font-weight:600 !important; color:#475569 !important;
+  text-transform:none !important; letter-spacing:0 !important; margin:0 0 4px !important; white-space:nowrap;
+}
+html.bc-ui-inicio #miTrabajoIncentivos .card > div[style*="display:flex"] > div[style*="width:"]{ width:auto !important; flex:1 1 140px; min-width:0; }
+/* subtítulo «Servicios de este ticket» legible (venía en 10 px) y sin el título repetido «Registrar Ticket» dentro de la tarjeta */
+html.bc-ui-inicio #miTrabajoIncentivos .card > div[style*="font-size:10px"]{ font-size:13px !important; color:#475569 !important; margin:4px 0 6px !important; }
+html.bc-ui-inicio #miTrabajoIncentivos > .card:first-child > div:first-child:has(> i.ti-plus){ display:none !important; }
+html.bc-ui-inicio #miTrabajoIncentivos button[onclick^="guardarMiIncentivo"]{
+  min-height:54px !important; height:54px !important; padding:0 22px !important; font-size:16px !important; border-radius:14px !important;
+}
+html.bc-ui-inicio #miTrabajoIncentivos button[onclick^="_srvAgregar"],
+html.bc-ui-inicio #miTrabajoIncentivos button[onclick^="_srvQuitar"]{ height:48px !important; min-height:48px !important; min-width:48px !important; }
+/* «Quincena actual»: sin mayúsculas y con contraste suficiente; montos tabulares y legibles */
+html.bc-ui-inicio #miTrabajoIncentivos .card > div[style*="uppercase"]{
+  text-transform:none !important; color:#475569 !important; font-size:13px !important; font-weight:600 !important; letter-spacing:0 !important;
+}
+html.bc-ui-inicio #miTrabajoIncentivos .card b{ font-variant-numeric:tabular-nums; }
+html.bc-ui-inicio #miTrabajoIncentivos b[style*="#16a34a"]{ color:#15803d !important; }
+html.bc-ui-inicio #miTrabajoIncentivos button[onclick^="abrirRegistroTickets"]{ min-height:44px !important; }
+
+/* ── 6. Mi trabajo: listas, encabezados y filtro de fechas ─────────────────────────── */
+html.bc-ui-inicio #miTrabajoContenido h4{ font-size:14px !important; text-transform:none !important; letter-spacing:0 !important; }
+html.bc-ui-inicio #v-miTrabajo #rep_fecha_desde,
+html.bc-ui-inicio #v-miTrabajo #rep_fecha_hasta{ width:auto !important; flex:0 1 190px; min-width:150px; }
+html.bc-ui-inicio #v-miTrabajo button[onclick^="setPeriodoReporte"],
+html.bc-ui-inicio #v-miTrabajo button[onclick^="aplicarFechasPersonalizadas"]{ min-height:44px !important; }
+html.bc-ui-inicio #v-miTrabajo td{ font-variant-numeric:tabular-nums; }
+html.bc-ui-inicio #miReacondModulo{ min-height:64px; }
+
+/* «Marcar urgente» (chip pequeño): área de toque de 44 px sin cambiar su aspecto */
+html.bc-ui-inicio #v-miTrabajo span[onclick^="togglePrioridadOrden"],
+html.bc-ui-inicio #v-dashboard span[onclick^="togglePrioridadOrden"]{ position:relative; }
+html.bc-ui-inicio #v-miTrabajo span[onclick^="togglePrioridadOrden"]::after,
+html.bc-ui-inicio #v-dashboard span[onclick^="togglePrioridadOrden"]::after{ content:""; position:absolute; inset:-16px -2px; }
+
+/* ── 7. Estados vacíos (los marca taller-ui-inicio.js con .bcui-vacio) ─────────────── */
+html.bc-ui-inicio .bcui-vacio{
+  display:flex !important; align-items:center; gap:10px; min-height:52px; box-sizing:border-box;
+  margin:4px 0 8px; padding:12px 14px !important; border:1px dashed #cbd5e1; border-radius:12px;
+  background:rgba(248,250,252,.85); color:#475569 !important; font-size:14px !important; line-height:1.35;
+}
+html.bc-ui-inicio .bcui-vacio > .bcui-vacio-ico{
+  flex:none; width:30px; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  background:#fff; border:1px solid #e2e8f0; color:#64748b; font-size:16px;
+}
+html.bc-ui-inicio .bcui-vacio.ok{ border-style:solid; border-color:#bbf7d0; background:#f0fdf4; color:#15803d !important; }
+html.bc-ui-inicio .bcui-vacio.ok > .bcui-vacio-ico{ color:#15803d; border-color:#bbf7d0; }
+
+@media (prefers-reduced-motion:reduce){
+  html.bc-ui-inicio #app #v-dashboard .kpi-box,
+  html.bc-ui-inicio #app #v-miTrabajo .kpi-box{ transition:none !important; }
+  html.bc-ui-inicio #app #v-dashboard .kpi-box:hover,
+  html.bc-ui-inicio #app #v-miTrabajo .kpi-box:hover,
+  html.bc-ui-inicio #app #v-dashboard .kpi-box:active,
+  html.bc-ui-inicio #app #v-miTrabajo .kpi-box:active{ transform:none !important; }
+}
