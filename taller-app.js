@@ -28279,7 +28279,8 @@ function _finBucketDias(f) {
     return max;
 }
 function _pintarDashboardFin() {
-    if(typeof Chart === 'undefined' && window.__bayolLibs) { window.__bayolLibs.then(_pintarDashboardFin); return; }   // Chart.js en diferido
+    // Chart.js en diferido: se espera UNA vez; si no cargó (sin Internet o CDN caído), se pinta sin la dona (antes se quedaba en un ciclo y congelaba la pestaña)
+    if(typeof Chart === 'undefined' && window.__bayolLibs && !_pintarDashboardFin._esperado) { _pintarDashboardFin._esperado = true; window.__bayolLibs.then(_pintarDashboardFin); return; }
     const kpisEl = document.getElementById('finKpis');
     const cont = document.getElementById('finContenido');
     if(!cont) return;
