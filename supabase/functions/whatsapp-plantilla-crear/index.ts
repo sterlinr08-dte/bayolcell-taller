@@ -27,6 +27,18 @@ const PLANTILLA_CUENTAS = {
     { type: "footer", text: "BAYOL CELL · Santiago, Moca y Navarrete" },
   ],
 };
+// 26-oct-2026 · Dueño: «Vamos a ordenar mejor» → «Si». «bayolcell_cuentas_pago_v2»: las cuentas van en el TEXTO FIJO (una por
+// bloque, banco en negrita, número solo en su renglón) porque Meta no deja saltos de línea dentro de una variable. Variables:
+// 1 nombre (o «cliente»), 2 monto («RD$ 4,600.00» o «su compra»). Si cambia una cuenta, hay que someter otra versión.
+const PLANTILLA_CUENTAS_V2 = {
+  name: "bayolcell_cuentas_pago_v2",
+  category: "UTILITY",
+  language: "es",
+  components: [
+    { type: "body", text: "Hola {{1}}. Para su pago de {{2}} puede transferir a cualquiera de estas cuentas de *BAYOL CELL SRL* (RNC 132-09568-5):\n\n🏦 *Banreservas* · Cuenta corriente\n9605219868\n\n🏦 *Banco Popular* · Cuenta de ahorro\n831440755\n\n🏦 *BHD León* · Cuenta corriente\n29317310011\n\nCuando transfiera, envíenos el comprobante por este chat. Gracias por preferirnos.", example: { body_text: [["Juan Pérez", "RD$ 4,600.00"]] } },
+    { type: "footer", text: "BAYOL CELL · Santiago, Moca y Navarrete" },
+  ],
+};
 const PLANTILLA = {
   name: "bayolcell_seguimiento_consulta",
   category: "UTILITY",
@@ -49,7 +61,7 @@ Deno.serve(async (req) => {
   if (!ok) return json({ ok: false, error: "No autorizado." }, 401);
   const body = await req.json().catch(() => ({}));
   const cual = String(body?.cual ?? "seguimiento");
-  const plantilla = cual === "prefactura" ? PLANTILLA_PREFACTURA : cual === "cuentas" ? PLANTILLA_CUENTAS : PLANTILLA;
+  const plantilla = cual === "prefactura" ? PLANTILLA_PREFACTURA : cual === "cuentas" ? PLANTILLA_CUENTAS : cual === "cuentas_v2" ? PLANTILLA_CUENTAS_V2 : PLANTILLA;
   const KEY = (Deno.env.get("ZERNIO_API_KEY") || "").trim();
   const { data: lineas } = await db.from("whatsapp_lineas").select("nombre, whatsapp_numero, zernio_account_id").eq("activo", true);
   const cuentas = [...new Map((lineas || []).filter((l: any) => l.zernio_account_id).map((l: any) => [l.zernio_account_id, `${l.nombre} ${l.whatsapp_numero || ""}`.trim()])).entries()];
@@ -57,7 +69,7 @@ Deno.serve(async (req) => {
   // 23-oct-2026 · { accion: 'estado', nombres: [...] }: solo consulta (GET /v1/whatsapp/templates?accountId&name) el estado
   // que Meta le dio a cada plantilla en cada línea. No crea nada.
   if (String(body?.accion ?? "") === "estado") {
-    const nombres: string[] = Array.isArray(body?.nombres) && body.nombres.length ? body.nombres.map(String) : [PLANTILLA_PREFACTURA.name, PLANTILLA_CUENTAS.name, PLANTILLA.name];
+    const nombres: string[] = Array.isArray(body?.nombres) && body.nombres.length ? body.nombres.map(String) : [PLANTILLA_PREFACTURA.name, PLANTILLA_CUENTAS.name, PLANTILLA_CUENTAS_V2.name, PLANTILLA.name];
     for (const [accountId, linea] of cuentas) {
       for (const name of nombres) {
         try {

@@ -21085,6 +21085,10 @@ function _rpTextoWhatsApp(num, suc, total, nombre) {
     const quien = nombre && !/^CONTADO$/i.test(nombre) ? nombre.replace(/^CONTADO\s+/i, '') : '';
     return 'Hola' + (quien ? ' ' + quien : '') + '. Le enviamos su prefactura Nº ' + num + ' de BAYOL CELL, sucursal ' + suc + ', por ' + money(total) + '. Gracias por preferirnos.';
 }
+const _RP_CUENTAS_TEXTO = '🏦 *Banreservas* · Cuenta corriente\n9605219868\n\n🏦 *Banco Popular* · Cuenta de ahorro\n831440755\n\n🏦 *BHD León* · Cuenta corriente\n29317310011';
+function _rpTextoCuentas(quien, monto) {
+    return 'Hola ' + quien + '. Para su pago de ' + monto + ' puede transferir a cualquiera de estas cuentas de *BAYOL CELL SRL* (RNC 132-09568-5):\n\n' + _RP_CUENTAS_TEXTO + '\n\nCuando transfiera, envíenos el comprobante por este chat. Gracias por preferirnos.';
+}
 let _rpEnviandoWa = false;
 // 23-oct-2026 (dueño): el botón de WhatsApp de la Prefactura manda las CUENTAS DE PAGO del negocio (Configuración → Datos del taller).
 // Mismo camino que la prefactura: línea de la sucursal del almacén y chat del cliente. Solo texto libre, así que el cliente
@@ -21109,7 +21113,9 @@ async function _rpEnviarCuentasWhatsApp() {
         if(!h || !h.ok) throw new Error(h && h.error === 'sin_permiso' ? 'No tiene acceso a la línea ' + linea.nombre + ' de ' + suc + '.' : (h && h.error) || 'No se pudo abrir el chat.');
         const nom = _rpNombreInfoplus(g('c_nombre')); const quien = nom && !/^CONTADO$/i.test(nom) ? nom.replace(/^CONTADO\s+/i, '') : '';
         const total = _rpState && _rpState.items && _rpState.items.length ? _rpTotales(_rpState.items).total : 0;
-        const texto = 'Hola' + (quien ? ' ' + quien : '') + '. Estas son las cuentas de BAYOL CELL para su pago' + (total > 0 ? ' de ' + money(total) : '') + ':\n\n' + cuentas + '\n\nCuando transfiera, envíenos el comprobante por aquí. Gracias por preferirnos.';
+        // 26-oct-2026 (dueño: «Vamos a ordenar mejor»): mismo texto que la plantilla «bayolcell_cuentas_pago_v2», una cuenta por
+        // bloque. Si cambia una cuenta, cambiar _RP_CUENTAS_TEXTO y someter otra versión de la plantilla.
+        const texto = _rpTextoCuentas(quien || 'cliente', total > 0 ? money(total) : 'su compra');
         let r;
         if(h.abierto) {
             // Conversación abierta (<24 h): texto libre, con las cuentas una debajo de otra.
@@ -21118,7 +21124,11 @@ async function _rpEnviarCuentasWhatsApp() {
             // Sin conversación abierta: plantilla «bayolcell_cuentas_pago» (sometida a Meta el 23-oct-2026). Las cuentas van
             // en UNA línea separadas por « | » porque Meta no admite saltos de línea dentro de una variable.
             const unaLinea = cuentas.split(/\r?\n/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ');
-            r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto, plantilla: { nombre: 'bayolcell_cuentas_pago', idioma: 'es', variables: [quien || 'cliente', total > 0 ? money(total) : 'su compra', unaLinea] } } });
+            // Primero la versión ordenada (v2, solo nombre y monto); si Meta aún no la aprueba, la de una sola línea (v1).
+            r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto, plantilla: { nombre: 'bayolcell_cuentas_pago_v2', idioma: 'es', variables: [quien || 'cliente', total > 0 ? money(total) : 'su compra'] } } });
+            const e2 = r && r.data && !r.data.ok ? String(r.data.mensaje || r.data.error || '') : '';
+            if(e2 && /template|plantilla|132001|132000|not found|does not exist|parameter/i.test(e2))
+                r = await supabaseClient.functions.invoke('whatsapp-enviar', { body: { hilo_id: h.id, mensaje: texto, plantilla: { nombre: 'bayolcell_cuentas_pago', idioma: 'es', variables: [quien || 'cliente', total > 0 ? money(total) : 'su compra', unaLinea] } } });
         }
         const d = r && r.data;
         if(r && r.error && !d) throw r.error;
