@@ -87,6 +87,8 @@ listas y sincronización.
 
 - **Solicitudes: responsable y próxima gestión (25-oct, PR #123, PUBLICADO):** bandeja «Atender hoy» por defecto; responsable = quien envió; el paso propone la próxima gestión (banco → mañana 10:00; aprobada → hoy). Horas: hoy 4:00 p. m., mañana 10:00 a. m.
 
+- **10 agentes (26-oct-2026, rama `claude/taller10-integrado`, SIN publicar):** interfaz de Inicio, Órdenes, Inventario, Despachos, Finanzas, global, y Reacondicionados (pantalla, prueba de punta a punta 25/25, rentabilidad por teléfono, mapa del proceso `docs/REACONDICIONADOS-PROCESO.md`). Cada capa se apaga con su `localStorage`. 4 SQL propuestos sin aplicar. Bit. 2026-10-26-0240.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
