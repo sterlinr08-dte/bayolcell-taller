@@ -5924,7 +5924,7 @@ function renderProveedores() {
         const equiposProv = cache.refurb.filter(r => lotesProv.some(l => l.id === r.lote_id));
         let confStyle = 'background:#f1f5f9; color:#475569;';
         if(p.confiabilidad === 'Excelente') confStyle = 'background:#d1fae5; color:#065f46;';
-        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#b91c1c;';
+        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#1e40af;'; // antes rojo: el rojo es solo para problemas
         else if(p.confiabilidad === 'Regular') confStyle = 'background:#fef3c7; color:#92400e;';
         else if(p.confiabilidad === 'Mala') confStyle = 'background:#fee2e2; color:#991b1b;';
         const ini = (p.nombre || '?').charAt(0).toUpperCase();
@@ -16186,10 +16186,10 @@ async function _despachoCargarHistorial() {
         });
         if(!filas.length) { cont.innerHTML = '<p style="color:#475569; font-size:13px; text-align:center; padding:14px;">Aún no hay despachos registrados.</p>'; return; }
         filas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-        const badge = (e) => e === 'ok' ? '<span style="color:#166534; font-weight:700;">✅ OK</span>' : (e === 'parcial' ? '<span style="color:#b45309; font-weight:700;">⚠️ Parcial</span>' : '<span style="color:#b91c1c; font-weight:700;">❌ Error</span>');
+        const badge = (e) => e === 'ok' ? '<span class="bcud-est bcud-est-ok" style="color:#166534; font-weight:700;"><span class="bcud-emo" aria-hidden="true">✅ </span>OK</span>' : (e === 'parcial' ? '<span class="bcud-est bcud-est-parcial" style="color:#b45309; font-weight:700;"><span class="bcud-emo" aria-hidden="true">⚠️ </span>Parcial</span>' : '<span class="bcud-est bcud-est-error" style="color:#b91c1c; font-weight:700;"><span class="bcud-emo" aria-hidden="true">❌ </span>Error</span>');
         const tipoTag = (t) => t === 'reacond'
-            ? '<span style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📱 Reacond</span>'
-            : '<span style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📦 Almacén</span>';
+            ? '<span class="bcud-tipo bcud-tipo-reacond" style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;"><span class="bcud-emo" aria-hidden="true">📱 </span>Reacond</span>'
+            : '<span class="bcud-tipo bcud-tipo-almacen" style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;"><span class="bcud-emo" aria-hidden="true">📦 </span>Almacén</span>';
         cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Nº</th><th>Tipo</th><th>Artículo</th><th>Cant.</th><th>Origen / Destino</th><th>Usuario</th><th>Estado</th><th>Nota</th><th></th></tr></thead><tbody>` +
             filas.map(r => `<tr>
                 <td style="white-space:nowrap;">${new Date(r.fecha).toLocaleString('es-DO')}</td>
@@ -19726,10 +19726,12 @@ function renderPiezasSolicitadas() {
             extra_pendiente:['⏳ Extra pendiente','#9a3412'], rechazada:['❌ Rechazada','#dc2626']
         };
         const [txt, col] = map[e] || [e, '#475569'];
-        return `<span style="background:${col}22; color:${col}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">${txt}</span>`;
+        // capa taller-ui-despachos (26-oct-2026): clase por estado y el emoji aparte, para la píldora con punto
+        const sp = map[e] ? txt.indexOf(' ') : -1;
+        return `<span class="bcud-est bcud-est-${escapeHtml(e)}" style="background:${col}22; color:${col}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">${sp > 0 ? `<span class="bcud-emo" aria-hidden="true">${txt.slice(0, sp)} </span>${txt.slice(sp + 1)}` : escapeHtml(txt)}</span>`;
     };
     const botonAccion = (i) => {
-        const b = (color, txt, fn) => `<button class="btn" style="background:${color}; color:#fff; font-size:11px; padding:5px 10px; border:none; border-radius:8px;" onclick="${fn}">${txt}</button>`;
+        const b = (color, txt, fn) => `<button class="btn bcud-acc" data-bcud="${color}" style="background:${color}; color:#fff; font-size:11px; padding:5px 10px; border:none; border-radius:8px;" onclick="${fn}">${txt}</button>`;
         if(i.kind === 'orden') {
             if(i.estado === 'solicitada' && puedeEntregar) return b('#0891b2','📦 Entregar', `entregarPiezaOrden('${i.id}')`);
             if(i.estado === 'entregada' && (isAdminUser() || i.tecnicoId === miId)) return b('#16a34a','✅ Confirmar recibida', `recibirPiezaOrden('${i.id}')`);
