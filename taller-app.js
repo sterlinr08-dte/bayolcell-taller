@@ -18782,7 +18782,7 @@ function construirEstadoVisual(estadoRaw, opts) {
     <div class="ev-card ${cancel ? 'ev-cancel' : ''} ${clickable ? 'ev-clickable' : ''}" style="--ev-g1:${v.g1}; --ev-g2:${v.g2};"${clickAttrs}>
         <div class="ev-chip" style="background:linear-gradient(135deg, ${v.g1}, ${v.g2}); --ev-shadow:${v.g2}66;">
             <span class="ev-ic"><i class="ti ${v.icon}"></i></span>
-            <span class="ev-tx"><b>${(v.label||'').toUpperCase()}</b><small>${(v.sub||'').toUpperCase()}</small></span>
+            <span class="ev-tx"><b>${v.label||''}</b><small>${v.sub||''}</small></span>
             ${v.live ? '<span class="ev-dot live"></span>' : (cancel ? '' : '<span class="ev-dot"></span>')}
             ${clickable ? '<span class="ev-tap-hint"><i class="ti ti-hand-grab"></i></span>' : ''}
         </div>
@@ -21346,19 +21346,19 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         } else if(puedeOperar && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             // Estados de espera: RESOLVER (vuelve a en proceso) + opción de finalizar directo
             if(estado === 'pendiente_cliente') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> AUTORIZACIÓN RESUELTA</button>`;
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorizado</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
             } else if(estado === 'espera_repuesto') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> REPUESTO LLEGÓ</button>`;
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Repuesto llegó</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
             } else {
                 // EN PROCESO (o recibido): mostrar todas las opciones útiles
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> EN ESPERA DE REPUESTO</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> ESPERANDO AUTORIZACIÓN</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> Espera repuesto</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando cliente</button>`;
             }
             // No se pudo reparar (equipo con daño sin solución) — técnico asignado o admin
-            if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> NO REPARADO</button>`;
+            if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> No reparado</button>`;
         } else if((esAdmin || esServicio) && estado === 'finalizado') {
             // Orden finalizada: solo servicio al cliente y admin pueden actuar (el técnico no hace nada)
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
@@ -21400,21 +21400,21 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             if(esAdmin) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrdenProceso('${o.id}')"><i class="ti ti-rotate"></i> Reabrir</button>`;
         } else if(estado === 'reparacion_externa') {
             const dest = o.taller_externo ? ` → ${escapeHtml(o.taller_externo)}` : '';
-            acciones += `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;">🔧 REPARACIÓN EXTERNA${dest}</span>`;
+            acciones += `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;">Reparación externa${dest}</span>`;
             if(esAdmin || esMia || esServicio) {
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> VOLVIÓ REPARADO · FINALIZAR</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> VOLVIÓ · CONTINUAR AQUÍ</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Volvió reparado</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Continuar aquí</button>`;
             }
         }
         // Servicio al cliente puede FINALIZAR (cerrar la reparación) y resolver esperas, aunque no sea el técnico.
         // No se le dan acciones de técnico (tomar/derivar/no reparado). Se evita duplicar si ya opera (admin/técnico).
         if(esServicio && !puedeOperar && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             if(estado === 'pendiente_cliente') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> AUTORIZACIÓN RESUELTA</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorizado</button>`;
             } else if(estado === 'espera_repuesto') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> REPUESTO LLEGÓ</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Repuesto llegó</button>`;
             }
-            acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+            acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
         }
         // Cancelar: SOLO servicio al cliente y admin (técnico NO puede cancelar) — a "Más opciones" (acción poco frecuente y sensible)
         if((esAdmin || esServicio) && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
@@ -21422,7 +21422,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         }
         // Derivar a otro técnico (solo si está tomada y en proceso) — a "Más opciones"
         if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
-            accionesExtra += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> DERIVAR</button>`;
+            accionesExtra += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> Derivar</button>`;
         }
         // Label y Recibo: SOLO admin y servicio al cliente (el técnico NO los ve) — a "Más opciones"
         if(esAdmin || esServicio) {
@@ -21434,7 +21434,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Si hay notas SIN LEER se queda visible arriba (aviso que no debe perderse); si no, va a "Más opciones".
         const sinLeerNota = (cache.ordenNotas || []).filter(n => n.orden_id === o.id && n.autor_rol === 'tecnico' && !n.leida_servicio).length;
         const totalNotas = (cache.ordenNotas || []).filter(n => n.orden_id === o.id).length;
-        const btnNotas = `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; ${sinLeerNota>0?'border-color:#fca5a5; color:#dc2626;':''}" onclick="abrirNotasOrden('${o.id}')"><i class="ti ti-message"></i> NOTAS${totalNotas>0?` (${totalNotas})`:''}${sinLeerNota>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeerNota}</span>`:''}</button>`;
+        const btnNotas = `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; ${sinLeerNota>0?'border-color:#fca5a5; color:#dc2626;':''}" onclick="abrirNotasOrden('${o.id}')"><i class="ti ti-message"></i> Notas${totalNotas>0?` (${totalNotas})`:''}${sinLeerNota>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeerNota}</span>`:''}</button>`;
         if(sinLeerNota > 0) acciones += btnNotas; else accionesExtra += btnNotas;
         // Ver historial del cliente (admin y servicio) — a "Más opciones"
         if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
@@ -21448,7 +21448,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
         const enGarantiaVigente = estado === 'entregado' && infoGarantiaOrden(o).vigente;
         if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado','no_reparado','reparacion_externa'].includes(estado) || enGarantiaVigente)) {
-            const txtBtn = enGarantiaVigente ? 'SOLICITAR PIEZA (GARANTÍA)' : 'SOLICITAR PIEZA';
+            const txtBtn = enGarantiaVigente ? 'Pedir pieza (garantía)' : 'Pedir pieza';
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> ${txtBtn}</button>`;
         }
         
@@ -21457,7 +21457,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         let piezasHtml = '';
         if(piezasOrden.length) {
             piezasHtml = `<div style="margin-top:8px; border-top:1px dashed var(--border-color); padding-top:6px;">
-                <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;"><i class="ti ti-packages"></i> PIEZAS ADICIONALES:</div>
+                <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;"><i class="ti ti-packages"></i> Piezas adicionales</div>
                 ${piezasOrden.map(p => {
                     const ep = etiquetaPiezaOrden(p.estado);
                     let btn = '';
@@ -21492,20 +21492,20 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // chip animado de "Estado del Equipo" — ver abrirCambioEstadoOrden().
         _ordenAccionesCache[o.id] = { principal: acciones, extra: accionesExtra };
 
-        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:7px; padding:8px 10px; margin-bottom:6px;">
+        return `<div class="bco-ficha" data-tono="${_BCF_ORD_TONO[estado] || 'gris'}" style="background:#fff; border:1px solid var(--border-color); border-radius:7px; padding:8px 10px; margin-bottom:6px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
                 <div style="flex:1; min-width:200px;">
                     <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                         <b style="font-size:13px;">${numOrden}</b>
-                        <span class="badge" style="background:${et.bg}; color:${et.color}; font-size:10px; padding:1px 7px;">${et.text}</span>
+                        <span class="badge bco-est" data-tono="${_BCF_ORD_TONO[estado] || 'gris'}" style="background:${et.bg}; color:${et.color}; font-size:10px; padding:1px 7px;"><i aria-hidden="true"></i>${_BCF_ORD_TXT[estado] || et.text}</span>
                         ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:10px; padding:1px 7px;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#475569; font-size:10px; padding:1px 7px;">Sin tomar</span>'}
                         ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8; font-size:10px; padding:1px 7px;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
-                        ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1; font-size:10px; padding:1px 7px;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
+                        ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1; font-size:10px; padding:1px 7px;"><i class="ti ti-shield-check"></i> Garantía${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
                         ${o.prioridad === 'urgente'
-                            ? `<span onclick="togglePrioridadOrden('${o.id}')" title="Quitar urgencia" class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 7px; cursor:pointer; font-weight:700;"><i class="ti ti-flame"></i> URGENTE</span>`
+                            ? `<span onclick="togglePrioridadOrden('${o.id}')" title="Quitar urgencia" class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 7px; cursor:pointer; font-weight:700;"><i class="ti ti-flame"></i> Urgente</span>`
                             : `<span onclick="togglePrioridadOrden('${o.id}')" title="Marcar como urgente" class="badge" style="background:#f1f5f9; color:#475569; font-size:10px; padding:1px 7px; cursor:pointer;"><i class="ti ti-flame"></i> Marcar urgente</span>`}
                     </div>
-                    <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b>${c.tipo_cliente === 'tienda' ? ` <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:9px; padding:1px 6px;">🏪 TIENDA</span>` : ''} · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
+                    <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b>${c.tipo_cliente === 'tienda' ? ` <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:9px; padding:1px 6px;">Tienda</span>` : ''} · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     ${(o.clave_equipo && (esMia || esAdmin || esServicio)) ? `<div style="font-size:11px; margin-top:3px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;"><i class="ti ti-key" style="color:#0891b2;"></i> <b>Acceso del equipo:</b> <span class="access-mask" data-visible="0">•••• <button class="btn btn-light" style="padding:1px 6px; font-size:10px;" onclick="revelarClave('${o.id}', this)">Mostrar</button></span></div>` : ''}
                     ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:10px; color:#7c3aed; margin-top:1px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
                     <div style="font-size:10px; color:#475569; margin-top:1px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
@@ -21527,7 +21527,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                     ${o.costo_final != null && estado === 'entregado' ? `<div style="font-size:11px; font-weight:700; color:#15803d; margin-top:3px;"><i class="ti ti-cash"></i> Cobrado: RD$${Number(o.costo_final).toLocaleString('es-DO')}</div>` : ''}
                 </div>
                 <div style="display:flex; flex-direction:column; gap:7px; align-items:stretch; min-width:172px;" class="acciones-verticales">
-                    <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
+                    <div style="font-size:10px; font-weight:700; color:var(--text-muted); letter-spacing:0;" class="bco-est-tit"><i class="ti ti-settings"></i> Estado</div>
                     ${construirEstadoVisual(estado, { ordenId: o.id, clickable: !tienePropuesta && (!!acciones.trim() || !!accionesExtra.trim()) })}
                     ${tienePropuesta ? construirPropuestaEstadoHTML(o, esAdmin, esServicio, esMia) : `${acciones}
                     ${accionesExtra ? `<details class="ord-mas">
@@ -22147,11 +22147,11 @@ function renderAtencionCliente() {
     if(kpisCont) {
         const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
         kpisCont.innerHTML = `
-            ${kpi('Recibidos Hoy', recibidosHoy, '#ef4444', 'ti-download')}
-            ${kpi('En Diagnóstico', enDiag, '#f59e0b', 'ti-search')}
-            ${kpi('En Reparación', enRep, '#10b981', 'ti-settings')}
-            ${kpi('Espera Pieza', esperaPieza, '#ef4444', 'ti-hourglass')}
-            ${kpi('Listos Entrega', listos, '#8b5cf6', 'ti-circle-check')}
+            ${kpi('Recibidos hoy', recibidosHoy, '#ef4444', 'ti-download')}
+            ${kpi('Diagnóstico', enDiag, '#f59e0b', 'ti-search')}
+            ${kpi('Reparación', enRep, '#10b981', 'ti-settings')}
+            ${kpi('Espera pieza', esperaPieza, '#ef4444', 'ti-hourglass')}
+            ${kpi('Por entregar', listos, '#8b5cf6', 'ti-circle-check')}
         `;
     }
     
@@ -22217,13 +22217,13 @@ function renderAtencionCliente() {
 
     // SECCIÓN: Buscar historial de cliente
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-user-search" style="color:#0891b2;"></i> Buscar Historial de Cliente</h3>
-        <input id="atencionBuscarCliente" oninput="renderAtencionClientesBusqueda()" placeholder="🔍 Nombre o teléfono del cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-user-search" style="color:#0891b2;"></i> Historial del cliente</h3>
+        <input id="atencionBuscarCliente" oninput="renderAtencionClientesBusqueda()" placeholder="Nombre o teléfono" aria-label="Buscar cliente" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
         <div id="atencionClientesResultado" style="margin-top:8px;"></div>
     </div>`;
     const paraEntregar = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'finalizado');
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-circle-check" style="color:#8b5cf6;"></i> Listas para Entregar (${paraEntregar.length})</h3>`;
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-circle-check" style="color:#8b5cf6;"></i> Por entregar <span class="bco-n">${paraEntregar.length}</span></h3>`;
     if(paraEntregar.length) {
         html += paraEntregar.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, true)).join('');
     } else {
@@ -22234,7 +22234,7 @@ function renderAtencionCliente() {
     // SECCIÓN: Esperando autorización del cliente
     const espAut = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'pendiente_cliente');
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-bell" style="color:#9a3412;"></i> Esperando Autorización del Cliente (${espAut.length})</h3>`;
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-bell" style="color:#9a3412;"></i> Esperando cliente <span class="bco-n">${espAut.length}</span></h3>`;
     if(espAut.length) {
         html += espAut.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, true)).join('');
     } else {
@@ -22244,26 +22244,26 @@ function renderAtencionCliente() {
     
     // SECCIÓN: Todas las órdenes (buscador + filtros)
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Todas las Órdenes de Servicio</h3>
-        <input id="atencionBuscador" oninput="renderAtencionListaOrdenes()" placeholder="🔍 Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Órdenes</h3>
+        <input id="atencionBuscador" oninput="renderAtencionListaOrdenes()" placeholder="Número o cliente" aria-label="Buscar orden" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
-            <button class="btn btn-light" onclick="_atencionFiltro='todas'; renderAtencionListaOrdenes()" style="font-size:12px;">Todas</button>
-            <button class="btn btn-light" onclick="_atencionFiltro='activas'; renderAtencionListaOrdenes()" style="font-size:12px;">⚙️ Activas</button>
-            <button class="btn btn-light" onclick="_atencionFiltro='entregadas'; renderAtencionListaOrdenes()" style="font-size:12px;">📦 Entregadas</button>
+            <button class="btn btn-light bco-fil" data-af="todas" onclick="_atencionFiltro='todas'; renderAtencionListaOrdenes()" style="font-size:12px;">Todas</button>
+            <button class="btn btn-light bco-fil" data-af="activas" onclick="_atencionFiltro='activas'; renderAtencionListaOrdenes()" style="font-size:12px;">Activas</button>
+            <button class="btn btn-light bco-fil" data-af="entregadas" onclick="_atencionFiltro='entregadas'; renderAtencionListaOrdenes()" style="font-size:12px;">Entregadas</button>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
-            <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha:</span>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=0; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Todas</button>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=1; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Hoy</button>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=7; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">7 días</button>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=30; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">30 días</button>
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha</span>
+            <button class="btn btn-light bco-fil" data-afd="0" onclick="_atencionFechaFiltro=0; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Todas</button>
+            <button class="btn btn-light bco-fil" data-afd="1" onclick="_atencionFechaFiltro=1; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Hoy</button>
+            <button class="btn btn-light bco-fil" data-afd="7" onclick="_atencionFechaFiltro=7; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">7 días</button>
+            <button class="btn btn-light bco-fil" data-afd="30" onclick="_atencionFechaFiltro=30; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">30 días</button>
         </div>
         <div id="atencionListaOrdenes"></div>
     </div>`;
     
     // SECCIÓN: Historial de reparaciones de los técnicos
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-history" style="color:#16a34a;"></i> Historial de Reparaciones</h3>
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-history" style="color:#16a34a;"></i> Reparaciones terminadas</h3>
         ${construirFiltroFechas(true)}
         <div style="margin-bottom:10px;">
             <label style="font-size:12px; font-weight:600; color:var(--text-muted);">Técnico:</label>
