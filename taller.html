@@ -1776,6 +1776,9 @@ body{
 <!-- Ayudas detrás de una ⓘ (dueño 19-oct-2026, igual que NEXUS): apagar BC_INFO=false o localStorage bc_info_off=1 -->
 <script>var BC_INFO=true;try{if(BC_INFO&&localStorage.getItem('bc_info_off')!=='1')document.documentElement.classList.add('bc-info');}catch(e){if(BC_INFO)document.documentElement.classList.add('bc-info');}</script>
 <link rel="stylesheet" href="taller-info.css?v=20261019-i2">
+<!-- Inventario, Artículos, Etiquetas e Inventario físico (26-oct-2026): capa reversible. Apagar: BC_INV=false o localStorage bc_inv_off=1 -->
+<script>var BC_INV=true;try{if(BC_INV&&localStorage.getItem('bc_inv_off')!=='1')document.documentElement.classList.add('bc-inv');}catch(e){if(BC_INV)document.documentElement.classList.add('bc-inv');}</script>
+<link rel="stylesheet" href="taller-ui-inventario.css?v=20261026-a1">
 <link rel="stylesheet" href="crm-consulta-precio.css?v=20261020-h1">
 <!-- Carga (23-oct-2026): estas 6 hojas las inyectaban los scripts después de DOMContentLoaded y la pantalla cambiaba de aspecto
      al cargar. Ahora vienen desde el primer pintado, en el mismo orden de cascada; los scripts las reconocen por su id y no las repiten. -->
@@ -5681,6 +5684,7 @@ body{
 <script defer src="taller-info.js?v=20261023-v3"></script>
 <script defer src="taller-ui-inicio.js?v=20261026-a1"></script>
 <script defer src="taller-ui-ordenes.js?v=20261026-o1"></script>
+<script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
 <script defer src="crm-consulta-precio.js?v=20261024-h3"></script>
 <script defer src="crm-marketing-consent.js?v=20261025-u26"></script>

@@ -1,0 +1,157 @@
+/* BAYOL CELL · Inventario, Artículos, Etiquetas e Inventario físico (26-oct-2026). Va con taller-ui-inventario.js.
+   Solo actúa con html.bc-inv (la pone el <head>). Apagar: BC_INV=false o localStorage bc_inv_off='1'.
+   Qué hace (solo apariencia; no cambia cómo se leen los datos de Info Plus ni ninguna función):
+   - En el celular y la tableta (≤1024 px) cada fila es una tarjeta: el artículo arriba como título y debajo
+     «etiqueta — dato» en una línea; las filas vacías no se pintan.
+   - Encabezados y etiquetas en minúscula normal (sin MAYÚSCULAS forzadas), cifras con tabular-nums.
+   - Existencia por almacén en píldoras (Taller en verde/rojo, los otros almacenes en azul verdoso).
+   - Los selectores llevan #v-… para ganarle a taller.html y taller-afinado.css (que se carga después). */
+
+html.bc-inv :is(#v-inventario, #v-articulos, #v-etiquetas, #v-invfisico) {
+  --bci-tinta: #0f172a; --bci-gris: #475569; --bci-apagado: #64748b; --bci-borde: rgba(15,23,42,.08);
+  --bci-alm: #0e7490; --bci-alm-bg: #ecfeff; --bci-ok: #15803d; --bci-ok-bg: #f0fdf4; --bci-mal: #b91c1c; --bci-mal-bg: #fef2f2;
+}
+
+/* ── Texto: sin MAYÚSCULAS forzadas en títulos, etiquetas y encabezados ── */
+html.bc-inv :is(#v-inventario, #v-articulos, #v-etiquetas, #v-invfisico) :is(th, label, h3, h4, summary, small, .badge) {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+html.bc-inv :is(#v-inventario, #v-articulos, #v-etiquetas, #v-invfisico) label:not(:has(input:is([type="checkbox"], [type="radio"]))) {
+  font-size: 13px !important; font-weight: 600; color: var(--bci-gris);
+}
+/* Rótulos con mayúscula puesta a mano (KPI del conteo, subtítulos de Etiquetas). La vista previa de la etiqueta impresa no se toca. */
+html.bc-inv :is(#v-inventario, #v-articulos, #v-etiquetas, #v-invfisico) [style*="text-transform:uppercase"]:is(h3, h4, div, span, label, summary):not(.label-preview-card, .label-preview-card *, [id^="lblLive"]) {
+  text-transform: none !important;
+}
+html.bc-inv #v-invfisico #invFisicoCont .card:first-child [style*="text-transform:uppercase"] {
+  font-size: 12px !important; font-weight: 600;
+}
+
+/* ── Cifras alineadas (sin letra monoespaciada) ── */
+html.bc-inv :is(#v-inventario, #v-articulos, #v-etiquetas, #v-invfisico) :is(td, th, code, input[type="number"], .bci-cifra, [style*="font-size:18px"]) {
+  font-variant-numeric: tabular-nums;
+}
+html.bc-inv :is(#v-inventario, #v-articulos) .table-wrap code {
+  font-family: inherit; background: none; padding: 0; font-size: inherit; font-weight: 600; color: var(--bci-tinta);
+}
+
+/* ── Encabezados de tabla (PC) ── */
+html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap th {
+  font-size: 12.5px !important; font-weight: 600 !important; color: var(--bci-apagado) !important;
+  background: #f8fafc; padding: 11px 12px;
+}
+html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap td { vertical-align: middle; }
+/* Columnas de números a la derecha (Existencia y Costo; Costo, Precio y Taller; Cantidad) */
+html.bc-inv #v-inventario #partsTable td:is(:nth-child(5), :nth-child(6)),
+html.bc-inv #v-inventario .card:has(#partsTable) th:is(:nth-child(5), :nth-child(6)),
+html.bc-inv #v-inventario #assetsTable td:nth-child(3),
+html.bc-inv #v-inventario .card:has(#assetsTable) th:nth-child(3),
+html.bc-inv #v-articulos #infoplusTable td:nth-child(7),
+html.bc-inv #v-articulos .card:has(#infoplusTable) th:nth-child(7) { text-align: center !important; }
+/* El dinero no se parte en dos líneas («RD$» arriba y la cifra abajo) */
+html.bc-inv #v-inventario #partsTable td:nth-child(6),
+html.bc-inv #v-articulos #infoplusTable td:is(:nth-child(5), :nth-child(6)) { white-space: nowrap; }
+
+/* ── Existencia por almacén: píldoras ── */
+html.bc-inv #v-articulos .bci-alm {
+  display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; margin: 2px 4px 2px 0;
+  border-radius: 999px; background: var(--bci-alm-bg) !important; color: var(--bci-alm) !important;
+  font-size: 12.5px !important; font-weight: 600 !important; white-space: nowrap;
+}
+html.bc-inv #v-articulos .bci-alm b { font-weight: 800; }
+html.bc-inv #v-articulos .bci-taller {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 26px; padding: 0 10px;
+  border-radius: 999px; font-size: 13px; font-weight: 800;
+}
+html.bc-inv #v-articulos .bci-taller.hay { background: var(--bci-ok-bg); color: var(--bci-ok) !important; }
+html.bc-inv #v-articulos .bci-taller.cero { background: var(--bci-mal-bg); color: var(--bci-mal) !important; }
+html.bc-inv #v-articulos #infoplusTable td:nth-child(8) { line-height: 1.2; }
+
+/* ── Filas un poco más altas en la PC (52 px, DESIGN §4) ── */
+@media (min-width: 1025px) {
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap tbody td { padding-top: 12px; padding-bottom: 12px; }
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap tbody tr:hover > td { background: rgba(59,130,246,.07); }
+}
+
+/* ══ Celular y tableta: cada fila es una tarjeta ══ */
+@media (max-width: 1024px) {
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap tr {
+    display: flex !important; flex-wrap: wrap; align-items: center;
+    padding: 12px 14px !important; margin-bottom: 10px !important; border-radius: 16px !important;
+  }
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap td[data-label] {
+    flex: 1 1 100%; display: flex !important; align-items: center; justify-content: space-between; gap: 12px;
+    min-height: 40px !important; padding: 6px 0 !important; text-align: right !important;
+    font-size: 15px; color: var(--bci-tinta); position: static !important;
+    border-bottom: 1px solid #f1f4f8 !important;
+  }
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap td[data-label]::before {
+    display: block !important; position: static !important; flex: 0 0 auto; width: auto !important; max-width: 45%;
+    text-align: left; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important;
+    text-transform: none !important; color: var(--bci-apagado) !important; line-height: 1.25;
+  }
+  /* Vacíos fuera (p. ej. «Referencia» sin dato) */
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap td[data-label]:is(:empty, .bci-vacio) { display: none !important; }
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap td[data-label]:last-child { border-bottom: 0 !important; }
+
+  /* Título de la tarjeta: el nombre del artículo (primero), el código debajo en gris */
+  html.bc-inv :is(#v-inventario, #v-articulos) .table-wrap :is(#partsTable, #infoplusTable) td[data-label]:nth-child(2) {
+    order: -2; justify-content: flex-start; text-align: left !important; min-height: 0 !important;
+    font-size: 16px !important; font-weight: 700; line-height: 1.3; border-bottom: 0 !important; padding: 2px 0 0 !important;
+  }
+  html.bc-inv :is(#v-inventario, #v-articulos) .table-wrap :is(#partsTable, #infoplusTable) td[data-label]:nth-child(2) b { font-weight: 700; }
+  html.bc-inv :is(#v-inventario, #v-articulos) .table-wrap :is(#partsTable, #infoplusTable) td[data-label]:nth-child(2)::before { display: none !important; }
+  html.bc-inv :is(#v-inventario, #v-articulos) .table-wrap :is(#partsTable, #infoplusTable) td[data-label]:first-child {
+    order: -1; justify-content: flex-start; gap: 6px; text-align: left !important; min-height: 0 !important;
+    font-size: 13px !important; color: var(--bci-apagado); padding: 0 0 8px !important; border-bottom: 1px solid #eef1f5 !important;
+  }
+  html.bc-inv :is(#v-inventario, #v-articulos) .table-wrap :is(#partsTable, #infoplusTable) td[data-label]:first-child::before {
+    display: block !important; content: attr(data-label) !important; font-size: 13px !important; max-width: none;
+  }
+  html.bc-inv :is(#v-inventario, #v-articulos) .table-wrap :is(#partsTable, #infoplusTable) td[data-label]:first-child :is(b, code) {
+    font-weight: 600; color: var(--bci-gris);
+  }
+  /* Existencia resaltada */
+  html.bc-inv #v-inventario #partsTable td[data-label]:nth-child(5) { font-weight: 800; }
+  /* Taller y otros almacenes: las píldoras a la derecha, en varias líneas si hace falta */
+  html.bc-inv #v-articulos #infoplusTable td[data-label]:nth-child(8) { align-items: flex-start; }
+  html.bc-inv #v-articulos #infoplusTable td[data-label]:nth-child(8) .bci-alms {
+    display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 62%;
+  }
+  html.bc-inv #v-articulos #infoplusTable td[data-label]:nth-child(8) .bci-alm { margin: 0; }
+
+  /* Herramientas: el nombre de la herramienta como título */
+  html.bc-inv #v-inventario #assetsTable td[data-label]:nth-child(2) {
+    order: -2; justify-content: flex-start; text-align: left !important; font-size: 16px !important; border-bottom: 0 !important; padding: 2px 0 0 !important; min-height: 0 !important;
+  }
+  html.bc-inv #v-inventario #assetsTable td[data-label]:nth-child(2)::before { display: none !important; }
+  html.bc-inv #v-inventario #assetsTable td[data-label]:first-child {
+    order: -1; justify-content: flex-start; gap: 6px; text-align: left !important; font-size: 13px !important; color: var(--bci-apagado);
+    padding: 0 0 8px !important; min-height: 0 !important; border-bottom: 1px solid #eef1f5 !important;
+  }
+  html.bc-inv #v-inventario #assetsTable td[data-label]:first-child::before { display: block !important; content: attr(data-label) !important; }
+  html.bc-inv #v-inventario #assetsTable td[data-label] > div { justify-content: flex-end; }
+  html.bc-inv #v-inventario #assetsTable select { max-width: 62%; }
+
+  /* Inventario físico: el artículo es el título; Sistema, Conté y Diferencia debajo */
+  html.bc-inv #v-invfisico .table-wrap td[data-label]:first-child {
+    display: block !important; text-align: left !important; font-size: 16px !important; font-weight: 700; line-height: 1.3;
+    padding: 2px 0 8px !important; border-bottom: 1px solid #eef1f5 !important;
+  }
+  html.bc-inv #v-invfisico .table-wrap td[data-label]:first-child::before { display: none !important; }
+  html.bc-inv #v-invfisico .table-wrap td[data-label]:first-child > div { font-size: 13px !important; font-weight: 500; color: var(--bci-apagado) !important; margin-top: 2px; }
+  html.bc-inv #v-invfisico .table-wrap td[data-label] input[type="number"] { width: 110px !important; text-align: center; }
+  html.bc-inv #v-invfisico .table-wrap td[data-label]:nth-child(2) { font-size: 16px !important; font-weight: 700; }
+  html.bc-inv #v-invfisico .table-wrap { max-height: none !important; }
+}
+
+/* ── Inventario físico: chips de categoría y KPI ── */
+html.bc-inv #v-invfisico #invFisicoCont button[onclick^="_invSetCat"] {
+  border-radius: 999px !important; padding: 0 16px !important; font-size: 14px !important; display: inline-flex; align-items: center; gap: 6px;
+}
+html.bc-inv #v-invfisico #invFisicoCont input[type="text"] { border-radius: 12px !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.bc-inv :is(#v-inventario, #v-articulos, #v-invfisico) .table-wrap tbody tr > td { transition: none !important; }
+}
