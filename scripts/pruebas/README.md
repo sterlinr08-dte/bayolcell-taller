@@ -42,3 +42,10 @@ sin llenar no sale); filtros por sucursal, estado y búsqueda por cédula; boton
 MAYÚSCULAS; la ficha muestra todas las filas sin recortes; cambiar a «Enviada al banco» y «Aprobada» llama a la RPC
 `fin_solicitud_seguimiento` y guarda el historial; «Escribir el aviso en el chat» abre el chat y deja el texto en la caja
 sin enviarlo; la tarjeta del chat trae «Ver seguimiento» y abre la ficha. Uso: `node scripts/pruebas/solicitudes-crm.cjs [carpeta-capturas]`.
+
+## ui-global.cjs (26-oct-2026)
+Capa global de interfaz (`taller-ui-global.css/.js`). A 390 y 1280 px: barra de arriba con botones ≥ 44 px, ☰ solo en el
+celular, título sin mayúsculas ni «ADMIN», secciones del menú en letra normal, etiquetas de Configuración sin MAYÚSCULAS y con
+el paréntesis en la ⓘ, campos 48/16, Guardar 54 px, ⓘ que abren y cierran, KPI de Reportes en rejilla, dinero «RD$ 0.00», sin
+desplazamiento horizontal ni errores; y Reportes sin Chart.js no congela la página. Uso: `node scripts/pruebas/ui-global.cjs`
+(`PUERTO=xxxx` para otro puerto).
