@@ -58,3 +58,10 @@ en Listo (no lo regresa), salida en bloque y bloque que no salta etapas. Al fina
 su renglón y su estado anterior real), costo de repuestos y flete del lote. 25 pasos a 390 y 1280 px.
 Uso: `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/reacond-flujo-completo.cjs [carpeta-capturas]`
 (`PUERTO=…` si el servidor corre en otro puerto).
+## reacond-proceso.cjs (26-oct-2026)
+Capa `taller-reacond-proceso.js` (candados del proceso de Reacondicionados en el navegador), con datos inventados, a 390 y
+1280 px: «Reabrir salida» pide confirmación; «Cerrar salida» no cierra un equipo en Listo; «Registrar salida» no repite un
+Despachado; «Pasar a → Listo para venta» en bloque no mueve equipos con tareas abiertas; «Quitar equipo» y «Eliminar lote»
+advierten si hay Despachados o piezas ya descontadas en Info Plus; un error largo sigue visible a los 4.6 s con `role=alert`;
+«Despachar teléfonos» no llama a Info Plus si un equipo ya está Despachado y pregunta si alguno no está en Listo; botones del
+lote ≥ 44 px y sin desplazamiento horizontal; 0 errores de JavaScript. Uso: `node scripts/pruebas/reacond-proceso.cjs [carpeta-capturas]`.
