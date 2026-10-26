@@ -1,0 +1,144 @@
+/* BAYOL CELL · Capa visual de Despachos, Piezas solicitadas y Proveedores (26-oct-2026, agente 4 de 10).
+   Estados en píldora con punto + palabra (no solo color), botones de acción con contraste ≥ 4.5:1 (antes blanco sobre
+   cian 3.7:1), etiquetas sin MAYÚSCULAS forzadas, tablas del despacho como tarjetas con etiqueta en el celular,
+   ventanas con barra de título clara (azul NEXUS) y tamaños táctiles (44 px / campos 48 px con letra 16 px).
+   Todo cuelga de html.bc-uid: apagar con localStorage bc_uid_off='1' (o BC_UID=false en taller.html). */
+
+/* ───────── Píldoras de estado (DESIGN.md §4: 26 px, punto de color y una palabra) ───────── */
+html.bc-uid .bcud-est,
+html.bc-uid .bcud-tipo {
+  display:inline-flex !important; align-items:center; gap:6px; min-height:26px; padding:0 10px 0 9px !important;
+  border-radius:999px !important; font-size:12px !important; font-weight:600 !important; line-height:1;
+  white-space:nowrap; text-transform:none !important; letter-spacing:0 !important;
+  border:1px solid transparent; box-sizing:border-box;
+}
+html.bc-uid .bcud-est::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; flex:0 0 7px; }
+html.bc-uid .bcud-est .bcud-emo,
+html.bc-uid .bcud-tipo .bcud-emo { display:none; }
+/* aviso (por hacer) */
+html.bc-uid .bcud-est-solicitada, html.bc-uid .bcud-est-pendiente, html.bc-uid .bcud-est-parcial { background:#fef3c7 !important; color:#92400e !important; border-color:#fde68a; }
+html.bc-uid .bcud-est-solicitada::before, html.bc-uid .bcud-est-pendiente::before, html.bc-uid .bcud-est-parcial::before { background:#f59e0b; }
+/* espera de aprobación */
+html.bc-uid .bcud-est-extra_pendiente { background:#f5f3ff !important; color:#5b21b6 !important; border-color:#ddd6fe; }
+html.bc-uid .bcud-est-extra_pendiente::before { background:#7c3aed; }
+/* en camino / entregada (falta que el técnico confirme) */
+html.bc-uid .bcud-est-entregada { background:#ecfeff !important; color:#155e75 !important; border-color:#a5f3fc; }
+html.bc-uid .bcud-est-entregada::before { background:#0891b2; }
+/* lista */
+html.bc-uid .bcud-est-aprobada, html.bc-uid .bcud-est-recibida, html.bc-uid .bcud-est-ok { background:#f0fdf4 !important; color:#15803d !important; border-color:#bbf7d0; }
+html.bc-uid .bcud-est-aprobada::before, html.bc-uid .bcud-est-recibida::before, html.bc-uid .bcud-est-ok::before { background:#22c55e; }
+/* cerrada sin uso */
+html.bc-uid .bcud-est-devuelta { background:#f1f5f9 !important; color:#475569 !important; border-color:#e2e8f0; }
+html.bc-uid .bcud-est-devuelta::before { background:#94a3b8; }
+/* problema (el rojo, solo para problemas) */
+html.bc-uid .bcud-est-rechazada, html.bc-uid .bcud-est-error { background:#fef2f2 !important; color:#b91c1c !important; border-color:#fecaca; }
+html.bc-uid .bcud-est-rechazada::before, html.bc-uid .bcud-est-error::before { background:#ef4444; }
+/* tipo de despacho */
+html.bc-uid .bcud-tipo-almacen { background:#ecfeff !important; color:#155e75 !important; }
+html.bc-uid .bcud-tipo-reacond { background:#f5f3ff !important; color:#5b21b6 !important; }
+
+/* ───────── Botones de acción de las piezas (blanco sobre color con contraste ≥ 4.5:1) ───────── */
+html.bc-uid #v-piezasSolicitadas .bcud-acc {
+  min-height:44px !important; padding:0 16px !important; border-radius:999px !important;
+  font-size:14px !important; font-weight:600 !important; color:#fff !important; border:0 !important;
+  text-transform:none !important; letter-spacing:0 !important;
+}
+html.bc-uid #v-piezasSolicitadas .bcud-acc[data-bcud="#0891b2"] { background:#0e7490 !important; } /* Entregar: 5.4:1 */
+html.bc-uid #v-piezasSolicitadas .bcud-acc[data-bcud="#16a34a"] { background:#15803d !important; } /* Confirmar recibida: 5.0:1 */
+html.bc-uid #v-piezasSolicitadas .bcud-acc[data-bcud="#7c3aed"] { background:#6d28d9 !important; } /* Aprobar extra: 7.1:1 */
+html.bc-uid #v-piezasSolicitadas .bcud-acc:active { transform:scale(.96); }
+/* Contadores de arriba y del técnico */
+html.bc-uid #v-piezasSolicitadas .ps-tec-header .ps-tec-cont { font-size:12px; color:#3730a3; font-variant-numeric:tabular-nums; }
+html.bc-uid #v-piezasSolicitadas #piezasSolicitadasLista > div:first-child > span { font-variant-numeric:tabular-nums; font-size:13px !important; }
+html.bc-uid #v-piezasSolicitadas .badge { text-transform:none !important; letter-spacing:0 !important; font-size:12px !important; }
+/* Filtro activo: azul NEXUS, inactivo: claro (antes el activo solo cambiaba de color por estilo en línea) */
+html.bc-uid #v-piezasSolicitadas [id^="psFlt_"] { min-height:44px; border-radius:999px !important; font-size:14px !important; padding:0 16px !important; }
+html.bc-uid #v-piezasSolicitadas [id^="psFlt_"][aria-pressed="true"] { background:#2563eb !important; color:#fff !important; }
+
+/* ───────── Despacho de almacén ───────── */
+html.bc-uid #v-despachos label { text-transform:none !important; letter-spacing:0 !important; font-size:13px !important; font-weight:600 !important; color:#475569 !important; }
+html.bc-uid #v-despachos select, html.bc-uid #v-despachos input[type="text"], html.bc-uid #v-despachos input[type="number"] {
+  min-height:48px !important; font-size:16px !important; border-radius:12px !important;
+}
+html.bc-uid #v-despachos select:focus, html.bc-uid #v-despachos input:focus { border-color:rgba(59,130,246,.6) !important; box-shadow:0 0 0 4px rgba(59,130,246,.16) !important; outline:none; }
+html.bc-uid #v-despachos .bcud-flecha { color:#0e7490 !important; }
+html.bc-uid #despachosHistorial td:nth-child(2) { color:#0e7490 !important; font-variant-numeric:tabular-nums; }
+html.bc-uid #despachosHistorial td, html.bc-uid #despachoCart td { font-variant-numeric:tabular-nums; }
+html.bc-uid #despachoCart thead tr { background:#f1f5f9 !important; color:#334155 !important; }
+html.bc-uid #despachoCart th { color:#334155 !important; font-size:12px !important; }
+html.bc-uid #despachoCart button[onclick^="_despQuitar"] { min-width:44px; min-height:44px; border-radius:999px !important; }
+html.bc-uid #despachoCart button[onclick^="_despQuitar"]:hover { background:#fef2f2 !important; }
+html.bc-uid #despachosHistorial td:last-child .btn { min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
+html.bc-uid #v-despachos #despachoTotales { font-variant-numeric:tabular-nums; font-size:14px !important; }
+html.bc-uid #v-despachos button[onclick="hacerDespachoAlmacen()"] { min-height:54px; padding:0 22px !important; font-size:16px !important; border-radius:999px !important; }
+
+/* Celular: las tablas ya se vuelven tarjetas (taller-afinado.css) cuando la celda tiene data-label (lo pone la capa JS).
+   Aquí: etiqueta a la izquierda sin mayúsculas forzadas, la fecha como título. */
+@media (max-width:1024px) {
+  html.bc-uid #v-despachos .table-wrap td[data-label]::before {
+    content:attr(data-label); text-transform:none !important; letter-spacing:0 !important; font-size:12px !important;
+    font-weight:600 !important; color:#64748b; flex:0 0 96px !important; width:96px !important;
+  }
+  html.bc-uid #v-despachos .table-wrap td[data-label=""] { display:none !important; }
+  html.bc-uid #v-despachos .table-wrap td[data-label]:last-child:not(:empty) { justify-content:flex-start; gap:8px; }
+  html.bc-uid #despachoCart td[data-label] { justify-content:flex-start !important; text-align:left !important; }
+  html.bc-uid #despachoCart td[data-label]:last-child { border-bottom:0 !important; }
+  html.bc-uid #despachoCart, html.bc-uid #despachosHistorial { border:0 !important; overflow:visible !important; }
+}
+@media (max-width:640px) {
+  html.bc-uid #v-despachos .card > div[style*="grid-template-columns:1fr auto 1fr"] { grid-template-columns:1fr !important; gap:8px !important; }
+  html.bc-uid #v-despachos .bcud-flecha { display:none; }
+  html.bc-uid #v-despachos button[onclick="hacerDespachoAlmacen()"] { width:100%; justify-content:center; }
+}
+
+/* ───────── Compras y proveedores ───────── */
+/* Una sola acción principal (Nueva compra); las demás, claras. Antes: tres botones azul noche/morado/cian. */
+html.bc-uid #v-proveedores #prov-lista .btn-dark {
+  background:#fff !important; color:#0f172a !important; border:1px solid rgba(15,23,42,.14) !important;
+  box-shadow:0 1px 2px rgba(15,23,42,.06) !important; background-image:none !important;
+}
+html.bc-uid #v-proveedores #prov-lista .btn-dark i { color:#2563eb; }
+html.bc-uid #v-proveedores #prov-lista .btn { min-height:44px; text-transform:none !important; letter-spacing:0 !important; }
+html.bc-uid #v-proveedores .lote-meta b, html.bc-uid #v-proveedores .lote-meta span,
+html.bc-uid #v-proveedores .badge { text-transform:none !important; letter-spacing:0 !important; }
+html.bc-uid #v-proveedores .badge { display:inline-flex; align-items:center; min-height:26px; padding:0 10px !important; border-radius:999px !important; font-size:12px !important; font-weight:600 !important; }
+html.bc-uid #v-proveedores .lote-codigo { font-variant-numeric:tabular-nums; }
+html.bc-uid #v-proveedores .lote-totals .total { font-variant-numeric:tabular-nums; }
+/* «A Reacond» (blanco sobre cian 2.4:1) → botón claro con texto cian oscuro 5.4:1 */
+html.bc-uid #v-proveedores [onclick^="enviarLoteAReacond"] {
+  background:#ecfeff !important; background-image:none !important; color:#155e75 !important; border:1px solid #a5f3fc !important; box-shadow:none !important;
+}
+html.bc-uid #v-proveedores .prov-actions .btn, html.bc-uid #v-proveedores .lote-card .btn { min-width:44px; min-height:44px; }
+@media (max-width:640px) {
+  html.bc-uid #v-proveedores .bcud-acciones { display:grid !important; grid-template-columns:1fr 1fr; gap:8px !important; width:100%; }
+  html.bc-uid #v-proveedores .bcud-acciones .btn { width:100%; justify-content:center; padding:0 10px !important; font-size:14px !important; white-space:normal; line-height:1.15; }
+  html.bc-uid #v-proveedores .bcud-acciones .btn-blue { grid-column:1 / -1; order:-1; min-height:54px; font-size:16px !important; }
+}
+
+/* ───────── Ventanas de estas pantallas: barra de título clara (DESIGN.md §4), etiquetas §4b ───────── */
+html.bc-uid .bcud-dlg .modal-header {
+  background:transparent !important; background-image:none !important; color:#0f172a !important;
+  border-bottom:1px solid rgba(15,23,42,.08) !important; align-items:center;
+}
+html.bc-uid .bcud-dlg .modal-header h3 {
+  color:#0f172a !important; font-size:17px !important; font-weight:700 !important;
+  text-transform:none !important; letter-spacing:0 !important; display:flex; align-items:center; gap:8px;
+}
+html.bc-uid .bcud-dlg .modal-header h3 i { color:#2563eb !important; }
+html.bc-uid .bcud-dlg .modal-close {
+  width:44px; height:44px; min-width:44px; border-radius:999px !important; color:#475569 !important;
+  background:rgba(15,23,42,.06) !important; display:inline-flex; align-items:center; justify-content:center;
+}
+html.bc-uid .bcud-dlg label { text-transform:none !important; letter-spacing:0 !important; font-size:13px !important; font-weight:600 !important; color:#475569 !important; }
+html.bc-uid .bcud-dlg .modal-body input:not([type=checkbox]):not([type=radio]):not([type=file]),
+html.bc-uid .bcud-dlg .modal-body select { min-height:48px !important; font-size:16px !important; border-radius:12px !important; }
+html.bc-uid .bcud-dlg .modal-footer .btn-blue { min-height:54px; padding:0 22px !important; font-size:16px !important; }
+html.bc-uid .bcud-dlg .modal-footer .btn, html.bc-uid .bcud-dlg .modal-body .btn { min-height:44px; text-transform:none !important; }
+html.bc-uid .bcud-dlg .mono { font-family:inherit !important; font-variant-numeric:tabular-nums; }
+
+@media (prefers-reduced-motion:reduce) {
+  html.bc-uid #v-piezasSolicitadas .bcud-acc:active { transform:none; }
+}
+
+/* Código del lote: naranja oscuro de Bayol (5.2:1; antes 3.4:1), como el botón Guardar de la Prefactura */
+html.bc-uid #v-proveedores .lote-codigo { color:#c2410c !important; }
