@@ -1796,6 +1796,9 @@ body{
 <!-- Finanzas (26-oct-2026): Contabilidad, CxP, Nómina, Liquidación, Incentivos, Financiamientos. Capa reversible. Apagar: localStorage bc_finanzas_off=1 -->
 <script>try{if(localStorage.getItem('bc_finanzas_off')!=='1')document.documentElement.classList.add('bc-fin');}catch(e){document.documentElement.classList.add('bc-fin');}</script>
 <link rel="stylesheet" href="taller-ui-finanzas.css?v=20261026-f1">
+<!-- Interfaz global (26-oct-2026): menú, barra de arriba, Configuración, Reportes, sin MAYÚSCULAS forzadas. Apagar: BC_UI=false o localStorage bc_ui_off=1 -->
+<script>var BC_UI=true;try{if(BC_UI&&localStorage.getItem('bc_ui_off')!=='1')document.documentElement.classList.add('bc-ui');}catch(e){if(BC_UI)document.documentElement.classList.add('bc-ui');}</script>
+<link rel="stylesheet" href="taller-ui-global.css?v=20261026-u1">
 </head>
 <body>
 
@@ -5691,6 +5694,7 @@ body{
 <script defer src="taller-ui-ordenes.js?v=20261026-o1"></script>
 <script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
 <script defer src="taller-ui-finanzas.js?v=20261026-f1"></script>
+<script defer src="taller-ui-global.js?v=20261026-u1"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
 <script defer src="taller-ui-despachos.js?v=20261026-a4"></script>
 <script defer src="crm-consulta-precio.js?v=20261024-h3"></script>

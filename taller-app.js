@@ -2459,7 +2459,7 @@ function startApp() {
                 setActiveNav(last);
                 const pt = document.getElementById('pageTitle');
                 const ab = document.querySelector('.nav button.active');
-                if(pt && ab) pt.textContent = ab.textContent.trim();
+                if(pt && ab) pt.textContent = (ab.querySelector(':scope > span:not(.nav-badge-admin)') || ab).textContent.trim();
             }
         }
     } catch(e){}
@@ -2478,7 +2478,7 @@ function startApp() {
                 setActiveNav(vid);
                 const ab = document.querySelector('.nav button.active');
                 const pt = document.getElementById('pageTitle');
-                if(pt && ab) pt.textContent = ab.textContent.trim();
+                if(pt && ab) pt.textContent = (ab.querySelector(':scope > span:not(.nav-badge-admin)') || ab).textContent.trim();
                 _iniciarVistaRestaurada(vid);
             }
         } catch(e){}
@@ -2593,7 +2593,8 @@ function nav(v, btn) {
         setActiveNav(v);
     }
     const activeBtn = btn || document.querySelector(".nav button.active");
-    document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
+    // Título: solo el nombre del menú, sin las píldoras «ADMIN»/«PRIVADO» del botón (26-oct-2026)
+    document.getElementById("pageTitle").textContent = activeBtn ? ((activeBtn.querySelector(':scope > span:not(.nav-badge-admin)') || activeBtn).textContent.trim()) : v;
     if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
     if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); if(typeof cargarConfigLabelOrden === 'function') cargarConfigLabelOrden(); }, 50); }
     if(v === 'proveedores') { volverListaProveedores(); setTimeout(() => { const st = localStorage.getItem('bayol_subtab_compras'); if(st && st !== 'compras' && typeof cambiarTab === 'function') cambiarTab(st); }, 60); }
@@ -19054,7 +19055,7 @@ function construirReporteComunes() {
 
 // Reporte de COBROS: dinero cobrado (costo_final) de órdenes entregadas en el período
 function construirReporteCobros() {
-    const fmt = (n) => 'RD$' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const fmt = (n) => 'RD$ ' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });   // DESIGN.md: «RD$ 1,250.00»
 
     // Órdenes entregadas dentro del rango (por fecha de entrega; fallback a creado_en)
     const entregadas = (cache.ordenes || []).filter(o =>
@@ -19172,7 +19173,9 @@ function calcularMetricasTecnico(tecnicoId) {
 }
 
 function renderReporteTecnico() {
-    if(typeof Chart === 'undefined' && window.__bayolLibs) { window.__bayolLibs.then(renderReporteTecnico); return; }   // Chart.js en diferido
+    // Chart.js en diferido. Se espera UNA sola vez: si la librería no cargó (internet caído), la pantalla sale sin gráfica en vez de quedar en un ciclo que congela la página (26-oct-2026).
+    if(typeof Chart === 'undefined' && window.__bayolLibs && !renderReporteTecnico._esperando) { renderReporteTecnico._esperando = true; window.__bayolLibs.then(renderReporteTecnico); return; }
+    renderReporteTecnico._esperando = false;
     const tecnicoId = document.getElementById('rep_tecnico')?.value;
     const cont = document.getElementById('reporteContenido');
     if(!cont) return;
@@ -28281,8 +28284,9 @@ function _finBucketDias(f) {
     return max;
 }
 function _pintarDashboardFin() {
-    // Chart.js en diferido: se espera UNA vez; si no cargó (sin Internet o CDN caído), se pinta sin la dona (antes se quedaba en un ciclo y congelaba la pestaña)
-    if(typeof Chart === 'undefined' && window.__bayolLibs && !_pintarDashboardFin._esperado) { _pintarDashboardFin._esperado = true; window.__bayolLibs.then(_pintarDashboardFin); return; }
+    // Chart.js en diferido; se espera una sola vez (si no cargó, sin gráfica y sin congelar la página; 26-oct-2026).
+    if(typeof Chart === 'undefined' && window.__bayolLibs && !_pintarDashboardFin._esperando) { _pintarDashboardFin._esperando = true; window.__bayolLibs.then(_pintarDashboardFin); return; }
+    _pintarDashboardFin._esperando = false;
     const kpisEl = document.getElementById('finKpis');
     const cont = document.getElementById('finContenido');
     if(!cont) return;
