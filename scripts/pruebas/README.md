@@ -42,3 +42,11 @@ sin llenar no sale); filtros por sucursal, estado y búsqueda por cédula; boton
 MAYÚSCULAS; la ficha muestra todas las filas sin recortes; cambiar a «Enviada al banco» y «Aprobada» llama a la RPC
 `fin_solicitud_seguimiento` y guarda el historial; «Escribir el aviso en el chat» abre el chat y deja el texto en la caja
 sin enviarlo; la tarjeta del chat trae «Ver seguimiento» y abre la ficha. Uso: `node scripts/pruebas/solicitudes-crm.cjs [carpeta-capturas]`.
+
+## reacond-proceso.cjs (26-oct-2026)
+Capa `taller-reacond-proceso.js` (candados del proceso de Reacondicionados en el navegador), con datos inventados, a 390 y
+1280 px: «Reabrir salida» pide confirmación; «Cerrar salida» no cierra un equipo en Listo; «Registrar salida» no repite un
+Despachado; «Pasar a → Listo para venta» en bloque no mueve equipos con tareas abiertas; «Quitar equipo» y «Eliminar lote»
+advierten si hay Despachados o piezas ya descontadas en Info Plus; un error largo sigue visible a los 4.6 s con `role=alert`;
+«Despachar teléfonos» no llama a Info Plus si un equipo ya está Despachado y pregunta si alguno no está en Listo; botones del
+lote ≥ 44 px y sin desplazamiento horizontal; 0 errores de JavaScript. Uso: `node scripts/pruebas/reacond-proceso.cjs [carpeta-capturas]`.
