@@ -42,3 +42,13 @@ sin llenar no sale); filtros por sucursal, estado y búsqueda por cédula; boton
 MAYÚSCULAS; la ficha muestra todas las filas sin recortes; cambiar a «Enviada al banco» y «Aprobada» llama a la RPC
 `fin_solicitud_seguimiento` y guarda el historial; «Escribir el aviso en el chat» abre el chat y deja el texto en la caja
 sin enviarlo; la tarjeta del chat trae «Ver seguimiento» y abre la ficha. Uso: `node scripts/pruebas/solicitudes-crm.cjs [carpeta-capturas]`.
+
+## reacond-flujo-completo.cjs (26-oct-2026)
+Reacondicionados de punta a punta con las RPC del servidor simuladas igual que la base: crear lote (y lote repetido),
+empezar y guardar evaluación, asignar técnico, pedir/entregar/recibir pieza (stock baja una sola vez), candados de pieza y
+de tareas, tareas hechas → calidad → Listo, salida con doble toque (una sola salida y una sola baja en Info Plus), salida
+repetida bloqueada, devolución con ciclo 2 y tarea abierta, equipo directo a Listo con fecha, editar evaluación de un equipo
+en Listo (no lo regresa), salida en bloque y bloque que no salta etapas. Al final revisa historial (cada cambio de estado con
+su renglón y su estado anterior real), costo de repuestos y flete del lote. 25 pasos a 390 y 1280 px.
+Uso: `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/reacond-flujo-completo.cjs [carpeta-capturas]`
+(`PUERTO=…` si el servidor corre en otro puerto).

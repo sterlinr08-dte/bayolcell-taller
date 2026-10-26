@@ -31,11 +31,13 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright'); const f
     const ta = document.getElementById('eval_notas'); if (ta) ta.value = 'Nota prueba';
     _evalState.equipoId = E; _evalState.fallasSeleccionadas = new Set(['f1', 'f2']); _evalState.fallasNotas = { f1: 'rajada' };
     _evalState.piezasSeleccionadas = [{ pieza_codigo: '100', pieza_nombre: 'Pantalla', cantidad: 1, costo_unitario: 1500, infoplus_desc_cant: 0 }, { pieza_codigo: '200', pieza_nombre: 'Batería', cantidad: 1, costo_unitario: 800, infoplus_desc_cant: 1 }];
+    cache.refurb[0].estado_evaluacion = 'en_evaluacion'; // 26-oct: solo se evalúa un equipo en diagnóstico
     tablas.length = 0; await guardarEvaluacion(true);
     const ev = rpcs.find(x => x.n === 'reacond_guardar_evaluacion');
     out.eval = ev ? { piezas: ev.a.p_piezas.length, fallas: ev.a.p_fallas.length, tareas: ev.a.p_tareas, marcar: ev.a.p_marcar_evaluado, catalogo: ev.a.p_catalogo.length, creado: ev.a.p_creado_por, nota: ev.a.p_fallas[0].nota, toast: toastTxt(), tablasEscritas: tablas.filter(t => /equipo_fallas|equipo_piezas|tareas_trabajo|equipos_refurbish/.test(t)) } : 'SIN RPC';
     // 2) Devolución → RPC
     document.getElementById('dev_equipo_id').value = E; document.getElementById('dev_motivo').value = 'No enciende'; document.getElementById('dev_cliente').value = 'Juan'; document.getElementById('dev_diagnostico').value = '';
+    cache.refurb[0].estado_evaluacion = 'vendido'; // la devolución pide un equipo Despachado
     tablas.length = 0; await guardarDevolucion();
     const dv = rpcs.find(x => x.n === 'reacond_registrar_devolucion');
     out.dev = dv ? { motivo: dv.a.p_motivo, tecnico: dv.a.p_tecnico, usuario: dv.a.p_usuario, toast: toastTxt(), tablasEscritas: tablas.filter(t => /equipo_devoluciones|equipos_refurbish|equipo_historial/.test(t)) } : 'SIN RPC';
@@ -48,7 +50,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright'); const f
     // 4) Error del servidor → se muestra tal cual
     rpcModo = 'error'; await guardarDevolucion(); out.errorServidor = toastTxt();
     // 5) Base sin actualizar (RPC devuelve null)
-    rpcModo = 'nulo'; await guardarEvaluacion(false); out.sinMigracion = toastTxt(); rpcModo = 'ok';
+    rpcModo = 'nulo'; cache.refurb[0].estado_evaluacion = 'en_evaluacion'; await guardarEvaluacion(false); out.sinMigracion = toastTxt(); rpcModo = 'ok';
     // 6) Alerta «por conciliar» después de la lista (V05)
     const html = construirPanelPedidosPiezas(null, 'solicitudes'); out.v05 = { tablaAntesDeAlerta: html.indexOf('<table') > -1 && html.indexOf('<table') < html.indexOf('<details'), tieneDetails: html.includes('por conciliar') };
     // 7) Botones Descontar/Liberar ≥ 44 px
