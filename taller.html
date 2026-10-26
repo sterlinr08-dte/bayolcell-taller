@@ -1770,6 +1770,9 @@ body{
 <!-- Prefactura con el diseño de STUDIO (dueño 19-oct-2026): capa reversible. Apagar: BC_PF=false o localStorage bc_pf_off=1 -->
 <script>var BC_PF=true;try{if(BC_PF&&localStorage.getItem('bc_pf_off')!=='1')document.documentElement.classList.add('bc-pf');}catch(e){if(BC_PF)document.documentElement.classList.add('bc-pf');}</script>
 <link rel="stylesheet" href="taller-prefactura.css?v=20261024-n13">
+<!-- Órdenes y Atención (26-oct-2026): lista compacta, ficha con píldoras. Apagar: localStorage.bc_uiord_off='1' -->
+<script>var BC_UIORD=true;try{if(BC_UIORD&&localStorage.getItem('bc_uiord_off')!=='1')document.documentElement.classList.add('bc-uiord');}catch(e){if(BC_UIORD)document.documentElement.classList.add('bc-uiord');}</script>
+<link rel="stylesheet" href="taller-ui-ordenes.css?v=20261026-o1">
 <!-- Ayudas detrás de una ⓘ (dueño 19-oct-2026, igual que NEXUS): apagar BC_INFO=false o localStorage bc_info_off=1 -->
 <script>var BC_INFO=true;try{if(BC_INFO&&localStorage.getItem('bc_info_off')!=='1')document.documentElement.classList.add('bc-info');}catch(e){if(BC_INFO)document.documentElement.classList.add('bc-info');}</script>
 <link rel="stylesheet" href="taller-info.css?v=20261019-i2">
@@ -5677,6 +5680,7 @@ body{
 <script defer src="bc-permisos-listas.js?v=20261021-pl1"></script>
 <script defer src="taller-info.js?v=20261023-v3"></script>
 <script defer src="taller-ui-inicio.js?v=20261026-a1"></script>
+<script defer src="taller-ui-ordenes.js?v=20261026-o1"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
 <script defer src="crm-consulta-precio.js?v=20261024-h3"></script>
 <script defer src="crm-marketing-consent.js?v=20261025-u26"></script>
