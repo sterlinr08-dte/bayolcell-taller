@@ -90,11 +90,14 @@
     nota('liquidacion', 'span', 'Clic en el título de una columna'),
     nota('rifaFactura', 'p', 'Registro independiente de la Rifa'),
     // Mis incentivos e Incentivos: «Servicios de este ticket (usa el ＋ …)» queda corto; la aclaración va a su ⓘ
-    { notas: function () { return todos('#v-misIncentivos div > span, #v-incentivos label.inc-lbl > span').filter(function (e) { return /^\(us[ae] (el )?＋/.test(limpio(e.textContent)); }); },
+    { notas: function () { return todos('#v-misIncentivos div > span, #v-miTrabajo #miTrabajoIncentivos div > span, #v-incentivos label.inc-lbl > span').filter(function (e) { return /^\(us[ae] (el )?＋/.test(limpio(e.textContent)); }); },
       titulo: function (n) { return n.parentElement; }, texto: function () { return 'Use el ＋ para agregar otra reparación al mismo ticket.'; } },
     nota('misIncentivos', 'div', 'Si el ticket tiene más de una reparación', function () {
       var s = todos('#v-misIncentivos div > span').filter(function (e) { return /^\(us[ae] (el )?＋/.test(limpio(e.textContent)); })[0]; return s && s.parentElement; })
     ,
+    // 26-oct-2026: el mismo formulario «Registrar Ticket» dentro de Mi trabajo
+    nota('miTrabajo', '#miTrabajoIncentivos div', 'Si el ticket tiene más de una reparación', function () {
+      var s = todos('#v-miTrabajo #miTrabajoIncentivos div > span').filter(function (e) { return /^\(us[ae] (el )?＋/.test(limpio(e.textContent)); })[0]; return s && s.parentElement; }),
     // Prefactura (20-oct-2026, dueño: «quítale esas letras y ponlo con la i de información»): el aviso amarillo
     // «usuario no enlazado con Info Plus» queda detrás de una ⓘ junto a «Vendedor».
     { notas: function () { return todos('#v-recepcion #rxVendAviso').filter(function (e) { return e.style.display !== 'none'; }); },

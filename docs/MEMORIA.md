@@ -87,6 +87,8 @@ listas y sincronización.
 
 - **Solicitudes: responsable y próxima gestión (25-oct, PR #123, PUBLICADO):** bandeja «Atender hoy» por defecto; responsable = quien envió; el paso propone la próxima gestión (banco → mañana 10:00; aprobada → hoy). Horas: hoy 4:00 p. m., mañana 10:00 a. m.
 
+- **10 agentes (26-oct-2026, rama `claude/taller10-integrado`, SIN publicar):** interfaz de Inicio, Órdenes, Inventario, Despachos, Finanzas, global, y Reacondicionados (pantalla, prueba de punta a punta 25/25, rentabilidad por teléfono, mapa del proceso `docs/REACONDICIONADOS-PROCESO.md`). Cada capa se apaga con su `localStorage`. 4 SQL propuestos sin aplicar. Bit. 2026-10-26-0240.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
@@ -119,3 +121,5 @@ listas y sincronización.
 - **Prefactura, auditoría visual 1–3 (24-oct-2026, publicado, PR #112):** fondo oscurecido y ventana sólida del buscador, foco encerrado (Tab) y Escape global, «Guardar» con naranja oscuro (4.5:1), grises chicos `#64748b`, engranaje para configurar la impresora. La compensación de escala de Windows se queda (opción A del dueño). Pendiente: PDF de la auditoría con los otros 3 hallazgos; medir en iPhone real.
 - **Prefactura por rol (24-oct-2026, publicado, PR #113 + precio libre):** el empleado solo usa el precio del nivel elegido en la cabecera, no edita la descripción y solo escribe precio libre en líneas de Servicio (catálogo: solo lectura). El administrador, libre en todo.
 - **Reacondicionados fase 1 (24-oct-2026, publicado, PR #114):** despacho con error visible y sin falso éxito, reserva de piezas al completar, RPC `ajustar_stock_pieza`, historial `refurb_transiciones` con trigger, ventanas con foco y role, casilla y pestañas de 44 px. **Fase 2 lista en rama `claude/reacond-fase2` (24-oct, opción A del dueño):** guardia de permisos y transiciones en el servidor, RPC todo-o-nada para evaluar/devolver/crear lotes, reserva de Info Plus con referencia, V05. **Base completa y probada** (24-oct 08:10, el dueño pegó el último bloque; 20 pruebas con identidades reales y rollback). **Publicado** en `main` el 24-oct 08:20 (PR #115). Conciliación de datos solo con autorización.
+
+- **Inventario/Artículos/Etiquetas/Inventario físico (26-oct, rama `claude/taller10-a3`, SIN publicar):** capa `taller-ui-inventario.css/.js` (`html.bc-inv`, apagar `bc_inv_off='1'`): tablas como tarjetas a 390 px con rótulos, sin MAYÚSCULAS, `tabular-nums`, existencia por almacén en píldoras. No cambia la lectura de Info Plus. Bit. 2026-10-26-0047.

@@ -1,0 +1,225 @@
+/* BAYOL CELL · Reacondicionados → «Rentabilidad»: costo final y margen por teléfono y por lote (26-oct-2026).
+   Va con taller-reacond-rentabilidad.js; solo actúa con html.bc-rr. Apagar: BC_RR=false o localStorage bc_rr_off='1'.
+   Estilo NEXUS (DESIGN.md): vidrio claro, toques ≥ 44 px, campo 48/16, botón principal 54, cifras tabulares,
+   sin mayúsculas forzadas, rojo solo para margen negativo. */
+html.bc-rr #rentabilidadReacondCont .bcrr {
+  --rr-tinta: #0f172a; --rr-sec: #475569; --rr-apag: #64748b; --rr-borde: rgba(15,23,42,.08);
+  --rr-azul: #2563eb; --rr-nar: #e4572e; --rr-ok: #15803d; --rr-avi: #b45309; --rr-err: #b91c1c;
+  color: var(--rr-tinta); font-variant-numeric: tabular-nums;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr * { text-transform: none; letter-spacing: 0; }
+html.bc-rr #rentabilidadReacondCont .bcrr-card {
+  background: rgba(255,255,255,.9); border: 1px solid var(--rr-borde); border-radius: 18px; padding: 16px;
+  margin: 0 0 14px; box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 12px 30px -18px rgba(15,23,42,.25);
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+html.bc-rr #rentabilidadReacondCont .bcrr h3 { margin: 0; font-size: 20px; font-weight: 800; display: flex; align-items: center; }
+html.bc-rr #rentabilidadReacondCont .bcrr h4 { margin: 0 0 8px; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+html.bc-rr #rentabilidadReacondCont .bcrr h4 small { font-size: 13px; font-weight: 500; color: var(--rr-apag); }
+html.bc-rr #rentabilidadReacondCont .bcrr-top h4 { margin: 0; }
+
+/* ⓘ: 44 px de toque, círculo de 20 */
+html.bc-rr #rentabilidadReacondCont .bcrr-i {
+  display: inline-grid; place-items: center; width: 44px; height: 44px; min-width: 44px; margin: -12px -8px -12px -2px;
+  padding: 0; border: 0; background: none; box-shadow: none; border-radius: 50%; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-i > span {
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  font: italic 700 12px/1 Georgia, "Times New Roman", serif; color: #c2410c; box-shadow: inset 0 0 0 1.5px currentColor;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-i[aria-expanded="true"] > span { background: #c2410c; color: #fff; box-shadow: none; }
+
+/* Botones */
+html.bc-rr #rentabilidadReacondCont .bcrr-btn, html.bc-rr #bcrrDlg .bcrr-btn {
+  min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(15,23,42,.12); background: #fff;
+  color: var(--rr-tinta, #0f172a); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  transition: transform .16s cubic-bezier(.22,1,.36,1);
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-btn:active, html.bc-rr #rentabilidadReacondCont .bcrr-seg:active,
+html.bc-rr #rentabilidadReacondCont .bcrr-anotar:active, html.bc-rr #rentabilidadReacondCont .bcrr-pv:active { transform: scale(.96); }
+html.bc-rr #rentabilidadReacondCont .bcrr-segs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px 12px; padding: 0 4px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-segs::-webkit-scrollbar { display: none; }
+html.bc-rr #rentabilidadReacondCont .bcrr-seg {
+  flex: 0 0 auto; min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(15,23,42,.12);
+  background: #fff; color: var(--rr-sec); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: transform .16s cubic-bezier(.22,1,.36,1), background .16s;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-seg.on { background: rgba(37,99,235,.1); border-color: rgba(37,99,235,.45); color: #1d4ed8; }
+
+/* KPI */
+html.bc-rr #rentabilidadReacondCont .bcrr-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-kpi { background: #f8fafc; border: 1px solid var(--rr-borde); border-radius: 14px; padding: 10px 12px; min-width: 0; }
+html.bc-rr #rentabilidadReacondCont .bcrr-kpi .l { display: block; font-size: 13px; color: var(--rr-sec); font-weight: 600; }
+html.bc-rr #rentabilidadReacondCont .bcrr-kpi strong { display: block; font-size: 19px; font-weight: 800; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-rr #rentabilidadReacondCont .bcrr-kpi .s { display: block; font-size: 12px; color: var(--rr-apag); margin-top: 2px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-kpi.pos strong { color: var(--rr-ok); }
+html.bc-rr #rentabilidadReacondCont .bcrr-kpi.neg strong { color: var(--rr-err); }
+
+/* Filtros */
+html.bc-rr #rentabilidadReacondCont .bcrr-filtros { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-buscar { flex: 1; min-width: 0; position: relative; display: block; margin: 0; }
+html.bc-rr #rentabilidadReacondCont .bcrr-buscar i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--rr-apag); font-size: 18px; pointer-events: none; }
+html.bc-rr #rentabilidadReacondCont .bcrr-buscar input {
+  width: 100%; height: 48px; font-size: 16px; padding: 0 14px 0 40px; border-radius: 12px; border: 1px solid rgba(15,23,42,.14);
+  background: #fff; color: var(--rr-tinta); margin: 0; box-shadow: none;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-buscar input:focus { outline: none; border-color: rgba(59,130,246,.6); box-shadow: 0 0 0 4px rgba(59,130,246,.16); }
+
+/* Lote */
+html.bc-rr #rentabilidadReacondCont .bcrr-lote { border: 1px solid var(--rr-borde); border-radius: 16px; background: #fff; margin-bottom: 10px; overflow: hidden; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote > summary {
+  list-style: none; cursor: pointer; min-height: 56px; padding: 10px 12px 10px 14px; display: flex; align-items: center; gap: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-lote > summary::-webkit-details-marker { display: none; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote > summary:hover { background: rgba(59,130,246,.05); }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote > summary:focus-visible { outline: 3px solid rgba(96,165,250,.55); outline-offset: -3px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .tit { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .tit b { font-size: 15px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .tit span { font-size: 13px; color: var(--rr-apag); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .res { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: flex-end; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .res .m { display: flex; flex-direction: column; align-items: flex-end; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .res .l { font-size: 12px; color: var(--rr-apag); }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .res .v { font-size: 15px; font-weight: 700; white-space: nowrap; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .res .v small { font-size: 12px; font-weight: 600; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .cnt { font-size: 12px; color: var(--rr-apag); flex-basis: 100%; text-align: right; }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote .chev { color: var(--rr-apag); font-size: 18px; transition: transform .22s cubic-bezier(.22,1,.36,1); }
+html.bc-rr #rentabilidadReacondCont .bcrr-lote[open] .chev { transform: rotate(180deg); }
+
+/* Tabla de teléfonos (PC: una línea por teléfono) */
+html.bc-rr #rentabilidadReacondCont .bcrr-tabla { border-top: 1px solid var(--rr-borde); }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq {
+  display: grid; align-items: center; gap: 8px; padding: 6px 14px; min-height: 52px; border-bottom: 1px solid rgba(15,23,42,.05);
+  grid-template-columns: minmax(150px, 1.6fr) minmax(118px, .9fr) repeat(4, minmax(84px, .8fr)) minmax(150px, 1.2fr) minmax(90px, .8fr) minmax(58px, .45fr);
+  font-size: 14px;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-eq:not(.cab):not(.tot):hover { background: rgba(59,130,246,.05); }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq.cab { min-height: 36px; font-size: 12px; font-weight: 600; color: var(--rr-apag); background: #f8fafc; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq.tot { background: #f8fafc; border-bottom: 0; font-weight: 700; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .id { min-width: 0; display: flex; flex-direction: column; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .id b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .id span { font-size: 12px; color: var(--rr-apag); }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .c { text-align: right; min-width: 0; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .c .l { display: none; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .c .v { white-space: nowrap; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.sec .v { color: var(--rr-sec); }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.fin .v { font-weight: 700; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.venta .v { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; white-space: normal; }
+html.bc-rr #rentabilidadReacondCont .bcrr-eq .c small { font-size: 12px; font-weight: 500; color: var(--rr-apag); }
+html.bc-rr #rentabilidadReacondCont .pos { color: var(--rr-ok); font-weight: 700; }
+html.bc-rr #rentabilidadReacondCont .neg { color: var(--rr-err); font-weight: 700; }
+html.bc-rr #rentabilidadReacondCont .avi { color: var(--rr-avi); font-weight: 700; }
+html.bc-rr #rentabilidadReacondCont .bcrr-nada { color: #94a3b8; font-weight: 500; }
+html.bc-rr #rentabilidadReacondCont .bcrr-dif { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; margin-left: 5px; vertical-align: middle; }
+
+/* Estados y precio */
+html.bc-rr #rentabilidadReacondCont .bcrr-pill {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pill.desp { color: #0e7490; background: #ecfeff; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pill.inv { color: var(--rr-sec); background: #f1f5f9; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pill.sin { color: var(--rr-avi); background: #fef3c7; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pill.sin i { background: #f59e0b; }
+html.bc-rr #rentabilidadReacondCont .bcrr-anotar, html.bc-rr #rentabilidadReacondCont .bcrr-pv {
+  min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer;
+  font-variant-numeric: tabular-nums; transition: transform .16s cubic-bezier(.22,1,.36,1);
+}
+html.bc-rr #rentabilidadReacondCont .bcrr-anotar { border: 1px solid rgba(228,87,46,.45); background: #fff; color: #c2410c; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pv { border: 1px solid transparent; background: transparent; color: var(--rr-tinta); padding: 0 6px; text-decoration: underline dotted rgba(15,23,42,.35); text-underline-offset: 4px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pv:hover { background: rgba(59,130,246,.07); }
+
+html.bc-rr #rentabilidadReacondCont .bcrr-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-dos .bcrr-card { margin: 0; }
+html.bc-rr #rentabilidadReacondCont .bcrr-li { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 44px; border-bottom: 1px solid rgba(15,23,42,.05); font-size: 14px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-li:last-child { border-bottom: 0; }
+html.bc-rr #rentabilidadReacondCont .bcrr-li small { color: var(--rr-apag); font-size: 12px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-vacio-l { color: var(--rr-apag); font-size: 14px; margin: 6px 0; }
+html.bc-rr #rentabilidadReacondCont .bcrr-vacio { text-align: center; color: var(--rr-apag); padding: 32px 16px; }
+html.bc-rr #rentabilidadReacondCont .bcrr-vacio i { font-size: 32px; color: #cbd5e1; }
+
+/* Celular: cada teléfono en tarjeta; lo esencial (costo final, venta, margen) arriba, el desglose debajo */
+@media (max-width: 980px) {
+  html.bc-rr #rentabilidadReacondCont .bcrr-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.bc-rr #rentabilidadReacondCont .bcrr-kpi:first-child { grid-column: 1 / -1; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-dos { grid-template-columns: 1fr; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq.cab { display: none; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq {
+    grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; padding: 12px 14px;
+    grid-template-areas: "id id est" "fin venta venta" "mg pc pc" "c1 c2 c3";
+  }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .id { grid-area: id; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .est { grid-area: est; justify-self: end; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c { text-align: left; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c .l { display: block; font-size: 12px; color: var(--rr-apag); font-weight: 500; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.fin { grid-area: fin; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.venta { grid-area: venta; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.venta .v { justify-content: flex-start; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.mg { grid-area: mg; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.pc { grid-area: pc; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.sec:nth-of-type(3) { grid-area: c1; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.sec:nth-of-type(4) { grid-area: c2; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.sec:nth-of-type(5) { grid-area: c3; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.sec .v { font-size: 13px; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq.sinm { grid-template-areas: "id id est" "fin venta venta" "c1 c2 c3"; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq.sinm .c.mg, html.bc-rr #rentabilidadReacondCont .bcrr-eq.sinm .c.pc { display: none; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq .c.sec { border-top: 1px dashed rgba(15,23,42,.08); padding-top: 6px; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-lote > summary { flex-wrap: wrap; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-lote .tit { flex-basis: calc(100% - 40px); }
+  html.bc-rr #rentabilidadReacondCont .bcrr-lote .chev { order: 0; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-lote .res { order: 1; flex-basis: 100%; justify-content: flex-start; gap: 20px; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-lote .res .m { align-items: flex-start; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-lote .cnt { text-align: left; }
+}
+@media (max-width: 480px) {
+  html.bc-rr #rentabilidadReacondCont .bcrr-card { padding: 14px 12px; border-radius: 16px; }
+  html.bc-rr #rentabilidadReacondCont .bcrr-eq { padding: 12px; }
+}
+
+/* Ventana «Precio de venta» (azul NEXUS de consulta; botón principal naranja Bayol) */
+html.bc-rr #bcrrDlg.bcrr-fondo {
+  position: fixed; inset: 0; z-index: 2100; background: rgba(15,23,42,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 16px; font-variant-numeric: tabular-nums;
+}
+html.bc-rr #bcrrDlg .bcrr-dlg {
+  width: 100%; max-width: 420px; background: rgba(255,255,255,.96); border-radius: 20px; overflow: hidden; color: #0f172a;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 0 0 1px rgba(15,23,42,.06), 0 30px 70px -24px rgba(15,23,42,.45), 0 12px 24px -12px rgba(15,23,42,.18);
+  animation: bcrrPop .26s cubic-bezier(.34,1.56,.64,1);
+}
+html.bc-rr #bcrrDlg * { text-transform: none; letter-spacing: 0; }
+@keyframes bcrrPop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+html.bc-rr #bcrrDlg .bar { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 18px; border-bottom: 1px solid rgba(15,23,42,.06); }
+html.bc-rr #bcrrDlg .bar > i { color: #2563eb; font-size: 20px; }
+html.bc-rr #bcrrDlg .bar h3 { flex: 1; margin: 0; font-size: 17px; font-weight: 700; }
+html.bc-rr #bcrrDlg .x { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #f1f5f9; color: #475569; display: grid; place-items: center; cursor: pointer; font-size: 18px; }
+html.bc-rr #bcrrDlg .cuerpo { padding: 14px 18px 6px; }
+html.bc-rr #bcrrDlg .eqd { display: flex; flex-direction: column; margin-bottom: 10px; }
+html.bc-rr #bcrrDlg .eqd b { font-size: 15px; }
+html.bc-rr #bcrrDlg .eqd span { font-size: 13px; color: #64748b; }
+html.bc-rr #bcrrDlg .fila { display: flex; justify-content: space-between; align-items: center; min-height: 36px; font-size: 14px; color: #475569; }
+html.bc-rr #bcrrDlg .fila b { color: #0f172a; }
+html.bc-rr #bcrrDlg .fila b.pos { color: #15803d; }
+html.bc-rr #bcrrDlg .fila b.neg { color: #b91c1c; }
+html.bc-rr #bcrrDlg label { display: block; font-size: 13px; color: #475569; font-weight: 600; margin: 8px 0 6px; }
+html.bc-rr #bcrrDlg input {
+  width: 100%; height: 48px; font-size: 16px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(15,23,42,.14);
+  background: #fff; color: #0f172a; font-variant-numeric: tabular-nums; box-sizing: border-box; margin: 0;
+}
+html.bc-rr #bcrrDlg input:focus { outline: none; border-color: rgba(59,130,246,.6); box-shadow: 0 0 0 4px rgba(59,130,246,.16); }
+html.bc-rr #bcrrDlg .err { min-height: 18px; margin: 4px 0 0; font-size: 13px; color: #b91c1c; }
+html.bc-rr #bcrrDlg .pie { display: flex; gap: 10px; padding: 8px 18px 18px; }
+html.bc-rr #bcrrDlg .pie .bcrr-btn { min-height: 54px; justify-content: center; }
+html.bc-rr #bcrrDlg .bcrr-guardar {
+  flex: 1; min-height: 54px; border: 0; border-radius: 999px; background: #e4572e; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: transform .16s cubic-bezier(.22,1,.36,1);
+}
+html.bc-rr #bcrrDlg .bcrr-guardar:active { transform: scale(.97); }
+html.bc-rr #bcrrDlg button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 600px) {
+  html.bc-rr #bcrrDlg.bcrr-fondo { align-items: flex-end; padding: 0; }
+  html.bc-rr #bcrrDlg .bcrr-dlg { max-width: none; border-radius: 20px 20px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.bc-rr #bcrrDlg .bcrr-dlg { animation: none; }
+  html.bc-rr #rentabilidadReacondCont .bcrr * { transition: none !important; }
+}

@@ -1,0 +1,139 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   taller-ui-ordenes.css — Órdenes de servicio (#v-ordenes) y Atención (#v-atencion). 26-oct-2026.
+   - Lista de órdenes: tarjeta compacta (foto chica a la izquierda del título), estado en píldora con punto
+     igual que la Prefactura, todo lo que se toca ≥ 44 px.
+   - Ficha de la orden (.bco-ficha, la arma construirCardOrden): estado en píldora, acciones en píldoras que
+     se acomodan en filas (no una columna larga), «Más opciones» de 44 px, nada en MAYÚSCULAS.
+   - Atención: filtros con estado marcado (aria-pressed, lo pone taller-ui-ordenes.js), títulos con número.
+   Capa aislada: solo actúa con html.bc-uiord (la pone el <head>). Apagar en un equipo con
+   localStorage.bc_uiord_off = '1', o para todos con BC_UIORD = false.
+   «#bcO#bcO» dentro de :is() solo sube la especificidad (no existe ese id) para ganarle a taller-tactil y
+   taller-visual-polish sin depender del orden de carga.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ---------- Píldora de estado (misma forma que .bcpf-est de la Prefactura) ---------- */
+html.bc-uiord :is(#v-ordenes .bcf-ord .bcf-tag, .bco-ficha .bco-est, #bcO#bcO) {
+  display: inline-flex !important; align-items: center; gap: 6px; height: 26px !important; padding: 0 11px 0 9px !important;
+  border-radius: 999px !important; font-size: 13px !important; font-weight: 600 !important; letter-spacing: -.005em !important;
+  text-transform: none !important; line-height: 1 !important; white-space: nowrap;
+  color: var(--o-fg, #475569) !important; background: rgba(255,255,255,.78) !important;
+  border: 1px solid rgba(15,23,42,.08) !important; box-shadow: 0 1px 2px rgba(15,23,42,.05) !important;
+}
+html.bc-uiord #v-ordenes .bcf-ord .bcf-tag::before { width: 7px; height: 7px; background: var(--o-dot, #94a3b8); box-shadow: 0 0 0 3px color-mix(in srgb, var(--o-dot, #94a3b8) 22%, transparent); }
+html.bc-uiord .bco-ficha .bco-est > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--o-dot, #94a3b8); box-shadow: 0 0 0 3px color-mix(in srgb, var(--o-dot, #94a3b8) 22%, transparent); }
+html.bc-uiord :is(#v-ordenes .bcf-ord, .bco-ficha)[data-tono="naranja"] :is(.bcf-tag, .bco-est) { --o-fg: #c2410c; --o-dot: #f97316; }
+html.bc-uiord :is(#v-ordenes .bcf-ord, .bco-ficha)[data-tono="amarillo"] :is(.bcf-tag, .bco-est) { --o-fg: #b45309; --o-dot: #f59e0b; }
+html.bc-uiord :is(#v-ordenes .bcf-ord, .bco-ficha)[data-tono="morado"] :is(.bcf-tag, .bco-est) { --o-fg: #7e22ce; --o-dot: #a855f7; }
+html.bc-uiord :is(#v-ordenes .bcf-ord, .bco-ficha)[data-tono="verde"] :is(.bcf-tag, .bco-est) { --o-fg: #15803d; --o-dot: #22c55e; }
+html.bc-uiord :is(#v-ordenes .bcf-ord, .bco-ficha)[data-tono="teal"] :is(.bcf-tag, .bco-est) { --o-fg: #0f766e; --o-dot: #14b8a6; }
+html.bc-uiord :is(#v-ordenes .bcf-ord, .bco-ficha)[data-tono="azul"] :is(.bcf-tag, .bco-est) { --o-fg: #1d4ed8; --o-dot: #3b82f6; }
+html.bc-uiord :is(#v-ordenes .bcf-ord, .bco-ficha)[data-tono="rojo"] :is(.bcf-tag, .bco-est) { --o-fg: #b91c1c; --o-dot: #ef4444; }
+
+/* ---------- Lista de órdenes (#v-ordenes): tarjeta compacta ---------- */
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 12px; row-gap: 10px; padding: 14px; border-radius: 16px;
+}
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord > * { grid-column: 1 / -1; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord > .bcf-media { grid-column: 1; grid-row: 1 / span 2; width: 56px; height: 56px; border-radius: 14px; align-self: start; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord > .bcf-h { grid-column: 2; grid-row: 1; align-items: center; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord > .bcf-sub { grid-column: 2; grid-row: 2; margin-top: -6px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-media img { max-height: 48px; max-width: 48px; filter: drop-shadow(0 4px 6px rgba(15,23,42,.18)); }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-sinfoto { width: 40px; height: 40px; border-radius: 12px; box-shadow: none; background: transparent; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-sinfoto i { font-size: 22px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-sinfoto svg { max-width: 30px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-tel { height: 48px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-chips { margin-top: -2px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-falla { padding: 7px 10px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-per { padding-bottom: 10px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-av { width: 32px; height: 32px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-track { margin-top: 18px; }
+html.bc-uiord #v-ordenes #ordersGrid .bcf-ord .bcf-f { font-variant-numeric: tabular-nums; }
+/* Acciones de la tarjeta: 44 px */
+html.bc-uiord :is(#v-ordenes .bcf-ord .bcf-ib, #bcO#bcO) { width: 44px !important; height: 44px !important; border-radius: 999px !important; }
+html.bc-uiord :is(#v-ordenes .bcf-ord .bcf-btn-sec, #bcO#bcO) { min-height: 44px !important; border-radius: 999px !important; padding: 0 16px !important; font-size: 14px !important; }
+/* Filtros de estado y cuadros de resumen: 44 px, sin mayúsculas */
+html.bc-uiord :is(#v-ordenes .bcf-fchip, #bcO#bcO) { height: 44px !important; min-height: 44px !important; border-radius: 999px !important; text-transform: none !important; font-size: 14px !important; }
+html.bc-uiord #v-ordenes .bcf-kpi-txt small { text-transform: none !important; letter-spacing: 0 !important; }
+html.bc-uiord #v-ordenes .bcf-kpi-txt b { font-variant-numeric: tabular-nums; }
+/* Paginación: botones de 44 px con números alineados */
+html.bc-uiord :is(#ordersPagination .btn, #bcO#bcO) { min-width: 44px !important; min-height: 44px !important; border-radius: 999px !important; font-variant-numeric: tabular-nums; }
+html.bc-uiord #ordersPagination span { font-variant-numeric: tabular-nums; }
+
+/* ---------- Ficha de la orden (.bco-ficha) ---------- */
+html.bc-uiord :is(.bco-ficha, #bcO#bcO) {
+  border-radius: 16px !important; padding: 12px 14px !important; margin-bottom: 10px !important;
+  border: 1px solid rgba(15,23,42,.08) !important; box-shadow: 0 1px 2px rgba(15,23,42,.04) !important;
+}
+html.bc-uiord .bco-ficha :is(.badge, #bcO) { text-transform: none !important; letter-spacing: 0 !important; }
+html.bc-uiord .bco-ficha > div > div:first-child > div:first-child > b:first-child { font-size: 15px !important; font-variant-numeric: tabular-nums; }
+html.bc-uiord .bco-ficha [style*="font-size:10px"] { font-size: 12px !important; }
+html.bc-uiord .bco-ficha [style*="font-size:11px"]:not(button):not(a):not(summary) { font-size: 12.5px !important; }
+html.bc-uiord .bco-ficha div[style*="Recibido"], html.bc-uiord .bco-ficha div[style*="font-size:10px"] { font-variant-numeric: tabular-nums; }
+/* Columna de estado y acciones: las acciones son píldoras que se acomodan en filas */
+html.bc-uiord :is(.bco-ficha .acciones-verticales, #bcO#bcO) {
+  flex-direction: row !important; flex-wrap: wrap !important; align-items: center !important; gap: 8px !important;
+  min-width: 0 !important; flex: 1 1 260px; max-width: 360px;
+}
+html.bc-uiord .bco-ficha .acciones-verticales > :is(.bco-est-tit, .ev-card, .ev-pend, details, div) { flex: 1 1 100%; }
+html.bc-uiord :is(.bco-ficha .bco-est-tit, #bcO#bcO) { font-size: 13px !important; font-weight: 600 !important; color: #475569 !important; text-transform: none !important; }
+html.bc-uiord :is(.bco-ficha .acciones-verticales > :is(button, a.btn), #bcO#bcO) { flex: 1 1 calc(50% - 4px) !important; width: auto !important; min-width: 0 !important; }
+html.bc-uiord .bco-ficha .acciones-verticales > .badge { flex: 1 1 100%; }
+html.bc-uiord :is(.bco-ficha .acciones-verticales :is(button.btn, a.btn), #bcO#bcO) {
+  min-height: 44px !important; padding: 0 16px !important; border-radius: 999px !important; font-size: 14px !important;
+  font-weight: 600 !important; text-transform: none !important; letter-spacing: 0 !important; justify-content: center;
+  display: inline-flex !important; align-items: center; gap: 6px; white-space: nowrap;
+}
+html.bc-uiord :is(.bco-ficha .acciones-verticales > select, #bcO#bcO) { flex: 1 1 100%; min-height: 48px !important; font-size: 16px !important; border-radius: 12px !important; }
+html.bc-uiord :is(.bco-ficha .ord-mas summary, #bcO#bcO) {
+  min-height: 44px !important; border-radius: 999px !important; padding: 0 16px !important; font-size: 14px !important;
+  font-weight: 600 !important; text-transform: none !important;
+}
+html.bc-uiord :is(.bco-ficha .ord-mas-body, #bcO#bcO) { flex-direction: row !important; flex-wrap: wrap !important; gap: 8px !important; }
+html.bc-uiord :is(.bco-ficha .ord-mas-body > :is(button, a), #bcO#bcO) { flex: 1 1 calc(50% - 4px) !important; width: auto !important; min-width: 0 !important; min-height: 44px !important; border-radius: 999px !important; font-size: 14px !important; padding: 0 12px !important; text-transform: none !important; display: inline-flex !important; align-items: center; justify-content: center; gap: 6px; }
+/* Chip animado del estado: sin mayúsculas forzadas, más bajo */
+html.bc-uiord :is(.bco-ficha .ev-tx b, .bco-ficha .ev-tx small, .bco-ficha .ev-foot, #bcO#bcO) { text-transform: none !important; letter-spacing: 0 !important; }
+html.bc-uiord .bco-ficha .ev-tx b { font-size: 14px !important; }
+html.bc-uiord .bco-ficha .ev-tx small { font-size: 12px !important; }
+html.bc-uiord .bco-ficha .ev-chip { padding: 8px 12px !important; }
+html.bc-uiord .bco-ficha .ev-foot { font-variant-numeric: tabular-nums; }
+/* «Mostrar» acceso, «Urgente» y piezas: 44 px */
+html.bc-uiord :is(.bco-ficha .access-mask .btn, #bcO#bcO) {
+  min-height: 44px !important; min-width: 44px; display: inline-flex !important; align-items: center; gap: 5px;
+  padding: 0 14px !important; border-radius: 999px !important; font-size: 13px !important;
+}
+/* «Urgente / Marcar urgente»: se ve como píldora de 26 px, pero se toca en 44 px (borde transparente) */
+html.bc-uiord :is(.bco-ficha span[onclick^="togglePrioridadOrden"], #bcO#bcO) {
+  display: inline-flex !important; align-items: center; gap: 5px; box-sizing: border-box; height: 44px !important;
+  padding: 0 10px !important; border: 9px solid transparent !important; background-clip: padding-box !important;
+  border-radius: 999px !important; margin: -9px -4px !important; font-size: 12.5px !important; cursor: pointer; text-transform: none !important;
+}
+/* Fallas y tareas dentro de la ficha: más baja */
+html.bc-uiord :is(.bco-ficha div[style*="border:2px solid #e2e8f0"], #bcO#bcO) { padding: 8px 10px !important; margin-top: 10px !important; border-width: 1px !important; border-radius: 12px !important; }
+html.bc-uiord .bco-ficha div[style*="border:2px solid #e2e8f0"] > div:first-child { margin-bottom: 4px !important; }
+html.bc-uiord :is(.bco-ficha div[style*="border:2px solid #e2e8f0"] > div:first-child .btn, #bcO#bcO) { min-height: 44px !important; border-radius: 999px !important; padding: 0 14px !important; font-size: 13px !important; }
+html.bc-uiord .bco-ficha .ev-card { padding: 8px !important; }
+html.bc-uiord .bco-ficha .ev-steps { margin-top: 6px; }
+@media (max-width: 640px) {
+  html.bc-uiord :is(.bco-ficha, #bcO#bcO) { padding: 12px !important; }
+  html.bc-uiord :is(.bco-ficha .acciones-verticales, #bcO#bcO) { max-width: none; flex-basis: 100%; }
+}
+
+/* ---------- Atención (#v-atencion) ---------- */
+html.bc-uiord #v-atencion h3 .bco-n {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px; padding: 0 8px; margin-left: 4px;
+  border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; vertical-align: 1px;
+}
+html.bc-uiord #v-atencion .kpi-box :is(small, strong) { text-transform: none !important; letter-spacing: 0 !important; }
+html.bc-uiord #v-atencion .kpi-box strong { font-variant-numeric: tabular-nums; }
+/* Filtros: píldoras de 44 px; la marcada en naranja Bayol */
+html.bc-uiord :is(#v-atencion .bco-fil, #bcO#bcO) {
+  min-height: 44px !important; padding: 0 16px !important; border-radius: 999px !important; font-size: 14px !important;
+  font-weight: 600 !important; text-transform: none !important; letter-spacing: 0 !important;
+}
+html.bc-uiord :is(#v-atencion .bco-fil[aria-pressed="true"], #bcO#bcO) {
+  background: #fff1ea !important; border-color: #e4572e !important; color: #b8401f !important; box-shadow: none !important;
+}
+html.bc-uiord #v-atencion > div:first-child .btn { min-height: 44px !important; border-radius: 999px !important; font-size: 14px !important; padding: 0 16px !important; }
+/* Etiquetas y píldoras del historial: sin MAYÚSCULAS (las de encabezado de tabla se quedan, DESIGN.md §3) */
+html.bc-uiord :is(#v-atencion label, #v-atencion #atencionHistorial .badge, #bcO#bcO) { text-transform: none !important; letter-spacing: 0 !important; }
+@media (prefers-reduced-motion: reduce) { html.bc-uiord :is(.bco-ficha, #v-ordenes .bcf-ord) * { transition: none !important; } }

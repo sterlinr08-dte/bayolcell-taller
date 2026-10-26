@@ -2459,7 +2459,7 @@ function startApp() {
                 setActiveNav(last);
                 const pt = document.getElementById('pageTitle');
                 const ab = document.querySelector('.nav button.active');
-                if(pt && ab) pt.textContent = ab.textContent.trim();
+                if(pt && ab) pt.textContent = (ab.querySelector(':scope > span:not(.nav-badge-admin)') || ab).textContent.trim();
             }
         }
     } catch(e){}
@@ -2478,7 +2478,7 @@ function startApp() {
                 setActiveNav(vid);
                 const ab = document.querySelector('.nav button.active');
                 const pt = document.getElementById('pageTitle');
-                if(pt && ab) pt.textContent = ab.textContent.trim();
+                if(pt && ab) pt.textContent = (ab.querySelector(':scope > span:not(.nav-badge-admin)') || ab).textContent.trim();
                 _iniciarVistaRestaurada(vid);
             }
         } catch(e){}
@@ -2593,7 +2593,8 @@ function nav(v, btn) {
         setActiveNav(v);
     }
     const activeBtn = btn || document.querySelector(".nav button.active");
-    document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
+    // Título: solo el nombre del menú, sin las píldoras «ADMIN»/«PRIVADO» del botón (26-oct-2026)
+    document.getElementById("pageTitle").textContent = activeBtn ? ((activeBtn.querySelector(':scope > span:not(.nav-badge-admin)') || activeBtn).textContent.trim()) : v;
     if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
     if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); if(typeof cargarConfigLabelOrden === 'function') cargarConfigLabelOrden(); }, 50); }
     if(v === 'proveedores') { volverListaProveedores(); setTimeout(() => { const st = localStorage.getItem('bayol_subtab_compras'); if(st && st !== 'compras' && typeof cambiarTab === 'function') cambiarTab(st); }, 60); }
@@ -5924,7 +5925,7 @@ function renderProveedores() {
         const equiposProv = cache.refurb.filter(r => lotesProv.some(l => l.id === r.lote_id));
         let confStyle = 'background:#f1f5f9; color:#475569;';
         if(p.confiabilidad === 'Excelente') confStyle = 'background:#d1fae5; color:#065f46;';
-        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#b91c1c;';
+        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#1e40af;'; // antes rojo: el rojo es solo para problemas
         else if(p.confiabilidad === 'Regular') confStyle = 'background:#fef3c7; color:#92400e;';
         else if(p.confiabilidad === 'Mala') confStyle = 'background:#fee2e2; color:#991b1b;';
         const ini = (p.nombre || '?').charAt(0).toUpperCase();
@@ -7773,6 +7774,7 @@ let _reacondSel = new Set(); // equipos marcados con casilla para asignar en blo
 let _reacondFiltroTec = ''; // filtrar la lista por técnico (clic en su chip)
 const _REACOND_ESTADOS_REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
 const _REACOND_ESTADOS_TRABAJO = [..._REACOND_ESTADOS_REPARACION, 'listo_revision'];
+const _REACOND_ESTADOS_EVALUACION = ['pendiente', 'en_evaluacion', 'evaluado'];
 // 24-oct-2026 (auditoría) R14: todo insert a equipo_historial pasa por aquí para leer {error}
 // y dejarlo en consola (antes se ignoraba). Devuelve true si quedó escrito.
 // 24-oct-2026 (auditoría, fase 2): llamada a una función del servidor que hace todo-o-nada. Si falla, lanza el mensaje
@@ -12734,6 +12736,10 @@ async function empezarEvaluacion(equipoId) {
                 .update({ estado_evaluacion: 'en_evaluacion' })
                 .eq('id', equipoId);
             if(error) throw error;
+            // 26-oct-2026 (prueba de punta a punta): este paso no dejaba rastro en el historial ni en la caché.
+            eq.estado_evaluacion = 'en_evaluacion';
+            await _histInsert([{ equipo_id: equipoId, estado_anterior: 'pendiente', estado_nuevo: 'en_evaluacion',
+                accion: 'Diagnóstico iniciado', usuario: sessionUser?.nombre || 'Usuario' }]);
         }
         
         await abrirModalEvaluacion(equipoId);
@@ -13188,6 +13194,13 @@ async function guardarEvaluacion(marcarEvaluado = false) {
     const equipoId = _evalState.equipoId;
     if(!equipoId) return toast('No hay equipo activo.', 'error');
 
+    // 26-oct-2026 (prueba de punta a punta): la evaluación solo se edita mientras el equipo está en diagnóstico.
+    // Antes, «Editar evaluación» en un equipo en reparación, calidad o Listo lo regresaba a «Diagnosticado».
+    const _eqEval = (cache.refurb || []).find(r => r.id === equipoId);
+    const _estEval = (_eqEval && _eqEval.estado_evaluacion) || 'pendiente';
+    if(!_REACOND_ESTADOS_EVALUACION.includes(_estEval)) {
+        return toast('Este equipo ya salió de diagnóstico. Las fallas nuevas se agregan como falla adicional en su panel de reparación.', 'error');
+    }
     const notas = document.getElementById('eval_notas').value.trim() || null;
     const fallasArray = Array.from(_evalState.fallasSeleccionadas);
     if(marcarEvaluado && !fallasArray.length && !notas) {
@@ -13217,6 +13230,14 @@ async function guardarEvaluacion(marcarEvaluado = false) {
             p_equipo: equipoId, p_notas: notas, p_fallas: fallas, p_piezas: piezas, p_marcar_evaluado: !!marcarEvaluado,
             p_tareas: textosFallas, p_catalogo: catalogo, p_creado_por: creadoPor
         });
+        // 26-oct-2026: la función del servidor no escribe el historial visible. Si cambió el estado, se anota aquí
+        // (si una versión nueva de la función ya lo escribe, devuelve historial:true y no se repite).
+        const _estNuevo = (r && r.estado) || (marcarEvaluado ? 'evaluado' : 'en_evaluacion');
+        if(_estNuevo !== _estEval && !(r && r.historial)) {
+            await _histInsert([{ equipo_id: equipoId, estado_anterior: _estEval, estado_nuevo: _estNuevo,
+                accion: _estNuevo === 'evaluado' ? 'Diagnóstico terminado' : 'Diagnóstico guardado',
+                notas: textosFallas.length ? 'Fallas: ' + textosFallas.join(', ') : notas, usuario: sessionUser?.nombre || 'Usuario' }]);
+        }
 
         toast(marcarEvaluado ? 'Evaluación guardada y equipo marcado como evaluado.' : 'Evaluación guardada.');
         cerrarModalEvaluacion();
@@ -14642,7 +14663,7 @@ async function verHistorialEquipoReacond(equipoId) {
                 ${seccion('<i class="ti ti-history"></i> Línea de tiempo', `<div style="margin-top:4px;">${timelineHtml}</div>`)}
             </div>
             <div class="modal-footer">
-                ${eq.estado_evaluacion !== 'vendido' ? `<button class="btn btn-light" onclick="cerrarHistorialEquipo(); continuarEvaluacion('${equipoId}')"><i class="ti ti-pencil"></i> Editar evaluación</button>` : ''}
+                ${_REACOND_ESTADOS_EVALUACION.includes(eq.estado_evaluacion || 'pendiente') ? `<button class="btn btn-light" onclick="cerrarHistorialEquipo(); continuarEvaluacion('${equipoId}')"><i class="ti ti-pencil"></i> Editar evaluación</button>` : ''}
                 <button class="btn btn-blue" onclick="cerrarHistorialEquipo()">Cerrar</button>
             </div>
         </div>`;
@@ -14706,7 +14727,11 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado, notaHistorial) {
         }
     }
     try {
-        const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: nuevoEstado }).eq('id', equipoId);
+        // 26-oct-2026 (prueba de punta a punta): al pasar directo a Listo también queda la fecha de terminado,
+        // igual que al aprobar calidad (antes quedaba vacía y la tarjeta y los reportes no tenían fecha).
+        const _patchEst = { estado_evaluacion: nuevoEstado };
+        if(nuevoEstado === 'listo_venta') _patchEst.fecha_terminado = new Date().toISOString();
+        const { error } = await supabaseClient.from('equipos_refurbish').update(_patchEst).eq('id', equipoId);
         if(error) throw error;
         await _histInsert([{
             equipo_id: equipoId, estado_anterior: estadoAnterior, estado_nuevo: nuevoEstado,
@@ -16186,10 +16211,10 @@ async function _despachoCargarHistorial() {
         });
         if(!filas.length) { cont.innerHTML = '<p style="color:#475569; font-size:13px; text-align:center; padding:14px;">Aún no hay despachos registrados.</p>'; return; }
         filas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-        const badge = (e) => e === 'ok' ? '<span style="color:#166534; font-weight:700;">✅ OK</span>' : (e === 'parcial' ? '<span style="color:#b45309; font-weight:700;">⚠️ Parcial</span>' : '<span style="color:#b91c1c; font-weight:700;">❌ Error</span>');
+        const badge = (e) => e === 'ok' ? '<span class="bcud-est bcud-est-ok" style="color:#166534; font-weight:700;"><span class="bcud-emo" aria-hidden="true">✅ </span>OK</span>' : (e === 'parcial' ? '<span class="bcud-est bcud-est-parcial" style="color:#b45309; font-weight:700;"><span class="bcud-emo" aria-hidden="true">⚠️ </span>Parcial</span>' : '<span class="bcud-est bcud-est-error" style="color:#b91c1c; font-weight:700;"><span class="bcud-emo" aria-hidden="true">❌ </span>Error</span>');
         const tipoTag = (t) => t === 'reacond'
-            ? '<span style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📱 Reacond</span>'
-            : '<span style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📦 Almacén</span>';
+            ? '<span class="bcud-tipo bcud-tipo-reacond" style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;"><span class="bcud-emo" aria-hidden="true">📱 </span>Reacond</span>'
+            : '<span class="bcud-tipo bcud-tipo-almacen" style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;"><span class="bcud-emo" aria-hidden="true">📦 </span>Almacén</span>';
         cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Nº</th><th>Tipo</th><th>Artículo</th><th>Cant.</th><th>Origen / Destino</th><th>Usuario</th><th>Estado</th><th>Nota</th><th></th></tr></thead><tbody>` +
             filas.map(r => `<tr>
                 <td style="white-space:nowrap;">${new Date(r.fecha).toLocaleString('es-DO')}</td>
@@ -17832,20 +17857,28 @@ async function marcarEquipoListo(equipoId) {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) { logError('marcarEquipoListo', e); toastError(getFriendlyError(e)); }
 }
+const _despachoEnCurso = new Set();
 async function marcarDespachado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
         return toast('No tiene permiso para despachar equipos.', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
+    // 26-oct-2026 (prueba de punta a punta): solo sale lo que está Listo, y un doble toque no registra dos salidas
+    // (antes se duplicaba el historial y se pisaba la fecha de despacho de un equipo ya despachado).
+    if(eq.estado_evaluacion !== 'listo_venta') return toast(eq.estado_evaluacion === 'vendido' ? 'Este equipo ya tiene la salida registrada.' : 'Solo se registra la salida de un equipo en Listo.', 'error');
+    if(_despachoEnCurso.has(equipoId)) return;
+    _despachoEnCurso.add(equipoId);
     // El taller es para CONTROL: "despachar" = entregar al almacén principal (no es una venta, no se pide precio)
-    if(!await confirmar(`¿Registrar la salida de "${eq.modelo}"?\n\nEl equipo pasará a Despachado.`)) return;
     try {
-        const { error } = await supabaseClient.from('equipos_refurbish').update({
+        if(!await confirmar(`¿Registrar la salida de "${eq.modelo}"?\n\nEl equipo pasará a Despachado.`)) return;
+        const { data: _salio, error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido',
             fecha_despacho: new Date().toISOString()
-        }).eq('id', equipoId);
+        }).eq('id', equipoId).eq('estado_evaluacion', 'listo_venta').select('id');
         if(error) throw error;
+        if(Array.isArray(_salio) && !_salio.length) { toast('Este equipo ya tiene la salida registrada.', 'error'); await loadAll(); return; }
+        eq.estado_evaluacion = 'vendido';
         await _histInsert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
             accion: 'Salida registrada → Despachado',
@@ -17860,7 +17893,7 @@ async function marcarDespachado(equipoId) {
     } catch(e) {
         logError('Marcar despachado', e);
         toastError(getFriendlyError(e));
-    }
+    } finally { _despachoEnCurso.delete(equipoId); }
 }
 
 // Ficha limpia para un equipo DESPACHADO (sin proceso de reparación): fallas, costo e imprimir label
@@ -18782,7 +18815,7 @@ function construirEstadoVisual(estadoRaw, opts) {
     <div class="ev-card ${cancel ? 'ev-cancel' : ''} ${clickable ? 'ev-clickable' : ''}" style="--ev-g1:${v.g1}; --ev-g2:${v.g2};"${clickAttrs}>
         <div class="ev-chip" style="background:linear-gradient(135deg, ${v.g1}, ${v.g2}); --ev-shadow:${v.g2}66;">
             <span class="ev-ic"><i class="ti ${v.icon}"></i></span>
-            <span class="ev-tx"><b>${(v.label||'').toUpperCase()}</b><small>${(v.sub||'').toUpperCase()}</small></span>
+            <span class="ev-tx"><b>${v.label||''}</b><small>${v.sub||''}</small></span>
             ${v.live ? '<span class="ev-dot live"></span>' : (cancel ? '' : '<span class="ev-dot"></span>')}
             ${clickable ? '<span class="ev-tap-hint"><i class="ti ti-hand-grab"></i></span>' : ''}
         </div>
@@ -19054,7 +19087,7 @@ function construirReporteComunes() {
 
 // Reporte de COBROS: dinero cobrado (costo_final) de órdenes entregadas en el período
 function construirReporteCobros() {
-    const fmt = (n) => 'RD$' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const fmt = (n) => 'RD$ ' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });   // DESIGN.md: «RD$ 1,250.00»
 
     // Órdenes entregadas dentro del rango (por fecha de entrega; fallback a creado_en)
     const entregadas = (cache.ordenes || []).filter(o =>
@@ -19172,7 +19205,9 @@ function calcularMetricasTecnico(tecnicoId) {
 }
 
 function renderReporteTecnico() {
-    if(typeof Chart === 'undefined' && window.__bayolLibs) { window.__bayolLibs.then(renderReporteTecnico); return; }   // Chart.js en diferido
+    // Chart.js en diferido. Se espera UNA sola vez: si la librería no cargó (internet caído), la pantalla sale sin gráfica en vez de quedar en un ciclo que congela la página (26-oct-2026).
+    if(typeof Chart === 'undefined' && window.__bayolLibs && !renderReporteTecnico._esperando) { renderReporteTecnico._esperando = true; window.__bayolLibs.then(renderReporteTecnico); return; }
+    renderReporteTecnico._esperando = false;
     const tecnicoId = document.getElementById('rep_tecnico')?.value;
     const cont = document.getElementById('reporteContenido');
     if(!cont) return;
@@ -19726,10 +19761,12 @@ function renderPiezasSolicitadas() {
             extra_pendiente:['⏳ Extra pendiente','#9a3412'], rechazada:['❌ Rechazada','#dc2626']
         };
         const [txt, col] = map[e] || [e, '#475569'];
-        return `<span style="background:${col}22; color:${col}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">${txt}</span>`;
+        // capa taller-ui-despachos (26-oct-2026): clase por estado y el emoji aparte, para la píldora con punto
+        const sp = map[e] ? txt.indexOf(' ') : -1;
+        return `<span class="bcud-est bcud-est-${escapeHtml(e)}" style="background:${col}22; color:${col}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">${sp > 0 ? `<span class="bcud-emo" aria-hidden="true">${txt.slice(0, sp)} </span>${txt.slice(sp + 1)}` : escapeHtml(txt)}</span>`;
     };
     const botonAccion = (i) => {
-        const b = (color, txt, fn) => `<button class="btn" style="background:${color}; color:#fff; font-size:11px; padding:5px 10px; border:none; border-radius:8px;" onclick="${fn}">${txt}</button>`;
+        const b = (color, txt, fn) => `<button class="btn bcud-acc" data-bcud="${color}" style="background:${color}; color:#fff; font-size:11px; padding:5px 10px; border:none; border-radius:8px;" onclick="${fn}">${txt}</button>`;
         if(i.kind === 'orden') {
             if(i.estado === 'solicitada' && puedeEntregar) return b('#0891b2','📦 Entregar', `entregarPiezaOrden('${i.id}')`);
             if(i.estado === 'entregada' && (isAdminUser() || i.tecnicoId === miId)) return b('#16a34a','✅ Confirmar recibida', `recibirPiezaOrden('${i.id}')`);
@@ -21346,19 +21383,19 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         } else if(puedeOperar && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             // Estados de espera: RESOLVER (vuelve a en proceso) + opción de finalizar directo
             if(estado === 'pendiente_cliente') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> AUTORIZACIÓN RESUELTA</button>`;
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorizado</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
             } else if(estado === 'espera_repuesto') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> REPUESTO LLEGÓ</button>`;
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Repuesto llegó</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
             } else {
                 // EN PROCESO (o recibido): mostrar todas las opciones útiles
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> EN ESPERA DE REPUESTO</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> ESPERANDO AUTORIZACIÓN</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> Espera repuesto</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando cliente</button>`;
             }
             // No se pudo reparar (equipo con daño sin solución) — técnico asignado o admin
-            if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> NO REPARADO</button>`;
+            if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> No reparado</button>`;
         } else if((esAdmin || esServicio) && estado === 'finalizado') {
             // Orden finalizada: solo servicio al cliente y admin pueden actuar (el técnico no hace nada)
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
@@ -21400,21 +21437,21 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             if(esAdmin) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrdenProceso('${o.id}')"><i class="ti ti-rotate"></i> Reabrir</button>`;
         } else if(estado === 'reparacion_externa') {
             const dest = o.taller_externo ? ` → ${escapeHtml(o.taller_externo)}` : '';
-            acciones += `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;">🔧 REPARACIÓN EXTERNA${dest}</span>`;
+            acciones += `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;">Reparación externa${dest}</span>`;
             if(esAdmin || esMia || esServicio) {
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> VOLVIÓ REPARADO · FINALIZAR</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> VOLVIÓ · CONTINUAR AQUÍ</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Volvió reparado</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Continuar aquí</button>`;
             }
         }
         // Servicio al cliente puede FINALIZAR (cerrar la reparación) y resolver esperas, aunque no sea el técnico.
         // No se le dan acciones de técnico (tomar/derivar/no reparado). Se evita duplicar si ya opera (admin/técnico).
         if(esServicio && !puedeOperar && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             if(estado === 'pendiente_cliente') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> AUTORIZACIÓN RESUELTA</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorizado</button>`;
             } else if(estado === 'espera_repuesto') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> REPUESTO LLEGÓ</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Repuesto llegó</button>`;
             }
-            acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+            acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
         }
         // Cancelar: SOLO servicio al cliente y admin (técnico NO puede cancelar) — a "Más opciones" (acción poco frecuente y sensible)
         if((esAdmin || esServicio) && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
@@ -21422,7 +21459,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         }
         // Derivar a otro técnico (solo si está tomada y en proceso) — a "Más opciones"
         if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
-            accionesExtra += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> DERIVAR</button>`;
+            accionesExtra += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> Derivar</button>`;
         }
         // Label y Recibo: SOLO admin y servicio al cliente (el técnico NO los ve) — a "Más opciones"
         if(esAdmin || esServicio) {
@@ -21434,7 +21471,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Si hay notas SIN LEER se queda visible arriba (aviso que no debe perderse); si no, va a "Más opciones".
         const sinLeerNota = (cache.ordenNotas || []).filter(n => n.orden_id === o.id && n.autor_rol === 'tecnico' && !n.leida_servicio).length;
         const totalNotas = (cache.ordenNotas || []).filter(n => n.orden_id === o.id).length;
-        const btnNotas = `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; ${sinLeerNota>0?'border-color:#fca5a5; color:#dc2626;':''}" onclick="abrirNotasOrden('${o.id}')"><i class="ti ti-message"></i> NOTAS${totalNotas>0?` (${totalNotas})`:''}${sinLeerNota>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeerNota}</span>`:''}</button>`;
+        const btnNotas = `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; ${sinLeerNota>0?'border-color:#fca5a5; color:#dc2626;':''}" onclick="abrirNotasOrden('${o.id}')"><i class="ti ti-message"></i> Notas${totalNotas>0?` (${totalNotas})`:''}${sinLeerNota>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeerNota}</span>`:''}</button>`;
         if(sinLeerNota > 0) acciones += btnNotas; else accionesExtra += btnNotas;
         // Ver historial del cliente (admin y servicio) — a "Más opciones"
         if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
@@ -21448,7 +21485,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
         const enGarantiaVigente = estado === 'entregado' && infoGarantiaOrden(o).vigente;
         if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado','no_reparado','reparacion_externa'].includes(estado) || enGarantiaVigente)) {
-            const txtBtn = enGarantiaVigente ? 'SOLICITAR PIEZA (GARANTÍA)' : 'SOLICITAR PIEZA';
+            const txtBtn = enGarantiaVigente ? 'Pedir pieza (garantía)' : 'Pedir pieza';
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> ${txtBtn}</button>`;
         }
         
@@ -21457,7 +21494,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         let piezasHtml = '';
         if(piezasOrden.length) {
             piezasHtml = `<div style="margin-top:8px; border-top:1px dashed var(--border-color); padding-top:6px;">
-                <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;"><i class="ti ti-packages"></i> PIEZAS ADICIONALES:</div>
+                <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;"><i class="ti ti-packages"></i> Piezas adicionales</div>
                 ${piezasOrden.map(p => {
                     const ep = etiquetaPiezaOrden(p.estado);
                     let btn = '';
@@ -21492,20 +21529,20 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // chip animado de "Estado del Equipo" — ver abrirCambioEstadoOrden().
         _ordenAccionesCache[o.id] = { principal: acciones, extra: accionesExtra };
 
-        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:7px; padding:8px 10px; margin-bottom:6px;">
+        return `<div class="bco-ficha" data-tono="${_BCF_ORD_TONO[estado] || 'gris'}" style="background:#fff; border:1px solid var(--border-color); border-radius:7px; padding:8px 10px; margin-bottom:6px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
                 <div style="flex:1; min-width:200px;">
                     <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                         <b style="font-size:13px;">${numOrden}</b>
-                        <span class="badge" style="background:${et.bg}; color:${et.color}; font-size:10px; padding:1px 7px;">${et.text}</span>
+                        <span class="badge bco-est" data-tono="${_BCF_ORD_TONO[estado] || 'gris'}" style="background:${et.bg}; color:${et.color}; font-size:10px; padding:1px 7px;"><i aria-hidden="true"></i>${_BCF_ORD_TXT[estado] || et.text}</span>
                         ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:10px; padding:1px 7px;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#475569; font-size:10px; padding:1px 7px;">Sin tomar</span>'}
                         ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8; font-size:10px; padding:1px 7px;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
-                        ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1; font-size:10px; padding:1px 7px;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
+                        ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1; font-size:10px; padding:1px 7px;"><i class="ti ti-shield-check"></i> Garantía${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
                         ${o.prioridad === 'urgente'
-                            ? `<span onclick="togglePrioridadOrden('${o.id}')" title="Quitar urgencia" class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 7px; cursor:pointer; font-weight:700;"><i class="ti ti-flame"></i> URGENTE</span>`
+                            ? `<span onclick="togglePrioridadOrden('${o.id}')" title="Quitar urgencia" class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 7px; cursor:pointer; font-weight:700;"><i class="ti ti-flame"></i> Urgente</span>`
                             : `<span onclick="togglePrioridadOrden('${o.id}')" title="Marcar como urgente" class="badge" style="background:#f1f5f9; color:#475569; font-size:10px; padding:1px 7px; cursor:pointer;"><i class="ti ti-flame"></i> Marcar urgente</span>`}
                     </div>
-                    <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b>${c.tipo_cliente === 'tienda' ? ` <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:9px; padding:1px 6px;">🏪 TIENDA</span>` : ''} · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
+                    <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b>${c.tipo_cliente === 'tienda' ? ` <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:9px; padding:1px 6px;">Tienda</span>` : ''} · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     ${(o.clave_equipo && (esMia || esAdmin || esServicio)) ? `<div style="font-size:11px; margin-top:3px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;"><i class="ti ti-key" style="color:#0891b2;"></i> <b>Acceso del equipo:</b> <span class="access-mask" data-visible="0">•••• <button class="btn btn-light" style="padding:1px 6px; font-size:10px;" onclick="revelarClave('${o.id}', this)">Mostrar</button></span></div>` : ''}
                     ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:10px; color:#7c3aed; margin-top:1px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
                     <div style="font-size:10px; color:#475569; margin-top:1px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
@@ -21527,7 +21564,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                     ${o.costo_final != null && estado === 'entregado' ? `<div style="font-size:11px; font-weight:700; color:#15803d; margin-top:3px;"><i class="ti ti-cash"></i> Cobrado: RD$${Number(o.costo_final).toLocaleString('es-DO')}</div>` : ''}
                 </div>
                 <div style="display:flex; flex-direction:column; gap:7px; align-items:stretch; min-width:172px;" class="acciones-verticales">
-                    <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
+                    <div style="font-size:10px; font-weight:700; color:var(--text-muted); letter-spacing:0;" class="bco-est-tit"><i class="ti ti-settings"></i> Estado</div>
                     ${construirEstadoVisual(estado, { ordenId: o.id, clickable: !tienePropuesta && (!!acciones.trim() || !!accionesExtra.trim()) })}
                     ${tienePropuesta ? construirPropuestaEstadoHTML(o, esAdmin, esServicio, esMia) : `${acciones}
                     ${accionesExtra ? `<details class="ord-mas">
@@ -21656,7 +21693,7 @@ function construirMisPiezasTodas(miId, kind) {
             origen: `${eq.marca||''} ${eq.modelo||''}`.trim() || 'Reacond', tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en
         });
     });
-    if(!items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No has solicitado piezas todavía.</div>`;
+    if(!items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No ha solicitado piezas todavía.</div>`;
     items.sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
     
     const etiq = (e) => {
@@ -22147,11 +22184,11 @@ function renderAtencionCliente() {
     if(kpisCont) {
         const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
         kpisCont.innerHTML = `
-            ${kpi('Recibidos Hoy', recibidosHoy, '#ef4444', 'ti-download')}
-            ${kpi('En Diagnóstico', enDiag, '#f59e0b', 'ti-search')}
-            ${kpi('En Reparación', enRep, '#10b981', 'ti-settings')}
-            ${kpi('Espera Pieza', esperaPieza, '#ef4444', 'ti-hourglass')}
-            ${kpi('Listos Entrega', listos, '#8b5cf6', 'ti-circle-check')}
+            ${kpi('Recibidos hoy', recibidosHoy, '#ef4444', 'ti-download')}
+            ${kpi('Diagnóstico', enDiag, '#f59e0b', 'ti-search')}
+            ${kpi('Reparación', enRep, '#10b981', 'ti-settings')}
+            ${kpi('Espera pieza', esperaPieza, '#ef4444', 'ti-hourglass')}
+            ${kpi('Por entregar', listos, '#8b5cf6', 'ti-circle-check')}
         `;
     }
     
@@ -22217,13 +22254,13 @@ function renderAtencionCliente() {
 
     // SECCIÓN: Buscar historial de cliente
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-user-search" style="color:#0891b2;"></i> Buscar Historial de Cliente</h3>
-        <input id="atencionBuscarCliente" oninput="renderAtencionClientesBusqueda()" placeholder="🔍 Nombre o teléfono del cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-user-search" style="color:#0891b2;"></i> Historial del cliente</h3>
+        <input id="atencionBuscarCliente" oninput="renderAtencionClientesBusqueda()" placeholder="Nombre o teléfono" aria-label="Buscar cliente" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
         <div id="atencionClientesResultado" style="margin-top:8px;"></div>
     </div>`;
     const paraEntregar = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'finalizado');
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-circle-check" style="color:#8b5cf6;"></i> Listas para Entregar (${paraEntregar.length})</h3>`;
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-circle-check" style="color:#8b5cf6;"></i> Por entregar <span class="bco-n">${paraEntregar.length}</span></h3>`;
     if(paraEntregar.length) {
         html += paraEntregar.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, true)).join('');
     } else {
@@ -22234,7 +22271,7 @@ function renderAtencionCliente() {
     // SECCIÓN: Esperando autorización del cliente
     const espAut = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'pendiente_cliente');
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-bell" style="color:#9a3412;"></i> Esperando Autorización del Cliente (${espAut.length})</h3>`;
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-bell" style="color:#9a3412;"></i> Esperando cliente <span class="bco-n">${espAut.length}</span></h3>`;
     if(espAut.length) {
         html += espAut.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, true)).join('');
     } else {
@@ -22244,26 +22281,26 @@ function renderAtencionCliente() {
     
     // SECCIÓN: Todas las órdenes (buscador + filtros)
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Todas las Órdenes de Servicio</h3>
-        <input id="atencionBuscador" oninput="renderAtencionListaOrdenes()" placeholder="🔍 Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Órdenes</h3>
+        <input id="atencionBuscador" oninput="renderAtencionListaOrdenes()" placeholder="Número o cliente" aria-label="Buscar orden" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
-            <button class="btn btn-light" onclick="_atencionFiltro='todas'; renderAtencionListaOrdenes()" style="font-size:12px;">Todas</button>
-            <button class="btn btn-light" onclick="_atencionFiltro='activas'; renderAtencionListaOrdenes()" style="font-size:12px;">⚙️ Activas</button>
-            <button class="btn btn-light" onclick="_atencionFiltro='entregadas'; renderAtencionListaOrdenes()" style="font-size:12px;">📦 Entregadas</button>
+            <button class="btn btn-light bco-fil" data-af="todas" onclick="_atencionFiltro='todas'; renderAtencionListaOrdenes()" style="font-size:12px;">Todas</button>
+            <button class="btn btn-light bco-fil" data-af="activas" onclick="_atencionFiltro='activas'; renderAtencionListaOrdenes()" style="font-size:12px;">Activas</button>
+            <button class="btn btn-light bco-fil" data-af="entregadas" onclick="_atencionFiltro='entregadas'; renderAtencionListaOrdenes()" style="font-size:12px;">Entregadas</button>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
-            <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha:</span>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=0; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Todas</button>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=1; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Hoy</button>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=7; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">7 días</button>
-            <button class="btn btn-light" onclick="_atencionFechaFiltro=30; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">30 días</button>
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha</span>
+            <button class="btn btn-light bco-fil" data-afd="0" onclick="_atencionFechaFiltro=0; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Todas</button>
+            <button class="btn btn-light bco-fil" data-afd="1" onclick="_atencionFechaFiltro=1; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Hoy</button>
+            <button class="btn btn-light bco-fil" data-afd="7" onclick="_atencionFechaFiltro=7; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">7 días</button>
+            <button class="btn btn-light bco-fil" data-afd="30" onclick="_atencionFechaFiltro=30; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">30 días</button>
         </div>
         <div id="atencionListaOrdenes"></div>
     </div>`;
     
     // SECCIÓN: Historial de reparaciones de los técnicos
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-history" style="color:#16a34a;"></i> Historial de Reparaciones</h3>
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-history" style="color:#16a34a;"></i> Reparaciones terminadas</h3>
         ${construirFiltroFechas(true)}
         <div style="margin-bottom:10px;">
             <label style="font-size:12px; font-weight:600; color:var(--text-muted);">Técnico:</label>
@@ -23414,6 +23451,18 @@ async function guardarDevolucion() {
             p_equipo: equipoId, p_motivo: motivo, p_problemas: problemasStr, p_cliente: cliente || null,
             p_diagnostico: diagnostico || null, p_tecnico: tecnicoId, p_usuario: sessionUser?.nombre || 'Admin'
         });
+        // 26-oct-2026 (prueba de punta a punta): el ciclo nuevo arrancaba sin ninguna tarea abierta, y el técnico podía
+        // pasarlo a calidad sin trabajo. Se abre una tarea con el motivo (si el servidor ya la creó, no se repite).
+        try {
+            const { data: _abiertas } = await supabaseClient.from('tareas_trabajo').select('id,estado')
+                .eq('tipo', 'equipo').eq('ref_id', equipoId);
+            if(!(_abiertas || []).some(t => t.estado !== 'hecha')) {
+                const { error: eT } = await supabaseClient.from('tareas_trabajo').insert([{ tipo: 'equipo', ref_id: equipoId,
+                    descripcion: ('Devolución: ' + motivo).slice(0, 200), tecnico_id: tecnicoId, estado: 'pendiente',
+                    creado_por: _uuidONull(sessionUser?.id) }]);
+                if(eT) logError('Tarea de la devolución', eT);
+            }
+        } catch(eT) { logError('Tarea de la devolución', eT); }
         toast('🔄 Devolución registrada. Equipo vuelto a "En Proceso".');
         cerrarModalDevolucion();
         await loadAll();
@@ -28279,7 +28328,9 @@ function _finBucketDias(f) {
     return max;
 }
 function _pintarDashboardFin() {
-    if(typeof Chart === 'undefined' && window.__bayolLibs) { window.__bayolLibs.then(_pintarDashboardFin); return; }   // Chart.js en diferido
+    // Chart.js en diferido; se espera una sola vez (si no cargó, sin gráfica y sin congelar la página; 26-oct-2026).
+    if(typeof Chart === 'undefined' && window.__bayolLibs && !_pintarDashboardFin._esperando) { _pintarDashboardFin._esperando = true; window.__bayolLibs.then(_pintarDashboardFin); return; }
+    _pintarDashboardFin._esperando = false;
     const kpisEl = document.getElementById('finKpis');
     const cont = document.getElementById('finContenido');
     if(!cont) return;

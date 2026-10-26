@@ -1770,9 +1770,23 @@ body{
 <!-- Prefactura con el diseño de STUDIO (dueño 19-oct-2026): capa reversible. Apagar: BC_PF=false o localStorage bc_pf_off=1 -->
 <script>var BC_PF=true;try{if(BC_PF&&localStorage.getItem('bc_pf_off')!=='1')document.documentElement.classList.add('bc-pf');}catch(e){if(BC_PF)document.documentElement.classList.add('bc-pf');}</script>
 <link rel="stylesheet" href="taller-prefactura.css?v=20261024-n13">
+<!-- Órdenes y Atención (26-oct-2026): lista compacta, ficha con píldoras. Apagar: localStorage.bc_uiord_off='1' -->
+<script>var BC_UIORD=true;try{if(BC_UIORD&&localStorage.getItem('bc_uiord_off')!=='1')document.documentElement.classList.add('bc-uiord');}catch(e){if(BC_UIORD)document.documentElement.classList.add('bc-uiord');}</script>
+<link rel="stylesheet" href="taller-ui-ordenes.css?v=20261026-o1">
+<script>var BC_UID=true;try{if(BC_UID&&localStorage.getItem('bc_uid_off')!=='1')document.documentElement.classList.add('bc-uid');}catch(e){if(BC_UID)document.documentElement.classList.add('bc-uid');}</script>
+<link rel="stylesheet" href="taller-ui-despachos.css?v=20261026-a4">
 <!-- Ayudas detrás de una ⓘ (dueño 19-oct-2026, igual que NEXUS): apagar BC_INFO=false o localStorage bc_info_off=1 -->
 <script>var BC_INFO=true;try{if(BC_INFO&&localStorage.getItem('bc_info_off')!=='1')document.documentElement.classList.add('bc-info');}catch(e){if(BC_INFO)document.documentElement.classList.add('bc-info');}</script>
 <link rel="stylesheet" href="taller-info.css?v=20261019-i2">
+<!-- Inventario, Artículos, Etiquetas e Inventario físico (26-oct-2026): capa reversible. Apagar: BC_INV=false o localStorage bc_inv_off=1 -->
+<script>var BC_INV=true;try{if(BC_INV&&localStorage.getItem('bc_inv_off')!=='1')document.documentElement.classList.add('bc-inv');}catch(e){if(BC_INV)document.documentElement.classList.add('bc-inv');}</script>
+<link rel="stylesheet" href="taller-ui-inventario.css?v=20261026-a1">
+<!-- Reacondicionados, capa visual (26-oct-2026): apagar BC_RCU=false o localStorage bc_reacond_ui_off=1 -->
+<script>var BC_RCU=true;try{if(BC_RCU&&localStorage.getItem('bc_reacond_ui_off')!=='1')document.documentElement.classList.add('bc-rcu');}catch(e){if(BC_RCU)document.documentElement.classList.add('bc-rcu');}</script>
+<link rel="stylesheet" href="taller-ui-reacond.css?v=20261026-rcu1">
+<!-- Reacondicionados → Rentabilidad: costo final y margen por teléfono y lote (26-oct-2026): capa reversible. Apagar: BC_RR=false o localStorage bc_rr_off=1 -->
+<script>var BC_RR=true;try{if(BC_RR&&localStorage.getItem('bc_rr_off')!=='1')document.documentElement.classList.add('bc-rr');}catch(e){if(BC_RR)document.documentElement.classList.add('bc-rr');}</script>
+<link rel="stylesheet" href="taller-reacond-rentabilidad.css?v=20261026-rr1">
 <link rel="stylesheet" href="crm-consulta-precio.css?v=20261020-h1">
 <!-- Carga (23-oct-2026): estas 6 hojas las inyectaban los scripts después de DOMContentLoaded y la pantalla cambiaba de aspecto
      al cargar. Ahora vienen desde el primer pintado, en el mismo orden de cascada; los scripts las reconocen por su id y no las repiten. -->
@@ -1782,6 +1796,15 @@ body{
 <link id="bcSurfaceCss" rel="stylesheet" href="taller-surface-cleanup.css?v=20260914-clean1">
 <link id="bcMidnightCss" rel="stylesheet" href="taller-midnight-motion.css?v=20260929-f1">
 <link id="bcAfinadoCss" rel="stylesheet" href="taller-afinado.css?v=20261001-f3">
+<!-- Inicio y Mi trabajo (26-oct-2026): capa visual reversible. Apagar: BC_UI_INICIO=false o localStorage bc_ui_inicio_off=1 -->
+<script>var BC_UI_INICIO=true;try{if(BC_UI_INICIO&&localStorage.getItem('bc_ui_inicio_off')!=='1')document.documentElement.classList.add('bc-ui-inicio');}catch(e){if(BC_UI_INICIO)document.documentElement.classList.add('bc-ui-inicio');}</script>
+<link rel="stylesheet" href="taller-ui-inicio.css?v=20261026-a1">
+<!-- Finanzas (26-oct-2026): Contabilidad, CxP, Nómina, Liquidación, Incentivos, Financiamientos. Capa reversible. Apagar: localStorage bc_finanzas_off=1 -->
+<script>try{if(localStorage.getItem('bc_finanzas_off')!=='1')document.documentElement.classList.add('bc-fin');}catch(e){document.documentElement.classList.add('bc-fin');}</script>
+<link rel="stylesheet" href="taller-ui-finanzas.css?v=20261026-f1">
+<!-- Interfaz global (26-oct-2026): menú, barra de arriba, Configuración, Reportes, sin MAYÚSCULAS forzadas. Apagar: BC_UI=false o localStorage bc_ui_off=1 -->
+<script>var BC_UI=true;try{if(BC_UI&&localStorage.getItem('bc_ui_off')!=='1')document.documentElement.classList.add('bc-ui');}catch(e){if(BC_UI)document.documentElement.classList.add('bc-ui');}</script>
+<link rel="stylesheet" href="taller-ui-global.css?v=20261026-u1">
 </head>
 <body>
 
@@ -5667,13 +5690,22 @@ body{
 <div id="printArea" class="print-area"></div>
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
-<script defer src="taller-app.min.js?v=20261024-q4"></script>
+<script defer src="taller-app.min.js?v=20261026-t10"></script>
 <script defer src="taller-recepcion.js?v=20261024-g9"></script>
 <script defer src="taller-prefactura.js?v=20261024-i26"></script>
 <script defer src="bc-prefactura-imprimir.js?v=20261024-i11"></script>
 <script defer src="bc-permisos-listas.js?v=20261021-pl1"></script>
-<script defer src="taller-info.js?v=20261023-v3"></script>
+<script defer src="taller-info.js?v=20261026-t10"></script>
+<script defer src="taller-ui-inicio.js?v=20261026-a1"></script>
+<script defer src="taller-ui-ordenes.js?v=20261026-o1"></script>
+<script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
+<script defer src="taller-ui-finanzas.js?v=20261026-f1"></script>
+<script defer src="taller-ui-global.js?v=20261026-u1"></script>
+<script defer src="taller-ui-reacond.js?v=20261026-rcu1"></script>
+<script defer src="taller-reacond-rentabilidad.js?v=20261026-rr1"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
+<script defer src="taller-ui-despachos.js?v=20261026-a4"></script>
+<script defer src="taller-reacond-proceso.js?v=20261026-p1"></script>
 <script defer src="crm-consulta-precio.js?v=20261024-h3"></script>
 <script defer src="crm-marketing-consent.js?v=20261025-u26"></script>
 </body>

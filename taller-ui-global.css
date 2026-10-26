@@ -1,0 +1,193 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   BAYOL CELL · Capa global de interfaz (26-oct-2026, agente 6 de 10)
+   Navegación (barra de arriba y menú lateral), Configuración, Reportes y Estadísticas,
+   más un barrido de consistencia en todas las pantallas:
+   - nada de MAYÚSCULAS forzadas en etiquetas, títulos, píldoras ni menú (DESIGN.md §4b);
+     se dejan solo los encabezados de tabla y los rótulos de KPI, que DESIGN.md permite;
+   - todo lo que se toca ≥ 44 × 44 px (la barra de arriba y el menú no estaban en taller-tactil.css);
+   - números con cifras alineadas (tabular-nums), nunca letra monoespaciada;
+   - zonas seguras del iPhone (muesca y barra de inicio) en la barra de arriba y en el menú.
+   Solo actúa con html.bc-ui (lo pone el <head>). Apagar en un equipo: localStorage.bc_ui_off = '1';
+   para todos: BC_UI = false. No toca datos ni lógica. El chat de WhatsApp (#waWrap) queda fuera.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Barra de arriba ─────────────────────────────────────────────────────── */
+html.bc-ui body #app .top-bar > :is(.menu-toggle, .btn) {
+  width: auto !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 12px !important;
+  font-size: 13px !important;
+}
+html.bc-ui body .top-bar > .btn:not([hidden]):not([style*="display:none"]):not([style*="display: none"]) { display: inline-flex !important; }
+html.bc-ui body .top-bar > .btn > i { font-size: 18px; }
+html.bc-ui body .top-bar > :is(.menu-toggle, .btn):active { transform: scale(.96); }
+html.bc-ui body .top-bar > :is(.menu-toggle, .btn):focus-visible { outline: 2px solid #FF6B35; outline-offset: 2px; }
+/* Título de la pantalla: en letra normal, sin espaciado de mayúsculas, y recortado con «…» si no cabe */
+html.bc-ui body .top-bar .top-title {
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+  font-size: 17px;
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html.bc-ui body .top-bar #userRole { text-transform: none !important; }
+html.bc-ui body .top-bar .top-right-info { white-space: nowrap; }
+
+/* ── 2. Menú lateral ────────────────────────────────────────────────────────── */
+/* Títulos de sección: el texto viene escrito en MAYÚSCULAS en el HTML; aquí se lee «Operación del taller».
+   Solo color y forma de la letra: el tamaño lo sigue decidiendo taller-sidebar-mini.css (línea fina al cerrar). */
+html.bc-ui body #app aside.sidebar .nav .nav-section {
+  text-transform: lowercase !important;
+  letter-spacing: .01em !important;
+  color: rgba(203, 213, 225, .72) !important;
+  font-weight: 700 !important;
+}
+html.bc-ui body #app aside.sidebar .nav .nav-section::first-letter { text-transform: uppercase; }
+/* En el celular el menú siempre va abierto: título de sección a 11 px (antes 10) para que se lea */
+@media (max-width: 1024px) { html.bc-ui body #app aside.sidebar .nav .nav-section { font-size: 11px !important; } }
+html.bc-ui body #app aside.sidebar .nav button {
+  min-height: 44px !important;
+  font-variant-numeric: tabular-nums;
+}
+html.bc-ui body #app aside.sidebar .nav button:focus-visible { outline: 2px solid #FF6B35; outline-offset: -2px; }
+html.bc-ui body #app aside.sidebar .nav .nav-badge-admin { text-transform: none !important; letter-spacing: 0 !important; }
+
+/* ── 3. Zonas seguras del iPhone (muesca arriba, barra de inicio abajo) ─────── */
+@media (max-width: 1024px) {
+  html.bc-ui body .top-bar {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    height: calc(54px + env(safe-area-inset-top, 0px)) !important;
+    padding-left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    box-sizing: border-box;
+  }
+  html.bc-ui body #app aside.sidebar {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    box-sizing: border-box;
+    overscroll-behavior: contain;
+  }
+  /* El fondo oscuro detrás del menú abierto: que no deje desplazar la pantalla de atrás */
+  html.bc-ui body .sidebar-backdrop.active { touch-action: none; }
+}
+
+/* ── 4. Barrido global: sin MAYÚSCULAS forzadas ─────────────────────────────── */
+/* Etiquetas de formulario (antes «label { text-transform: uppercase }» en todo el taller) */
+html.bc-ui body label:not(#waWrap *) { text-transform: none !important; }
+/* Títulos, desplegables, cabeceras de bloque y de ventana, aunque traigan el estilo escrito en la etiqueta */
+html.bc-ui body :is(.view, .modal-box, .modal-backdrop) :is(h1, h2, h3, h4, h5, summary, .block-header, legend):not(#waWrap *) {
+  text-transform: none !important;
+}
+html.bc-ui body .modal-header h3 { text-transform: none !important; letter-spacing: -0.01em !important; }
+html.bc-ui body .block-header { text-transform: none !important; letter-spacing: 0 !important; }
+/* Píldoras de estado: una palabra en letra normal (DESIGN.md §4) */
+html.bc-ui body .badge:not(#waWrap *) { text-transform: none !important; letter-spacing: 0 !important; }
+/* Rótulos sueltos con el estilo escrito («Color:»). Se excluyen las vistas previas de
+   etiquetas impresas (llevan text-stroke) para que se vean igual que en el papel. */
+html.bc-ui body :is(.view, .modal-box) span[style*="text-transform:uppercase"]:not([style*="text-stroke"]):not(#waWrap *) {
+  text-transform: none !important;
+}
+html.bc-ui body .bc-ses-num small,
+html.bc-ui body .prov-detail-header .stat-item small,
+html.bc-ui body .ev-foot { text-transform: none !important; letter-spacing: 0 !important; }
+
+/* ── 5. Números: cifras alineadas en todas las pantallas ────────────────────── */
+html.bc-ui body :is(.view, .modal-box, .top-bar, #toast) { font-variant-numeric: tabular-nums; }
+
+/* ── 6. KPI de Reportes, Dashboard y demás («.kpi-grid» no tenía estilo: salían uno debajo del otro) ── */
+html.bc-ui body .view .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+html.bc-ui body .view .kpi-grid > .kpi-box { margin: 0; min-width: 0; }
+html.bc-ui body .view .kpi-box strong { display: block; font-size: 20px; line-height: 1.2; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+html.bc-ui body .view .kpi-box small { letter-spacing: .03em; color: #64748b; line-height: 1.3; }
+@media (max-width: 600px) {
+  html.bc-ui body .view .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  html.bc-ui body .view .kpi-box strong { font-size: 18px; }
+}
+/* Gráfica de Reportes: alto fijo para que no salte al pintarse */
+html.bc-ui body #v-reportes #repCanvas { height: 260px !important; max-height: 260px; }
+html.bc-ui body #v-reportes #reporteContenido .card:has(> #repCanvas) { min-height: 320px; }
+/* Tablas anchas de Reportes y Estadísticas: se desplazan dentro de su tarjeta, nunca la pantalla entera */
+html.bc-ui body :is(#v-reportes, #v-estadisticas) :is(.table-wrap, div[style*="overflow-x:auto"]) { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+html.bc-ui body :is(#v-reportes, #v-estadisticas) td { white-space: nowrap; }
+html.bc-ui body :is(#v-reportes, #v-estadisticas) td:nth-child(2) { white-space: normal; min-width: 140px; }
+/* Selector de técnico: etiqueta encima y campo a lo ancho en el celular */
+@media (max-width: 600px) {
+  html.bc-ui body #v-reportes .card:has(> div > #rep_tecnico) > div { flex-direction: column; align-items: stretch !important; gap: 6px !important; }
+  html.bc-ui body #v-reportes #rep_tecnico { max-width: none !important; min-width: 0 !important; width: 100%; }
+}
+
+/* ── 7. Configuración: pestañas, formularios en orden (DESIGN.md §4b) ──────── */
+/* Pestañas como control segmentado de píldoras; en el celular se desplazan de lado, sin apretar el texto */
+html.bc-ui body #v-configuracion > div:has(> .cfg-main-tab) {
+  border-radius: 999px !important;
+  padding: 4px !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+html.bc-ui body #v-configuracion > div:has(> .cfg-main-tab)::-webkit-scrollbar { display: none; }
+html.bc-ui body #v-configuracion .cfg-main-tab {
+  border-radius: 999px !important;
+  min-height: 44px !important;
+  min-width: max-content !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color .16s cubic-bezier(.22, 1, .36, 1), color .16s cubic-bezier(.22, 1, .36, 1);
+}
+html.bc-ui body #v-configuracion .cfg-main-tab:active { transform: scale(.97); }
+/* Etiquetas de los formularios: 13 px, gris #475569, encima del campo */
+html.bc-ui body #v-configuracion :is(#cfgContentGeneral, #cfgContentFallas) label:not(:has(input[type="checkbox"], input[type="radio"])) {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  letter-spacing: 0 !important;
+  margin: 0 0 6px !important;
+}
+html.bc-ui body #v-configuracion #cfgContentGeneral :is(input, textarea, select) {
+  border-radius: 12px;
+  margin: 0 0 14px !important;
+  box-sizing: border-box;
+}
+html.bc-ui body #v-configuracion #cfgContentGeneral :is(input, textarea, select):focus {
+  border-color: rgba(59, 130, 246, .6) !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, .16) !important;
+}
+/* Botón principal de cada tarjeta: 54 px */
+html.bc-ui body #app #v-configuracion #cfgContentGeneral#cfgContentGeneral#cfgContentGeneral .card > button.btn-blue,
+html.bc-ui body #app #v-configuracion #cfgContentGeneral#cfgContentGeneral#cfgContentGeneral .card > div > button.btn-blue {
+  min-height: 54px !important;
+  font-size: 16px !important;
+  border-radius: 14px !important;
+}
+/* Los botones «Nuevo …» de cada lista: misma forma que el resto */
+html.bc-ui body #v-configuracion .card > div > button.btn-blue { border-radius: 12px !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.bc-ui body #v-configuracion .cfg-main-tab { transition: none; }
+}
+
+/* ── 8. Letra mínima: en el celular los rótulos de los KPI del Dashboard bajaban a 8,5 px
+   (taller-visual-polish.css, «#app #v-dashboard .kpi-box small»). Se suben a 11 px, el mínimo legible de la escala NEXUS. ── */
+@media (max-width: 560px) {
+  html.bc-ui body #app #v-dashboard .kpi-box small { font-size: 11px !important; line-height: 1.25; }
+}

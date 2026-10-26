@@ -42,3 +42,26 @@ sin llenar no sale); filtros por sucursal, estado y búsqueda por cédula; boton
 MAYÚSCULAS; la ficha muestra todas las filas sin recortes; cambiar a «Enviada al banco» y «Aprobada» llama a la RPC
 `fin_solicitud_seguimiento` y guarda el historial; «Escribir el aviso en el chat» abre el chat y deja el texto en la caja
 sin enviarlo; la tarjeta del chat trae «Ver seguimiento» y abre la ficha. Uso: `node scripts/pruebas/solicitudes-crm.cjs [carpeta-capturas]`.
+
+## ui-global.cjs (26-oct-2026)
+Capa global de interfaz (`taller-ui-global.css/.js`). A 390 y 1280 px: barra de arriba con botones ≥ 44 px, ☰ solo en el
+celular, título sin mayúsculas ni «ADMIN», secciones del menú en letra normal, etiquetas de Configuración sin MAYÚSCULAS y con
+el paréntesis en la ⓘ, campos 48/16, Guardar 54 px, ⓘ que abren y cierran, KPI de Reportes en rejilla, dinero «RD$ 0.00», sin
+desplazamiento horizontal ni errores; y Reportes sin Chart.js no congela la página. Uso: `node scripts/pruebas/ui-global.cjs`
+(`PUERTO=xxxx` para otro puerto).
+## reacond-flujo-completo.cjs (26-oct-2026)
+Reacondicionados de punta a punta con las RPC del servidor simuladas igual que la base: crear lote (y lote repetido),
+empezar y guardar evaluación, asignar técnico, pedir/entregar/recibir pieza (stock baja una sola vez), candados de pieza y
+de tareas, tareas hechas → calidad → Listo, salida con doble toque (una sola salida y una sola baja en Info Plus), salida
+repetida bloqueada, devolución con ciclo 2 y tarea abierta, equipo directo a Listo con fecha, editar evaluación de un equipo
+en Listo (no lo regresa), salida en bloque y bloque que no salta etapas. Al final revisa historial (cada cambio de estado con
+su renglón y su estado anterior real), costo de repuestos y flete del lote. 25 pasos a 390 y 1280 px.
+Uso: `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/reacond-flujo-completo.cjs [carpeta-capturas]`
+(`PUERTO=…` si el servidor corre en otro puerto).
+## reacond-proceso.cjs (26-oct-2026)
+Capa `taller-reacond-proceso.js` (candados del proceso de Reacondicionados en el navegador), con datos inventados, a 390 y
+1280 px: «Reabrir salida» pide confirmación; «Cerrar salida» no cierra un equipo en Listo; «Registrar salida» no repite un
+Despachado; «Pasar a → Listo para venta» en bloque no mueve equipos con tareas abiertas; «Quitar equipo» y «Eliminar lote»
+advierten si hay Despachados o piezas ya descontadas en Info Plus; un error largo sigue visible a los 4.6 s con `role=alert`;
+«Despachar teléfonos» no llama a Info Plus si un equipo ya está Despachado y pregunta si alguno no está en Listo; botones del
+lote ≥ 44 px y sin desplazamiento horizontal; 0 errores de JavaScript. Uso: `node scripts/pruebas/reacond-proceso.cjs [carpeta-capturas]`.

@@ -1,0 +1,198 @@
+/* BAYOL CELL · Finanzas (26-oct-2026): Contabilidad, Cuentas por pagar, Nómina (RRHH), Liquidación, Incentivos,
+   Mis incentivos y Financiamientos. Va con taller-ui-finanzas.js. Solo interfaz: no cambia cálculos ni datos.
+   · Cifras alineadas (tabular-nums) en pantallas y ventanas de estos módulos.
+   · Sin MAYÚSCULAS forzadas: etiquetas, encabezados, KPI y nombres de columna en minúscula normal.
+   · Etiquetas de formulario según DESIGN.md §4b (13 px, gris #475569, encima del campo); campos 48/16 radio 12 con
+     foco azul NEXUS; botón principal de las ventanas 54 px.
+   · Totales destacados (fila «Total…» / pie de tabla).
+   · Celular: pestañas en una sola fila deslizable; tablas de solo lectura en tarjetas con el nombre de cada dato.
+   Capa reversible: solo actúa con html.bc-fin (la pone el <head>). Apagar: localStorage bc_finanzas_off='1'.
+   «#bcF#bcF» dentro de :is() solo sube la especificidad (no existe ese id); en el botón de 54 px son cinco, para ganarle
+   a la capa táctil (que pone 44 px con cuatro). */
+
+/* ── Alcance: las 7 pantallas y sus ventanas ── */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  #modalCxpJalar, #modalCxpManual, #modalCxpAbono, #modalCxpVer, #modalRrhhExp, #modalRrhhBenef, #modalNomEmp,
+  #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto, #modalGastoSimple, #modalMovEf, #modalCuenta,
+  #modalPago, #modalContrato, #modalRevTickets, #modalValTickets) {
+  font-variant-numeric: tabular-nums;
+}
+/* Los campos no heredan la letra: cifras alineadas también al escribir montos */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  [id^="modalCxp"], [id^="modalRrhh"], #modalNomEmp, #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto,
+  #modalGastoSimple, #modalMovEf, #modalCuenta, #modalPago, #modalContrato, #modalRevTickets, #modalValTickets) :is(input, select, textarea, td, th, strong, b) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Sin MAYÚSCULAS forzadas ── */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  [id^="modalCxp"], [id^="modalRrhh"], #modalNomEmp, #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto,
+  #modalGastoSimple, #modalMovEf, #modalCuenta, #modalPago, #modalContrato, #modalRevTickets, #modalValTickets, #bcF#bcF)
+  :is(th, label, small, legend, .inc-lbl, .inc-kpi-lbl, .fv-kpi small, .fv-detail-kpi small, .kpi-box small,
+      [style*="text-transform:uppercase"], [style*="text-transform: uppercase"], [class*="-lbl"], [class*="-label"], [class*="eyebrow"]) {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos, #bcF#bcF)
+  td[data-label]::before {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+/* ── Formularios (DESIGN.md §4b) ── */
+/* Etiqueta encima del campo: 13 px, gris, primera letra en mayúscula (la que ya trae el texto) */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  [id^="modalCxp"], [id^="modalRrhh"], #modalNomEmp, #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto,
+  #modalGastoSimple, #modalMovEf, #modalCuenta, #modalPago, #modalContrato, #bcF#bcF)
+  :is(label:not(:has(> input:is([type="checkbox"], [type="radio"]))), .inc-lbl) {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  line-height: 1.3;
+}
+/* Casillas en fila con su texto */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  [id^="modalCxp"], [id^="modalRrhh"], #modalNomEmp, #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto,
+  #modalGastoSimple, #modalMovEf, #modalCuenta, #modalPago, #modalContrato, #bcF#bcF)
+  label:has(> input:is([type="checkbox"], [type="radio"])) {
+  font-size: 14px !important;
+  align-items: center;
+  gap: 10px;
+}
+/* Campos: 48 px, letra 16, radio 12 (la capa táctil ya da el alto; aquí el radio y el foco azul NEXUS) */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  [id^="modalCxp"], [id^="modalRrhh"], #modalNomEmp, #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto,
+  #modalGastoSimple, #modalMovEf, #modalCuenta, #modalPago, #modalContrato, #bcF#bcF)
+  :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not([type="color"]), select, textarea) {
+  border-radius: 12px !important;
+  font-size: 16px !important;
+}
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  [id^="modalCxp"], [id^="modalRrhh"], #modalNomEmp, #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto,
+  #modalGastoSimple, #modalMovEf, #modalCuenta, #modalPago, #modalContrato, #bcF#bcF)
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: rgba(59, 130, 246, .6) !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, .16) !important;
+}
+/* Botón principal de las ventanas: 54 px */
+html.bc-fin :is([id^="modalCxp"], [id^="modalRrhh"], #modalNomEmp, #modalAsiento, #modalAutoIP, #modalApertura, #modalAutoIPC, #modalRegGasto,
+  #modalGastoSimple, #modalMovEf, #modalCuenta, #modalPago, #modalContrato, #bcF#bcF#bcF#bcF#bcF)
+  .modal-footer :is(.btn-blue, .btn-success, .btn-primary, .btn-teal) {
+  min-height: 54px !important;
+  padding: 0 22px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: 14px !important;
+}
+
+/* ── Totales destacados ── */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+  [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) tr.bcfin-total > :is(td, th) {
+  font-weight: 800 !important;
+  color: #0f172a;
+  background: rgba(15, 23, 42, .035) !important;
+  border-top: 2px solid rgba(15, 23, 42, .12) !important;
+}
+
+/* ── Celular ── */
+@media (max-width: 760px) {
+  /* Pestañas de Contabilidad y RRHH: una sola fila que se desliza, en vez de 3–4 filas de botones */
+  html.bc-fin #v-contabilidad div:has(> #contaTabMensual),
+  html.bc-fin #v-nomina div:has(> #nomTabEmp) {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    margin-left: -16px; margin-right: -16px;
+    padding: 2px 16px 6px;
+    scroll-padding-left: 16px;
+  }
+  html.bc-fin #v-contabilidad div:has(> #contaTabMensual)::-webkit-scrollbar,
+  html.bc-fin #v-nomina div:has(> #nomTabEmp)::-webkit-scrollbar { display: none; }
+  html.bc-fin #v-contabilidad div:has(> #contaTabMensual) > .btn,
+  html.bc-fin #v-nomina div:has(> #nomTabEmp) > .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    border-radius: 999px !important;
+  }
+  /* En la tarjeta de RRHH el título y las pestañas van uno debajo del otro, y las pestañas a todo el ancho */
+  html.bc-fin #v-nomina div:has(> #nomTabEmp) { margin-left: -13px; margin-right: -13px; padding-left: 13px; padding-right: 13px; width: calc(100% + 26px); }
+
+  /* Tablas de solo lectura → tarjetas, con el nombre de cada dato a la izquierda */
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards {
+    display: block !important; width: 100% !important; min-width: 0 !important; border: 0 !important; background: transparent !important;
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > thead { display: none !important; }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > :is(tbody, tfoot) { display: block !important; width: 100% !important; }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > :is(tbody, tfoot) > tr {
+    display: block !important; width: 100% !important; box-sizing: border-box;
+    border: 1px solid #e3e8ef !important; border-radius: 14px !important; background: #fff !important;
+    padding: 6px 14px !important; margin: 0 0 10px !important; box-shadow: 0 2px 8px -4px rgba(15, 23, 42, .12);
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > :is(tbody, tfoot) > tr > td {
+    display: block !important; width: 100% !important; box-sizing: border-box; min-height: 0; padding: 8px 0 !important;
+    border: 0 !important; border-bottom: 1px solid #f1f4f8 !important; text-align: right !important;
+    font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; position: static !important;
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > :is(tbody, tfoot) > tr > td:last-child { border-bottom: 0 !important; }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > :is(tbody, tfoot) > tr > td[data-label]::before {
+    content: attr(data-label); float: left; max-width: 45%; margin-right: 12px; text-align: left; display: block !important;
+    font-size: 13px; font-weight: 600; color: #64748b; line-height: 1.6; position: static !important; width: auto !important;
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > :is(tbody, tfoot) > tr > td::after { content: ""; display: table; clear: both; }
+  /* La primera celda es el título de la tarjeta */
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > tbody > tr > td:first-child {
+    text-align: left !important; font-size: 16px; font-weight: 700; color: #0f172a;
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > tbody > tr > td:first-child::before { display: none !important; }
+  /* Celda sin nombre (botones de acción): al pie de la tarjeta, alineados a la derecha */
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos,
+    [id^="modalCxp"], [id^="modalRrhh"], #modalPago, #bcF#bcF) table.bcfin-cards > tbody > tr > td:not([data-label]):not(:first-child) {
+    display: flex !important; justify-content: flex-end; flex-wrap: wrap; gap: 8px;
+  }
+  /* Fila de totales como tarjeta destacada */
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos, #bcF#bcF)
+    table.bcfin-cards tr.bcfin-total { border-color: rgba(15, 23, 42, .18) !important; background: #f8fafc !important; }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos, #bcF#bcF)
+    table.bcfin-cards tr.bcfin-total > td { background: transparent !important; border-top: 0 !important; }
+
+  /* Tarjetas que ya existían (.table-wrap): etiqueta legible a la izquierda y cifra a la derecha */
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-financiamientos, #bcF#bcF) .table-wrap td[data-label]:not(:first-child) {
+    display: block !important; text-align: right !important; font-size: 15px; padding: 8px 0 !important;
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-financiamientos, #bcF#bcF) .table-wrap td[data-label]:not(:first-child)::before {
+    float: left; display: block !important; max-width: 45%; margin-right: 12px; width: auto !important; line-height: 1.6;
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-financiamientos, #bcF#bcF) .table-wrap td[data-label]:not(:first-child)::after { content: ""; display: table; clear: both; }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-financiamientos, #bcF#bcF) .table-wrap td[data-label]::before {
+    font-size: 13px !important; font-weight: 600 !important; color: #64748b !important; text-align: left;
+  }
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-financiamientos, #bcF#bcF) .table-wrap td:not([data-label]):not(:first-child) {
+    display: flex !important; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding-left: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos) * { scroll-behavior: auto !important; }
+}
+
+/* Encabezado oscuro de la tabla de la quincena: el texto gris de la regla general quedaba casi invisible sobre el azul noche */
+html.bc-fin :is(#v-contabilidad, #v-cuentasPorPagar, #v-nomina, #v-liquidacion, #v-incentivos, #v-misIncentivos, #v-financiamientos, #bcF#bcF)
+  thead tr:is([style*="background:#0f172a"], [style*="background: #0f172a"]) > th {
+  color: #f8fafc !important;
+  font-weight: 700;
+}
+
+/* Nombres de los KPI de Financiamientos: 12 px (antes 10 px en mayúsculas) */
+html.bc-fin #v-financiamientos :is(.fv-kpi small, .fv-detail-kpi small) { font-size: 12px !important; font-weight: 600 !important; }
