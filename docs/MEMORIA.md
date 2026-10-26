@@ -32,6 +32,7 @@ manda lo más nuevo. Ante la duda, volver a leer (nunca suponer).
 
 - **Avisos en pantalla:** cortos, profesionales, que informen, sin redundancia (`REGLAMENTOS.md` §4, 22-oct).
 ## 3. Qué tenemos funcionando (por módulo)
+- **Cuentas de pago por WhatsApp (26-oct):** plantilla `bayolcell_cuentas_pago_v2` (cuentas fijas en el texto, una por bloque; APPROVED en 5/6 líneas, +18094899145 pendiente). El texto libre (<24 h) es idéntico (`_rpTextoCuentas`). Si cambia una cuenta: cambiar `_RP_CUENTAS_TEXTO` y someter v3.
 **Prefactura** (antes «Recepción»; id interno `recepcion`, tabla `recepcion_prefacturas`; capa `taller-prefactura.js/.css`,
 apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
 - Documento estilo STUDIO: franja Facturar a · Precio del cliente · Almacén; Vendedor al pie junto a «Pedir reseña».
