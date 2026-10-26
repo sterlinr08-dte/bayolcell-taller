@@ -1,0 +1,259 @@
+/* BAYOL CELL · Reacondicionados: capa visual (26-oct-2026). Va con taller-ui-reacond.js.
+   Solo actúa con html.bc-rcu (se pone en el <head>). Apagar: BC_RCU=false o localStorage bc_reacond_ui_off='1'.
+   No cambia ids, onclick ni cálculos: solo aspecto, tamaños táctiles y orden de las acciones.
+   Pide: tablero del lote claro (píldora con punto y texto), tarjeta legible, acciones por paso, alerta que no empuja,
+   casillas de 48 px con su texto, pestañas ≥ 44 px, títulos de ventana con contraste ≥ 4.5:1, sin MAYÚSCULAS forzadas. */
+html.bc-rcu {
+  --rcu-ink: #0f172a; --rcu-sub: #475569; --rcu-mute: #64748b; --rcu-line: #e2e8f0;
+  --rcu-acc: #e4572e; --rcu-acc-dark: #b8401f; --rcu-blue: #2563eb;
+}
+
+/* ── 1. Pestañas del módulo: una fila, 48 px, letra 13 px ── */
+html.bc-rcu #app #v-refurb .reacond-main-label { font-size: 13px !important; }
+html.bc-rcu #app #v-refurb .reacond-main-tab { min-height: 48px !important; }
+@media (max-width: 720px) {
+  html.bc-rcu #app #v-refurb .reacond-module-nav {
+    display: flex !important; flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; margin-bottom: 12px !important;
+  }
+  html.bc-rcu #app #v-refurb .reacond-module-nav::-webkit-scrollbar { display: none; }
+  html.bc-rcu #app #v-refurb .reacond-main-tab { flex: none !important; min-width: auto !important; scroll-snap-align: start; padding: 6px 14px 6px 8px !important; }
+  html.bc-rcu #app #v-refurb .reacond-main-label { white-space: nowrap; }
+}
+/* Etapas de la lista de lotes */
+html.bc-rcu #app #v-refurb .reacond-tabs-scroll .tab-btn { min-height: 44px !important; }
+html.bc-rcu #app #v-refurb .reacond-stage-label { font-size: 13px !important; }
+
+/* ── 2. «Lo que está parado»: franja compacta, no empuja la lista ── */
+html.bc-rcu #app #v-refurb .rss-wrap { margin: 0 0 12px; }
+html.bc-rcu #app #v-refurb .rss-card { padding: 10px 12px 10px 14px; min-height: 64px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; }
+html.bc-rcu #app #v-refurb .rss-n { grid-row: 1 / span 2; font-size: 24px; min-width: 28px; text-align: center; }
+html.bc-rcu #app #v-refurb .rss-lbl { margin-top: 0; font-size: 13px; line-height: 1.25; }
+html.bc-rcu #app #v-refurb .rss-det { display: none; }
+html.bc-rcu #app #v-refurb .rss-acc { margin-top: 2px; font-size: 13px; }
+@media (max-width: 480px) {
+  html.bc-rcu #app #v-refurb .rss-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; }
+  html.bc-rcu #app #v-refurb .rss-card { grid-template-columns: 1fr; grid-template-rows: auto; row-gap: 2px; min-height: 76px; }
+  html.bc-rcu #app #v-refurb .rss-n { grid-row: auto; text-align: left; font-size: 22px; }
+}
+
+/* ── 3. Tarjeta de cada lote: etapas en píldora con punto, número y texto ── */
+html.bc-rcu #app #v-refurb .reacond-lote-stages { display: flex !important; flex-wrap: wrap; gap: 6px !important; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage {
+  display: inline-flex !important; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 9px !important;
+  border-radius: 999px !important; background: var(--rcu-bg, #f1f5f9) !important; color: var(--rcu-fg, #475569) !important;
+  font-size: 12.5px !important; font-weight: 600; text-align: left !important; transform: none !important;
+}
+html.bc-rcu #app #v-refurb .reacond-lote-stage br { display: none; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage b { order: 2; font-size: 13px !important; color: var(--rcu-fg, #475569) !important; font-variant-numeric: tabular-nums; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage::before { content: ""; order: 0; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--rcu-dot, #94a3b8); }
+html.bc-rcu #app #v-refurb .reacond-lote-stage.rcu-cero { opacity: .55; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage:nth-child(1) { --rcu-bg: #f1f5f9; --rcu-fg: #475569; --rcu-dot: #94a3b8; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage:nth-child(2) { --rcu-bg: #e0edff; --rcu-fg: #1d4ed8; --rcu-dot: #3b82f6; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage:nth-child(3) { --rcu-bg: #ffedd5; --rcu-fg: #9a3412; --rcu-dot: #ea580c; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage:nth-child(4) { --rcu-bg: #f3e8ff; --rcu-fg: #7e22ce; --rcu-dot: #a855f7; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage:nth-child(5) { --rcu-bg: #dcfce7; --rcu-fg: #15803d; --rcu-dot: #22c55e; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage:nth-child(6) { --rcu-bg: #ccfbf1; --rcu-fg: #0f766e; --rcu-dot: #14b8a6; }
+html.bc-rcu #app #v-refurb .reacond-lote-stage.reacond-lote-total { --rcu-bg: #fff; --rcu-fg: #0f172a; --rcu-dot: transparent; border: 1px solid var(--rcu-line); }
+html.bc-rcu #app #v-refurb .reacond-lote-progress-label { font-size: 12px !important; color: var(--rcu-mute) !important; font-variant-numeric: tabular-nums; }
+html.bc-rcu #app #v-refurb .reacond-lote-card .btn { min-height: 44px; }
+
+/* ── 4. Cabecera del lote: estado en píldora, datos del lote en 2 columnas en el celular ── */
+html.bc-rcu #app #v-refurb #reacondLoteEstadoBadge {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px !important; border-radius: 999px !important;
+  font-size: 12px !important; font-weight: 650; text-transform: none !important; letter-spacing: 0 !important;
+}
+html.bc-rcu #app #v-refurb #reacondLoteEstadoBadge .ti { display: none; }
+html.bc-rcu #app #v-refurb #reacondLoteEstadoBadge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+html.bc-rcu #app #v-refurb .reacond-detail-card > div:first-child .btn { min-height: 44px; }
+html.bc-rcu #app #v-refurb #reacondLoteInfo { padding: 10px 14px !important; margin-bottom: 12px !important; font-size: 13px !important; }
+html.bc-rcu #app #v-refurb #reacondLoteInfo > div { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; gap: 8px 12px !important; }
+html.bc-rcu #app #v-refurb #reacondLoteInfo b { font-weight: 600; color: var(--rcu-sub) !important; font-size: 12px; }
+html.bc-rcu #app #v-refurb #reacondLoteInfo b .ti { display: none; }
+html.bc-rcu #app #v-refurb #reacondLoteInfo .rcu-ayuda { display: none; }
+@media (max-width: 480px) {
+  html.bc-rcu #app #v-refurb #reacondLoteInfo > div { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+/* ── 5. Tablero del lote: una píldora por etapa (punto + texto + número), es el único filtro por etapa ── */
+html.bc-rcu #app #v-refurb .reacond-detail-kpis {
+  display: flex !important; flex-wrap: wrap; gap: 8px !important; margin: 0 0 14px !important;
+}
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card {
+  display: inline-flex !important; flex-direction: row-reverse; align-items: center; justify-content: flex-end; gap: 8px;
+  min-height: 44px !important; height: 44px; padding: 0 14px 0 30px !important; border-radius: 999px !important;
+  background: var(--bcf-bg, #f1f5f9) !important; border: 1px solid transparent !important; border-top: 1px solid transparent !important;
+  box-shadow: none !important; text-align: left !important; overflow: visible !important; animation: none !important; transform: none !important;
+}
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card::after { display: none !important; }
+html.bc-rcu #app #v-refurb #kpiCardPendiente, html.bc-rcu #app #v-refurb #kpiCardDiagnostico, html.bc-rcu #app #v-refurb #kpiCardProceso,
+html.bc-rcu #app #v-refurb #kpiCardCalidad, html.bc-rcu #app #v-refurb #kpiCardListoV, html.bc-rcu #app #v-refurb #kpiCardDespachado { border-top-color: transparent !important; }
+html.bc-rcu #app #v-refurb #kpiCardPendiente.is-filtered, html.bc-rcu #app #v-refurb #kpiCardDiagnostico.is-filtered, html.bc-rcu #app #v-refurb #kpiCardProceso.is-filtered,
+html.bc-rcu #app #v-refurb #kpiCardCalidad.is-filtered, html.bc-rcu #app #v-refurb #kpiCardListoV.is-filtered, html.bc-rcu #app #v-refurb #kpiCardDespachado.is-filtered { border-color: var(--bcf-fg) !important; }
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card::before { left: 13px !important; width: 8px !important; height: 8px !important; margin-top: -4px !important; }
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card > div {
+  font-size: 13.5px !important; font-weight: 650 !important; color: var(--bcf-fg, #475569) !important; text-transform: none !important; letter-spacing: 0 !important; line-height: 1.2 !important; white-space: nowrap;
+}
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card > div:first-child {
+  font-size: 15px !important; font-weight: 800 !important; color: var(--bcf-fg, #0f172a) !important; font-variant-numeric: tabular-nums;
+}
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card.rcu-cero { opacity: .6; }
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card.is-filtered { border: 2px solid var(--bcf-fg) !important; padding-left: 29px !important; }
+html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card:focus-visible { outline: 2px solid var(--rcu-blue); outline-offset: 2px; }
+html.bc-rcu #app #v-refurb #kpiCardProceso { --bcf-fg: #9a3412; }
+/* La fila de filtros de color de la capa «flota» repetía el tablero: queda una sola entrada por función */
+html.bc-rcu #app #v-refurb #bcfReacondChips { display: none !important; }
+@media (max-width: 480px) {
+  html.bc-rcu #app #v-refurb .reacond-detail-kpis { display: flex !important; }
+  html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card { flex: 1 1 calc(50% - 4px); justify-content: space-between; min-width: 0 !important; max-width: calc(50% - 4px); padding-right: 12px !important; }
+  html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card { height: auto; padding-top: 4px !important; padding-bottom: 4px !important; }
+  html.bc-rcu #app #v-refurb .reacond-detail-kpis .reacond-kpi-card > div { white-space: normal; font-size: 13px !important; }
+}
+
+/* ── 6. Acciones del lote agrupadas por paso (las arma taller-ui-reacond.js con los mismos botones) ── */
+html.bc-rcu #app #v-refurb .rcu-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 8px; }
+html.bc-rcu #app #v-refurb .rcu-cab h4 { margin: 0; font-size: 17px; font-weight: 700; color: var(--rcu-ink); }
+html.bc-rcu #app #v-refurb .rcu-barra { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0 0 10px; }
+html.bc-rcu #app #v-refurb .rcu-grupo {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--rcu-line);
+  border-radius: 16px; background: rgba(255,255,255,.86);
+}
+html.bc-rcu #app #v-refurb .rcu-grupo-t { font-size: 12px; font-weight: 650; color: var(--rcu-mute); padding: 0 6px 0 4px; white-space: nowrap; }
+html.bc-rcu #app #v-refurb .rcu-barra .btn,
+html.bc-rcu #app #v-refurb .rcu-barra summary {
+  min-height: 44px !important; padding: 0 14px !important; font-size: 13.5px !important; font-weight: 650 !important;
+  border-radius: 12px !important; display: inline-flex; align-items: center; gap: 6px; line-height: 1.2; text-transform: none !important;
+}
+html.bc-rcu #app #v-refurb .rcu-barra .btn:hover { transform: none; }
+html.bc-rcu #app #v-refurb .rcu-barra .btn:active { transform: scale(.97); }
+html.bc-rcu #app #v-refurb .rcu-menu { position: relative; }
+html.bc-rcu #app #v-refurb .rcu-menu > summary {
+  list-style: none; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #334155; user-select: none;
+}
+html.bc-rcu #app #v-refurb .rcu-menu > summary::-webkit-details-marker { display: none; }
+html.bc-rcu #app #v-refurb .rcu-menu > summary::after { content: ""; width: 7px; height: 7px; margin-left: 2px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .16s cubic-bezier(.22,1,.36,1); }
+html.bc-rcu #app #v-refurb .rcu-menu[open] > summary { background: #eff6ff; border-color: rgba(59,130,246,.6); color: #1d4ed8; }
+html.bc-rcu #app #v-refurb .rcu-menu[open] > summary::after { transform: translateY(2px) rotate(225deg); }
+html.bc-rcu #app #v-refurb .rcu-menu-p {
+  position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; min-width: 230px; display: flex; flex-direction: column; gap: 4px; padding: 6px;
+  background: rgba(255,255,255,.97); border: 1px solid rgba(15,23,42,.08); border-radius: 16px;
+  box-shadow: 0 0 0 1px rgba(15,23,42,.04), 0 24px 48px -20px rgba(15,23,42,.35), 0 10px 20px -12px rgba(15,23,42,.18);
+}
+html.bc-rcu #app #v-refurb .rcu-menu-p .btn { width: 100%; justify-content: flex-start; background: #fff !important; color: #0f172a !important; border: 0 !important; box-shadow: none !important; }
+html.bc-rcu #app #v-refurb .rcu-menu-p .btn:hover { background: rgba(59,130,246,.07) !important; }
+html.bc-rcu #app #v-refurb .rcu-menu-p .btn .ti { color: #2563eb; }
+/* «Marcar todos»: casilla en fila con su texto dentro de una tarjeta de 48 px */
+html.bc-rcu #app #v-refurb .rcu-chk-card {
+  display: inline-flex !important; align-items: center; gap: 10px; min-height: 48px !important; padding: 0 14px 0 12px !important; border: 1px solid var(--rcu-line);
+  border-radius: 12px; background: #fff; font-size: 14px !important; font-weight: 600; color: #334155 !important; text-transform: none !important; letter-spacing: 0 !important; cursor: pointer;
+}
+html.bc-rcu #app #v-refurb .rcu-chk-card input[type="checkbox"] { width: 22px !important; height: 22px !important; min-height: 0 !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; flex: none; accent-color: var(--rcu-acc); }
+html.bc-rcu #app #v-refurb #reacondSelCount { font-size: 13px !important; color: #9a3412 !important; font-variant-numeric: tabular-nums; }
+html.bc-rcu #app #v-refurb #reacondSelCount:empty { display: none; }
+/* Menú «Pasar a» */
+html.bc-rcu #app #v-refurb #reacondPasarMenu { border-radius: 14px !important; padding: 4px; min-width: 230px !important; }
+html.bc-rcu #app #v-refurb #reacondPasarMenu > div:first-child { text-transform: none !important; font-size: 12px !important; color: var(--rcu-mute) !important; padding: 6px 10px 2px !important; }
+html.bc-rcu #app #v-refurb #reacondPasarMenu button { min-height: 44px; border-radius: 10px; font-size: 14px !important; }
+/* Búsqueda + fechas en una fila; campos de 48 px y letra 16 px */
+html.bc-rcu #app #v-refurb .rcu-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+html.bc-rcu #app #v-refurb .rcu-filtros #reacondBusq { min-width: 0 !important; }
+html.bc-rcu #app #v-refurb .rcu-filtros #reacondBusq,
+html.bc-rcu #app #v-refurb .rcu-filtros input[type="date"] { height: 48px !important; font-size: 16px !important; border-radius: 12px !important; padding: 0 12px !important; }
+html.bc-rcu #app #v-refurb .rcu-fechas { display: inline-flex !important; align-items: center; gap: 6px !important; padding: 0 !important; border: 0 !important; }
+html.bc-rcu #app #v-refurb .rcu-fechas > span { font-size: 13px !important; }
+html.bc-rcu #app #v-refurb .rcu-fechas > button { width: 44px; height: 44px; border-radius: 12px !important; font-size: 16px !important; display: inline-flex; align-items: center; justify-content: center; }
+html.bc-rcu #app #v-refurb #reacondTecnicosRow button { min-height: 44px; font-size: 13px !important; }
+@media (max-width: 480px) {
+  html.bc-rcu #app #v-refurb .rcu-grupo { flex: 1 1 100%; }
+  html.bc-rcu #app #v-refurb .rcu-grupo-t { flex: 1 1 100%; padding: 2px 4px 0; }
+  html.bc-rcu #app #v-refurb .rcu-fechas { flex: 1 1 100%; min-width: 0 !important; max-width: 100%; }
+  html.bc-rcu #app #v-refurb .rcu-fechas input[type="date"] { flex: 1 1 0 !important; min-width: 0 !important; width: auto !important; }
+  html.bc-rcu #app #v-refurb .rcu-fechas > button { flex: none; }
+  html.bc-rcu #app #v-refurb .rcu-menu-p { min-width: 0; width: max-content; max-width: calc(100vw - 48px); }
+  html.bc-rcu #app #v-refurb .rcu-grupo .rcu-menu:last-child .rcu-menu-p { left: auto; right: 0; }
+}
+
+/* ── 7. Tarjeta del teléfono ── */
+html.bc-rcu #app #v-refurb .bcf-chk-wrap { min-width: 48px; min-height: 48px; margin: -12px -6px -12px -12px; }
+html.bc-rcu #app #v-refurb .bcf-chk { width: 22px !important; height: 22px !important; min-height: 0 !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; border-radius: 6px !important; }
+html.bc-rcu #app #v-refurb .bcf-chk-wrap { min-height: 48px !important; }
+html.bc-rcu #app #v-refurb .bcf-tit b { font-size: 16px; }
+html.bc-rcu #app #v-refurb .bcf-sub { font-size: 13px; color: var(--rcu-mute); }
+html.bc-rcu #app #v-refurb .bcf-tag { font-size: 12.5px; }
+html.bc-rcu #app #v-refurb .bcf-chip { font-size: 12px; height: 26px; }
+html.bc-rcu #app #v-refurb .bcf-pzs-h { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+html.bc-rcu #app #v-refurb .bcf-pzs li { font-size: 13px; }
+html.bc-rcu #app #v-refurb .bcf-pzs li em { font-size: 11.5px; }
+html.bc-rcu #app #v-refurb .bcf-per-txt small, html.bc-rcu #app #v-refurb .bcf-upd { font-size: 12px; }
+html.bc-rcu #app #v-refurb .bcf-f { font-size: 13px; }
+html.bc-rcu #app #v-refurb .bcf-color { min-height: 44px; margin: -10px -6px; font-size: 13px; }
+html.bc-rcu #app #v-refurb .bcf-ib { width: 44px; height: 44px; }
+html.bc-rcu #app #v-refurb .bcf-abrir { min-height: 44px; font-size: 14px; padding: 0 10px; }
+html.bc-rcu #app #v-refurb .bcf-btn-salida { min-height: 44px; font-size: 13.5px !important; }
+/* Resumen de la tarjeta: fallas, tareas y costo */
+html.bc-rcu .rcu-res { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+html.bc-rcu .rcu-res > div { display: flex; flex-direction: column; gap: 1px; padding: 7px 10px; border-radius: 12px; background: #f8fafc; border: 1px solid #eef2f7; min-width: 0; }
+html.bc-rcu .rcu-res small { font-size: 12px; color: var(--rcu-mute); }
+html.bc-rcu .rcu-res b { font-size: 14px; font-weight: 700; color: var(--rcu-ink); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-rcu .rcu-res .rcu-pend b { color: #9a3412; }
+html.bc-rcu .rcu-res .rcu-ok b { color: #15803d; }
+
+/* ── 8. Mis reacondicionados (técnico) ── */
+html.bc-rcu #app #v-misReacond h2 { font-size: 20px; }
+html.bc-rcu #app #v-misReacond h4 { text-transform: none !important; letter-spacing: 0 !important; font-size: 15px !important; color: var(--rcu-ink) !important; }
+html.bc-rcu #app #v-misReacond .btn { min-height: 44px; font-size: 13.5px !important; }
+html.bc-rcu .rcu-mis-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; margin-bottom: 8px; }
+html.bc-rcu .rcu-mis-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #fff; border: 1px solid #e6e9ef; border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 10px 24px -18px rgba(15,23,42,.25); min-width: 0;
+}
+html.bc-rcu .rcu-mis-h { display: flex; align-items: flex-start; gap: 10px; }
+html.bc-rcu .rcu-mis-h > div { flex: 1; min-width: 0; }
+html.bc-rcu .rcu-mis-h b { display: block; font-size: 16px; font-weight: 750; color: var(--rcu-ink); line-height: 1.25; }
+html.bc-rcu .rcu-mis-h small { display: block; font-size: 13px; color: var(--rcu-mute); margin-top: 2px; font-variant-numeric: tabular-nums; }
+html.bc-rcu .rcu-pill { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12.5px; font-weight: 650; white-space: nowrap; background: var(--bcf-bg, #f1f5f9); color: var(--bcf-fg, #475569); }
+html.bc-rcu .rcu-pill[data-tono="azul"] { --bcf-bg: #e0edff; --bcf-fg: #1d4ed8; --bcf-dot: #3b82f6; }
+html.bc-rcu .rcu-pill[data-tono="naranja"] { --bcf-bg: #ffedd5; --bcf-fg: #9a3412; --bcf-dot: #ea580c; }
+html.bc-rcu .rcu-pill[data-tono="amarillo"] { --bcf-bg: #fef3c7; --bcf-fg: #854d0e; --bcf-dot: #eab308; }
+html.bc-rcu .rcu-pill[data-tono="morado"] { --bcf-bg: #f3e8ff; --bcf-fg: #7e22ce; --bcf-dot: #a855f7; }
+html.bc-rcu .rcu-pill[data-tono="verde"] { --bcf-bg: #dcfce7; --bcf-fg: #15803d; --bcf-dot: #22c55e; }
+html.bc-rcu .rcu-pill[data-tono="teal"] { --bcf-bg: #ccfbf1; --bcf-fg: #0f766e; --bcf-dot: #14b8a6; }
+html.bc-rcu .rcu-pill[data-tono="rojo"] { --bcf-bg: #fee2e2; --bcf-fg: #b91c1c; --bcf-dot: #ef4444; }
+html.bc-rcu .rcu-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--bcf-dot, #94a3b8); }
+html.bc-rcu .rcu-lista-t { font-size: 12.5px; font-weight: 650; color: var(--rcu-sub); margin: 0 0 4px; }
+html.bc-rcu .rcu-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+html.bc-rcu .rcu-items li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #1e293b; min-width: 0; }
+html.bc-rcu .rcu-items li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.bc-rcu .rcu-items li i.rcu-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #ea580c; }
+html.bc-rcu .rcu-items li.hecha { color: var(--rcu-mute); }
+html.bc-rcu .rcu-items li.hecha span { text-decoration: line-through; }
+html.bc-rcu .rcu-items li.hecha i.rcu-dot { background: #22c55e; }
+html.bc-rcu .rcu-items li em { flex: none; font-style: normal; font-size: 12px; font-weight: 650; padding: 1px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; }
+html.bc-rcu .rcu-items li em.esp { background: #fef3c7; color: #92400e; }
+html.bc-rcu .rcu-items li em.ok { background: #dcfce7; color: #15803d; }
+html.bc-rcu .rcu-mis-pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+html.bc-rcu .rcu-mis-pie small { font-size: 12.5px; color: var(--rcu-mute); }
+html.bc-rcu .rcu-mis-pie .btn { min-height: 48px !important; height: 48px; padding: 0 20px !important; font-size: 15px !important; border-radius: 14px !important; }
+html.bc-rcu .rcu-vacio { color: var(--rcu-mute); font-size: 14px; padding: 8px 0; }
+@media (max-width: 480px) { html.bc-rcu .rcu-mis-lista { grid-template-columns: 1fr; } }
+
+/* ── 9. Ventanas del proceso: títulos con contraste ≥ 4.5:1 y sin MAYÚSCULAS ── */
+html.bc-rcu #modalReasignar .modal-header,
+html.bc-rcu #modalAsignarTecnico .modal-header,
+html.bc-rcu #modalAsignarLote .modal-header { background: linear-gradient(135deg, #b45309, #92400e) !important; }
+html.bc-rcu #modalPanelProceso .modal-header h3,
+html.bc-rcu #modalReasignar .modal-header h3,
+html.bc-rcu #modalAsignarTecnico .modal-header h3,
+html.bc-rcu #modalAsignarLote .modal-header h3 { text-transform: none !important; letter-spacing: 0 !important; font-size: 17px !important; }
+html.bc-rcu #modalPanelProceso .modal-body h4 { text-transform: none !important; letter-spacing: 0 !important; font-size: 15px !important; color: var(--rcu-ink) !important; }
+html.bc-rcu #modalPanelProceso .badge { text-transform: none; }
+html.bc-rcu #modalPanelProceso .pieza-action-btn { min-height: 44px; }
+html.bc-rcu #modalPanelProceso .rcu-acc-panel { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; padding: 10px; border: 1px solid var(--rcu-line); border-radius: 16px; background: #f8fafc; }
+html.bc-rcu #modalPanelProceso .rcu-acc-panel .rcu-grupo-t { flex: 1 1 100%; font-size: 12.5px; font-weight: 650; color: var(--rcu-mute); padding: 0 4px; }
+html.bc-rcu #modalPanelProceso .rcu-acc-panel .btn { margin: 0 !important; min-height: 44px; padding: 0 14px !important; font-size: 13.5px !important; border-radius: 12px !important; display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 480px) { html.bc-rcu #modalPanelProceso .rcu-acc-panel .btn { flex: 1 1 100%; justify-content: center; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html.bc-rcu #app #v-refurb .rcu-menu > summary::after { transition: none; }
+}
+@media print { html.bc-rcu .rcu-barra, html.bc-rcu .rcu-filtros { display: none !important; } }

@@ -1781,6 +1781,9 @@ body{
 <!-- Inventario, Artículos, Etiquetas e Inventario físico (26-oct-2026): capa reversible. Apagar: BC_INV=false o localStorage bc_inv_off=1 -->
 <script>var BC_INV=true;try{if(BC_INV&&localStorage.getItem('bc_inv_off')!=='1')document.documentElement.classList.add('bc-inv');}catch(e){if(BC_INV)document.documentElement.classList.add('bc-inv');}</script>
 <link rel="stylesheet" href="taller-ui-inventario.css?v=20261026-a1">
+<!-- Reacondicionados, capa visual (26-oct-2026): apagar BC_RCU=false o localStorage bc_reacond_ui_off=1 -->
+<script>var BC_RCU=true;try{if(BC_RCU&&localStorage.getItem('bc_reacond_ui_off')!=='1')document.documentElement.classList.add('bc-rcu');}catch(e){if(BC_RCU)document.documentElement.classList.add('bc-rcu');}</script>
+<link rel="stylesheet" href="taller-ui-reacond.css?v=20261026-rcu1">
 <link rel="stylesheet" href="crm-consulta-precio.css?v=20261020-h1">
 <!-- Carga (23-oct-2026): estas 6 hojas las inyectaban los scripts después de DOMContentLoaded y la pantalla cambiaba de aspecto
      al cargar. Ahora vienen desde el primer pintado, en el mismo orden de cascada; los scripts las reconocen por su id y no las repiten. -->
@@ -5695,6 +5698,7 @@ body{
 <script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
 <script defer src="taller-ui-finanzas.js?v=20261026-f1"></script>
 <script defer src="taller-ui-global.js?v=20261026-u1"></script>
+<script defer src="taller-ui-reacond.js?v=20261026-rcu1"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
 <script defer src="taller-ui-despachos.js?v=20261026-a4"></script>
 <script defer src="crm-consulta-precio.js?v=20261024-h3"></script>
