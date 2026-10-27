@@ -114,10 +114,21 @@
   // usa para saber si el teclado está abierto (_waActualizarAltoVisual).
   function teclado() {
     var vv = window.visualViewport; if (!vv) return;
-    var alto = Math.max(window.innerHeight, doc.documentElement.clientHeight || 0);
+    var html = doc.documentElement;
+    var alto = Math.max(window.innerHeight, html.clientHeight || 0);
     var abierto = alto - vv.height > 160;
-    if (doc.documentElement.classList.contains('bc-teclado') !== abierto) doc.documentElement.classList.toggle('bc-teclado', abierto);
+    if (html.classList.contains('bc-teclado') !== abierto) html.classList.toggle('bc-teclado', abierto);
+    // Chat a pantalla completa (taller-app-movil.css, html.bc-app): ocupa justo lo visible, encima del teclado.
+    html.style.setProperty('--bc-vv-h', Math.round(vv.height) + 'px');
+    html.style.setProperty('--bc-vv-top', Math.round(Math.max(0, vv.offsetTop || 0)) + 'px');
   }
+  // 27-oct-2026 (dueño, capturas del iPhone): en la app, el chat abierto ocupa toda la pantalla como WhatsApp, sin la
+  // barra azul ni los márgenes de la tarjeta. Solo en la app instalada o con el permiso «Solo Prefactura y CRM».
+  function modoApp() {
+    var en = instalada || (doc.body && doc.body.classList.contains('bc-solo-movil'));
+    if (doc.documentElement.classList.contains('bc-app') !== !!en) doc.documentElement.classList.toggle('bc-app', !!en);
+  }
+  teclado();
   if (window.visualViewport) { visualViewport.addEventListener('resize', teclado); visualViewport.addEventListener('scroll', teclado); }
   doc.addEventListener('focusout', function () { setTimeout(teclado, 250); });
 
@@ -136,7 +147,8 @@
         setTimeout(function () { abrirHilo(h); }, 600);
       }
     }
-    pintar();
+    pintar(); modoApp();
   }, 1500);
+  modoApp();
   window.bcMovilAbrirHilo = abrirHilo;
 })();
