@@ -108,6 +108,19 @@
     } catch (e) { aviso('No se pudo abrir el chat.', 'error'); }
   }
 
+  // Teclado abierto (dueño 27-oct, video: «ese vacío … lo más parecido a la app original»): con el teclado, iOS desplaza la
+  // página hasta el final y se veía el relleno de abajo (zona segura + márgenes) como una franja vacía sobre el teclado.
+  // Mientras el teclado está abierto se quita ese relleno (taller-app-movil.css, html.bc-teclado). Misma regla que el CRM
+  // usa para saber si el teclado está abierto (_waActualizarAltoVisual).
+  function teclado() {
+    var vv = window.visualViewport; if (!vv) return;
+    var alto = Math.max(window.innerHeight, doc.documentElement.clientHeight || 0);
+    var abierto = alto - vv.height > 160;
+    if (doc.documentElement.classList.contains('bc-teclado') !== abierto) doc.documentElement.classList.toggle('bc-teclado', abierto);
+  }
+  if (window.visualViewport) { visualViewport.addEventListener('resize', teclado); visualViewport.addEventListener('scroll', teclado); }
+  doc.addEventListener('focusout', function () { setTimeout(teclado, 250); });
+
   // Al iniciar sesión: renovar la suscripción en silencio, pintar la píldora y abrir ?hilo= si vino de un aviso.
   var pendiente = null;
   try { pendiente = new URLSearchParams(location.search).get('hilo'); } catch (e) {}

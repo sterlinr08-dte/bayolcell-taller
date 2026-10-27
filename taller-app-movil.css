@@ -8,3 +8,10 @@
 #bcMovilAvisos .bcm-si:active { transform: scale(.97); }
 #bcMovilAvisos .bcm-x { flex: 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: inherit;
   opacity: .7; cursor: pointer; font-size: 18px; }
+
+/* Teclado abierto (taller-app-movil.js pone html.bc-teclado): sin franja vacía entre la caja de escribir y el teclado,
+   como en WhatsApp. Solo mientras el teclado está abierto; al cerrarlo vuelve el margen de la zona segura. */
+html.bc-teclado body #app .content { padding-bottom: 0 !important; }
+html.bc-teclado body #v-crmLinea { padding-bottom: 0 !important; border-bottom-width: 0 !important; margin-bottom: 0 !important; }
+html.bc-teclado body #v-crmLinea .wa-input-bar,
+html.bc-teclado body #v-crmLinea :is(.bc-ig-composer, .bc-fb-composer) { padding-bottom: 6px !important; }
