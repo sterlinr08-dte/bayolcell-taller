@@ -1,4 +1,4 @@
--- PROPUESTA, SIN APLICAR (26-oct-2026, rama claude/taller10-a9). Requiere OK del dueño antes de correrla.
+-- APLICADA el 27-oct-2026 con el OK del dueño («2- si»). Antes era PROPUESTA (rama claude/taller10-a9).
 -- Reacondicionados → Rentabilidad: traza del precio de venta anotado a mano.
 -- Hoy la pantalla guarda solo equipos_refurbish.precio_venta_real y deja una nota en equipo_historial.
 -- Esta propuesta agrega de dónde salió el precio, quién lo anotó y cuándo, para distinguir el dato manual del que

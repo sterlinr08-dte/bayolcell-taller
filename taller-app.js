@@ -22357,7 +22357,11 @@ function renderAtencionListaOrdenes() {
     const miId = sessionUser?.id;
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
     let ordenes = (cache.ordenes || []);
-    if(_atencionFiltro === 'activas') ordenes = ordenes.filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
+    // 27-oct-2026 (dueño: «dejarla solo en una»): en «Activas» no se repiten las órdenes que ya tienen su sección arriba
+    // (Por entregar, Esperando cliente, Reparación externa, Sin reparación). Si se busca algo, se muestran todas.
+    const _txtBusq = (document.getElementById('atencionBuscador')?.value || '').trim();
+    const _conSeccion = o => { const e = normalizarEstadoOrden(o.estado); return e === 'finalizado' || e === 'pendiente_cliente' || e === 'reparacion_externa' || (e === 'no_reparado' && !o.fecha_entregado); };
+    if(_atencionFiltro === 'activas') ordenes = ordenes.filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)) && (_txtBusq || !_conSeccion(o)));
     else if(_atencionFiltro === 'entregadas') ordenes = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'entregado');
     
     // Filtro de fecha (días hacia atrás desde la recepción; 0 = todas)
