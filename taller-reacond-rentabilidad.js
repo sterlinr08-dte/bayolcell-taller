@@ -266,7 +266,11 @@
       if (n !== null) n = Math.round(n * 100) / 100;
       enCurso = true; bg.querySelectorAll('.pie button').forEach(function (b) { b.disabled = true; });
       try {
-        var r = await supabaseClient.from('equipos_refurbish').update({ precio_venta_real: n }).eq('id', id);
+        // 27-oct-2026: queda guardado de dónde salió el precio, quién lo anotó y cuándo (columnas de 20261026020000).
+        var quien = (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || 'Admin';
+        var r = await supabaseClient.from('equipos_refurbish').update(n === null
+          ? { precio_venta_real: null, precio_venta_fuente: null, precio_venta_por: null, precio_venta_en: null }
+          : { precio_venta_real: n, precio_venta_fuente: 'manual', precio_venta_por: quien, precio_venta_en: new Date().toISOString() }).eq('id', id);
         if (r && r.error) throw r.error;
         e.precio_venta_real = n;
         try {
