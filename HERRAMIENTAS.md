@@ -109,3 +109,6 @@ La lista completa (con la regla y cómo se usan) está en **`docs/REFERENCIAS-DI
 | «Critica esta idea de negocio sin rodeos» | `/abogado-del-diablo` (8 ángulos y veredicto; solo lectura) |
 
 - **`puntos-de-control`** (23-oct-2026): forma de trabajar del dueño, inspirada en el plugin VibeWise (MIT; no instalado, solo la idea). Antes de código no trivial: 2–3 opciones con ventajas y desventajas, él decide; después, informe de qué cambió y qué pruebas pasaron. Se usa sola.
+
+## Obsidian (notas) — 27-oct-2026
+Paquete oficial **kepano/obsidian-skills** (MIT, revisado): `obsidian-markdown` (notas con enlaces y avisos), `obsidian-bases` (vistas tabla/tarjetas), `json-canvas` (lienzos y mapas mentales), `obsidian-cli` (solo con Obsidian abierto en la PC del dueño), `defuddle` y `knap` (piden instalar un programa con npm: solo con el OK del dueño).
