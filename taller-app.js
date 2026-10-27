@@ -1151,6 +1151,22 @@ function applyAccessControls() {
         return;
     }
 
+    // MODO "SOLO PREFACTURA Y CRM" (27-oct-2026, dueño: app en el celular de los empleados que solo prefactura y responde
+    // el CRM). Los chats que ve los sigue limitando la base (whatsapp_solo_sucursal en el rol = solo los de su sucursal).
+    if(tienePermiso('solo_movil')) {
+        document.querySelectorAll('.nav button').forEach(b => {
+            b.style.display = (b.id === 'menu-crm' || b.id === 'menu-recepcion') ? '' : 'none';
+        });
+        document.body.classList.add('bc-solo-movil');
+        if(typeof closeSidebar === 'function') closeSidebar();
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        const yaEnCrm = document.getElementById('v-crmLinea')?.classList.contains('active');
+        const yaEnPref = document.getElementById('v-recepcion')?.classList.contains('active');
+        if(!yaEnCrm && !yaEnPref) setTimeout(() => nav('crmLinea'), 100);
+        return;
+    }
+
     // MODO "SOLO CONTABILIDAD": la contadora solo ve el módulo de Contabilidad
     if(tienePermiso('solo_contabilidad')) {
         document.querySelectorAll('.nav button').forEach(b => { b.style.display = (b.id === 'menu-contabilidad') ? '' : 'none'; });
@@ -23736,7 +23752,8 @@ const PERMISOS_DEF = [
         grupo: '🔧 Modo Técnico', color: '#0891b2',
         items: [
             { id: 'solo_mi_trabajo', label: 'SOLO ver la pantalla "Mi Trabajo" (oculta todo lo demás)' },
-            { id: 'solo_atencion', label: 'SOLO ver la pantalla "Atención al Cliente" (oculta todo lo demás)' }
+            { id: 'solo_atencion', label: 'SOLO ver la pantalla "Atención al Cliente" (oculta todo lo demás)' },
+            { id: 'solo_movil', label: 'SOLO Prefactura y CRM (app del celular de los empleados)' }
         ]
     },
     {

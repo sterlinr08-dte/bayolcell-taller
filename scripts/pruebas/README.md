@@ -65,3 +65,10 @@ Despachado; «Pasar a → Listo para venta» en bloque no mueve equipos con tare
 advierten si hay Despachados o piezas ya descontadas en Info Plus; un error largo sigue visible a los 4.6 s con `role=alert`;
 «Despachar teléfonos» no llama a Info Plus si un equipo ya está Despachado y pregunta si alguno no está en Listo; botones del
 lote ≥ 44 px y sin desplazamiento horizontal; 0 errores de JavaScript. Uso: `node scripts/pruebas/reacond-proceso.cjs [carpeta-capturas]`.
+
+## app-movil.cjs (27-oct-2026)
+App del celular de los empleados: con el permiso `solo_movil` el menú queda solo en CRM y Prefactura y entra al CRM; el
+permiso aparece en la ventana de roles; se registra `sw.js`; la píldora «Avisos de mensajes nuevos» sale en el CRM con botones
+de 44 px; al tocar «Activar avisos» pide permiso una vez, se suscribe con la clave pública (65 bytes) y guarda con
+`push_suscribir`, y la píldora se va; abrir un chat inexistente desde un aviso no rompe nada; un rol normal no cambia.
+390 y 1280 px, sin desplazamiento horizontal ni errores. Correr con `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/app-movil.cjs`.
