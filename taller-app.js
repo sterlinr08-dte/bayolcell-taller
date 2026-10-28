@@ -9444,8 +9444,8 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
 
 // Reporte de costos del lote: por cada equipo Compra + Piezas = Costo final, con totales (solo admin)
 // Filtra los equipos del lote abierto con los mismos filtros de pantalla. Devuelve datos o null (con aviso).
-function _datosReporteCostosLote() {
-    if(!isAdminUser()) { toast('Solo el administrador.', 'error'); return null; }
+function _datosReporteCostosLote(sinCostos) {
+    if(!sinCostos && !isAdminUser()) { toast('Solo el administrador.', 'error'); return null; }
     if(!reacondLoteAbiertoId) { toast('Abra un lote primero.', 'error'); return null; }
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
     let equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
@@ -9510,6 +9510,62 @@ function exportarReporteCostosLoteExcel() {
         equipos,
         filename: `Costos_${(lote.codigo_lote || 'lote').replace(/[^A-Za-z0-9_-]/g, '')}_${new Date().toISOString().slice(0,10)}.xls`
     });
+}
+// 28-oct-2026 (dueño: «reporte del taller en los reacondicionados con los diagnóstico por lote»; eligió «solo equipo por
+// equipo» y Excel). Una fila por equipo: modelo, código, IMEI, color, estado, técnico, nota de diagnóstico, fallas pendientes
+// y hechas, y piezas (sin costos, así lo puede sacar cualquiera que vea el lote). Respeta los filtros de la pantalla.
+// Las fallas se leen frescas de tareas_trabajo (tipo «equipo») para no depender del caché general.
+async function exportarDiagnosticosLoteExcel() {
+    const datos = _datosReporteCostosLote(true);
+    if(!datos) return;
+    const { lote, equipos, prov, filtrosTxt } = datos;
+    const ids = equipos.map(e => e.id);
+    let tareas = [];
+    try {
+        for(let i = 0; i < ids.length; i += 100) {
+            const { data, error } = await supabaseClient.from('tareas_trabajo').select('ref_id,descripcion,estado,creado_en').eq('tipo', 'equipo').in('ref_id', ids.slice(i, i + 100));
+            if(error) throw error;
+            tareas = tareas.concat(data || []);
+        }
+    } catch(e) {
+        logError('Diagnósticos lote: fallas', e);
+        tareas = (cache.tareas || []).filter(t => t.tipo === 'equipo' && ids.includes(t.ref_id));
+    }
+    const porEquipo = {};
+    tareas.sort((a, b) => String(a.creado_en || '').localeCompare(String(b.creado_en || ''))).forEach(t => { (porEquipo[t.ref_id] = porEquipo[t.ref_id] || []).push(t); });
+    const lineas = (v) => escapeHtml(v || '').replace(/\r?\n/g, '<br style="mso-data-placement:same-cell;">');
+    const lista = (arr) => arr.map(x => escapeHtml(x)).join('<br style="mso-data-placement:same-cell;">');
+    const filas = equipos.map((e, i) => {
+        const ts = porEquipo[e.id] || [];
+        const pend = ts.filter(t => t.estado !== 'hecha').map(t => (t.descripcion || '').trim()).filter(Boolean);
+        const hechas = ts.filter(t => t.estado === 'hecha').map(t => (t.descripcion || '').trim()).filter(Boolean);
+        const pzs = _piezasDeEquipoRep(e.id).map(p => ((Number(p.cantidad) || 1) > 1 ? (Number(p.cantidad) + ' × ') : '') + (p.pieza_nombre || p.pieza_codigo || 'Pieza'));
+        const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
+        const tec = e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '';
+        return `<tr style="vertical-align:top;"><td>${i + 1}</td><td><b>${escapeHtml(_modeloRep(e))}</b></td><td>${escapeHtml(e.articulo_codigo || '')}</td><td style="mso-number-format:'\\@';">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(e.color || '')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
+            <td>${lineas(e.notas_diagnostico || e.diagnostico_inicial)}</td><td style="color:#b45309;">${lista(pend)}</td><td style="color:#15803d;">${lista(hechas)}</td><td>${lista(pzs)}</td><td>${pend.length}</td><td>${hechas.length}</td></tr>`;
+    }).join('');
+    const cfg = cache.configTaller || {};
+    const info = [`Proveedor: ${prov ? prov.nombre : 'Sin proveedor'}`, `Lote: ${lote.codigo_lote || '—'}`, `Compra: ${lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—'}`, `Equipos: ${equipos.length}`];
+    if(filtrosTxt.length) info.push('Filtro: ' + filtrosTxt.join(' · '));
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"></head><body>
+        <table border="1">
+            <tr><th colspan="13" style="font-size:16px;">${escapeHtml(cfg.nombre || 'BAYOL CELL')} — Diagnósticos · Lote ${escapeHtml(lote.codigo_lote || '')}</th></tr>
+            <tr><td colspan="13">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            ${info.map(l => `<tr><td colspan="13">${escapeHtml(l)}</td></tr>`).join('')}
+            <tr><td colspan="13"></td></tr>
+            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Modelo</th><th>Código</th><th>IMEI</th><th>Color</th><th>Estado</th><th>Técnico</th><th>Diagnóstico</th><th>Fallas pendientes</th><th>Fallas hechas</th><th>Piezas</th><th>Pend.</th><th>Hechas</th></tr>
+            ${filas}
+        </table>
+        </body></html>`;
+    const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Diagnosticos_${(lote.codigo_lote || 'lote').replace(/[^A-Za-z0-9_-]/g, '')}_${new Date().toISOString().slice(0,10)}.xls`;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    toast('✅ Excel de diagnósticos descargado.');
 }
 // ===== FORMATO INFO PLUS: agrupa por modelo/artículo con TODOS los IMEIs y el costo PROMEDIO =====
 // Para meter a Info Plus: 1 artículo + N seriales + costo unitario = promedio (total = suma).
