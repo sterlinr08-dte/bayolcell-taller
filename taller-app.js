@@ -18392,8 +18392,10 @@ function _parseModeloCapacidad(modeloRaw) {
 function imprimirLabelEquipo(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
-    // Los GB/RAM a veces vienen en modelo y a veces en el campo "color" → analizar ambos juntos
-    const parsed = _parseModeloCapacidad([eq.modelo, eq.color].filter(Boolean).join(' '));
+    // Los GB/RAM a veces vienen en el campo "color": de ahí solo se toma la capacidad. El nombre del color no va en el label
+    // (dueño, 28-oct-2026: «vamos a quitar lo del color cuando se vaya a imprimir el label»).
+    const parsed = _parseModeloCapacidad(eq.modelo || '');
+    if(!parsed.capacidad && eq.color) parsed.capacidad = _parseModeloCapacidad([eq.modelo, eq.color].filter(Boolean).join(' ')).capacidad;
     const marca = eq.marca || 'Apple';
     // Modelo: si es iPhone -> "iP 14 PLUS"; si es otra marca -> solo el modelo (ej. Samsung -> "S23 ULTRA")
     let modeloLimpio = parsed.modelo;
