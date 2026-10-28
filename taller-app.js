@@ -294,8 +294,8 @@ function confirmar(mensaje, opciones) {
                     <div style="font-size:15px; color:#1e293b; line-height:1.5; white-space:pre-line;">${escapeHtml(mensaje)}</div>
                 </div>
                 <div style="display:flex; gap:10px; padding:16px 22px 22px;">
-                    <button id="confCancel" class="btn btn-light" style="flex:1;">${escapeHtml(textoCancel)}</button>
-                    <button id="confOk" class="btn ${peligro ? 'btn-danger' : 'btn-blue'}" style="flex:1;">${escapeHtml(textoOk)}</button>
+                    <button id="confCancel" class="btn btn-light" style="flex:1; min-height:44px;">${escapeHtml(textoCancel)}</button>
+                    <button id="confOk" class="btn ${peligro ? 'btn-danger' : 'btn-blue'}" style="flex:1; min-height:44px;">${escapeHtml(textoOk)}</button>
                 </div>
             </div>`;
         document.body.appendChild(bg);
@@ -13673,6 +13673,21 @@ function cerrarModalTecnico() {
     document.getElementById('modalTecnico').classList.remove('active');
 }
 
+// Avisos del código de vendedor Info Plus (no bloquean: la persona decide). 1) Ya lo tiene otro empleado: sus prefacturas
+// se mezclarían. 2) Info Plus nunca lo ha usado en una venta (infoplus_ventas): puede estar mal escrito. Si la consulta
+// falla, se guarda sin ese aviso. Devuelve true para guardar.
+async function _tecAvisosCodInfoplus(cod, id) {
+    cod = String(cod).trim();
+    const otro = (cache.tecnicos || []).find(t => t.id !== id && String(t.infoplus_codempleado || '').trim() === cod);
+    if(otro && !await confirmar(`El código ${cod} ya lo tiene ${otro.nombre || 'otro empleado'}.\n\nSi los dos usan el mismo código, sus prefacturas y ventas se mezclan en Info Plus.`, { ok: 'Guardar igual', cancel: 'Corregir' })) return false;
+    try {
+        const { data, error } = await supabaseClient.from('infoplus_ventas').select('id').eq('codempleado', cod).limit(1);
+        if(!error && Array.isArray(data) && data.length === 0 &&
+           !await confirmar(`Info Plus nunca ha usado el código ${cod} en una venta.\n\nRevise que esté bien escrito. Si es un vendedor nuevo, puede guardarlo igual.`, { ok: 'Guardar igual', cancel: 'Corregir', peligro: false })) return false;
+    } catch(e) { logError('Aviso código Info Plus', e); }
+    return true;
+}
+
 async function guardarTecnico() {
     const id = document.getElementById('mod_tec_id').value;
     const nombre = document.getElementById('mod_tec_nombre').value.trim();
@@ -13703,7 +13718,10 @@ async function guardarTecnico() {
     if(clave) {
         datos.debe_cambiar_clave = true; // forzar cambio en primer login (la clave va al acceso seguro, no a la tabla)
     }
-    
+
+    // 28-oct-2026 (dueño): el código de vendedor se escribe a mano, con dos avisos antes de guardar.
+    if(datos.infoplus_codempleado && !await _tecAvisosCodInfoplus(datos.infoplus_codempleado, id)) return;
+
     try {
         let nuevoId = id;
         if(id) {

@@ -42,7 +42,7 @@ apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
 - Cliente de contado: **«CONTADO: 1»**. Precio del cliente: **CLIENTE FINAL / POR MAYOR / EXTREMO** (cliente con código ≠ 1 → Por mayor).
 - Equipo, falla y más datos en plegable opcional; con equipo crea también la orden. Descuento % por línea (sin probar contra Info Plus real).
 - Almacén fijo para empleadas con sucursal; el admin elige y se recuerda en su equipo (`bc_alm_admin`).
-- Códigos de vendedor Info Plus en `tecnicos.infoplus_codempleado`: Michelle 748, Kenifer 1020, Yosmeiry 1192, Loribel 249; Yves sin código.
+- Códigos de vendedor Info Plus en `tecnicos.infoplus_codempleado`: Michelle 748, Kenifer 1020, Yosmeiry 1192, Loribel 249; Yves sin código. Al guardar un empleado avisa si el código ya lo tiene otro o si Info Plus nunca lo usó en una venta (28-oct). La API no da la lista de vendedores («Error en las credenciales»).
 - Celulares: botón IMEI abre ventana; lista «IMEI en <almacén>» (Edge v10, §6); se escanea o escribe.
   Covers, forros, cases, cristales y accesorios **no piden IMEI** (`_abCat`).
 - Buscador de artículos como ventana emergente (vidrio NEXUS): Código · Artículo · Existencia · Precio; al tocar, niveles y existencia
