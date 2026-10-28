@@ -33690,7 +33690,7 @@ async function construirSelectorCRM() {
     try {
         const { data, error } = await supabaseClient
             .from('sucursales')
-            .select('id, nombre, whatsapp_lineas(id, nombre, activo)')
+            .select('id, nombre, whatsapp_lineas(id, nombre, activo, oculta_crm)')
             .order('nombre', { ascending: true });
         if(error) throw error;
 
@@ -33698,7 +33698,8 @@ async function construirSelectorCRM() {
         let sucursales = (data || []).filter(s => !miSucursal || s.id === miSucursal);
         _crmEstructura = sucursales.map(s => ({
             id: s.id, nombre: s.nombre,
-            lineas: (s.whatsapp_lineas || []).filter(l => l.activo !== false)
+            // oculta_crm (28-oct-2026): la línea del asistente solo envía (despachos); no se muestra en el CRM.
+            lineas: (s.whatsapp_lineas || []).filter(l => l.activo !== false && l.oculta_crm !== true)
         })).filter(s => s.lineas.length);
 
         if(!_crmEstructura.length) {
