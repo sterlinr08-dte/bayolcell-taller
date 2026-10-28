@@ -3830,6 +3830,7 @@ body{
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-printer"></i> Imprimir</button>
                                 <button id="btnPdfCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#b91c1c; border-color:#fca5a5; display:none;" onclick="imprimirReporteCostosLote('pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
+                                <button id="btnDiagLoteExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#7c2d12; border-color:#fdba74;" onclick="exportarDiagnosticosLoteExcel()" title="Excel con el diagnóstico de cada equipo del lote: nota, fallas pendientes y hechas, y piezas (sin costos). Respeta los filtros."><i class="ti ti-stethoscope"></i> Diagnósticos (Excel)</button>
                                 <button id="btnFormatoIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
                                 <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar/actualizar en Info Plus la compra del lote (1 artículo por modelo + sus IMEI + costo promedio). La primera vez la crea; después la ACTUALIZA con TODOS los equipos del lote (el API reemplaza la compra, por eso van todos). Misma compra, sin duplicar."><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
@@ -5691,7 +5692,7 @@ body{
 <div id="printArea" class="print-area"></div>
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
-<script defer src="taller-app.min.js?v=20261028-c1"></script>
+<script defer src="taller-app.min.js?v=20261028-d1"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
 <script defer src="taller-recepcion.js?v=20261024-g9"></script>
 <script defer src="taller-prefactura.js?v=20261024-i26"></script>
