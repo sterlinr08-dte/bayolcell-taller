@@ -18,11 +18,18 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
    reacondLoteAbiertoId = 'L1';
    const real = supabaseClient.from.bind(supabaseClient);
    const T = [{ ref_id: 'e1', descripcion: 'CAMBIAR BATERIA', estado: 'pendiente', creado_en: '1' }, { ref_id: 'e1', descripcion: 'PULIR PANTALLA', estado: 'hecha', creado_en: '2' }, { ref_id: 'e2', descripcion: 'HOUSING', estado: 'pendiente', creado_en: '3' }];
-   supabaseClient.from = (t) => t !== 'tareas_trabajo' ? real(t) : { select() { const q = { eq() { return q; }, in(k, ids) { return Promise.resolve({ data: T.filter(x => ids.includes(x.ref_id)), error: null }); } }; return q; } };
+   // En la base hay un tercer equipo del lote que no está en el caché: debe salir igual (lote completo).
+   const BD = [...cache.refurb.filter(e => e.lote_id === 'L1'), { id: 'e3', lote_id: 'L1', modelo: 'CELULAR IPHONE 11', imei: '356000000000037', estado_evaluacion: 'listo_venta', notas_diagnostico: 'SOLO EN LA BASE' }];
+   supabaseClient.from = (t) => {
+     if (t === 'equipos_refurbish') return { select() { const q = { eq(k, v) { q._v = v; return q; }, order() { return Promise.resolve({ data: BD.filter(e => e.lote_id === q._v), error: null }); } }; return q; } };
+     return t !== 'tareas_trabajo' ? real(t) : { select() { const q = { eq() { return q; }, in(k, ids) { return Promise.resolve({ data: T.filter(x => ids.includes(x.ref_id)), error: null }); } }; return q; } };
+   };
+   // Filtro de estado puesto en la pantalla (p. ej. «Diagnóstico»): el Excel lo ignora.
+   const f = document.getElementById('reacondFiltroEstado'); if (f) { if (![...f.options].some(o => o.value === 'diagnostico')) f.add(new Option('Diagnóstico', 'diagnostico')); f.value = 'diagnostico'; }
  });
  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 15000 }), p.evaluate(() => exportarDiagnosticosLoteExcel())]);
  const ruta = (OUT || '/tmp') + '/' + dl.suggestedFilename(); await dl.saveAs(ruta); const x = fs.readFileSync(ruta, 'utf8');
- const chk = { nombre: /^Diagnosticos_C00002051_\d{4}-\d\d-\d\d\.xls$/.test(dl.suggestedFilename()), dos: (x.match(/<tr style="vertical-align:top;">/g) || []).length === 2,
+ const chk = { nombre: /^Diagnosticos_C00002051_\d{4}-\d\d-\d\d\.xls$/.test(dl.suggestedFilename()), tres: (x.match(/<tr style="vertical-align:top;">/g) || []).length === 3, soloBase: x.includes('SOLO EN LA BASE'),
    otroLote: !x.includes('NO DEBE SALIR'), nota: /pant mens\. 2da mano<br[^>]*>camara crackeada/.test(x), pend: x.includes('CAMBIAR BATERIA') && x.includes('HOUSING'),
    hecha: x.includes('PULIR PANTALLA'), pieza: x.includes('BATERIA IPHONE 14 PRO MAX'), sinCostos: !/1,800|1800/.test(x), color: x.includes('Morado'), tecnico: x.includes('Yves'), cap: x.includes('256GB'), errores: errs.length === 0 };
  for (const [k, v] of Object.entries(chk)) { console.log((v ? 'OK   ' : 'FALLA ') + k); if (!v) fallos++; }

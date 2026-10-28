@@ -9513,12 +9513,21 @@ function exportarReporteCostosLoteExcel() {
 }
 // 28-oct-2026 (dueño: «reporte del taller en los reacondicionados con los diagnóstico por lote»; eligió «solo equipo por
 // equipo» y Excel). Una fila por equipo: modelo, código, IMEI, color, estado, técnico, nota de diagnóstico, fallas pendientes
-// y hechas, y piezas (sin costos, así lo puede sacar cualquiera que vea el lote). Respeta los filtros de la pantalla.
+// y hechas, y piezas (sin costos, así lo puede sacar cualquiera que vea el lote). Siempre el lote completo (ver abajo).
 // Las fallas se leen frescas de tareas_trabajo (tipo «equipo») para no depender del caché general.
 async function exportarDiagnosticosLoteExcel() {
-    const datos = _datosReporteCostosLote(true);
-    if(!datos) return;
-    const { lote, equipos, prov, filtrosTxt } = datos;
+    // Dueño (28-oct-2026): «el del lote completo, no en estado de diagnóstico, porque quiero saber el reporte de todo el
+    // lote». Por eso NO usa los filtros de la pantalla: siempre van todos los equipos del lote, leídos frescos de la base.
+    if(!reacondLoteAbiertoId) { toast('Abra un lote primero.', 'error'); return; }
+    const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId) || { id: reacondLoteAbiertoId };
+    const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
+    const filtrosTxt = [];
+    let equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
+    try {
+        const { data, error } = await supabaseClient.from('equipos_refurbish').select('*').eq('lote_id', reacondLoteAbiertoId).order('creado_en', { ascending: true });
+        if(!error && Array.isArray(data) && data.length) equipos = data;
+    } catch(e) { logError('Diagnósticos lote: equipos', e); }
+    if(!equipos.length) { toast('Este lote no tiene equipos.', 'error'); return; }
     const ids = equipos.map(e => e.id);
     let tareas = [];
     try {
