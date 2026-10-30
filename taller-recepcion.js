@@ -328,7 +328,7 @@
         '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
         // 23-oct-2026 (dueño, video: «acceso rápido como filtro», eligió la opción A): una fila de fichas por tipo. Tocar una filtra; tocarla otra vez la quita.
         '<div class="bcrx-ppk-chips" role="group" aria-label="Acceso rápido">' + CHIPS.map(function (c) { return '<button type="button" class="bcrx-ppk-chip' + (estado.chip === c[0] ? ' on' : '') + '" data-chip="' + c[0] + '" aria-pressed="' + (estado.chip === c[0]) + '">' + c[1] + '</button>'; }).join('') + '</div>' + clienteHTML() +
-        '<div class="bcrx-ppk-list" role="listbox"></div></div>';
+        '<div class="bcrx-ppk-list no-reflector" role="listbox"></div></div>'; // no-reflector (30-oct-2026): la luz naranja del reflector no entra en la lista; el resaltado azul de la fila basta
       var inp = q('input', slot);
       inp.value = estado.q;
       q('.bcrx-ppk-fondo', slot).addEventListener('click', cerrarPanel);
