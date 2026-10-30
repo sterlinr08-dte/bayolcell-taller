@@ -454,3 +454,7 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
 .bcwa-menu-chat button[data-a="vaciar"] i, .bcwa-menu-chat button[data-a="eliminar"] i,
 .bcwa-hoja-caja button[data-a="vaciar"] i, .bcwa-hoja-caja button[data-a="eliminar"] i { color: #b91c1c; }
 .bcwa-menu-chat button[data-a="vaciar"] { border-top: 1px solid #e9edef; }
+
+/* Editar (30-oct-2026): mensaje viejo que se editó — se atenúa y lleva «Editado» junto a la hora */
+#waMessagesScroll .wa-brow.bcwa-editado .wa-bubble-wrap{opacity:.62}
+#waMessagesScroll .wa-brow .bcwa-ed{font-style:italic;margin-right:6px;color:#667781}
