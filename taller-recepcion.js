@@ -159,10 +159,12 @@
     // 20-oct-2026 (dueño: «como STUDIO exactamente»): un recuadro por cada nivel (— si no tiene precio) y la existencia
     // de cada almacén en fichas, como ppkDetailHTML de STUDIO.
     function detalleHTML(a, i) {
-      var nv = a.niveles || {}, act = nivel(), pr = precioDe(a);
+      var nv = a.niveles || {}, act = nivelFila(a), admin = esAdminPk();
+      // 30-oct-2026 (dueño): el botón naranja de abajo se quitó; el precio se agrega desde el botón de la fila.
+      // El administrador toca un nivel para cambiar el precio con el que se agrega esa línea.
       var cajas = NIV.map(function (n) {
-        var v = Number(nv[n[0]]) || 0;
-        return '<div class="pk-nv' + (n[0] === act ? ' act' : '') + (v > 0 ? '' : ' no') + '"><small>' + n[1] + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b></div>';
+        var v = Number(nv[n[0]]) || 0, puede = admin && v > 0;
+        return '<' + (puede ? 'button type="button" data-nv="' + n[0] + '" data-i="' + i + '" aria-pressed="' + (n[0] === act) + '"' : 'div') + ' class="pk-nv' + (n[0] === act ? ' act' : '') + (v > 0 ? '' : ' no') + (puede ? ' elegible' : '') + '"><small>' + n[1] + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b></' + (puede ? 'button' : 'div') + '>';
       }).join('');
       var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
       var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {};
@@ -175,8 +177,16 @@
       }).join('') + (!esServ(a) && conAlgo.length === 1 && !(Number(ex[almacen()]) || 0) ? '<span class="pk-ex out">Sin existencia en las demás tiendas</span>' : '');
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
         '<div class="pk-nvs">' + cajas + '</div>' +
-        '<div class="pk-dex"><span>Existencia</span>' + fichas + '</div>' +
-        '<button type="button" class="pk-elegir" data-i="' + i + '" aria-label="Agregar"><i class="ti ti-circle-plus" aria-hidden="true"></i> ' + (pr > 0 ? plata(pr) : 'sin precio') + '</button></div>';
+        (admin ? '<div class="pk-nvtip">Toque un precio para agregar con ese nivel.</div>' : '') +
+        '<div class="pk-dex"><span>Existencia</span>' + fichas + '</div></div>';
+    }
+    // Nivel elegido para un artículo (el del cliente si no se tocó otro)
+    function nivelFila(a) { var k = estado.nvSel && estado.nvSel[String(a.codigo)]; return (k && a.niveles && Number(a.niveles[k]) > 0) ? k : nivel(); }
+    function precioFila(a) { var k = nivelFila(a); if (k !== nivel() && a.niveles) return Number(a.niveles[k]) || 0; return precioDe(a); }
+    function esAdminPk() { try { return typeof isAdminUser === 'function' && isAdminUser(); } catch (e) { return false; } }
+    // Cuántos de este artículo ya están en la prefactura (para el botón)
+    function enLista(a) {
+      try { var n = 0; (_rpState && _rpState.items || []).forEach(function (x) { if (String(x.cod) === String(a.codigo) && !x.servicio) n += x.serial ? (x.imeis || []).length || 1 : Number(x.cant || 0); }); return n; } catch (e) { return 0; }
     }
     function clienteHTML() {
       try {
@@ -274,17 +284,20 @@
         if (buscando || !l.length) { cont.innerHTML = aviso; return; }
       }
       var filas = show.map(function (a, i) {
-        var ex = existe(a), pr = precioDe(a);
+        var ex = existe(a), pr = precioFila(a), ya = enLista(a), sinEx = ex !== null && ex <= 0;
         var chip = esServ(a) ? '<span class="bcrx-stk srv">Servicio</span>' : ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin stock</span>' : '<span class="bcrx-stk">Stock: ' + ex + '</span>';
-        // Como STUDIO: si al cliente le toca otro nivel, el precio de lista (nivel 1) sale tachado encima
-        var lis = a.niveles && a.niveles['1'] != null ? Number(a.niveles['1']) : Number(a.precio || 0);
-        var preH = pr > 0 ? ((lis > 0 && Math.abs(lis - pr) > 0.5) ? '<s>' + plata(lis) + '</s>' : '') + plata(pr) : '<span class="bcrx-stk out">Sin precio</span>';
-        return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-fila="' + i + '" aria-expanded="' + (estado.det === i) + '" title="Ver precios y existencia">' +
+        // 30-oct-2026 (dueño: «el botón naranja donde está el precio… hazlo smart»): precio y agregar son un solo botón.
+        // Muestra el precio del nivel elegido, cuántos ya hay en la prefactura y se apaga si no hay existencia.
+        var otroNv = nivelFila(a) !== nivel(), nomNv = otroNv ? (NIV.filter(function (n) { return n[0] === nivelFila(a); })[0] || [, ''])[1] : '';
+        var btn = '<button type="button" class="pk-add pk-btn' + (otroNv ? ' otro' : '') + '" data-i="' + i + '"' + (sinEx ? ' disabled' : '') +
+          ' aria-label="' + (sinEx ? 'Sin existencia: ' : 'Agregar ') + esc((a.descripcion || '').trim()) + (pr > 0 ? ' a ' + plata(pr) : '') + '">' +
+          (ya ? '<span class="pk-ya" title="Ya en la prefactura">×' + ya + '</span>' : '') +
+          '<span class="pk-bp">' + (sinEx ? 'Sin stock' : pr > 0 ? plata(pr) : 'Agregar') + (otroNv ? '<small>' + esc(nomNv) + '</small>' : '') + '</span>' +
+          (sinEx ? '' : '<i class="ti ti-plus" aria-hidden="true"></i>') + '</button>';
+        return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (sinEx ? ' sin' : '') + '" role="option" data-fila="' + i + '" aria-expanded="' + (estado.det === i) + '" title="Ver precios y existencia">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
           '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + pkRef(a) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
-          '<span class="pk-stk">' + chip + '</span>' +
-          '<span class="pk-pre">' + preH + '</span>' +
-          '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>' +
+          '<span class="pk-stk">' + chip + '</span>' + btn + '</div>' +
           (estado.det === i ? detalleHTML(a, i) : '');
       }).join('');
       // 23-oct-2026: aviso discreto si el nivel de precio no es el que suele llevar este cliente
@@ -297,7 +310,7 @@
       var cabeza = (estado.entendido ? '<div class="bcrx-ppk-ent"><i class="ti ti-sparkles" aria-hidden="true"></i> Entendido como «' + esc(estado.entendido) + '»</div>' : '') +
         (avisoNv ? '<div class="bcrx-ppk-nv" role="note"><i class="ti ti-info-circle" aria-hidden="true"></i> ' + esc(avisoNv) + '</div>' : '');
       cont.innerHTML = cabeza + aviso + (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
-        (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span><span></span></div>' + filas
+        (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio · agregar</span></div>' + filas
           : '<div class="bcrx-ppk-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
     }
     var agregando = false;
@@ -305,8 +318,11 @@
       var a = estado.lista[i]; if (!a || agregando) return;
       agregando = true;
       var imei = estado.imei;
+      var kNv = nivelFila(a), prNv = precioFila(a), cuantosAntes = enLista(a);
       Promise.resolve(_rpAgregarArticulo(a)).then(function (ok) {
         agregando = false; if (!ok) return;
+        // Nivel distinto elegido por el administrador: la línea nueva toma ese precio (si la línea ya existía, no se toca)
+        if (kNv !== nivel() && !cuantosAntes && esAdminPk()) { try { var its = _rpState.items, li = -1; for (var q2 = its.length - 1; q2 >= 0; q2--) if (String(its[q2].cod) === String(a.codigo) && !its[q2].servicio) { li = q2; break; } if (li >= 0 && prNv > 0) _rpPrecio(li, prNv); } catch (e) {} }
         if (imei) {
           // El IMEI buscado queda en la línea del artículo (si es celular). La cantidad se ajusta sola.
           var it = (_rpState && _rpState.items) || [], k = -1;
@@ -360,7 +376,9 @@
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
       q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
       q('.bcrx-ppk-list', slot).addEventListener('click', function (e) {
-        var b = e.target.closest('.pk-add, .pk-elegir'); if (b) { agregar(Number(b.getAttribute('data-i'))); return; }
+        var nvb = e.target.closest('.pk-nv[data-nv]');
+        if (nvb) { var ai = estado.lista[Number(nvb.getAttribute('data-i'))]; if (ai) { estado.nvSel = estado.nvSel || {}; var kk = nvb.getAttribute('data-nv'); if (kk === nivel()) delete estado.nvSel[String(ai.codigo)]; else estado.nvSel[String(ai.codigo)] = kk; pintar(); } return; }
+        var b = e.target.closest('.pk-add'); if (b) { if (!b.disabled) agregar(Number(b.getAttribute('data-i'))); return; }
         var f = e.target.closest('[data-fila]'); if (!f) return;
         var i = Number(f.getAttribute('data-fila')); estado.det = estado.det === i ? -1 : i; estado.hl = i; pintar();
       });
