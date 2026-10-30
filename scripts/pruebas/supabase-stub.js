@@ -38,9 +38,61 @@
     };
     return b;
   }
+
+  // Raspa y gana (29-oct-2026): simulación de las RPC raspa_* (misma lógica que la migración 20261029200000, SIN base real).
+  const RG = D.raspa = { juegos: [], topes: { '1582': 10, '1021': 10, '1662': 10, '1121': 10, '1843': 10, '1541': 10, '1085': 5, '1795': 5, '1539': 0, '1540': 0, '1161': 0, '1186': 0, '2637': 0 }, sorteo: null, actor: 'Michelle' };
+  const rgTel = t => { const d = String(t || '').replace(/\D/g, ''); return d.length >= 10 ? d.slice(-10) : null; };
+  const rgVig = j => j.estado === 'jugado' && new Date(j.vence_en) < new Date() ? 'vencido' : j.estado;
+  const rgFila = j => ({ codigo: j.codigo, estado: rgVig(j), premio: j.premio || null, telefono: j.telefono || null, vence_en: j.vence_en || null, codprefactura: j.codprefactura, usado_en: j.usado_en || null, usado_por: j.usado_por || null, usado_codprefactura: j.usado_codprefactura || null, factura_id: j.factura_id || null });
+  function rgRpc(n, a) {
+    a = a || {};
+    const por = (k, v) => RG.juegos.find(j => String(j[k]) === String(v));
+    if (n === 'raspa_topes') return (a.p_cods || []).map(c => ({ cod: String(c), tope: RG.topes[String(c)] != null ? RG.topes[String(c)] : 0 }));
+    if (n === 'raspa_emitir') {
+      const p = (D.tablas.recepcion_prefacturas || []).find(x => String(x.codprefactura) === String(a.p_codprefactura));
+      if (!p) return { ok: false, motivo: 'sin_prefactura' };
+      if (Number(p.total || 0) < 500) return { ok: false, motivo: 'menor_500' };
+      let j = por('codprefactura', a.p_codprefactura);
+      if (!j) { j = { token: Array.from({ length: 36 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join(''), codigo: 'BC-' + Array.from({ length: 4 }, () => 'ACDEFGHJKMNPQRTUVWXY34679'[Math.floor(Math.random() * 25)]).join(''), codprefactura: String(a.p_codprefactura), total_compra: Number(p.total), estado: 'pendiente' }; RG.juegos.push(j); }
+      return { ok: true, codigo: j.codigo, token: j.token, estado: j.estado };
+    }
+    if (n === 'raspa_activar') {
+      const j = por('codigo', String(a.p_codigo || '').trim().toUpperCase()), f = String(a.p_factura || '').trim().toUpperCase();
+      if (!j) return { ok: false, motivo: 'no_existe' };
+      if (j.estado !== 'pendiente') return { ok: false, motivo: 'ya_' + j.estado };
+      if (f.length < 4) return { ok: false, motivo: 'falta_factura' };
+      if (RG.juegos.some(x => x.factura_id === f)) return { ok: false, motivo: 'factura_usada' };
+      Object.assign(j, { estado: 'activo', factura_id: f, activado_modo: 'manual' }); return { ok: true };
+    }
+    if (n === 'raspa_ver') { const j = por('token', a.p_token); if (!j) return { ok: false, estado: 'no_existe' }; return { ok: true, estado: rgVig(j), codigo: j.codigo, premio: j.premio || null, vence_en: j.vence_en || null }; }
+    if (n === 'raspa_jugar') {
+      const tel = rgTel(a.p_telefono); if (!tel) return { ok: false, motivo: 'telefono' };
+      const j = por('token', a.p_token); if (!j) return { ok: false, motivo: 'no_existe' };
+      if (j.estado === 'jugado' || j.estado === 'usado') return { ok: true, premio: j.premio, codigo: j.codigo, vence_en: j.vence_en, estado: j.estado };
+      if (j.estado !== 'activo') return { ok: false, motivo: j.estado };
+      Object.assign(j, { estado: 'jugado', premio: RG.sorteo || '5', telefono: tel, jugado_en: new Date().toISOString(), vence_en: new Date(Date.now() + 30 * 86400000).toISOString() });
+      return { ok: true, premio: j.premio, codigo: j.codigo, vence_en: j.vence_en, estado: j.estado };
+    }
+    if (n === 'raspa_buscar') {
+      const raw = String(a.p_q || ''), q = raw.trim().toUpperCase(), tel = rgTel(raw), m = raw.match(/t=([0-9a-fA-F]{20,})/), tok = m ? m[1].toLowerCase() : null;
+      return RG.juegos.filter(j => j.codigo === q || (tok && j.token === tok) || j.token === raw.trim().toLowerCase() || (tel && j.telefono === tel && rgVig(j) === 'jugado')).map(rgFila);
+    }
+    if (n === 'raspa_canjear') {
+      const j = por('codigo', String(a.p_codigo || '').trim().toUpperCase()), num = String(a.p_codprefactura);
+      if (!j) return { ok: false, motivo: 'no_existe' };
+      if (j.estado === 'usado') return j.usado_codprefactura === num ? { ok: true, ya: true } : { ok: false, motivo: 'usado', usado_codprefactura: j.usado_codprefactura, usado_en: j.usado_en, usado_por: j.usado_por };
+      if (j.estado !== 'jugado') return { ok: false, motivo: j.estado };
+      if (rgVig(j) === 'vencido') return { ok: false, motivo: 'vencido' };
+      if (j.codprefactura === num) return { ok: false, motivo: 'misma_compra' };
+      Object.assign(j, { estado: 'usado', usado_en: new Date().toISOString(), usado_por: RG.actor, usado_codprefactura: num }); return { ok: true };
+    }
+    if (n === 'raspa_deshacer_canje') { const j = por('codigo', String(a.p_codigo || '').trim().toUpperCase()); if (!j || j.estado !== 'usado') return { ok: false }; Object.assign(j, { estado: 'jugado', usado_en: null, usado_por: null, usado_codprefactura: null }); return { ok: true }; }
+    return undefined;
+  }
   const client = {
     from: builder,
     rpc: (n, args) => {
+      if (/^raspa_/.test(n)) { const r = rgRpc(n, args); return Promise.resolve(r === undefined ? { data: null, error: { message: 'función desconocida' } } : { data: r, error: null }); }
       if (n === 'app_sesiones_listar') return Promise.resolve({ data: [
         { id: 's1', nombre: 'Esterlin', tipo: 'usuario', user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36', ip: '148.101.77.220', vista_en: new Date().toISOString(), es_actual: true, es_mia: true },
         { id: 's2', nombre: 'Esterlin', tipo: 'usuario', user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', ip: '190.80.12.9', vista_en: new Date(Date.now() - 2 * 3600000).toISOString(), es_actual: false, es_mia: true },

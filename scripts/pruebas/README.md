@@ -72,3 +72,15 @@ permiso aparece en la ventana de roles; se registra `sw.js`; la píldora «Aviso
 de 44 px; al tocar «Activar avisos» pide permiso una vez, se suscribe con la clave pública (65 bytes) y guarda con
 `push_suscribir`, y la píldora se va; abrir un chat inexistente desde un aviso no rompe nada; un rol normal no cambia.
 390 y 1280 px, sin desplazamiento horizontal ni errores. Correr con `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/app-movil.cjs`.
+## raspa-y-gana.cjs (29-oct-2026)
+«Raspa y gana», con las RPC `raspa_*` simuladas (no toca la base). Página pública `raspa.html` a 390 (claro y oscuro) y 1280 px:
+pendiente, usado, vencido, no existe, sin enlace, jugado (regalo), activo → WhatsApp (corto rechazado, formato 809-555-1234) →
+el premio se pide al servidor ANTES de raspar → raspar un poco no revela, raspar casi todo sí → premio, código, vence, dónde vale y
+dónde no, «Dejar reseña en Google»; «Descubrir premio» con teclado; movimiento reducido. Hoja impresa: `raspa_emitir` al imprimir,
+QR como imagen, sin cupón si es menor de RD$500, si está apagado (`bc_raspa_off`), sin red o con el servidor lento (3.5 s), la ventana se
+abre antes de esperar; captura de la hoja carta (PNG y PDF) y del ticket, cupón en blanco y negro. Canje en la Prefactura: 10 % por
+línea (pantalla 5, lámina 10, celular «No aplica», servicio 10), el premio pasa aunque el tope general sea 3 %, el tope sigue para el
+resto, guardar → `raspa_canjear`; ya usado (Nº, fecha, cajera), vencido, accesorio gratis (cable 1021 con 100 %), quitar premio, misma
+compra, búsqueda por teléfono (lista) y por QR, compra con celular (botón apagado), activar con factura, Escape, canje rechazado con
+aviso fijo. Mide espaciado y tamaños; 0 errores de consola.
+Uso: `node scripts/pruebas/servidor.cjs &` y `QRJS=/ruta/qrcode.min.js node scripts/pruebas/raspa-y-gana.cjs [carpeta-capturas]`.
