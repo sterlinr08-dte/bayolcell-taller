@@ -177,7 +177,6 @@
       }).join('') + (!esServ(a) && conAlgo.length === 1 && !(Number(ex[almacen()]) || 0) ? '<span class="pk-ex out">Sin existencia en las demás tiendas</span>' : '');
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
         '<div class="pk-nvs">' + cajas + '</div>' +
-        (admin ? '<div class="pk-nvtip">Toque un precio para agregar con ese nivel.</div>' : '') +
         '<div class="pk-dex"><span>Existencia</span>' + fichas + '</div></div>';
     }
     // Nivel elegido para un artículo (el del cliente si no se tocó otro)

@@ -397,7 +397,7 @@
   // ---------- Delivery (dueño 30-oct-2026) ----------
   // Artículo 1161 de Info Plus «ENVIO - MENSAJERIA». Precio según el tipo de cliente (Cliente final 100, Por mayor 50,
   // según Info Plus); cualquiera puede escribir otro precio en su línea. Si el cliente es Por mayor y hay artículos sin
-  // delivery, la prefactura pregunta «¿Incluir delivery?».
+  // delivery, sale el botón «+ Delivery RD$ 50» debajo de los artículos.
   var COD_DELIV = '1161';
   function esDelivery(it) { return !!it && String(it.cod) === COD_DELIV; }
   function idxDelivery() { var s = st(); if (!s) return -1; for (var i = 0; i < s.items.length; i++) if (esDelivery(s.items[i])) return i; return -1; }
@@ -407,7 +407,7 @@
     try { if (!st()) _rpInit(); } catch (e) {}
     var s = st(); if (!s) return;
     var k = idxDelivery();
-    if (k >= 0) { try { toast('El delivery ya está en la línea ' + (k + 1) + '. Puede cambiar su precio ahí.'); } catch (e) {} enfocarPrecio(k); return; }
+    if (k >= 0) { try { toast('Ya tiene delivery'); } catch (e) {} enfocarPrecio(k); return; }
     var it = { cod: COD_DELIV, desc: 'DELIVERY', niveles: nivelesDelivery(), precio: 0, cant: 1 };
     try { it.precio = _rpNivelPrecio(it); } catch (e) { it.precio = Number(it.niveles['1']) || 0; }
     s.items.push(it); s.sinDelivery = false;
@@ -422,10 +422,9 @@
   function sugerenciaDelivery() {
     var s = st(); if (!s || !s.items.length || idxDelivery() >= 0 || s.sinDelivery) return '';
     if (String(s.nivel || 1) !== '2') return '';
-    return '<div class="bcpf-deliv-sug" role="note"><i class="ti ti-truck-delivery" aria-hidden="true"></i><span>Cliente por mayor: ¿incluir delivery de <b>' + plata(precioDelivery()) + '</b>?</span>' +
-      '<button type="button" class="si" onclick="bcAgregarDelivery()">Sí, agregar</button><button type="button" class="no" onclick="bcSinDelivery()">No</button></div>';
+    // 30-oct-2026 (dueño: «simplificar, no ser tan descriptivo»): un solo botón, sin pregunta.
+    return '<button type="button" class="bcpf-deliv-sug" onclick="bcAgregarDelivery()" aria-label="Agregar delivery"><i class="ti ti-truck-delivery" aria-hidden="true"></i> + Delivery <b>' + plata(precioDelivery()) + '</b></button>';
   }
-  window.bcSinDelivery = function () { var s = st(); if (s) s.sinDelivery = true; try { _rpRenderCart(); } catch (e) {} };
   // Clic en el nombre del artículo: sus precios por nivel (Cliente final · Por mayor · Extremo); tocar uno lo usa.
   // Aquí también se cambia la descripción (antes el nombre era un campo de texto).
   var NIV = [['1', 'Cliente final'], ['2', 'Por mayor'], ['3', 'Extremo']];
