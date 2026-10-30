@@ -869,3 +869,23 @@ html.bc-pf body #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { background: #fff !impo
 html.bc-pf #v-recepcion .bcpf-pop .ppro { color: #64748b; font-variant-numeric: tabular-nums; }
 
 html.bc-pf #v-recepcion .bcpf-it .pin[readonly] { background: #f8fafc; color: #475569; border-color: transparent; cursor: default; }
+
+/* 30-oct-2026 (dueño): Delivery (artículo 1161) junto a Servicio y pregunta «¿incluir delivery?» para clientes por mayor */
+html.bc-pf #v-recepcion .bcpf-deliv i { color: #0e7490; }
+html.bc-pf #v-recepcion .bcpf-it .dsub .srv.dlv { color: #0e7490; background: #ecfeff; }
+html.bc-pf #v-recepcion .bcpf-it.bcpf-nuevo { animation: bcpfNuevo 1.2s ease-out; }
+@keyframes bcpfNuevo { from { background: #ecfeff; } to { background: transparent; } }
+html.bc-pf #v-recepcion .bcpf-deliv-sug { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin: 10px 0 0; padding: 8px 10px 8px 12px; border: 1px solid #a5f3fc; background: #ecfeff; border-radius: 12px; font-size: 14px; color: #155e75; }
+html.bc-pf #v-recepcion .bcpf-deliv-sug > i { font-size: 20px; }
+html.bc-pf #v-recepcion .bcpf-deliv-sug > span { flex: 1 1 180px; }
+html.bc-pf #v-recepcion .bcpf-deliv-sug button { min-height: 44px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; border: 1px solid #0e7490; }
+html.bc-pf #v-recepcion .bcpf-deliv-sug .si { background: #0e7490; color: #fff; }
+html.bc-pf #v-recepcion .bcpf-deliv-sug .no { background: #fff; color: #0e7490; }
+@media (prefers-reduced-motion: reduce) { html.bc-pf #v-recepcion .bcpf-it.bcpf-nuevo { animation: none; } }
+@media (max-width: 640px) {
+  /* Servicio y Delivery: ícono con su nombre debajo (dueño: «el ícono y abajo que diga delivery») */
+  html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { width: 62px; min-width: 62px !important; flex-direction: column; gap: 0; line-height: 1; }
+  html.bc-pf #v-recepcion .bcpf-busc-fila .bcrx-srv span { display: block; font-size: 11px; font-weight: 700; margin-top: 2px; }
+  html.bc-pf #v-recepcion .bcpf-deliv-sug > span { flex-basis: 100%; }
+  html.bc-pf #v-recepcion .bcpf-deliv-sug button { flex: 1 1 0; }
+}

@@ -153,6 +153,13 @@
     // Texto corto del buscador para que se lea completo en el celular (antes «Buscar o escanear por nombre, c…»)
     var bScan = q('.bcrx-scan > span', busc); if (bScan) bScan.textContent = 'Buscar artículo';
     var bSrv = q('.bcrx-srv', busc); if (bSrv) { bSrv.innerHTML = '<i class="ti ti-tool" aria-hidden="true"></i><span>Servicio</span>'; bSrv.setAttribute('aria-label', 'Agregar servicio o falla'); }
+    // 30-oct-2026 (dueño): botón «Delivery» al lado de Servicio. Agrega el artículo 1161 (ENVIO - MENSAJERIA) de Info Plus.
+    if (bSrv && !q('.bcpf-deliv', busc)) {
+      var bDel = el('button', 'btn bcrx-srv bcpf-deliv'); bDel.type = 'button';
+      bDel.innerHTML = '<i class="ti ti-truck-delivery" aria-hidden="true"></i><span>Delivery</span>'; bDel.setAttribute('aria-label', 'Agregar delivery');
+      bDel.addEventListener('click', function () { agregarDelivery(); });
+      bSrv.parentNode.insertBefore(bDel, bSrv.nextSibling);
+    }
 
     // Artículos
     var lista = doc.getElementById('rxArticulos');
@@ -374,7 +381,7 @@
         // 23-oct-2026 (dueño: «quitar #, mejor que salgan los códigos»): en PC la primera columna es el código; en celular sigue el 01, 02.
         '<span class="n"><em class="ni">' + ('0' + (i + 1)).slice(-2) + '</em><em class="nc" title="' + esc(it.cod) + '">' + esc(it.cod) + '</em></span>' +
         '<div class="d"><button type="button" class="dnb" data-ver="' + i + '" title="Ver precios y cambiar la descripción">' + esc(it.desc) + '</button>' +
-        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + '</div></div>' +
+        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (esDelivery(it) ? '<span class="srv dlv">Delivery</span>' : '') + '</div></div>' +
         '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
         // 24-oct-2026 (dueño: «bloquea el precio libre para empleados, solamente en servicio»): el empleado solo escribe el
@@ -383,10 +390,42 @@
         '<label class="ldc"><span>Desc.</span><span class="dcw"><input class="dc" inputmode="decimal" autocomplete="off" value="' + (Number(it.descPct) || 0) + '" aria-label="Descuento en por ciento" onfocus="this.select()" onchange="_rpDescPct(' + i + ',this.value)"><i>%</i></span></label>' +
         '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' + sugerenciaDelivery();
   }
 
-  function precioLibre(it) { try { if (typeof isAdminUser === 'function' && isAdminUser()) return true; } catch (e) {} return !!(it && it.servicio); }
+  function precioLibre(it) { try { if (typeof isAdminUser === 'function' && isAdminUser()) return true; } catch (e) {} return !!(it && (it.servicio || esDelivery(it))); }
+  // ---------- Delivery (dueño 30-oct-2026) ----------
+  // Artículo 1161 de Info Plus «ENVIO - MENSAJERIA». Precio según el tipo de cliente (Cliente final 100, Por mayor 50,
+  // según Info Plus); cualquiera puede escribir otro precio en su línea. Si el cliente es Por mayor y hay artículos sin
+  // delivery, la prefactura pregunta «¿Incluir delivery?».
+  var COD_DELIV = '1161';
+  function esDelivery(it) { return !!it && String(it.cod) === COD_DELIV; }
+  function idxDelivery() { var s = st(); if (!s) return -1; for (var i = 0; i < s.items.length; i++) if (esDelivery(s.items[i])) return i; return -1; }
+  function nivelesDelivery() { try { var a = _findInfoplusArt(COD_DELIV); if (a && a.niveles) return a.niveles; } catch (e) {} return { 1: 100, 2: 50, 3: 200 }; }
+  function precioDelivery() { var it = { niveles: nivelesDelivery(), precio: 0 }; try { return _rpNivelPrecio(it); } catch (e) { return Number(it.niveles['1']) || 0; } }
+  function agregarDelivery() {
+    try { if (!st()) _rpInit(); } catch (e) {}
+    var s = st(); if (!s) return;
+    var k = idxDelivery();
+    if (k >= 0) { try { toast('El delivery ya está en la línea ' + (k + 1) + '. Puede cambiar su precio ahí.'); } catch (e) {} enfocarPrecio(k); return; }
+    var it = { cod: COD_DELIV, desc: 'DELIVERY', niveles: nivelesDelivery(), precio: 0, cant: 1 };
+    try { it.precio = _rpNivelPrecio(it); } catch (e) { it.precio = Number(it.niveles['1']) || 0; }
+    s.items.push(it); s.sinDelivery = false;
+    try { _rpMarcarCambio(); } catch (e) {}
+    try { _rpRenderCart(); _rpRenderResumen(); } catch (e) {}
+    enfocarPrecio(s.items.length - 1, true);
+  }
+  function enfocarPrecio(i, soloMarcar) {
+    setTimeout(function () { var f = doc.querySelectorAll('#rxArticulos .bcpf-it')[i]; if (!f) return; f.classList.add('bcpf-nuevo'); setTimeout(function () { f.classList.remove('bcpf-nuevo'); }, 1200); if (!soloMarcar) { var inp = f.querySelector('.pin'); if (inp) inp.focus(); } }, 40);
+  }
+  window.bcAgregarDelivery = agregarDelivery;
+  function sugerenciaDelivery() {
+    var s = st(); if (!s || !s.items.length || idxDelivery() >= 0 || s.sinDelivery) return '';
+    if (String(s.nivel || 1) !== '2') return '';
+    return '<div class="bcpf-deliv-sug" role="note"><i class="ti ti-truck-delivery" aria-hidden="true"></i><span>Cliente por mayor: ¿incluir delivery de <b>' + plata(precioDelivery()) + '</b>?</span>' +
+      '<button type="button" class="si" onclick="bcAgregarDelivery()">Sí, agregar</button><button type="button" class="no" onclick="bcSinDelivery()">No</button></div>';
+  }
+  window.bcSinDelivery = function () { var s = st(); if (s) s.sinDelivery = true; try { _rpRenderCart(); } catch (e) {} };
   // Clic en el nombre del artículo: sus precios por nivel (Cliente final · Por mayor · Extremo); tocar uno lo usa.
   // Aquí también se cambia la descripción (antes el nombre era un campo de texto).
   var NIV = [['1', 'Cliente final'], ['2', 'Por mayor'], ['3', 'Extremo']];
@@ -545,6 +584,28 @@
 
   // Envolver las funciones que pintan para que el documento se actualice solo
   function enganchar() {
+    if (typeof window._rpStockItem === 'function' && !window._rpStockItem._bcdl) {
+      var origS = window._rpStockItem;
+      var envS = function (it) { if (esDelivery(it)) return null; return origS.apply(this, arguments); }; // el envío no lleva existencia
+      envS._bcdl = true; window._rpStockItem = envS;
+    }
+    if (typeof window._rpDescInfoplus === 'function' && !window._rpDescInfoplus._bcdl) {
+      var origD = window._rpDescInfoplus; // la línea del delivery va limpia a Info Plus (sin equipo, IMEI ni falla pegados)
+      var envD = function (it) { if (esDelivery(it)) return String(it.desc || 'DELIVERY').trim().slice(0, 100); return origD.apply(this, arguments); };
+      envD._bcdl = true; window._rpDescInfoplus = envD;
+    }
+    if (typeof window._rpPrecio === 'function' && !window._rpPrecio._bcdl) {
+      var origP = window._rpPrecio;
+      var envP = function (i, v) {
+        var s = st(), it = s && s.items[i];
+        if (esDelivery(it)) { // cualquiera puede poner el precio del delivery; queda fijo aunque cambie el tipo de cliente
+          it.precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); delete it.niveles;
+          try { _rpMarcarCambio(); } catch (e) {} try { _rpRenderCart(); _rpRenderResumen(); } catch (e) {} return;
+        }
+        return origP.apply(this, arguments);
+      };
+      envP._bcdl = true; window._rpPrecio = envP;
+    }
     if (typeof window._rpRenderCart === 'function' && !window._rpRenderCart._bcpf) {
       var envC = function () { pintarCarrito(); pintarDoc(); refrescarImei(); };
       envC._bcpf = true; window._rpRenderCart = envC;
