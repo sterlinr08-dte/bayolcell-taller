@@ -1808,7 +1808,7 @@ body{
 <link rel="stylesheet" href="taller-ui-global.css?v=20261026-u1">
 <!-- Espaciado de formularios (regla del dueño 29-oct-2026; piloto 30-oct en 5 formularios): capa reversible. Apagar: BC_FESP=false o localStorage bc_fesp_off=1 -->
 <script>var BC_FESP=true;try{if(BC_FESP&&localStorage.getItem('bc_fesp_off')!=='1')document.documentElement.classList.add('bc-fesp');}catch(e){if(BC_FESP)document.documentElement.classList.add('bc-fesp');}</script>
-<link rel="stylesheet" href="bc-form-espaciado.css?v=20261030-e1">
+<link rel="stylesheet" href="bc-form-espaciado.css?v=20261030-e2">
 </head>
 <body>
 
@@ -2065,7 +2065,7 @@ body{
                     </p>
                     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
                         <div><label>Nombre completo del cliente *</label><input id="rf_nombre" placeholder="Ej. Juan Pérez"></div>
-                        <div><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567"></div>
+                        <div><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567" inputmode="tel" autocomplete="tel"></div>
                         <div><label>Últimos 6 dígitos de la factura *</label>
                             <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)" onkeydown="if(event.key==='Enter')guardarRifaFactura(document.getElementById('rf_btnGuardar'))">
                         </div>
@@ -2779,7 +2779,7 @@ body{
                     <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Rifa presencial: indique el nombre y teléfono del cliente. El sistema asigna el número al azar y el boleto queda <b>confirmado</b>. Requiere una rifa activa.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <input id="rifaNombre" placeholder="Nombre del cliente" style="flex:1; min-width:160px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
-                        <input id="rifaTelefono" placeholder="Teléfono (809-...)" onkeydown="if(event.key==='Enter')generarBoletoRifa()" style="flex:1; min-width:150px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+                        <input id="rifaTelefono" placeholder="Teléfono (809-...)" onkeydown="if(event.key==='Enter')generarBoletoRifa()" style="flex:1; min-width:150px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;" inputmode="tel" autocomplete="tel">
                         <button id="btnBoletoRifa" class="btn" style="background:#7c3aed; color:#fff; font-size:13px; padding:9px 14px;" onclick="generarBoletoRifa()"><i class="ti ti-ticket"></i> Generar boleto</button>
                     </div>
                     <div id="rifaBoletoMsg" style="margin-top:10px;"></div>
@@ -2801,7 +2801,7 @@ body{
                           </div>
                           <div id="rxClienteChip" class="rx-chip-cli"><b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;">· cód. 1 (genérico)</span></div>
                           <div><label>Nombre visible (va en la prefactura) *</label><input id="c_nombre" placeholder="Ej. Juan Pérez" oninput="_rpRenderResumen()"></div>
-                          <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567" onblur="chequearClienteExistente()" oninput="_rpRenderResumen()"></div>
+                          <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567" onblur="chequearClienteExistente()" oninput="_rpRenderResumen()" inputmode="tel" autocomplete="tel"></div>
                           <div style="display:flex; gap:10px;">
                             <div style="flex:1;"><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0" onblur="chequearClienteExistente()" oninput="_rpRenderResumen()"></div>
                             <div style="flex:1; display:none;" id="rowRnc"><label>RNC</label><input id="c_rnc" placeholder="1-01-00000-0" oninput="_rpRenderResumen()"></div>
@@ -3553,7 +3553,7 @@ body{
                                         <div><label id="lbl_eq_imei">IMEI / Serial *</label>
                                             <div style="position:relative;"><input id="eq_imei" placeholder="358921..." oninput="_eqImeiValidar()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('eq_costo').focus();}" style="text-transform:uppercase; padding-right:34px;"><i class="ti ti-barcode" title="Escanear con lector" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:17px;"></i></div>
                                             <div id="eq_imei_status" style="font-size:10.5px; margin-top:3px; height:13px; font-weight:700;"></div></div>
-                                        <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarEquipoAlLote();}"><div style="font-size:10px; color:#94a3b8; margin-top:2px;">Se mantiene; cámbielo si este IMEI vale distinto</div></div>
+                                        <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarEquipoAlLote();}" inputmode="decimal"><div style="font-size:10px; color:#94a3b8; margin-top:2px;">Se mantiene; cámbielo si este IMEI vale distinto</div></div>
                                         <div><label>Notas rápidas</label><input id="eq_notas" placeholder="Ej: pantalla rota, no carga…" style="text-transform:uppercase;"></div>
                                         <button class="btn btn-blue" onclick="agregarEquipoAlLote()" style="height:42px; font-weight:700;"><i class="ti ti-plus"></i> Agregar equipo</button>
                                     </div>
@@ -4120,7 +4120,7 @@ body{
                         <label style="font-size:12px; font-weight:600;">Nombre del taller</label>
                         <input id="cfgTallerNombre" placeholder="BAYOL CELL" style="margin:3px 0 10px;">
                         <label style="font-size:12px; font-weight:600;">Teléfono</label>
-                        <input id="cfgTallerTel" placeholder="809-000-0000" style="margin:3px 0 10px;">
+                        <input id="cfgTallerTel" placeholder="809-000-0000" style="margin:3px 0 10px;" inputmode="tel" autocomplete="tel">
                         <label style="font-size:12px; font-weight:600;">Dirección</label>
                         <input id="cfgTallerDir" placeholder="Calle, sector, ciudad" style="margin:3px 0 10px;">
                         <label style="font-size:12px; font-weight:600;">Mensaje al pie (opcional)</label>
@@ -4417,7 +4417,7 @@ body{
             </div>
             <div class="form-row">
                 <label>Teléfono / WhatsApp</label>
-                <input id="mod_tec_telefono" placeholder="809-000-0000">
+                <input id="mod_tec_telefono" placeholder="809-000-0000" inputmode="tel" autocomplete="tel">
             </div>
             <div class="form-row">
                 <label>Especialidad</label>
@@ -4744,7 +4744,7 @@ body{
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Tipo de gasto *</label><select id="rgto_cuenta"></select></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
-                <div class="form-row"><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="rgto_monto" placeholder="0.00"></div>
+                <div class="form-row"><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="rgto_monto" placeholder="0.00" inputmode="decimal"></div>
                 <div class="form-row"><label>Pagado con *</label><select id="rgto_metodo">
                     <option value="110101">Efectivo (Caja General)</option>
                     <option value="110103">Banco (transferencia/cheque)</option>
@@ -4783,7 +4783,7 @@ body{
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Categoría del gasto *</label><select id="gs_categoria"></select></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
-                <div class="form-row"><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="gs_monto" placeholder="0.00"></div>
+                <div class="form-row"><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="gs_monto" placeholder="0.00" inputmode="decimal"></div>
                 <div class="form-row"><label>Pagado con</label><select id="gs_metodo"><option value="Efectivo">Efectivo</option><option value="Banco">Banco / Transferencia</option><option value="Tarjeta">Tarjeta</option><option value="Crédito">Crédito (por pagar)</option></select></div>
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto</label><input id="gs_desc" placeholder="Ej. Alquiler local Santiago - junio"></div>
@@ -4854,7 +4854,7 @@ body{
                     <option value="110103">Bancos</option>
                     <option value="110101">Caja General (efectivo)</option>
                 </select></div>
-                <div><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="mef_monto" placeholder="0.00" oninput="recalcMovEf()"></div>
+                <div><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="mef_monto" placeholder="0.00" oninput="recalcMovEf()" inputmode="decimal"></div>
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto *</label><input id="mef_desc" placeholder="Ej. Cobro a cliente Juan Pérez"></div>
             <div class="form-row" style="margin-top:8px;"><label>Referencia (opcional)</label><input id="mef_ref" placeholder="N° recibo, transferencia..."></div>
@@ -5111,7 +5111,7 @@ body{
         </div>
         <div class="modal-body" style="padding:16px; display:flex; flex-direction:column; gap:10px;">
             <div class="form-row"><label>Nombre *</label><input id="waContactoNombre" type="text" placeholder="Nombre completo"></div>
-            <div class="form-row"><label>Teléfono</label><input id="waContactoTelefono" type="text" placeholder="809-000-0000"></div>
+            <div class="form-row"><label>Teléfono</label><input id="waContactoTelefono" type="text" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalWaContacto()">Cancelar</button>
@@ -5284,7 +5284,7 @@ body{
         <div class="modal-body">
             <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Para equipos que ya tenía <b>antes del sistema</b>. Cae directo en su estado real y asignado a su técnico. Quedan en el lote <b>HISTÓRICO</b>.</p>
             <div class="form-row"><label>Equipo (del inventario Info Plus) *</label><div id="ss-rex-modelo"></div></div>
-            <div class="form-row"><label>Costo de compra (opcional)</label><input id="rex_costo" type="number" step="0.01" min="0" placeholder="0.00"></div>
+            <div class="form-row"><label>Costo de compra (opcional)</label><input id="rex_costo" type="number" step="0.01" min="0" placeholder="0.00" inputmode="decimal"></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="form-row"><label>IMEI</label><input id="rex_imei" placeholder="IMEI / opcional"></div>
                 <div class="form-row"><label>Serial</label><input id="rex_serial" placeholder="Serial / opcional"></div>
@@ -5457,7 +5457,7 @@ body{
             <input id="mod_prov_id" type="hidden">
             <div class="form-row"><label>Nombre / Empresa *</label><input id="mod_prov_nombre" placeholder="Ej. Juan Méndez / Mayorista RD"></div>
             <div class="form-row"><label>Contacto (Persona)</label><input id="mod_prov_contacto" placeholder="Persona de contacto"></div>
-            <div class="form-row"><label>WhatsApp / Teléfono</label><input id="mod_prov_whatsapp" placeholder="809-000-0000"></div>
+            <div class="form-row"><label>WhatsApp / Teléfono</label><input id="mod_prov_whatsapp" placeholder="809-000-0000" inputmode="tel" autocomplete="tel"></div>
             <div class="form-row"><label>Ciudad / Ubicación</label><input id="mod_prov_ciudad" placeholder="Santo Domingo"></div>
             <div class="form-row"><label>Proveedor en Info Plus <span style="color:#475569; font-weight:400;">(para registrar compras)</span></label><select id="mod_prov_codip"><option value="">— seleccione —</option></select></div>
             <div class="form-row">
@@ -5519,9 +5519,9 @@ body{
             <div class="form-row"><label>Capacidad</label><input id="mod_art_capacidad" placeholder="256GB / 128GB / 64GB" style="text-transform:uppercase;"></div>
             <div class="form-row"><label>Referencia</label><input id="mod_art_referencia" placeholder="REF DEL PROVEEDOR / CÓDIGO INTERNO" style="text-transform:uppercase;"></div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-                <div class="form-row"><label>Precio</label><input id="mod_art_precio" type="number" step="0.01" min="0" placeholder="0.00"></div>
-                <div class="form-row"><label>Precio especial</label><input id="mod_art_precio_especial" type="number" step="0.01" min="0" placeholder="0.00"></div>
-                <div class="form-row"><label>Costo</label><input id="mod_art_costo" type="number" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-row"><label>Precio</label><input id="mod_art_precio" type="number" step="0.01" min="0" placeholder="0.00" inputmode="decimal"></div>
+                <div class="form-row"><label>Precio especial</label><input id="mod_art_precio_especial" type="number" step="0.01" min="0" placeholder="0.00" inputmode="decimal"></div>
+                <div class="form-row"><label>Costo</label><input id="mod_art_costo" type="number" step="0.01" min="0" placeholder="0.00" inputmode="decimal"></div>
             </div>
             <small style="color:var(--text-muted); font-size:11px; display:block; margin:-4px 0 8px;">Si deja los precios vacíos, se llenarán solos con el sync de Info Plus.</small>
             <div class="form-row" style="background:#f1f5f9; padding:10px; border-radius:8px; border:1px solid var(--border-color);">

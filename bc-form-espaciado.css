@@ -122,3 +122,268 @@ html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-sec .card div
 html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-sec #btnBoletoRifa { min-height: 54px !important; } /* botón principal de la tarjeta (5 id) */
 html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-sec #rifaBoletoMsg:empty { display: none; }
 html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-plegable { margin-top: 20px !important; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   AMPLIACIÓN (30-oct-2026, tarde): la misma regla para el RESTO de formularios de la auditoría del 29-oct.
+   Grupos por la pieza base que comparten. Mismas interpretaciones del piloto:
+   barra de título de color = barra (el relleno se mide debajo) · pie transparente a 24 px del último contenido ·
+   casillas en fila dentro de tarjeta de 48 · interruptor = zona de toque 44. Solo espacios, altos y letras.
+   Queda fuera el chat de WhatsApp del CRM (#waWrap) y las ventanas de proceso con paneles propios (ver bitácora).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 6 · Todas las ventanas estándar (.modal-backdrop > .modal-box > .modal-header / .modal-body / .modal-footer) ── */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body { padding: var(--fe-pv) var(--fe-ph); }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body:has(+ .modal-footer) { padding-bottom: 0; }
+/* El pie deja de ser una franja gris: 24 px desde el último contenido (grupo → grupo), borde interior abajo y a los lados, botones a 8 px */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-footer {
+  padding: 24px var(--fe-ph) var(--fe-pv); gap: 8px; background: transparent; border-top: 0;
+}
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-footer .btn { min-height: 44px !important; font-size: max(13px, 1em) !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-footer :is(.btn-blue, .btn-success, .btn-teal, .btn-primary, .btn-green) {
+  min-height: 54px !important; padding-left: 22px; padding-right: 22px;
+}
+/* Ayuda de la ventana (párrafo de arriba) → primer campo 20 */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body > p:first-child { margin: 0 0 20px !important; font-size: 13px !important; line-height: 1.45; }
+/* Campo → campo 20 (también con margen en línea) · el último del cuerpo sin margen */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body .form-row { margin-bottom: 20px !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > .form-row:last-child,
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > :last-child:not(.form-row) > .form-row:last-child { margin-bottom: 0 !important; }
+/* Rejillas / filas con varios campos: 20 entre filas y 10 entre columnas; los campos adentro sin margen propio */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) {
+  row-gap: 20px !important; column-gap: 10px; margin-bottom: 20px;
+}
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) > .form-row { margin-bottom: 0 !important; }
+/* Rejillas sin .form-row (ventanas armadas por código: cada celda es un div con etiqueta + cajita) */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"]):has(> :is(div, label) > :is(input, select, textarea)):not(:has(> .form-row)) { row-gap: 20px !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"]):has(> :is(div, label) > :is(input, select, textarea)):not(:has(> .form-row)):not(:last-child) { margin-bottom: 20px; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > :last-child { margin-bottom: 0 !important; }
+/* Listas de botones en columna (p. ej. avisos del MDM): 8 px entre ellos */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body div[style*="flex-direction:column"]:has(> .btn) { gap: 8px !important; }
+/* Etiqueta encima de la cajita: 8 px, 13 px, gris #475569, minúscula normal (también si trae estilo en línea).
+   No toca las que llevan casilla/campo adentro ni las que van al lado de la cajita en una rejilla de dos columnas. */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:not(:has(input, select, textarea)):not([style*="grid-template-columns"] > *) {
+  margin-bottom: 8px !important; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none !important; letter-spacing: 0 !important; line-height: 1.3;
+}
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body div[style*="grid-template-columns"] > label:not(:has(input, select, textarea)) {
+  font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none !important; letter-spacing: 0 !important;
+}
+/* Cajita → su ayuda 4 · ayudas legibles (13) */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body .form-row > :is(small, .hint, div[style*="font-size:10px"], div[style*="font-size:11px"]) { display: block; margin-top: 4px !important; font-size: 13px !important; line-height: 1.4; }
+/* Letra mínima 13 en botones chicos y enlaces (los «Agregar línea», «Previsualizar», «Marcar todos»…) */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(.btn, button, a):not(.modal-close):not(#waWrap *) { font-size: max(13px, 1em) !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(.btn, button):not(.modal-close) { min-height: 44px !important; }
+/* Casillas (§4b): en fila con su texto, cuadrito de 22, dentro de una tarjeta clara de 48 px (igual que «Activo» del piloto) */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:has(> input[type="checkbox"]):not(#permisosContainer *) {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px !important; margin: 0 !important; box-sizing: border-box;
+  border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
+  font-size: 14px !important; font-weight: 600; color: #0f172a; text-transform: none !important; letter-spacing: 0; cursor: pointer; line-height: 1.3;
+}
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:has(> input[type="checkbox"]):not(#permisosContainer *) > input[type="checkbox"] { width: 22px !important; height: 22px !important; min-height: 0 !important; margin: 0 !important; flex: none; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:has(> input[type="checkbox"]) :is(b, small, span) { font-size: inherit !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body .form-row + .form-row:has(> label > input[type="checkbox"]) { margin-top: 0; }
+/* Lista de permisos de «Nuevo rol»: las casillas se quedan como lista, solo con fila de 44 y letra 13 */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body #permisosContainer label:has(> input[type="checkbox"]) { min-height: 44px; font-size: 13px !important; text-transform: none !important; }
+
+/* Cajitas sin hueco de línea base debajo (el textarea/input en línea deja 4 px) */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(input, select, textarea) { vertical-align: top; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label + :is(input, select, textarea)[style*="margin-top"] { margin-top: 0 !important; }
+/* Cajones vacíos (mensajes, totales, resultados que se llenan después): no dejan hueco mientras están vacíos */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > :is(div, p, span, small):empty { margin-top: 0 !important; margin-bottom: 0 !important; padding: 0 !important; border: 0 !important; }
+/* El cuerpo que es rejilla (ventanas de cuentas por pagar): 20 entre filas */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body[style*="display:grid"] { row-gap: 20px !important; }
+/* Rejillas de dos columnas etiqueta | cajita (Asiento de apertura): 20 entre filas */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body div[style*="grid-template-columns"]:has(> :is(input, select, textarea)) { row-gap: 20px !important; }
+/* Bloques sueltos con margen en línea (etiqueta + cajita en un div con margin-top:10px, botones con margen): 20 */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > div[style*="margin-top"]:has(> label) { margin-top: 20px !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > :is(.btn, button)[style*="margin"] { margin-top: 20px !important; margin-bottom: 20px !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > :is(.btn, button)[style*="margin"]:first-child { margin-top: 0 !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > div[style*="margin-bottom:10px"]:not(:has(input, select, textarea, button)) { margin-bottom: 20px !important; }
+/* Avisos y tarjetas de datos (fondo amarillo o gris) → siguiente grupo 24 */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > div:is([style*="background:#fef3c7"], [style*="background:#f1f5f9"], [style*="background:#f8fafc"]):not(:empty):not(:last-child) { margin-bottom: 24px !important; }
+/* Deslizadores (rango) con zona de toque de 44 */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body input[type="range"], html.bc-fesp body .view input[type="range"] { min-height: 44px; }
+
+/* Saltos de línea entre etiqueta y cajita (ventanas armadas por código): la etiqueta ya deja sus 8 px */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label + br { display: none; }
+/* Cuerpos en rejilla o en columna (cuentas por pagar, catálogo web, despachar teléfonos): los cajones vacíos no ocupan hueco */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body:is([style*="display:grid"], .dt-body) > div:empty { display: none; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body.dt-body { row-gap: 12px !important; }
+
+/* Lo que va justo antes de un cajón vacío final (totales, mensajes) no deja margen: el pie pone sus 24 */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > :nth-last-child(2):has(+ :empty) { margin-bottom: 0 !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body > input[type="hidden"]:first-child + * { margin-top: 0 !important; }
+
+/* ── 7 · Ventanas con cuerpo propio ── */
+/* Buscar / listas (IMEI → Proveedor, Importar compra, Importar manifiesto, Validar tickets): el cuerpo lleva el borde interior y la fila buscador → botón a 20 */
+html.bc-fesp body :is(#modalSerialIP, #modalImportCompra, #modalManif, #modalValTickets, #bcE#bcE#bcE#bcE#bcE) .modal-box > .modal-body { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp body :is(#modalSerialIP, #modalValTickets, #bcE#bcE#bcE#bcE#bcE) .modal-body :is(.btn-blue, .btn-primary) { min-height: 54px !important; }
+html.bc-fesp body :is(#modalImportCompra, #bcE#bcE#bcE#bcE#bcE) .modal-body label:not(:has(input, select, textarea)) { margin-bottom: 8px !important; display: block; }
+html.bc-fesp body :is(#modalImportCompra, #bcE#bcE#bcE#bcE#bcE) .modal-body .btn-blue { min-height: 48px !important; } /* botón de búsqueda en línea con las cajitas de 48 */
+/* Vista previa del label (diagnóstico): panel de calibración con sus campos en fila */
+html.bc-fesp body :is(#modalLabelDiag, #bcE#bcE#bcE#bcE#bcE) #labelCalibPanel { padding: 16px !important; margin-bottom: 24px !important; }
+html.bc-fesp body :is(#modalLabelDiag, #bcE#bcE#bcE#bcE#bcE) #labelCalibPanel > div:first-child { margin-bottom: 8px !important; font-size: 13px !important; }
+html.bc-fesp body :is(#modalLabelDiag, #bcE#bcE#bcE#bcE#bcE) #labelCalibPanel > div[style*="display:flex"] { row-gap: 20px !important; column-gap: 10px !important; }
+/* Asiento de apertura y Nuevo asiento: títulos de grupo a 24 arriba / 8 abajo */
+html.bc-fesp body :is(#modalApertura, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="font-weight:800"] { margin: 24px 0 8px !important; }
+html.bc-fesp body :is(#modalApertura, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="font-weight:800"]:first-of-type { margin-top: 20px !important; }
+html.bc-fesp body :is(#modalApertura, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="margin-bottom:10px"] > label { margin-bottom: 8px !important; }
+html.bc-fesp body :is(#modalAsiento, #bcE#bcE#bcE#bcE#bcE) .modal-body .table-wrap { margin-top: 20px !important; }
+html.bc-fesp body :is(#modalAsiento, #bcE#bcE#bcE#bcE#bcE) .modal-body #as_totales { margin-top: 24px !important; }
+/* Generar asientos / compras desde Info Plus: la casilla del ITBIS en su tarjeta, botón de previsualizar a 24 */
+html.bc-fesp body :is(#modalAutoIP, #modalAutoIPC, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="margin-top:12px"] { margin-top: 24px !important; }
+html.bc-fesp body :is(#modalAutoIP, #modalAutoIPC, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="border:1px solid"] { padding: 0 !important; border: 0 !important; background: transparent !important; }
+/* Nuevo rol: botones «Marcar / Desmarcar» a 24 del campo y 8 entre ellos; casilla «Activo» a 24 de la lista */
+html.bc-fesp body :is(#modalRol, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="flex-wrap:wrap"] { margin: 24px 0 20px !important; gap: 8px !important; }
+html.bc-fesp body :is(#modalRol, #bcE#bcE#bcE#bcE#bcE) .modal-body > .form-row[style*="margin-top"] { margin-top: 24px !important; }
+/* Asignar técnico / equipos: la tarjeta de datos del equipo → campos 24; aviso amarillo → pie 0 (lo pone el pie) */
+html.bc-fesp body :is(#modalAsignarTecnico, #modalAsignarLote, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="background:#f1f5f9"] { margin-bottom: 24px !important; }
+/* Enviar notificación al equipo (MDM): el bloque del mensaje propio a 24, y su botón a 20 de la cajita */
+html.bc-fesp body :is(#modalMdmNotif, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="margin-top:12px"] { margin-top: 24px !important; }
+html.bc-fesp body :is(#modalMdmNotif, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="margin-top:12px"] > .btn-blue { margin-top: 24px !important; min-height: 54px !important; }
+/* Compartir contacto (WhatsApp) y Editar precios: filas a 20 */
+html.bc-fesp body :is(#modalEditarPrecios, #bcE#bcE#bcE#bcE#bcE) .modal-body table :is(td, th) { padding-top: 10px !important; padding-bottom: 10px !important; }
+/* Editar publicación del catálogo: la foto arriba cuenta como contenido (deja 24 debajo); casillas en tarjeta */
+html.bc-fesp body :is(#modalCatEdit, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="text-align:center"] { margin-bottom: 24px !important; }
+/* Despachar teléfonos: franja de selección → campos 24 */
+html.bc-fesp body :is(#modalDespTel, #bcE#bcE#bcE#bcE#bcE) .modal-body .dt-sp { margin-bottom: 24px !important; }
+/* Nuevo empleado (RRHH): título de grupo 24/8; «Agregar cuenta / referencia» legibles (lo pone la regla general) */
+html.bc-fesp body :is(#modalNomEmp, #bcE#bcE#bcE#bcE#bcE) .modal-body div[style*="font-weight:800"][style*="text-transform"] { margin: 24px 0 8px !important; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none !important; letter-spacing: 0 !important; }
+html.bc-fesp body :is(#modalNomEmp, #bcE#bcE#bcE#bcE#bcE) .modal-body > div[style*="font-weight:800"][style*="text-transform"]:first-child { margin-top: 0 !important; }
+/* Ventanas que se desplazan por dentro con el cuerpo limitado (max-height en línea): el borde de abajo lo pone el pie */
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body[style*="max-height"] { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box > .modal-body[style*="max-height"]:has(+ .modal-footer) { padding-bottom: 0 !important; }
+
+/* ── 8 · Pantallas del taller con formulario en tarjeta (.view .card) ── */
+html.bc-fesp body :is(
+  #v-etiquetas .card:has(#lbl_marca),
+  #cfgContentGeneral .card:has(#cfgTallerNombre),
+  #v-despachos .card:has(#despachoOrigen),
+  #invFisicoCont .card:has(#invAlmSel),
+  #v-liquidacion .card:has(#aduana_prov),
+  #v-rifaFactura .card:has(#rf_nombre),
+  #v-configImpresora .card:has(.form-row input),
+  #misIncentivosContenido .card:has(#miTicket),
+  #incentivosContenido .inc-card:has(input),
+  #finContenido .fv-cq-card,
+  #finContenido .fv-cfg-section,
+  #bcE#bcE#bcE
+) { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) .card :is(h2, h3) { margin-bottom: 8px; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) > :first-child { margin-top: 0 !important; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) > :is(h2, h3):first-child:not(:has(+ p)) { margin-bottom: 24px !important; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(input, select, textarea) { vertical-align: top; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) .card :is(h2, h3) + p { margin: 0 0 24px !important; }
+/* etiqueta → cajita 8 · 13 px gris (también con estilo en línea) */
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) label:not(:has(input, select, textarea)):not(.toggle):not([style*="display:flex"]) {
+  display: block; margin-bottom: 8px !important; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none !important; letter-spacing: 0 !important; line-height: 1.3;
+}
+/* campo → campo 20 */
+html.bc-fesp body :is(#v-etiquetas, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #finContenido, #bcE#bcE#bcE) :is(.card, .fv-cq-card, .fv-cfg-section) .form-row { margin-bottom: 20px !important; }
+html.bc-fesp body :is(#v-etiquetas, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #finContenido, #bcE#bcE#bcE) :is(.card, .fv-cq-card, .fv-cfg-section) > .form-row:last-child { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#v-configImpresora, #bcE#bcE#bcE) .card .form-row div[style*="gap:6px"]:has(> .btn) { gap: 8px !important; }
+html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE#bcE#bcE) .card:has(#despachoOrigen) > div:has(+ .btn-blue) { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE#bcE#bcE) .card:has(#invAlmSel) p:has(+ .btn-success) { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE#bcE#bcE) .card:has(#invAlmSel) > div[style*="display:flex"] { row-gap: 24px !important; column-gap: 10px !important; }
+html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE#bcE#bcE) .card:has(#invAlmSel) > div[style*="display:flex"] > .btn-success { margin-top: 0 !important; }
+/* Separadores (hr) entre grupos: 12 + 1 + 12 = el espacio de grupo */
+html.bc-fesp body :is(#v-etiquetas, #v-configImpresora, #bcE#bcE#bcE#bcE#bcE) .card .form-row:has(+ hr) { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#v-etiquetas, #v-configImpresora, #bcE#bcE#bcE#bcE#bcE) .card hr { margin: 12px 0 !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card > :last-child { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#v-rifaFactura, #bcE#bcE#bcE#bcE#bcE) .card:has(#rf_nombre) #rf_msg:empty { display: none; }
+html.bc-fesp body :is(#v-rifaFactura, #bcE#bcE#bcE#bcE#bcE) .card:has(#rf_nombre) div:has(> #rf_btnGuardar) { margin-top: 0 !important; }
+/* Financiamientos · Consulta: título → ayuda 8, ayuda → campos 24 */
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-head:has(+ .fv-cq-sub) { margin-bottom: 8px !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-sub { margin: 0 0 24px !important; font-size: 13px !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card .form-row label { margin-bottom: 8px !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card :is(div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) { row-gap: 20px !important; column-gap: 10px; margin-bottom: 20px !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card :is(div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) > .form-row { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card .fv-cq-fin-box { margin: 0 0 20px !important; }
+/* Liquidación de aduana: encabezados ordenables de 44 y, en el celular, la rejilla de 4 campos en 2 columnas para que nada se salga */
+html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) th[onclick] { height: 44px; }
+@media (max-width: 760px) { html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) div[style*="grid-template-columns:1fr 1fr 1fr 1fr"] { grid-template-columns: 1fr 1fr !important; } }
+html.bc-fesp body :is(#cfgContentGeneral, #bcE#bcE#bcE) .card:has(#cfgTallerNombre) > :is(input, select, textarea) { margin: 0 0 20px !important; }
+html.bc-fesp body :is(#cfgContentGeneral, #bcE#bcE#bcE) .card:has(#cfgTallerNombre) > :is(input, select, textarea):has(+ .btn) { margin-bottom: 24px !important; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> :is(div, .form-row) > :is(input, select, textarea, label)) { row-gap: 20px !important; column-gap: 10px; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) > .form-row { margin-bottom: 0 !important; }
+/* grupo → botón principal 24 · botón principal 54 · botones chicos legibles */
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(.btn-blue, .btn-success, .btn-teal, .btn-primary, .inc-btn-red):not(.btn-sm) { min-height: 54px !important; }
+html.bc-fesp body :is(#misIncentivosContenido, #bcE#bcE#bcE#bcE#bcE) .card .btn-blue.btn-sm { min-height: 54px !important; height: auto !important; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(.btn, button, .inc-btn):not(.modal-close):not(:is(.btn-blue, .btn-success, .btn-teal, .btn-primary, .inc-btn-red)) { font-size: max(13px, 1em) !important; min-height: 44px !important; }
+html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(.btn-blue, .btn-success, .btn-teal, .btn-primary, .inc-btn-red) { font-size: max(13px, 1em) !important; }
+html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE) .card:has(#despachoOrigen) > .btn-blue,
+html.bc-fesp body :is(#v-rifaFactura, #bcE#bcE#bcE) .card:has(#rf_nombre) #rf_btnGuardar,
+html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE) .card:has(#invAlmSel) .btn-success,
+html.bc-fesp body :is(#v-etiquetas, #bcE#bcE#bcE) .card:has(#lbl_marca) .form-row + div:has(> .btn-blue),
+html.bc-fesp body :is(#misIncentivosContenido, #bcE#bcE#bcE) .card:has(#miTicket) div:has(> .btn-blue),
+html.bc-fesp body :is(#incentivosContenido, #bcE#bcE#bcE) .inc-wrap div:has(> .inc-btn-red),
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) .fv-cfg-section div:has(> .btn-blue) { margin-top: 24px !important; }
+html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE) .card:has(#despachoOrigen) > :is(div, .btn-light) { margin-bottom: 20px !important; }
+html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE) .card:has(#despachoOrigen) > .btn-light { margin-top: 0 !important; }
+html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE) .card:has(#invAlmSel) p { margin: 0 0 20px !important; font-size: 13px !important; }
+html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE) .card:has(#invAlmSel) p:last-child { margin: 20px 0 0 !important; }
+/* Etiquetas adhesivas: la fila de cantidad + botón a 24 y los deslizadores a 20 */
+html.bc-fesp body :is(#v-etiquetas, #bcE#bcE#bcE) .card:has(#lbl_marca) .form-row[style*="margin:0 0 10px"] { margin-bottom: 20px !important; }
+html.bc-fesp body :is(#v-etiquetas, #bcE#bcE#bcE) .card:has(#lbl_marca) h4 { margin: 24px 0 8px !important; font-size: 13px !important; text-transform: none !important; letter-spacing: 0 !important; }
+/* Financiamientos: la hoja de estilos de la pantalla pone 10 px entre filas y 3 px bajo la etiqueta; aquí 20 y 8; título → ayuda 8 */
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) :is(.fv-cq-head, .fv-cfg-head) { margin-bottom: 24px !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) :is(.fv-cq-head, .fv-cfg-head) :is(h2, h3) { margin: 0 !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) :is(.fv-cq-head, .fv-cfg-head) p { margin: 8px 0 0 !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) .fv-cfg-section .form-row:last-child { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) .fv-cfg-section .fv-cfg-vars { margin-top: 20px !important; }
+/* Liquidación de aduana: botones de la barra a 8 y 44 */
+html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) div[style*="flex-wrap:wrap"] { gap: 8px !important; }
+html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) :is(input, select):not([type="file"]) { min-height: 48px !important; }
+/* Incentivos: tarjeta interior del registro con etiqueta/campo a 8/20 */
+html.bc-fesp body :is(#incentivosContenido, #bcE#bcE#bcE) .inc-wrap .inc-card:has(input) { margin-bottom: 24px !important; }
+html.bc-fesp body :is(#incentivosContenido, #bcE#bcE#bcE) .inc-wrap .inc-title { margin-bottom: 24px !important; }
+/* Incentivos y Mis incentivos: filas de campos a 20/10, rótulos chicos (div de 10 px) como etiquetas de 13 a 8 de la cajita */
+html.bc-fesp body :is(#incentivosContenido, #misIncentivosContenido, #bcE#bcE#bcE#bcE#bcE) :is(.inc-card, .card) :is(.inc-row-f, div[style*="display:flex"]):has(> :is(div, .inc-fg) > :is(input, select, textarea)) { row-gap: 20px !important; column-gap: 10px !important; margin-bottom: 20px !important; }
+html.bc-fesp body :is(#incentivosContenido, #misIncentivosContenido, #bcE#bcE#bcE#bcE#bcE) :is(.inc-card, .card) :is(.inc-lbl, div[style*="font-size:10px"]):not(:has(input)) { display: block; margin-bottom: 8px !important; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none !important; letter-spacing: 0 !important; }
+html.bc-fesp body :is(#incentivosContenido, #misIncentivosContenido, #bcE#bcE#bcE#bcE#bcE) :is(.inc-card, .card) :is(#incServicios, #miServicios) > div { row-gap: 20px !important; column-gap: 10px !important; }
+
+/* ── 9 · Páginas públicas (login/catálogo/tienda/solicitud/autoeval/campañas/inicio): cada una carga esta hoja con su interruptor ── */
+/* Catálogo: buscador con letra 16 y 48 de alto (el iPhone no hace zoom) */
+html.bc-fesp.bc-pag-catalogo body label.search input#q { height: 48px !important; font-size: 16px !important; }
+/* Tienda: la casilla «Solo disponibles» en su tarjeta de 48 (§4b) y los enlaces de WhatsApp con zona de toque 44 */
+html.bc-fesp.bc-pag-tienda body #panCel label.toggle, html.bc-fesp body .tools label.toggle {
+  display: inline-flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: 1px solid var(--line2, #e2e8f0); border-radius: 12px; background: var(--panel2, #f8fafc); font-size: 14px;
+}
+html.bc-fesp.bc-pag-tienda body label.toggle input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
+html.bc-fesp.bc-pag-tienda body :is(.vacio, .res .info) a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; }
+/* Campañas (CRM): tarjeta 24/16 · 48/40, etiquetas 13 gris sin MAYÚSCULAS, campos 48/16, campo → campo 20, título → ayuda 8 */
+html.bc-fesp.bc-pag-campanas body .card:has(.card-body .field) .card-body { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp.bc-pag-campanas body .card-step { padding: 16px var(--fe-ph) !important; }
+html.bc-fesp.bc-pag-campanas body .card-step p { margin-top: 8px !important; }
+html.bc-fesp.bc-pag-campanas body .card-body .field { margin-bottom: 20px !important; }
+html.bc-fesp.bc-pag-campanas body .card-body .field:last-child { margin-bottom: 0 !important; }
+html.bc-fesp.bc-pag-campanas body .card-body .field label { font-size: 13px !important; font-weight: 600 !important; text-transform: none !important; letter-spacing: 0 !important; color: var(--fe-gris) !important; margin-bottom: 8px !important; }
+html.bc-fesp.bc-pag-campanas body .card-body :is(.input, .select) { min-height: 48px !important; font-size: 16px !important; }
+html.bc-fesp.bc-pag-campanas body .card-body .textarea { font-size: 16px !important; }
+/* Autoevaluación: tarjeta 24/16 · 48/40, título → ayuda 8, criterio → criterio 20, estrellas de 44, comentario 16 */
+html.bc-fesp.bc-pag-autoeval body #app .card:not(.center) { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp.bc-pag-autoeval body #app .card h2 { margin: 0 !important; }
+html.bc-fesp.bc-pag-autoeval body #app .card h2 + p { margin: 8px 0 0 !important; }
+html.bc-fesp.bc-pag-autoeval body #app .crit { padding: 20px 0 !important; }
+html.bc-fesp.bc-pag-autoeval body #app .crit:first-child { padding-top: 0 !important; }
+html.bc-fesp.bc-pag-autoeval body #app .clbl { font-size: 13px !important; color: var(--fe-gris) !important; margin-bottom: 8px !important; }
+html.bc-fesp.bc-pag-autoeval body #app .stars i { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin-right: 0 !important; }
+html.bc-fesp.bc-pag-autoeval body #app .cval { margin-top: 4px !important; font-size: 13px !important; }
+html.bc-fesp.bc-pag-autoeval body #app textarea { font-size: 16px !important; min-height: 48px; display: block; }
+html.bc-fesp.bc-pag-autoeval body #app .card > label, html.bc-fesp body #app .card .clbl ~ label { font-size: 13px !important; color: var(--fe-gris) !important; margin-bottom: 8px !important; display: block; }
+html.bc-fesp.bc-pag-autoeval body #app .btn { min-height: 54px !important; margin-top: 24px; }
+/* Inicio: tarjeta «Consulta tu boleto» (la tarjeta es #rifa, no la sección) — título → ayuda 8, ayuda → cajita 20, 24/16 · 48/40 */
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta .eyebrow { margin-bottom: 8px; display: block; }
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta h3 { margin: 0 !important; }
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta h3 + p { margin: 8px 0 0 !important; font-size: 15px; }
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta .rifa-form { margin-top: 8px !important; gap: 8px !important; }
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta #rifaResultado:empty { display: none; }
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta .rifa-form input { height: 48px !important; font-size: 16px !important; }
+html.bc-fesp.bc-pag-inicio body #rifa.tarjeta .rifa-form .btn { min-height: 54px !important; }
+/* Solicitud de financiamiento (web): etiquetas gris #475569 a 8 de la cajita, pasos con 20 entre campos, título → ayuda 8.
+   Los campos se quedan en 58 px con letra 20 a propósito (página para el cliente, pantalla completa); se anota como no cumple. */
+html.bc-fesp.bc-pag-solicitud body .p .campo label { color: #475569 !important; margin-bottom: 8px !important; }
+html.bc-fesp.bc-pag-solicitud body .p .campo { margin-bottom: 0; }
+html.bc-fesp.bc-pag-solicitud body .p { row-gap: 20px; }
+html.bc-fesp.bc-pag-solicitud body .p h2 + .ayuda { margin-top: -12px !important; }
+html.bc-fesp.bc-pag-solicitud body .p .fila2 { row-gap: 20px !important; column-gap: 10px !important; }
