@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>Raspa y gana · Bayol Cell</title>
+<meta name="description" content="Raspe y descubra su premio de Bayol Cell para su próxima compra.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bayol Cell">
+<meta property="og:title" content="Raspa y gana · Bayol Cell">
+<meta property="og:description" content="Raspe y descubra su premio para su próxima compra.">
+<meta property="og:image" content="https://bayolcell.com/assets/og-bayolcell.jpg">
+<meta name="theme-color" content="#f6f4f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/apple-touch-icon.png">
+<!-- Raspa y gana (dueño, 29-oct-2026). Página pública del cliente: abre el QR del recibo (?t=token).
+     Solo usa la clave publicable de Supabase y dos funciones públicas: raspa_ver y raspa_jugar.
+     El premio lo decide el servidor (raspa_jugar) ANTES de raspar: raspar solo lo descubre. Bitácora 2026-10-29-2332-claude-raspa-pantallas. -->
+<style>
+:root{
+  --bg:#f6f4f1;--hoja:#ffffff;--tinta:#14171c;--sec:#475569;--apag:#64748b;--linea:#d5d9df;--perfo:#9aa1ab;
+  --naranja:#e4572e;--naranja-osc:#c2410c;--naranja-suave:#fff1ec;--foco:#2563eb;
+  --ok:#15803d;--okbg:#f0fdf4;--aviso:#b45309;--avisobg:#fef3c7;--err:#b91c1c;--errbg:#fef2f2;
+  --campo:#ffffff;--campo-borde:#cbd5e1;
+  --sombra:0 1px 0 rgba(255,255,255,.8) inset,0 0 0 1px rgba(15,23,42,.06),0 30px 70px -24px rgba(15,23,42,.25),0 12px 24px -12px rgba(15,23,42,.12);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#111317;--hoja:#1a1d23;--tinta:#eef1f5;--sec:#b6bfcc;--apag:#98a2b3;--linea:#2c313a;--perfo:#56606e;
+    --naranja:#f06a43;--naranja-osc:#ff8a65;--naranja-suave:rgba(240,106,67,.14);--foco:#60a5fa;
+    --ok:#4ade80;--okbg:rgba(34,197,94,.12);--aviso:#fbbf24;--avisobg:rgba(245,158,11,.14);--err:#f87171;--errbg:rgba(239,68,68,.12);
+    --campo:#111317;--campo-borde:#3a414c;
+    --sombra:0 0 0 1px rgba(255,255,255,.06),0 30px 70px -24px rgba(0,0,0,.6)}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--tinta);font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,Roboto,Helvetica,Arial,sans-serif;font-variant-numeric:tabular-nums}
+.pag{max-width:560px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))}
+.marca{display:flex;align-items:center;gap:12px;margin:8px 0 24px}
+.marca img{width:44px;height:44px;border-radius:12px;box-shadow:0 0 0 1px rgba(15,23,42,.08)}
+.marca b{display:block;font-size:17px;line-height:1.2;letter-spacing:-.01em}
+.marca small{display:block;color:var(--apag);font-size:13px}
+/* Línea de tijera y cupón con borde perforado (diseño «hoja impresa», elegido por el dueño) */
+.corte{display:flex;align-items:center;gap:8px;color:var(--apag);font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 12px}
+.corte::after{content:"";flex:1;border-top:1.5px dashed var(--perfo)}
+.corte svg{width:18px;height:18px;flex:none}
+.cupon{position:relative;background:var(--hoja);border:1.5px dashed var(--perfo);border-radius:16px;box-shadow:var(--sombra);padding:24px 16px}
+.cupon::before,.cupon::after{content:"";position:absolute;top:112px;width:22px;height:22px;border-radius:50%;background:var(--bg);border:1.5px dashed var(--perfo)}
+.cupon::before{left:-12px;clip-path:inset(0 0 0 50%)}
+.cupon::after{right:-12px;clip-path:inset(0 50% 0 0)}
+@media (min-width:600px){.pag{padding-top:48px}.cupon{padding:48px 40px}}
+.cupon>*+*{margin-top:24px}
+.cab h1:focus{outline:none}
+.cab h1{margin:0;font-size:24px;line-height:1.2;letter-spacing:-.015em}
+.cab p{margin:8px 0 0;color:var(--sec);font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--avisobg);color:var(--aviso)}
+.chip i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.chip.ok{background:var(--okbg);color:var(--ok)}.chip.err{background:var(--errbg);color:var(--err)}
+.cab .chip{margin-bottom:12px}
+.codigo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border:1px solid var(--linea);border-radius:12px;padding:12px 16px}
+.codigo span{color:var(--apag);font-size:13px}
+.codigo b{font-size:24px;letter-spacing:.14em;font-weight:800}
+/* Formulario (regla de espaciado: etiqueta→campo 8, campo→ayuda 4, campo→campo 20, grupos 24) */
+.campo label{display:block;font-size:13px;color:var(--sec);margin-bottom:8px}
+.campo input{width:100%;height:48px;font:inherit;font-size:16px;color:var(--tinta);background:var(--campo);border:1.5px solid var(--campo-borde);border-radius:12px;padding:0 14px;outline:none;transition:border-color .16s,box-shadow .16s}
+.campo input:focus{border-color:rgba(59,130,246,.6);box-shadow:0 0 0 4px rgba(59,130,246,.16)}
+.campo input[aria-invalid="true"]{border-color:var(--err)}
+.campo .ayuda{margin-top:4px;font-size:13px;color:var(--apag);min-height:20px}
+.campo .ayuda.err{color:var(--err)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;border:0;border-radius:14px;font:inherit;font-size:16px;font-weight:700;cursor:pointer;background:var(--naranja-osc);color:#fff;text-decoration:none;transition:transform .16s var(--ease),opacity .16s}
+@media (prefers-color-scheme:dark){.btn{background:var(--naranja);color:#1a0d07}}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.sec{min-height:48px;background:transparent;color:var(--tinta);box-shadow:inset 0 0 0 1.5px var(--campo-borde);font-weight:600}
+.btn:focus-visible,.raspa:focus-visible{outline:3px solid var(--foco);outline-offset:3px}
+.btns>*+*{margin-top:8px}
+/* Zona plateada */
+.raspa{position:relative;height:168px;border-radius:14px;overflow:hidden;border:1px solid var(--linea);background:var(--naranja-suave);user-select:none;-webkit-user-select:none}
+.raspa .premio{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:12px}
+.raspa canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;transition:opacity .35s var(--ease)}
+.raspa canvas.fuera{opacity:0;pointer-events:none}
+.premio .grande{font-size:44px;line-height:1;font-weight:800;letter-spacing:-.02em;color:var(--naranja-osc)}
+.premio .grande.txt{font-size:30px}
+.premio .peq{margin-top:8px;color:var(--sec);font-size:15px}
+.premio-caja{border-radius:14px;background:var(--naranja-suave);padding:24px 16px;text-align:center}
+/* Detalle del premio */
+.filas{border-top:1px solid var(--linea)}
+.fila{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--linea);font-size:15px}
+.fila span{color:var(--apag)}.fila b{text-align:right}
+.reglas h2{margin:0 0 8px;font-size:15px}
+.reglas p{margin:0;color:var(--sec);font-size:15px}
+.reglas p+h2{margin-top:20px}
+.nota{color:var(--apag);font-size:13px;margin:0}
+.pie{color:var(--apag);font-size:13px;text-align:center;margin:24px 0 0}
+.oculto{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.entra{animation:entra .26s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes entra{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.cargando{display:grid;place-items:center;min-height:200px;color:var(--apag)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="pag">
+  <header class="marca"><img src="assets/apple-touch-icon.png" alt="" width="44" height="44"><div><b>Bayol Cell</b><small>Raspa y gana</small></div></header>
+  <div class="corte" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1 20 20M8.1 15.9 20 4"/></svg><span>Recorte por aquí</span></div>
+  <section class="cupon" id="app" aria-live="polite"><div class="cargando">Cargando…</div></section>
+  <p class="pie">Bayol Cell · Santiago · Navarrete · Moca</p>
+  <p class="sr" id="anuncio" aria-live="assertive"></p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var URL_SB = 'https://vkhwdvjtowrhkhqavnvk.supabase.co';
+  var CLAVE = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz'; // clave publicable (la misma del taller); nunca service_role
+  var RESENA_GOOGLE = 'https://share.google/iqIYsfVeciXd3MzLL'; // igual que RESENA_GOOGLE de taller-app.js
+  var TOKEN = (new URLSearchParams(location.search).get('t') || '').trim();
+  var app = document.getElementById('app'), anuncio = document.getElementById('anuncio');
+  var reducido = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var SIN_RED = 'No hay conexión o el servidor tardó demasiado. Revise su internet e intente de nuevo.';
+  var juego = null; // última respuesta del servidor
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function rpc(nombre, args) {
+    var ac = 'AbortController' in window ? new AbortController() : null, tm = ac ? setTimeout(function () { ac.abort(); }, 15000) : 0;
+    return fetch(URL_SB + '/rest/v1/rpc/' + nombre, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CLAVE, Authorization: 'Bearer ' + CLAVE }, body: JSON.stringify(args), signal: ac ? ac.signal : undefined })
+      .then(function (r) { return r.json().catch(function () { return null; }).then(function (d) { if (!r.ok || !d) return { ok: false, red: !r.ok && r.status >= 500, error: true }; return d; }); })
+      .catch(function () { return { ok: false, red: true }; })
+      .then(function (d) { clearTimeout(tm); return d; });
+  }
+  function fecha(iso) {
+    if (!iso) return '';
+    try { return new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Santo_Domingo' }); } catch (e) { return String(iso).slice(0, 10); }
+  }
+  function premioTxt(p) {
+    if (p === 'regalo') return { grande: 'Accesorio gratis', txt: true, peq: 'Templado o cable tipo C Samsung, a su elección' };
+    return { grande: (p === '10' ? '10' : '5') + ' %', txt: false, peq: 'de descuento en su próxima compra' };
+  }
+  function premioCorto(p) { return p === 'regalo' ? 'un accesorio gratis' : (p === '10' ? '10' : '5') + ' % de descuento'; }
+  function chip(cls, t) { return '<span class="chip ' + cls + '"><i aria-hidden="true"></i>' + esc(t) + '</span>'; }
+  function cab(ch, t, p) { return '<div class="cab">' + (ch || '') + '<h1 id="titulo" tabindex="-1">' + esc(t) + '</h1>' + (p ? '<p>' + p + '</p>' : '') + '</div>'; }
+  function codigoHtml(c) { return c ? '<div class="codigo"><span>Código</span><b>' + esc(c) + '</b></div>' : ''; }
+  function pintar(html) {
+    app.innerHTML = html;
+    if (!reducido) { app.classList.remove('entra'); void app.offsetWidth; app.classList.add('entra'); }
+    var t = document.getElementById('titulo'); if (t) try { t.focus({ preventScroll: true }); } catch (e) {}
+  }
+
+  // ---------- Estados ----------
+  function vMensaje(ch, t, p, c, boton) {
+    pintar(cab(ch, t, p) + codigoHtml(c) + (boton || ''));
+  }
+  function vSinRed() {
+    pintar(cab(chip('err', 'Sin conexión'), 'No se pudo cargar', esc(SIN_RED)) + '<div class="btns"><button type="button" class="btn sec" id="reintentar">Intentar de nuevo</button></div>');
+    document.getElementById('reintentar').onclick = iniciar;
+  }
+  function vPendiente(d) {
+    pintar(cab(chip('', 'Pendiente de pago'), 'Su premio aún no está activo',
+      'Su premio se activa cuando la compra se pague en caja. Si ya pagó, muestre este código en caja.') + codigoHtml(d.codigo) +
+      '<div class="btns"><button type="button" class="btn sec" id="revisar">Volver a revisar</button></div>');
+    document.getElementById('revisar').onclick = iniciar;
+  }
+  function vActivo(d) {
+    pintar(cab(chip('ok', 'Listo para jugar'), 'Raspe y gane', 'Escriba su WhatsApp. Ahí queda guardado su premio para la próxima compra.') +
+      '<form id="f" novalidate><div class="campo"><label for="tel">WhatsApp</label>' +
+      '<input id="tel" name="tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="809-000-0000" maxlength="14" aria-describedby="telAyuda">' +
+      '<div class="ayuda" id="telAyuda">10 dígitos</div></div>' +
+      '<div class="btns" style="margin-top:24px"><button type="submit" class="btn" id="jugar">Jugar</button></div></form>' +
+      '<p class="nota">Un juego por compra. El premio vence a los 30 días.</p>');
+    var tel = document.getElementById('tel'), ay = document.getElementById('telAyuda'), bt = document.getElementById('jugar');
+    tel.addEventListener('input', function () {
+      var v = tel.value.replace(/\D/g, ''); if (v.length === 11 && v[0] === '1') v = v.slice(1); v = v.slice(0, 10);
+      tel.value = v.slice(0, 3) + (v.length > 3 ? '-' + v.slice(3, 6) : '') + (v.length > 6 ? '-' + v.slice(6) : '');
+      tel.removeAttribute('aria-invalid'); ay.className = 'ayuda'; ay.textContent = '10 dígitos';
+    });
+    document.getElementById('f').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = tel.value.replace(/\D/g, '');
+      if (v.length !== 10) { tel.setAttribute('aria-invalid', 'true'); ay.className = 'ayuda err'; ay.textContent = 'Escriba los 10 dígitos de su WhatsApp.'; tel.focus(); return; }
+      bt.disabled = true; bt.textContent = 'Preparando su juego…';
+      rpc('raspa_jugar', { p_token: TOKEN, p_telefono: v }).then(function (r) {
+        if (r && r.ok && r.premio) {
+          juego = { estado: r.estado, premio: r.premio, codigo: r.codigo || d.codigo, vence_en: r.vence_en };
+          if (r.estado === 'usado') return vUsado(juego);
+          return vRaspar(juego);
+        }
+        bt.disabled = false; bt.textContent = 'Jugar';
+        if (r && r.motivo === 'telefono') { tel.setAttribute('aria-invalid', 'true'); ay.className = 'ayuda err'; ay.textContent = 'Escriba los 10 dígitos de su WhatsApp.'; tel.focus(); return; }
+        if (r && r.motivo === 'pendiente') return vPendiente(d);
+        if (r && r.motivo) return mostrar({ ok: true, estado: r.motivo, codigo: d.codigo });
+        ay.className = 'ayuda err'; ay.textContent = SIN_RED;
+      });
+    });
+  }
+  function vRaspar(j) {
+    var p = premioTxt(j.premio);
+    pintar(cab(chip('ok', 'Su juego'), 'Raspe la zona plateada', 'Pase el dedo o el ratón por encima.') +
+      '<div class="raspa" id="zona"><div class="premio" id="premioDebajo" aria-hidden="true"><div class="grande' + (p.txt ? ' txt' : '') + '">' + esc(p.grande) + '</div><div class="peq">' + esc(p.peq) + '</div></div>' +
+      '<canvas id="lienzo" aria-hidden="true"></canvas></div>' +
+      '<div class="btns"><button type="button" class="btn sec" id="descubrir">Descubrir premio</button></div>');
+    var zona = document.getElementById('zona'), cv = document.getElementById('lienzo'), listo = false;
+    function revelar() {
+      if (listo) return; listo = true;
+      cv.classList.add('fuera');
+      anuncio.textContent = 'Su premio: ' + premioCorto(j.premio) + '.';
+      setTimeout(function () { vJugado(j, true); }, reducido ? 0 : 650);
+    }
+    document.getElementById('descubrir').onclick = revelar;
+    // Lienzo plateado (Pointer Events: dedo, lápiz y ratón)
+    var dpr = Math.min(2, window.devicePixelRatio || 1), w = zona.clientWidth, h = zona.clientHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    var x = cv.getContext('2d'); if (!x) return;
+    x.scale(dpr, dpr);
+    var g = x.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#b8bec7'); g.addColorStop(.42, '#eef0f3'); g.addColorStop(.58, '#cfd4db'); g.addColorStop(1, '#aab1bb');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    x.fillStyle = 'rgba(255,255,255,.32)'; for (var i = -h; i < w; i += 7) { x.save(); x.translate(i, 0); x.rotate(.35); x.fillRect(0, -10, 1, h * 1.4); x.restore(); }
+    x.fillStyle = '#4b5563'; x.font = '700 15px -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('RASPE AQUÍ', w / 2, h / 2);
+    x.globalCompositeOperation = 'destination-out'; x.lineCap = 'round'; x.lineJoin = 'round'; x.lineWidth = 36;
+    var ult = null, trazos = 0;
+    function pos(e) { var r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+    function limpio() {
+      try {
+        var d = x.getImageData(0, 0, cv.width, cv.height).data, vacio = 0, total = 0;
+        for (var k = 3; k < d.length; k += 4 * 24) { total++; if (d[k] < 40) vacio++; }
+        return total ? vacio / total : 0;
+      } catch (e) { return 0; }
+    }
+    cv.addEventListener('pointerdown', function (e) { e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (er) {} ult = pos(e); x.beginPath(); x.arc(ult[0], ult[1], 18, 0, 7); x.fill(); });
+    cv.addEventListener('pointermove', function (e) {
+      if (!ult || listo) return; var p2 = pos(e);
+      x.beginPath(); x.moveTo(ult[0], ult[1]); x.lineTo(p2[0], p2[1]); x.stroke(); ult = p2;
+      if (++trazos % 8 === 0 && limpio() > .5) revelar();
+    });
+    function soltar() { ult = null; if (!listo && limpio() > .5) revelar(); }
+    cv.addEventListener('pointerup', soltar); cv.addEventListener('pointercancel', soltar);
+  }
+  function vJugado(j, recien) {
+    var p = premioTxt(j.premio);
+    var vale = j.premio === 'regalo'
+      ? 'Un templado de cristal o un cable USB tipo C Samsung. Usted escoge en la tienda.'
+      : j.premio === '10'
+        ? 'Accesorios, baterías y servicio técnico: hasta 10 %. Pantallas y otras piezas: hasta 5 %.'
+        : 'Accesorios, pantallas, baterías, piezas y servicio técnico.';
+    var noVale = 'Celulares, televisores, pasolas, aires acondicionados, cargadores VIDVIE, envíos y recargas. No se usa en la misma compra que lo generó.';
+    pintar(cab(chip('ok', recien ? 'Premio' : 'Premio vigente'), recien ? 'Ganó ' + premioCorto(j.premio) : 'Su premio', 'Muestre este código en caja en su próxima compra. También lo encontramos por su WhatsApp.') +
+      '<div class="premio-caja"><div class="premio"><div class="grande' + (p.txt ? ' txt' : '') + '">' + esc(p.grande) + '</div><div class="peq">' + esc(p.peq) + '</div></div></div>' +
+      codigoHtml(j.codigo) +
+      '<div class="filas"><div class="fila"><span>Vence</span><b>' + esc(fecha(j.vence_en) || 'a los 30 días') + '</b></div></div>' +
+      '<div class="reglas"><h2>Dónde vale</h2><p>' + esc(vale) + '</p><h2>Dónde no vale</h2><p>' + esc(noVale) + '</p></div>' +
+      '<div class="btns"><a class="btn" id="resena" href="' + esc(RESENA_GOOGLE) + '" target="_blank" rel="noopener">Dejar reseña en Google</a></div>' +
+      '<p class="nota">Su opinión nos ayuda a mejorar. Toma menos de un minuto.</p>');
+  }
+  function vUsado(j) { vMensaje(chip('', 'Usado'), 'Este premio ya se usó', 'Cada premio se usa una sola vez. Gracias por preferirnos.', j.codigo); }
+
+  function mostrar(d) {
+    juego = d;
+    if (!d || d.red) return vSinRed();
+    var e = d.estado;
+    if (e === 'pendiente') return vPendiente(d);
+    if (e === 'activo') return vActivo(d);
+    if (e === 'jugado') return vJugado(d, false);
+    if (e === 'usado') return vUsado(d);
+    if (e === 'vencido') return vMensaje(chip('err', 'Vencido'), 'Este premio venció', 'El premio vale 30 días desde que se raspa' + (d.vence_en ? '; venció el ' + esc(fecha(d.vence_en)) : '') + '.', d.codigo);
+    if (e === 'anulado') return vMensaje(chip('err', 'Anulado'), 'Este juego no está disponible', 'Si tiene dudas, pregunte en caja.', d.codigo);
+    return vMensaje(chip('err', 'No encontrado'), 'Este código no existe', 'Revise el enlace del recibo o pregunte en caja.');
+  }
+  function iniciar() {
+    if (!/^[0-9a-f]{20,}$/i.test(TOKEN)) return mostrar({ ok: false, estado: 'no_existe' });
+    app.innerHTML = '<div class="cargando">Cargando…</div>';
+    rpc('raspa_ver', { p_token: TOKEN }).then(function (d) {
+      if (d && d.red) return vSinRed();
+      if (!d || d.error) return mostrar({ estado: 'no_existe' });
+      mostrar(d);
+    });
+  }
+  iniciar();
+})();
+</script>
+</body>
+</html>
