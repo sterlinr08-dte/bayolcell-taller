@@ -100,6 +100,8 @@ listas y sincronización.
 
 - **Reacondicionados, lista de lotes compacta (30-oct-2026, PUBLICADO, dueño «Publícalo», opción B):** capa `bc-reacond-lotes.css/js` (`html.bc-rlc`, apagar `bc_rlc_off='1'`): una fila por lote, número de la etapa elegida en grande, solo etapas con equipos, «Abrir ›» y toda la tarjeta abre el lote. Lote 179→101 px en PC. Además el buscador de la Prefactura ya no pinta la franja naranja del reflector (PR #150). Bit. 2026-10-30-1145 y 1050.
 
+- **Prefactura «nivel pro» + ventana de impresora (30-oct-2026, PUBLICADO, dueño «Publícalo», opción B):** capa `bc-prefactura-pro.css/js` (`html.bc-pfpro`, apagar `bc_pfpro_off='1'`): en PC ≥ 1440 px dos columnas con «Resumen» fijo a la derecha (se mueve la barra `.bcpf-bar` entera dentro, R.bar sigue sirviendo); el engranaje abre la ventana «Impresora de esta computadora» encima (mueve `#qzPanelCard` y `#bcPfFmtCard` y los devuelve). Bit. 2026-10-30-1250.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su

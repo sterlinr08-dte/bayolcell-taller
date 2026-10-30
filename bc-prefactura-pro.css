@@ -1,0 +1,77 @@
+/* BAYOL CELL · Prefactura «nivel pro» (dueño, 30-oct-2026, opción B) + ventana de impresora.
+   La arma bc-prefactura-pro.js. Apagar: BC_PFPRO=false o localStorage bc_pfpro_off='1'. */
+
+/* ── 1 · PC (≥ 1440 px): dos columnas. Izquierda cliente y artículos; derecha resumen fijo con los botones ── */
+html.bc-pfpro.bc-pfpro-2c #v-recepcion .bcpf-doc { max-width: 1440px !important; width: auto !important; display: grid !important; grid-template-columns: minmax(0, 1fr) 360px; column-gap: 24px; align-items: start; background: transparent !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; }
+html.bc-pfpro.bc-pfpro-2c #v-recepcion .bcpf-doc > .bcpf-pad { grid-column: 1; grid-row: 1; background: #fff; border: 1px solid rgba(15,23,42,.08); border-radius: 20px; box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 12px 32px -18px rgba(15,23,42,.18); }
+html.bc-pfpro.bc-pfpro-2c #v-recepcion .bcpf-doc > .bcpf-keys { grid-column: 1; grid-row: 2; background: transparent !important; border: 0 !important; }
+html.bc-pfpro.bc-pfpro-2c #v-recepcion .bcpf-pie { display: block !important; }
+html.bc-pfpro.bc-pfpro-2c #v-recepcion .bcpf-otras { width: 100% !important; max-width: none !important; }
+html.bc-pfpro.bc-pfpro-2c #v-recepcion.bcpf-con-barra { padding-bottom: 24px !important; }
+
+html.bc-pfpro #v-recepcion .bcpro-res {
+  grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 0;
+  background: #fff; border: 1px solid rgba(15,23,42,.08); border-radius: 20px; padding: 20px;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 18px 40px -22px rgba(15,23,42,.28);
+  display: flex; flex-direction: column; gap: 12px;
+}
+html.bc-pfpro #v-recepcion .bcpro-res > h3 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #64748b; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-tot { width: auto !important; max-width: none !important; margin: 0 !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-tot .tr { font-size: 14px; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-tot .tt { margin-top: 4px; padding-top: 14px !important; border-top: 1px solid #e2e8f0; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-tot .t-tot { font-size: 32px !important; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar { position: static !important; inset: auto !important; transform: none !important; width: auto !important; max-width: none !important; margin: 4px 0 0 !important; padding: 0 !important; background: transparent !important; border: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; display: flex !important; flex-wrap: wrap; gap: 8px; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bt { display: none !important; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bb {
+  min-height: 54px; min-width: 54px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;
+  border-radius: 14px; border: 1px solid #e2e8f0; background: #fff; color: #0f172a; font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bb i { font-size: 18px; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bb[hidden] { display: none; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bb:active { transform: scale(.97); }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bb:hover { filter: brightness(1.06); }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bgi { flex: 1 1 100%; order: 1; background: #0a0a0a; border-color: #0a0a0a; color: #fffefa; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bg { flex: 1 1 auto; order: 2; background: linear-gradient(135deg, #cf4a22, #b8401f); border-color: #a33718; color: #fff; box-shadow: 0 4px 12px rgba(184,64,31,.32); }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bimp { flex: 0 0 54px; order: 3; padding: 0; }
+html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bfin { flex: 1 1 100%; order: 0; text-align: center; font-size: 14px; font-weight: 700; color: #b91c1c; }
+@media (prefers-reduced-motion: reduce) { html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bb { transition: none; } html.bc-pfpro #v-recepcion .bcpro-res .bcpf-bar .bb:active { transform: none; } }
+
+/* ── 2 · Pulido (todas las medidas) ── */
+/* Nombre / WhatsApp / Cédula a la misma altura (la casilla «Promos» empujaba el WhatsApp 6 px) */
+html.bc-pfpro #v-recepcion .bcpf-clidatos .bcpf-campos { align-items: end !important; }
+html.bc-pfpro #v-recepcion .bcpf-clidatos .bc-mkt-consent { align-self: end; }
+/* «Sin artículos» → un vacío que dice qué hacer */
+html.bc-pfpro #v-recepcion .bcpf-vacio { min-height: 96px; display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #64748b !important; font-size: 14px !important; border-radius: 16px !important; }
+html.bc-pfpro #v-recepcion .bcpf-vacio .bcpro-v1 { font-size: 15px; font-weight: 700; color: #334155; }
+html.bc-pfpro #v-recepcion .bcpf-vacio kbd { font: 700 12px/1 ui-monospace, Menlo, monospace; padding: 3px 6px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; }
+/* «Descuento RD$» + «RD$» dentro de la cajita: queda «Descuento» */
+html.bc-pfpro #v-recepcion .bcpf-tot .tdm label > span:first-child .bcpro-rd { display: none; }
+
+/* ── 3 · Ventana «Impresora» (engranaje de la Prefactura) ── */
+.bcpro-imp-velo { position: fixed; inset: 0; z-index: 9600; background: rgba(15,23,42,.38); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: flex; align-items: flex-start; justify-content: center; padding: max(24px, env(safe-area-inset-top)) 16px 24px; overflow-y: auto; animation: bcproFade .18s ease-out both; }
+.bcpro-imp { width: min(620px, 100%); background: #fff; border-radius: 20px; box-shadow: 0 30px 80px -24px rgba(15,23,42,.55); overflow: hidden; animation: bcproSube .22s cubic-bezier(.22,1,.36,1) both; }
+.bcpro-imp-top { display: flex; align-items: center; gap: 10px; padding: 14px 14px 14px 20px; border-bottom: 1px solid #eef2f7; }
+.bcpro-imp-top h3 { margin: 0; flex: 1; font-size: 17px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+.bcpro-imp-top h3 i { color: #2563eb; }
+.bcpro-imp-x { width: 44px; height: 44px; border: 0; border-radius: 12px; background: #f1f5f9; color: #334155; font-size: 18px; cursor: pointer; display: grid; place-items: center; }
+.bcpro-imp-x:hover { background: #e2e8f0; }
+.bcpro-imp-cuerpo { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 16px; }
+.bcpro-imp-cuerpo > .card { margin: 0 !important; box-shadow: none !important; border: 1px solid #e2e8f0 !important; border-radius: 16px !important; }
+.bcpro-imp-cuerpo select { min-height: 48px; font-size: 16px; }
+.bcpro-imp-cuerpo .btn { min-height: 44px; }
+.bcpro-imp-nota { margin: 0; font-size: 13px; color: #64748b; line-height: 1.5; }
+.bcpro-imp-pie { display: flex; gap: 8px; flex-wrap: wrap; }
+.bcpro-imp-pie .btn { flex: 1 1 200px; justify-content: center; }
+@keyframes bcproFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bcproSube { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (max-width: 640px) { .bcpro-imp-velo { padding: 0; align-items: stretch; } .bcpro-imp { border-radius: 0; min-height: 100%; } }
+@media (prefers-reduced-motion: reduce) { .bcpro-imp-velo, .bcpro-imp { animation: none; } }
+
+/* ── 4 · Tabla de artículos en PC: si ninguna línea lleva IMEI, esa columna desaparece y el nombre respira ── */
+@media (min-width: 761px) {
+  html.bc-pfpro #v-recepcion .bcpf-items:not(:has(.bcpf-imei:not(.nada))) .bcpf-ith,
+  html.bc-pfpro #v-recepcion .bcpf-items:not(:has(.bcpf-imei:not(.nada))) .bcpf-it { grid-template-columns: 60px minmax(0, 1fr) 0 128px 96px 140px 124px 44px; }
+  html.bc-pfpro #v-recepcion .bcpf-items:not(:has(.bcpf-imei:not(.nada))) .bcpf-ith span:nth-child(3),
+  html.bc-pfpro #v-recepcion .bcpf-items:not(:has(.bcpf-imei:not(.nada))) .bcpf-imei.nada { visibility: hidden; overflow: hidden; }
+}
