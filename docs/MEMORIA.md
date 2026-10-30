@@ -102,6 +102,8 @@ listas y sincronización.
 
 - **Prefactura «nivel pro» + ventana de impresora (30-oct-2026, PUBLICADO, dueño «Publícalo», opción B):** capa `bc-prefactura-pro.css/js` (`html.bc-pfpro`, apagar `bc_pfpro_off='1'`): en PC ≥ 1440 px dos columnas con «Resumen» fijo a la derecha (se mueve la barra `.bcpf-bar` entera dentro, R.bar sigue sirviendo); el engranaje abre la ventana «Impresora de esta computadora» encima (mueve `#qzPanelCard` y `#bcPfFmtCard` y los devuelve). Bit. 2026-10-30-1250.
 
+- **Etiquetas «estudio de etiqueta» (30-oct-2026, PUBLICADO, dueño «Publícalo», opción B):** capa `bc-etiquetas-pro.css/js` (`html.bc-etq`, apagar `bc_etq_off='1'`): formulario en 2 columnas, marca sola según el modelo, botones de capacidad y estado, aviso de IMEI, vista previa grande fija con copias e Imprimir; mismos id y funciones de impresión. Bit. 2026-10-30-1520.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
