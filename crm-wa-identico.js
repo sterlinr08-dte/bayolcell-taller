@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261022-w18';
+  var VERSION = '20261030-w19';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -676,9 +676,44 @@
       actualizarHilo(id, { no_leidos_count: leer ? 0 : 1 }, leer ? 'Marcado como leído' : 'Marcado como no leído');
     },
     etiquetar: function(id){ abrirEtiquetas(id); },
+    // 30-oct-2026 (dueño): «eliminar o vaciar las conversaciones del CRM, solo el administrador». El servidor vuelve a
+    // comprobar que sea administrador (crm_vaciar_hilo / crm_eliminar_hilo) y deja constancia en auditoría.
+    vaciar: function(id){ borrarChat(id, false); },
+    eliminar: function(id){ borrarChat(id, true); },
     info: function(id){ if (hiloId() !== id){ try { abrirHiloWhatsapp(id); } catch(e){} setTimeout(abrirInfo, 900); } else abrirInfo(); },
     buscar: function(){ abrirBuscar(); }
   };
+  function esAdmin(){ try { return typeof isAdminUser === 'function' && isAdminUser(); } catch(e){ return false; } }
+  async function borrarChat(id, todo){
+    var h = hiloPorId(id); if (!h || !esAdmin()) return;
+    var quien = h.nombre_perfil || h.telefono_e164 || 'este contacto';
+    var msg = todo
+      ? 'Eliminar el chat de «' + quien + '».\n\nSe borran el chat y todos sus mensajes del CRM. Los leads y el cliente se conservan.\nEl WhatsApp del cliente no cambia; si vuelve a escribir, el chat aparece de nuevo.\n\nNo se puede deshacer.'
+      : 'Vaciar el chat de «' + quien + '».\n\nSe borran todos los mensajes del CRM; el contacto, sus etiquetas y el cliente se conservan.\nEl WhatsApp del cliente no cambia.\n\nNo se puede deshacer.';
+    var ok = false;
+    try { ok = await confirmar(msg, { ok: todo ? 'Eliminar chat' : 'Vaciar chat', peligro: true }); } catch(e){ ok = window.confirm(msg); }
+    if (!ok) return;
+    try {
+      var r = await supabaseClient.rpc(todo ? 'crm_eliminar_hilo' : 'crm_vaciar_hilo', { p_hilo: id });
+      if (r.error) throw r.error;
+      if (!r.data || r.data.ok === false) throw new Error('El chat ya no existe.');
+      var n = Number(r.data.mensajes || 0);
+      if (todo){
+        try { var lista = _waHilos || []; var i = lista.findIndex(function(x){ return x.id === id; }); if (i >= 0) lista.splice(i, 1); } catch(e){}
+        var j = extras.findIndex(function(x){ return x.id === id; }); if (j >= 0) extras.splice(j, 1);
+        if (hiloId() === id){ try { volverListaWhatsapp(); } catch(e){} }
+      } else {
+        h.ultimo_mensaje_preview = null; h.no_leidos_count = 0;
+        if (hiloId() === id){ try { abrirHiloWhatsapp(id); } catch(e){} }
+      }
+      repintarLista();
+      try { toast((todo ? 'Chat eliminado' : 'Chat vaciado') + ' · ' + n + ' mensaje' + (n === 1 ? '' : 's') + ' borrado' + (n === 1 ? '' : 's') + '.'); } catch(e){}
+    } catch(e){
+      var t = String((e && e.message) || e || '');
+      if (/crm_(vaciar|eliminar)_hilo|function .* does not exist|schema cache/i.test(t)) t = 'Falta aplicar la actualización de la base (crm_vaciar_hilo / crm_eliminar_hilo). Avise al administrador.';
+      try { toastError('No se pudo ' + (todo ? 'eliminar' : 'vaciar') + ' el chat: ' + t); } catch(_){}
+    }
+  }
   window._bcWaChatAccion = function(accion, id){ cerrarMenuChat(); if (acciones[accion]) acciones[accion](id || hiloId()); };
 
   // ---------- Menú de chat (chevron en la fila, ⋮ en la cabecera, mantener presionado en el celular) ----------
@@ -691,6 +726,7 @@
     if (h.estado !== 'archivado') o.push(['fijar', h.fijado_en ? 'pinned-off' : 'pin', h.fijado_en ? 'Desfijar chat' : 'Fijar chat']);
     o.push(['noLeido', (h.no_leidos_count || 0) > 0 ? 'message-check' : 'message-dots', (h.no_leidos_count || 0) > 0 ? 'Marcar como leído' : 'Marcar como no leído']);
     o.push(['etiquetar', 'tag', 'Etiquetar chat']);
+    if (esAdmin()){ o.push(['vaciar', 'eraser', 'Vaciar chat']); o.push(['eliminar', 'trash', 'Eliminar chat']); }
     return o;
   }
   function cerrarMenuChat(){ var m = document.getElementById('bcwaMenuChat'); if (m) m.remove(); var s = document.getElementById('bcwaHoja'); if (s) s.remove(); }
