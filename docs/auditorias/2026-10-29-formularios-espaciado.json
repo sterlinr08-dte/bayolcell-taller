@@ -1,0 +1,4036 @@
+[
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nuevo empleado (técnico / usuario)",
+  "donde": "taller.html #modalTecnico",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–89 px (mediana 17)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Activo (disponible para asignar a equipo»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–89 px (mediana 17)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Activo (disponible para asignar a equipo»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Imprimir label de venta",
+  "donde": "taller.html #modalLabelVenta",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–17 px (mediana 17)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Imprimir»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–17 px (mediana 17)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Imprimir»)"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "4 de 21 más chicos: «51» 420×40, «25» 420×40, «11» 420×40, «38» 420×40"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Cambiar contraseña",
+  "donde": "taller.html #modalCambiarClave",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "45 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nuevo asiento contable",
+  "donde": "taller.html #modalAsiento",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "8–88 px (mediana 10)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "109 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Agregar línea»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "8 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "150 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Agregar línea»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Generar asientos desde Info Plus",
+  "donde": "taller.html #modalAutoIP",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "215 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Previsualizar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "197 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Previsualizar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Asiento de apertura",
+  "donde": "taller.html #modalApertura",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5–6 px (mediana 6)"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "8–12 px (mediana 8)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/174 lados"
+   },
+   {
+    "regla": "letra de la etiqueta · 390 px",
+    "esperado": "13 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(8, 145, 178) (2 de 3)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5–6 px (mediana 6)"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "8–12 px (mediana 8)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "letra de la etiqueta · 1280 px",
+    "esperado": "13 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(8, 145, 178) (2 de 3)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); etiquetas a 13 px; etiquetas color #475569"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Generar compras desde Info Plus",
+  "donde": "taller.html #modalAutoIPC",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "179 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Previsualizar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "179 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Previsualizar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Registrar gasto (contabilidad)",
+  "donde": "taller.html #modalRegGasto",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–24 px (mediana 24)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–24 px (mediana 24)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Registrar gasto (simple)",
+  "donde": "taller.html #modalGastoSimple",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–24 px (mediana 24)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "91 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–24 px (mediana 24)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "95 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Movimiento de efectivo",
+  "donde": "taller.html #modalMovEf",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "8–16 px (mediana 8)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "8–16 px (mediana 8)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva cuenta contable",
+  "donde": "taller.html #modalCuenta",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "141 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "145 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva categoría",
+  "donde": "taller.html #modalCategoria",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "105 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Activa»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "109 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Activa»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva marca",
+  "donde": "taller.html #modalMarca",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "105 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Activa»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "109 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Activa»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nuevo rol",
+  "donde": "taller.html #modalRol",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "168 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar Rol»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Marcar todos», «Desmarcar todos»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "172 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar Rol»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Marcar todos», «Desmarcar todos»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Reasignar a otro técnico",
+  "donde": "taller.html #modalReasignar",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Reasignar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "53 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Reasignar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Reenviar mensaje (WhatsApp)",
+  "donde": "taller.html #modalReenviarWa",
+  "metodo": "medido",
+  "estado": "casi",
+  "fallas": [
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/18 arriba/abajo · 18/18 lados"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 18/18 lados"
+   }
+  ],
+  "arreglo_sugerido": "relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Enviar adjunto (WhatsApp)",
+  "donde": "taller.html #modalWaAdjuntoPreview",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "27 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Enviar»)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "27 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Enviar»)"
+   }
+  ],
+  "arreglo_sugerido": "24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Compartir contacto (WhatsApp)",
+  "donde": "taller.html #modalWaContacto",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "26 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "45 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Enviar contacto»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "26 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "45 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Enviar contacto»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Enviar notificación al equipo (MDM)",
+  "donde": "taller.html #modalMdmNotif",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "botones de una misma lista · 390 px",
+    "esperado": "8 px",
+    "real": "4–6 px (mediana 6)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Enviar personalizado»)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Enviar personalizado»)"
+   }
+  ],
+  "arreglo_sugerido": "24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); gap: 8px entre botones del pie/lista; relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Registrar pieza usada",
+  "donde": "taller.html #modalConsumoTaller",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar pieza usada»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "53 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar pieza usada»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Registrar equipo existente",
+  "donde": "taller.html #modalRegistrarExistente",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar equipo»)"
+   },
+   {
+    "regla": "etiquetas en minúscula normal · 390 px",
+    "esperado": "minúscula, sin letter-spacing",
+    "real": "1 de 6 en MAYÚSCULAS o espaciadas"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "53 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar equipo»)"
+   },
+   {
+    "regla": "etiquetas en minúscula normal · 1280 px",
+    "esperado": "minúscula, sin letter-spacing",
+    "real": "1 de 6 en MAYÚSCULAS o espaciadas"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; quitar text-transform:uppercase y letter-spacing de las etiquetas"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Asignar técnico",
+  "donde": "taller.html #modalAsignarTecnico",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "99 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Asignar y pasar a Proceso»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "103 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Asignar y pasar a Proceso»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Asignar equipos a un técnico",
+  "donde": "taller.html #modalAsignarLote",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Asignar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "53 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Asignar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva falla",
+  "donde": "taller.html #modalFalla",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–17 px (mediana 17)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "109 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–17 px (mediana 17)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "113 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Crear proveedor",
+  "donde": "taller.html #modalProveedor",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar Proveedor»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/(con desplazamiento) arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar Proveedor»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Crear artículo",
+  "donde": "taller.html #modalArticulo",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–17 px (mediana 17)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar Artículo»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Este artículo lleva IMEI / Serial obliga»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–17 px (mediana 17)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar Artículo»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Este artículo lleva IMEI / Serial obliga»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nuevo perfil de impresora",
+  "donde": "taller.html #modalNuevoPerfil",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "95 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Crear Perfil»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "85 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Crear Perfil»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva compra",
+  "donde": "taller.html #modalNuevaCompra",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "99 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Crear Compra»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "89 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Crear Compra»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Vista previa del label (diagnóstico)",
+  "donde": "taller.html #modalLabelDiag",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "8 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "114 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Imprimir Ahora»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Restablecer»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "8–66 px (mediana 8)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "66 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "48 px («Imprimir Ahora»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Restablecer»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Evaluando equipo (reacondicionados)",
+  "donde": "taller.html #modalEvaluacion",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "botones de una misma lista · 390 px",
+    "esperado": "8 px",
+    "real": "4–8 px (mediana 4)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Siguiente»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Expandir», «Contraer»)"
+   },
+   {
+    "regla": "botones de una misma lista · 1280 px",
+    "esperado": "8 px",
+    "real": "4–10 px (mediana 8)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Siguiente»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Expandir», «Contraer»)"
+   }
+  ],
+  "arreglo_sugerido": "gap: 8px entre botones del pie/lista; relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "IMEI → Proveedor",
+  "donde": "taller-app.js abrirBuscarSerialIP()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/16 arriba/abajo · 16/113 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "48 px («Buscar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Sincronizar seriales»)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/20 arriba/abajo · 20/119 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "48 px («Buscar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Sincronizar seriales»)"
+   }
+  ],
+  "arreglo_sugerido": "relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Importar compra de Info Plus",
+  "donde": "taller-app.js abrirImportarCompraInfoPlus()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "23 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "18/32 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Buscar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "23 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/36 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Buscar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Importar manifiesto (Excel)",
+  "donde": "taller-app.js abrirImportarManifiesto()",
+  "metodo": "medido",
+  "estado": "casi",
+  "fallas": [
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/28 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/32 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Editar precios del artículo",
+  "donde": "taller-app.js abrirEditarPreciosArticulo()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "13 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "36 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar en Info Plus»)"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "13 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "40 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar en Info Plus»)"
+   }
+  ],
+  "arreglo_sugerido": ".form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Editar equipo del lote",
+  "donde": "taller-app.js _editarEquipoLote()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "105 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar cambios»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Cambiar», «Es por garantía (permite repetir el mism»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "109 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar cambios»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Cambiar», «Es por garantía (permite repetir el mism»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Registrar compra del lote en Info Plus",
+  "donde": "taller-app.js registrarCompraLoteInfoPlus()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "61 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar en Info Plus»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "65 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar en Info Plus»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nuevo empleado (RRHH)",
+  "donde": "taller-app.js _nominaEditarEmpleado()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5–8 px (mediana 5)"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–59 px (mediana 26)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Agregar cuenta», «Agregar referencia»)"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(14, 116, 144) (1 de 21)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5–8 px (mediana 5)"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–59 px (mediana 26)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Agregar cuenta», «Agregar referencia»)"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(14, 116, 144) (1 de 21)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»); etiquetas color #475569"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Registrar beneficio (RRHH)",
+  "donde": "taller-app.js _rrhhRegistrarBeneficio()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "45 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "49 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva prueba (RRHH)",
+  "donde": "taller-app.js _rrhhNuevaPrueba()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Contestar aquí»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («(ver perfiles ideales)»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "77 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («(ver perfiles ideales)»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva pregunta (RRHH)",
+  "donde": "taller-app.js _rrhhFormPregunta()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "105 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Activa (se muestra en la prueba)»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "109 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Activa (se muestra en la prueba)»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Autoevaluación por enlace (RRHH)",
+  "donde": "taller-app.js _rrhhNuevaAutoEnlace()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "73 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Generar enlace»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "77 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Generar enlace»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nueva evaluación de desempeño",
+  "donde": "taller-app.js _rrhhNuevaEval()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar evaluación»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "53 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar evaluación»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Ajuste rápido de inventario",
+  "donde": "taller-app.js abrirAjusteRapido()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "29 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "28/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Hacer ajuste»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "73 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "33 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "28/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Hacer ajuste»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Jalar compras a crédito",
+  "donde": "taller-app.js _cxpAbrirJalar()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "29 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "33 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Deuda manual (cuentas por pagar)",
+  "donde": "taller-app.js _cxpAbrirManual()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "9 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "29 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "9 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "33 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Abono a deuda (cuentas por pagar)",
+  "donde": "taller-app.js _cxpAbrirAbono()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "9 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "29 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "9 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "33 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Editar publicación del catálogo web",
+  "donde": "taller-app.js _catEditar()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "88 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "229/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Mostrar en el catálogo», «★ Destacado»)"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(100, 116, 139) (3 de 3)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "92 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "235/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Mostrar en el catálogo», «★ Destacado»)"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(100, 116, 139) (3 de 3)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»); etiquetas color #475569"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Despacho rápido",
+  "donde": "taller-app.js abrirDespachoRapido()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "29 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Hacer despacho»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "33 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Hacer despacho»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Despachar teléfonos",
+  "donde": "taller-app.js despacharTelefonosSeleccionados()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "19–82 px (mediana 19)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "235 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/12 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar e imprimir»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "19–82 px (mediana 19)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "160 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/12 arriba/abajo · 20/33 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar e imprimir»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Buscar cliente (prefactura)",
+  "donde": "taller-app.js _prefBuscarCliente()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/16 arriba/abajo · 16/64 lados"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 5 más chicos: «CONTADO (genérico · cód. 1)» 342×38"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/20 arriba/abajo · 20/99 lados"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 5 más chicos: «CONTADO (genérico · cód. 1)» 520×38"
+   }
+  ],
+  "arreglo_sugerido": "relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Buscar cliente (recepción)",
+  "donde": "taller-app.js _rpBuscarCliente()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/16 arriba/abajo · 16/66 lados"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 5 más chicos: «CLIENTE DE CONTADO (genérico · cód. 1)» 342×38"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/20 arriba/abajo · 20/100 lados"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 5 más chicos: «CLIENTE DE CONTADO (genérico · cód. 1)» 520×38"
+   }
+  ],
+  "arreglo_sugerido": "relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Validar tickets",
+  "donde": "taller-app.js abrirValidadorGlobal()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/16 arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 5 más chicos: «span» 3×14"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/20 arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 5 más chicos: «span» 3×14"
+   }
+  ],
+  "arreglo_sugerido": "relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Label rápido del equipo",
+  "donde": "taller-app.js imprimirLabelEquipo()",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "botones de una misma lista · 390 px",
+    "esperado": "8 px",
+    "real": "38 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 16/16 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Imprimir»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "botones de una misma lista · 1280 px",
+    "esperado": "8 px",
+    "real": "10–38 px (mediana 38)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "30/(con desplazamiento) arriba/abajo · 20/20 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Imprimir»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); gap: 8px entre botones del pie/lista; relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Prefactura / Recepción",
+  "donde": "taller.html #v-recepcion (taller-recepcion.js + taller-prefactura.js)",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "cajita → ayuda/error · 390 px",
+    "esperado": "4 px",
+    "real": "7 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "10–84 px (mediana 14)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "63 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "15/34 arriba/abajo · 13/13 lados"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 26 más chicos: «label» 38×44"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(91, 89, 81) (6 de 6)"
+   },
+   {
+    "regla": "casillas en fila con su texto · 390 px",
+    "esperado": "cuadrito a la izquierda, texto al lado",
+    "real": "1 de 1 sueltas"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "2 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "272 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "11/6 arriba/abajo · 17/111 lados"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(91, 89, 81) (6 de 6)"
+   },
+   {
+    "regla": "casillas en fila con su texto · 1280 px",
+    "esperado": "cuadrito a la izquierda, texto al lado",
+    "real": "1 de 1 sueltas"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 4 px entre la cajita y su ayuda/error; .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila); etiquetas color #475569; casilla a la izquierda y texto al lado, en tarjeta de 48 px (§4b)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Diagnóstico",
+  "donde": "taller.html #v-diagnostico",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "953 px"
+   },
+   {
+    "regla": "botones de una misma lista · 390 px",
+    "esperado": "8 px",
+    "real": "0–46 px (mediana 6)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "10/17 arriba/abajo · 10/17 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Preguntarle a la IA»)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "250 px"
+   },
+   {
+    "regla": "botones de una misma lista · 1280 px",
+    "esperado": "8 px",
+    "real": "0–46 px (mediana 6)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "14/17 arriba/abajo · 14/14 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Preguntarle a la IA»)"
+   }
+  ],
+  "arreglo_sugerido": "24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); gap: 8px entre botones del pie/lista; relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Configuración · General",
+  "donde": "taller.html #v-configuracion",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "14–44 px (mediana 18)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "18 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/14 arriba/abajo · 14/14 lados"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "14–44 px (mediana 18)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "18 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "36/17 arriba/abajo · 17/17 lados"
+   }
+  ],
+  "arreglo_sugerido": ".form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Etiquetas adhesivas",
+  "donde": "taller.html #v-etiquetas",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16–41 px (mediana 16)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "30/30 arriba/abajo · 14/12 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Imprimir en Label Printer»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–41 px (mediana 16)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "26/33 arriba/abajo · 17/15 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Imprimir en Label Printer»)"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "4 de 27 más chicos: «58» 710×40, «28» 710×40, «13» 710×40, «25» 710×40"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Configuración de impresora",
+  "donde": "taller.html #v-configImpresora",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "1408 px"
+   },
+   {
+    "regla": "botones de una misma lista · 390 px",
+    "esperado": "8 px",
+    "real": "6–52 px (mediana 8)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "0/14 arriba/abajo · 0/12 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar configuración»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "394 px"
+   },
+   {
+    "regla": "botones de una misma lista · 1280 px",
+    "esperado": "8 px",
+    "real": "6–52 px (mediana 8)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "0/22 arriba/abajo · 0/424 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar configuración»)"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "10 de 56 más chicos: «58» 710×40, «40» 710×40, «11» 710×40, «40» 710×40"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); gap: 8px entre botones del pie/lista; relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Liquidación de aduana",
+  "donde": "taller.html #v-liquidacion",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "72 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "14/14 arriba/abajo · 14/14 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "12 de 39 más chicos: «Ej. 60.00» 34×48, «Descripción» 82×27, «Cant.» 43×27, «P. unit US$» 75×27"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Mostrar columnas», «Agregar gasto»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16–72 px (mediana 72)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "20 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "17/17 arriba/abajo · 17/17 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar»)"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "10 de 39 más chicos: «Descripción» 117×27, «Cant.» 60×27, «P. unit US$» 95×27, «Importe US$» 100×27"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Mostrar columnas», «Agregar gasto»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila); subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Rifa por factura",
+  "donde": "taller.html #v-rifaFactura",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "40 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "-6/36 arriba/abajo · 0/14 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar e imprimir»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Actualizar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "40 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "-6/19 arriba/abajo · 0/0 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar e imprimir»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Actualizar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Nuevo despacho",
+  "donde": "taller.html #v-despachos",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "8 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "14/14 arriba/abajo · 14/14 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Hacer despacho»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "17/17 arriba/abajo · 17/17 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Hacer despacho»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Inventario físico · iniciar conteo",
+  "donde": "taller.html #v-invfisico",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "14/14 arriba/abajo · 14/132 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Empezar a contar»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "4 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "17/17 arriba/abajo · 17/17 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Empezar a contar»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Incentivos (configuración)",
+  "donde": "taller.html #v-incentivos",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "3–5 px (mediana 3)"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "6–32 px (mediana 8)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "9 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "12/13 arriba/abajo · 13/64 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar ticket»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "3–5 px (mediana 3)"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "32 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "9 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "12/13 arriba/abajo · 13/428 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Registrar ticket»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Financiamientos · Consulta",
+  "donde": "taller.html #v-financiamientos",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "título → texto de ayuda · 390 px",
+    "esperado": "8 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "3 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "10–64 px (mediana 10)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "27/27 arriba/abajo · 15/15 lados"
+   },
+   {
+    "regla": "título → texto de ayuda · 1280 px",
+    "esperado": "8 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "3 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "10–64 px (mediana 10)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "33/33 arriba/abajo · 21/21 lados"
+   }
+  ],
+  "arreglo_sugerido": "8 px entre título y su ayuda; label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Financiamientos · Configuración",
+  "donde": "taller.html #v-financiamientos",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "título → texto de ayuda · 390 px",
+    "esperado": "8 px",
+    "real": "2 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "3 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "10–20 px (mediana 10)"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "18/(con desplazamiento) arriba/abajo · 15/0 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar configuracion»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («Restaurar texto por defecto», «Restaurar texto por defecto», «Agregar plan»)"
+   },
+   {
+    "regla": "título → texto de ayuda · 1280 px",
+    "esperado": "8 px",
+    "real": "2 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "3 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "45 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "24/21 arriba/abajo · 21/21 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar configuracion»)"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («Restaurar texto por defecto», «Restaurar texto por defecto», «Agregar plan»)"
+   }
+  ],
+  "arreglo_sugerido": "8 px entre título y su ayuda; label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto; subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Mis incentivos",
+  "donde": "taller.html #v-misIncentivos",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "6–32 px (mediana 6)"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "13/13 arriba/abajo · 13/63 lados"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar ticket»)"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "32 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "10 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "13/13 arriba/abajo · 13/13 lados"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "44 px («Guardar ticket»)"
+   }
+  ],
+  "arreglo_sugerido": "label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); botón principal (Guardar/Crear…) a 54 px de alto"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Login del taller",
+  "donde": "taller.html #login",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "título → texto de ayuda · 390 px",
+    "esperado": "8 px",
+    "real": "0 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 390 px",
+    "esperado": "24 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "29/29 arriba/abajo · 21/21 lados"
+   },
+   {
+    "regla": "alto de los campos · 390 px",
+    "esperado": "48 px",
+    "real": "2 de 2 miden 44 px (Usuario Operador, Contraseña Corporativa)"
+   },
+   {
+    "regla": "botón principal · 390 px",
+    "esperado": "54 px",
+    "real": "42 px («Autenticar Operador»)"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 7 más chicos: «Volver a la página principal» 308×39"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "11 px («Usuario Operador», «Contraseña Corporativa»)"
+   },
+   {
+    "regla": "letra de la etiqueta · 390 px",
+    "esperado": "13 px",
+    "real": "11 px"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(30, 41, 59) (2 de 2)"
+   },
+   {
+    "regla": "título → texto de ayuda · 1280 px",
+    "esperado": "8 px",
+    "real": "0 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "5 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "grupo → grupo (campos → botón principal) · 1280 px",
+    "esperado": "24 px",
+    "real": "16 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "41/41 arriba/abajo · 41/41 lados"
+   },
+   {
+    "regla": "alto de los campos · 1280 px",
+    "esperado": "48 px",
+    "real": "2 de 2 miden 44 px (Usuario Operador, Contraseña Corporativa)"
+   },
+   {
+    "regla": "letra de los campos · 1280 px",
+    "esperado": "16 px",
+    "real": "2 de 2 con 13 px"
+   },
+   {
+    "regla": "botón principal · 1280 px",
+    "esperado": "54 px",
+    "real": "42 px («Autenticar Operador»)"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "1 de 7 más chicos: «Volver a la página principal» 338×39"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px («Usuario Operador», «Contraseña Corporativa»)"
+   },
+   {
+    "regla": "letra de la etiqueta · 1280 px",
+    "esperado": "13 px",
+    "real": "11 px"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(30, 41, 59) (2 de 2)"
+   }
+  ],
+  "arreglo_sugerido": "8 px entre título y su ayuda; label { margin-bottom: 8px } (hoy 2–5 px); .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); 24 px entre el último campo y el pie con el botón (quitar alto fijo/espacio vacío del cuerpo); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); campos a 48 px de alto; botón principal (Guardar/Crear…) a 54 px de alto; min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila); subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»); etiquetas a 13 px; etiquetas color #475569; campos a 16 px (evita zoom del iPhone)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Solicitud de financiamiento (web)",
+  "donde": "solicitud.html",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "alto de los campos · 390 px",
+    "esperado": "48 px",
+    "real": "Paso 1: 1 miden 59 px · Paso 2: 1 miden 59 px · Paso 3: 1 miden 59 px · Paso 5: 4 miden 59 px"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "Paso 1: rgb(100, 116, 139) (1 de 1) · Paso 2: rgb(100, 116, 139) (1 de 1) · Paso 3: rgb(100, 116, 139) (1 de 1) · Paso 5: rgb(100, 116, 139) (5 de 5)"
+   },
+   {
+    "regla": "título → texto de ayuda · 390 px",
+    "esperado": "8 px",
+    "real": "Paso 5: 16 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "Paso 5: 16–40 px (mediana 40)"
+   },
+   {
+    "regla": "alto de los campos · 1280 px",
+    "esperado": "48 px",
+    "real": "Paso 1: 1 miden 59 px · Paso 2: 1 miden 59 px · Paso 3: 1 miden 59 px · Paso 5: 4 miden 59 px"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "Paso 1: rgb(100, 116, 139) (1 de 1) · Paso 2: rgb(100, 116, 139) (1 de 1) · Paso 3: rgb(100, 116, 139) (1 de 1) · Paso 5: rgb(100, 116, 139) (5 de 5)"
+   },
+   {
+    "regla": "título → texto de ayuda · 1280 px",
+    "esperado": "8 px",
+    "real": "Paso 5: 16 px"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "Paso 5: 16–40 px (mediana 40)"
+   }
+  ],
+  "arreglo_sugerido": "campos a 48 px de alto; etiquetas color #475569; 8 px entre título y su ayuda; .form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Autoevaluación del empleado",
+  "donde": "autoeval.html",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "título → texto de ayuda · 390 px",
+    "esperado": "8 px",
+    "real": "2 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "19/23 arriba/abajo · 17/17 lados"
+   },
+   {
+    "regla": "letra de los campos · 390 px",
+    "esperado": "16 px",
+    "real": "1 de 1 con 15 px"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "10 de 11 más chicos: «☆» 29×36, «☆» 29×36, «☆» 29×36, «☆» 29×36"
+   },
+   {
+    "regla": "letra de la etiqueta · 390 px",
+    "esperado": "13 px",
+    "real": "15 px"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(15, 23, 42) (1 de 1)"
+   },
+   {
+    "regla": "título → texto de ayuda · 1280 px",
+    "esperado": "8 px",
+    "real": "2 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "19/23 arriba/abajo · 17/17 lados"
+   },
+   {
+    "regla": "letra de los campos · 1280 px",
+    "esperado": "16 px",
+    "real": "1 de 1 con 15 px"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "10 de 11 más chicos: «☆» 29×36, «☆» 29×36, «☆» 29×36, «☆» 29×36"
+   },
+   {
+    "regla": "letra de la etiqueta · 1280 px",
+    "esperado": "13 px",
+    "real": "15 px"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(15, 23, 42) (1 de 1)"
+   }
+  ],
+  "arreglo_sugerido": "8 px entre título y su ayuda; relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); campos a 16 px (evita zoom del iPhone); min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila); etiquetas a 13 px; etiquetas color #475569"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Consulta de boletos de la rifa",
+  "donde": "index.html #rifaTel",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "título → texto de ayuda · 390 px",
+    "esperado": "8 px",
+    "real": "18 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 390 px",
+    "esperado": "8 px",
+    "real": "20 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "104/95 arriba/abajo · 35/35 lados"
+   },
+   {
+    "regla": "letra de la etiqueta · 390 px",
+    "esperado": "13 px",
+    "real": "14.5 px"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(169, 172, 177) (1 de 1)"
+   },
+   {
+    "regla": "título → texto de ayuda · 1280 px",
+    "esperado": "8 px",
+    "real": "18 px"
+   },
+   {
+    "regla": "etiqueta → cajita · 1280 px",
+    "esperado": "8 px",
+    "real": "20 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "134/127 arriba/abajo · 67/67 lados"
+   },
+   {
+    "regla": "letra de la etiqueta · 1280 px",
+    "esperado": "13 px",
+    "real": "14.5 px"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(169, 172, 177) (1 de 1)"
+   }
+  ],
+  "arreglo_sugerido": "8 px entre título y su ayuda; label { margin-bottom: 8px } (hoy 2–5 px); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); etiquetas a 13 px; etiquetas color #475569"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Buscador del catálogo",
+  "donde": "catalogo.html #q",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "letra de los campos · 390 px",
+    "esperado": "16 px",
+    "real": "1 de 1 con 15 px"
+   },
+   {
+    "regla": "letra de los campos · 1280 px",
+    "esperado": "16 px",
+    "real": "1 de 1 con 15 px"
+   }
+  ],
+  "arreglo_sugerido": "campos a 16 px (evita zoom del iPhone)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Buscador de pantallas",
+  "donde": "pantallas.html #q",
+  "metodo": "medido",
+  "estado": "cumple",
+  "fallas": [],
+  "arreglo_sugerido": "—"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Buscadores de la tienda",
+  "donde": "tienda.html #qCel/#qPan",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 390 px",
+    "esperado": "≥ 44 px",
+    "real": "3 de 5 más chicos: «Solo disponibles» 131×17, «on» 131×17, «Pregúntanos por WhatsApp» 219×20"
+   },
+   {
+    "regla": "fila de la casilla · 390 px",
+    "esperado": "48 px (tarjeta)",
+    "real": "17 px"
+   },
+   {
+    "regla": "todo lo tocable ≥ 44×44 · 1280 px",
+    "esperado": "≥ 44 px",
+    "real": "3 de 5 más chicos: «Solo disponibles» 131×17, «on» 131×17, «Pregúntanos por WhatsApp» 219×20"
+   },
+   {
+    "regla": "fila de la casilla · 1280 px",
+    "esperado": "48 px (tarjeta)",
+    "real": "17 px"
+   }
+  ],
+  "arreglo_sugerido": "min-height/min-width 44 px en botones chicos, ✕, enlaces y casillas (contando la fila); fila de la casilla de 48 px (tarjeta clara §4b)"
+ },
+ {
+  "proyecto": "Bayol Cell",
+  "formulario": "Campañas (CRM) · entrada",
+  "donde": "crm-campanas.html",
+  "metodo": "medido",
+  "estado": "no cumple",
+  "fallas": [
+   {
+    "regla": "campo → campo siguiente · 390 px",
+    "esperado": "20 px",
+    "real": "14 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (390) · 390 px",
+    "esperado": "24 arriba/abajo · 16 lados",
+    "real": "14/28 arriba/abajo · 14/14 lados"
+   },
+   {
+    "regla": "alto de los campos · 390 px",
+    "esperado": "48 px",
+    "real": "1 de 2 miden 44 px (NOMBRE DE LA CAMPAÑA)"
+   },
+   {
+    "regla": "letra de los campos · 390 px",
+    "esperado": "16 px",
+    "real": "2 de 2 con 15 px"
+   },
+   {
+    "regla": "letra mínima de los controles · 390 px",
+    "esperado": "13 px",
+    "real": "12 px («LÍNEA DE WHATSAPP», «NOMBRE DE LA CAMPAÑA»)"
+   },
+   {
+    "regla": "etiquetas en minúscula normal · 390 px",
+    "esperado": "minúscula, sin letter-spacing",
+    "real": "2 de 2 en MAYÚSCULAS o espaciadas"
+   },
+   {
+    "regla": "letra de la etiqueta · 390 px",
+    "esperado": "13 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "color de la etiqueta · 390 px",
+    "esperado": "#475569",
+    "real": "rgb(107, 114, 128) (2 de 2)"
+   },
+   {
+    "regla": "campo → campo siguiente · 1280 px",
+    "esperado": "20 px",
+    "real": "14 px"
+   },
+   {
+    "regla": "borde interior de la tarjeta (1280) · 1280 px",
+    "esperado": "48 arriba/abajo · 40 lados",
+    "real": "18/32 arriba/abajo · 18/18 lados"
+   },
+   {
+    "regla": "alto de los campos · 1280 px",
+    "esperado": "48 px",
+    "real": "1 de 2 miden 44 px (NOMBRE DE LA CAMPAÑA)"
+   },
+   {
+    "regla": "letra de los campos · 1280 px",
+    "esperado": "16 px",
+    "real": "2 de 2 con 15 px"
+   },
+   {
+    "regla": "letra mínima de los controles · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px («LÍNEA DE WHATSAPP», «NOMBRE DE LA CAMPAÑA»)"
+   },
+   {
+    "regla": "etiquetas en minúscula normal · 1280 px",
+    "esperado": "minúscula, sin letter-spacing",
+    "real": "2 de 2 en MAYÚSCULAS o espaciadas"
+   },
+   {
+    "regla": "letra de la etiqueta · 1280 px",
+    "esperado": "13 px",
+    "real": "12 px"
+   },
+   {
+    "regla": "color de la etiqueta · 1280 px",
+    "esperado": "#475569",
+    "real": "rgb(107, 114, 128) (2 de 2)"
+   }
+  ],
+  "arreglo_sugerido": ".form-row { margin-bottom: 20px } (sin sumar márgenes de rejilla); relleno de la caja: 24px 16px en celular y 48px 40px en PC (en .modal-body/.modal-header/.modal-footer o la tarjeta); campos a 48 px de alto; campos a 16 px (evita zoom del iPhone); subir a 13 px los textos de botones chicos y casillas («Activa», «Agregar…»); quitar text-transform:uppercase y letter-spacing de las etiquetas; etiquetas a 13 px; etiquetas color #475569"
+ }
+]
