@@ -589,6 +589,11 @@
       var envS = function (it) { if (esDelivery(it)) return null; return origS.apply(this, arguments); }; // el envío no lleva existencia
       envS._bcdl = true; window._rpStockItem = envS;
     }
+    if (typeof window._rpDescInfoplus === 'function' && !window._rpDescInfoplus._bcdl) {
+      var origD = window._rpDescInfoplus; // la línea del delivery va limpia a Info Plus (sin equipo, IMEI ni falla pegados)
+      var envD = function (it) { if (esDelivery(it)) return String(it.desc || 'DELIVERY').trim().slice(0, 100); return origD.apply(this, arguments); };
+      envD._bcdl = true; window._rpDescInfoplus = envD;
+    }
     if (typeof window._rpPrecio === 'function' && !window._rpPrecio._bcdl) {
       var origP = window._rpPrecio;
       var envP = function (i, v) {
