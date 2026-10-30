@@ -93,6 +93,8 @@ listas y sincronización.
 
 - **10 agentes (26-oct-2026, PUBLICADO, PR #124, merge 68fd120):** interfaz de Inicio, Órdenes, Inventario, Despachos, Finanzas, global, y Reacondicionados (pantalla, prueba de punta a punta 25/25, rentabilidad por teléfono, mapa del proceso `docs/REACONDICIONADOS-PROCESO.md`). Cada capa se apaga con su `localStorage`. 4 SQL propuestos sin aplicar. Bit. 2026-10-26-0240.
 
+- **Raspa y gana (29-oct, rama `claude/raspa-y-gana`, SIN publicar):** base probada sin aplicar (`20261029200000`) y pantallas: `raspa.html` (QR → WhatsApp → raspar; premio del servidor antes de raspar; reseña Google), cupón B/N con QR al pie de la prefactura de RD$500+ (`raspa_emitir`), píldora «Premio Raspa y gana» con canje por línea (`bc-raspa.js/.css`, `raspa_canjear` al guardar). Apagar `bc_raspa_off=1`. Falta: aplicar migración con «publícalo», prueba real, y prueba autorizada en Info Plus del descuento de cabecera con accesorio gratis. Bit. 2026-10-29-2332.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su

@@ -2,7 +2,8 @@
    se imprime al guardar en el papel escogido en «Config. Impresora»: ticket 80 mm o hoja carta (cada PC).
    La reimpresión del mismo Nº dice «COPIA». El PDF sigue igual (hoja carta).
    Reemplaza imprimirPrefactura(modo) de taller-app.js; usa _prefUltima (lo llena _rpImprimir).
-   Apagar: localStorage.bc_pfimp_off = '1'. */
+   Apagar: localStorage.bc_pfimp_off = '1'.
+   29-oct-2026: cupón «Raspa y gana» al pie (compras de RD$500+). Apagar solo el cupón: bc_raspa_off = '1' o BC_RASPA = false. */
 (function () {
   'use strict';
   try { if (localStorage.getItem('bc_pfimp_off') === '1') return; } catch (e) {}
@@ -232,32 +233,119 @@
     for (var i = 0; i < n; i++) rep.push('<div class="copia-n">' + cuerpo + '</div>');
     return html.replace(m[0], '<body>' + rep.join('<div style="page-break-after:always;break-after:page"></div>') + script + '</body>');
   }
+  // 29-oct-2026 (dueño, «Raspa y gana»): la hoja lleva al pie el cupón con QR si la compra es de RD$500 o más. El juego se
+  // pide al servidor (raspa_emitir) ANTES de armar el HTML; si falla, tarda o no hay red, se imprime sin cupón y nada se bloquea.
   function imprimir(modo) {
     var p = typeof _prefUltima !== 'undefined' ? _prefUltima : null; if (!p) return;
     var d = datos(p), copia = yaImpresa(d.num);
-    if (modo === 'pdf') { try { return _htmlAPdf(htmlCarta(d, copia, true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760 }); } catch (e) { return; } }
     // 24-oct-2026 (auditoría): 'blob' = PDF en memoria para WhatsApp. Antes esta capa no lo conocía, caía en el papel
     // configurado, IMPRIMÍA un ticket y devolvía true/false: el adjunto no era un PDF.
     if (modo === 'blob') return pdfBlob(p);
+    if (modo === 'pdf') return raspaCupon(d).then(function (c) { try { return _htmlAPdf(conCupon(htmlCarta(d, copia, true), c, 'carta', d), 'Prefactura_' + (d.num || 'SN'), { ancho: 760 }); } catch (e) { return; } });
     if (modo !== 'ticket' && modo !== 'carta') modo = formato();
     if (modo === 'ticket' && qzListo()) {
-      // 23-oct-2026 (dueño: «no hace el corte para dividir»): cada copia va como un trabajo aparte, para que la
-      // impresora corte entre una y otra. Con copies: N en un solo trabajo solo cortaba al final.
-      var htmlQz = sinAutoPrint(htmlTicket(d, copia)), n = copias();
-      var cadena = Promise.resolve(true);
-      for (var i = 0; i < n; i++) cadena = cadena.then(function (ok) { return ok ? qzImprimirHtml(htmlQz, 76, null, 1, 'tickets') : false; });
-      return cadena.then(function (ok) {
-        if (ok) { marcarImpresa(d.num); try { toast('Prefactura Nº ' + d.num + ' impresa en ' + qzImpresoraTickets() + '.'); } catch (e) {} return true; }
-        if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false;
-      }, function () { if (abrir(htmlTicket(d, copia))) marcarImpresa(d.num); return false; });
+      return raspaCupon(d).then(function (c) {
+        // 23-oct-2026 (dueño: «no hace el corte para dividir»): cada copia va como un trabajo aparte, para que la
+        // impresora corte entre una y otra. Con copies: N en un solo trabajo solo cortaba al final.
+        var htmlT = conCupon(htmlTicket(d, copia), c, 'ticket', d), htmlQz = sinAutoPrint(htmlT), n = copias();
+        var cadena = Promise.resolve(true);
+        for (var i = 0; i < n; i++) cadena = cadena.then(function (ok) { return ok ? qzImprimirHtml(htmlQz, 76, null, 1, 'tickets') : false; });
+        return cadena.then(function (ok) {
+          if (ok) { marcarImpresa(d.num); try { toast('Prefactura Nº ' + d.num + ' impresa en ' + qzImpresoraTickets() + '.'); } catch (e) {} return true; }
+          if (abrir(htmlT)) marcarImpresa(d.num); return false;
+        }, function () { if (abrir(htmlT)) marcarImpresa(d.num); return false; });
+      });
     }
-    if (abrir(modo === 'ticket' ? conCopias(htmlTicket(d, copia), copias()) : htmlCarta(d, copia))) marcarImpresa(d.num);
+    // La ventana se abre YA (mientras dura el clic, para que el navegador no la bloquee) y se llena cuando llega el cupón.
+    var w = window.open('', '_blank');
+    if (!w) { try { toast('Permita las ventanas emergentes para imprimir.', 'error'); } catch (e) {} return false; }
+    try { w.document.write('<!doctype html><meta charset="utf-8"><title>Prefactura</title><p style="font:16px -apple-system,system-ui,sans-serif;padding:24px;color:#475569">Preparando la prefactura…</p>'); } catch (e) {}
+    return raspaCupon(d).then(function (c) {
+      var html = modo === 'ticket' ? conCopias(conCupon(htmlTicket(d, copia), c, 'ticket', d), copias()) : conCupon(htmlCarta(d, copia), c, 'carta', d);
+      try { w.document.open(); w.document.write(html); w.document.close(); w.focus(); } catch (e) { if (!abrir(html)) return false; }
+      marcarImpresa(d.num); return true;
+    });
   }
 
   function pdfBlob(p) {
     p = p || (typeof _prefUltima !== 'undefined' ? _prefUltima : null); if (!p) return Promise.resolve(null);
     var d = datos(p);
-    try { return Promise.resolve(_htmlAPdf(htmlCarta(d, yaImpresa(d.num), true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760, blob: true })); } catch (e) { return Promise.resolve(null); }
+    return raspaCupon(d).then(function (c) {
+      try { return _htmlAPdf(conCupon(htmlCarta(d, yaImpresa(d.num), true), c, 'carta', d), 'Prefactura_' + (d.num || 'SN'), { ancho: 760, blob: true }); } catch (e) { return null; }
+    });
+  }
+
+  // ---------- Raspa y gana: cupón para recortar (blanco y negro) ----------
+  // Interruptor: localStorage bc_raspa_off = '1' o window.BC_RASPA = false → no se pide juego ni sale cupón.
+  function raspaApagado() { try { if (window.BC_RASPA === false) return true; return localStorage.getItem('bc_raspa_off') === '1'; } catch (e) { return false; } }
+  var _rgCache = {};
+  function raspaCupon(d) {
+    try {
+      if (raspaApagado() || !d || !d.num || Number(d.total) < 500) return Promise.resolve(null);
+      if (typeof supabaseClient === 'undefined' || !supabaseClient || typeof supabaseClient.rpc !== 'function') return Promise.resolve(null);
+      var k = String(d.num);
+      if (_rgCache[k]) return Promise.resolve(_rgCache[k]);
+      var espera = new Promise(function (res) { setTimeout(function () { res(null); }, 3500); });
+      var pide = Promise.resolve(supabaseClient.rpc('raspa_emitir', { p_codprefactura: k })).then(function (r) {
+        var j = r && r.data;
+        if (!j || !j.ok || !j.token || ['pendiente', 'activo', 'jugado'].indexOf(j.estado) < 0) return null;
+        var c = { codigo: j.codigo, token: j.token, estado: j.estado, url: 'https://bayolcell.com/raspa.html?t=' + encodeURIComponent(j.token) };
+        c.qr = qrDataUrl(c.url); _rgCache[k] = c; return c;
+      }, function () { return null; });
+      return Promise.race([pide, espera]).catch(function () { return null; });
+    } catch (e) { return Promise.resolve(null); }
+  }
+  // QR con qrcodejs (window.QRCode, ya cargada en taller.html): se dibuja fuera de pantalla y se saca como imagen.
+  function qrDataUrl(texto) {
+    var box = null;
+    try {
+      if (typeof window.QRCode !== 'function') return '';
+      box = doc.createElement('div'); box.style.cssText = 'position:fixed;left:-9999px;top:0;width:256px;height:256px;';
+      doc.body.appendChild(box);
+      new window.QRCode(box, { text: texto, width: 256, height: 256, colorDark: '#000000', colorLight: '#ffffff', correctLevel: window.QRCode.CorrectLevel ? window.QRCode.CorrectLevel.M : 0 });
+      var cv = box.querySelector('canvas'), im = box.querySelector('img');
+      var url = cv && cv.toDataURL ? cv.toDataURL('image/png') : (im && /^data:image/.test(im.src) ? im.src : '');
+      return url || '';
+    } catch (e) { return ''; } finally { if (box && box.parentNode) box.parentNode.removeChild(box); }
+  }
+  // Premio aplicado en ESTA prefactura (lo pone bc-raspa.js en _rpState.raspa).
+  function premioAplicado(d) {
+    try { var s = typeof _rpState !== 'undefined' ? _rpState : null; if (s && s.raspa && String(s.codprefactura || '') === String(d.num)) return s.raspa; } catch (e) {} return null;
+  }
+  var TIJERA = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#000" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1 20 20M8.1 15.9 20 4"/></svg>';
+  var CSS_RG = '.rg,.rg-ap{color:#000}.rg-corte{display:flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#000;margin:14px 0 6px}' +
+    '.rg-corte:after{content:"";flex:1;border-top:1.5px dashed #000}' +
+    '.rg-cup{position:relative;border:1.5px dashed #000;border-radius:6px;padding:14px;display:flex;gap:14px;align-items:center;color:#000;background:#fff;page-break-inside:avoid;break-inside:avoid}' +
+    '.rg-o{position:absolute;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:#fff;border:1.5px dashed #000}.rg-oi{left:-8px}.rg-od{right:-8px}' +
+    '.rg-qr{width:112px;height:112px;flex:none;image-rendering:pixelated}.rg-tx{flex:1;min-width:0}' +
+    '.rg-tit{font-size:18px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}' +
+    '.rg-p{font-size:11.5px;line-height:1.45;margin:4px 0 0}' +
+    '.rg-cod{display:flex;align-items:baseline;gap:8px;margin-top:6px}.rg-cod span{font-size:10px;letter-spacing:.1em;text-transform:uppercase}.rg-cod b{font-size:20px;letter-spacing:.16em;font-weight:900}' +
+    '.rg-reg{font-size:10.5px;margin-top:6px;line-height:1.4}' +
+    '.rg-pl{width:150px;flex:none;align-self:stretch;min-height:84px;border:1.5px solid #000;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;font-size:10.5px;line-height:1.3;' +
+    'background:repeating-linear-gradient(135deg,#fff 0 5px,#d9d9d9 5px 6px)}.rg-pl b{display:block;font-size:13px;background:#fff;padding:1px 4px}.rg-pl span{background:#fff;padding:0 4px}' +
+    '.rg-ap{border:1.5px solid #000;border-radius:6px;padding:6px 10px;margin-top:10px;font-size:11.5px;color:#000;line-height:1.4}.rg-ap b{display:block}' +
+    '.rg-t .rg-cup{flex-direction:column;text-align:center;gap:8px;padding:10px 8px;border-radius:4px}.rg-t .rg-qr{width:34mm;height:34mm}.rg-t .rg-pl{width:100%;min-height:16mm}' +
+    '.rg-t .rg-cod{justify-content:center}.rg-t .rg-tit{font-size:16px}.rg-t .rg-corte{margin:10px 0 4px}';
+  function premioCorto(p) { return p === 'regalo' ? 'accesorio gratis' : (String(p) + ' %'); }
+  function cuponHtml(c, tipo, d) {
+    var ap = premioAplicado(d), apHtml = ap ? '<div class="rg-ap"><b>Premio Raspa y gana aplicado: ' + esc(premioCorto(ap.premio)) + '</b>Código ' + esc(ap.codigo) +
+      (ap.ahorro ? ' · ahorro ' + rd(ap.ahorro) : '') + '</div>' : '';
+    if (!c) return apHtml;
+    return apHtml + '<div class="rg ' + (tipo === 'ticket' ? 'rg-t' : 'rg-c') + '"><div class="rg-corte">' + TIJERA + '<span>Recorte por aquí</span></div>' +
+      '<div class="rg-cup"><i class="rg-o rg-oi"></i><i class="rg-o rg-od"></i>' +
+      (c.qr ? '<img class="rg-qr" src="' + c.qr + '" alt="QR del juego">' : '') +
+      '<div class="rg-tx"><div class="rg-tit">Raspe y gane</div>' +
+      '<p class="rg-p">Su próxima compra trae premio: 5 %, 10 % o un accesorio gratis. Escanee el QR con su celular.</p>' +
+      '<div class="rg-cod"><span>Código</span><b>' + esc(c.codigo) + '</b></div>' +
+      '<div class="rg-reg">Se activa al pagar esta compra en caja · un juego por compra · vence a los 30 días.</div></div>' +
+      '<div class="rg-pl"><b>Zona plateada</b><span>Escanee el QR: su premio aparece en el celular</span></div></div></div>';
+  }
+  function conCupon(html, c, tipo, d) {
+    var bloque = cuponHtml(c, tipo, d); if (!bloque) return html;
+    html = html.replace('</style>', CSS_RG + '</style>');
+    var i = html.indexOf('<script>window.onload');
+    return i >= 0 ? html.slice(0, i) + bloque + html.slice(i) : html.replace('</body>', bloque + '</body>');
   }
   // 21-oct-2026 (dueño): no se pregunta al imprimir; el papel se escoge una vez en «Config. Impresora» (cada PC).
   function formato() { return lsGet(LS_FMT) === 'carta' ? 'carta' : 'ticket'; }
@@ -337,5 +425,5 @@
 
   window.imprimirPrefactura = imprimir;
   window.bcPfPdfBlob = pdfBlob; // PDF en memoria sin imprimir (envío por WhatsApp)
-  window.bcPfImprimirHtml = { ticket: htmlTicket, carta: htmlCarta, datos: datos, sucursales: function (a) { _sucs = a; } }; // para pruebas
+  window.bcPfImprimirHtml = { ticket: htmlTicket, carta: htmlCarta, datos: datos, sucursales: function (a) { _sucs = a; }, raspaCupon: raspaCupon, conCupon: conCupon }; // para pruebas
 })();
