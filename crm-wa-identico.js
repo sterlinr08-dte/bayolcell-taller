@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261030-w19';
+  var VERSION = '20261030-w20';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -72,6 +72,7 @@
       var id = hiloId();
       // Borrar el borrador ANTES de enviar: el chat se redibuja durante el envío y, si el
       // borrador seguía guardado, se volvía a escribir en la caja (el mensaje quedaba ahí).
+      if (!prepararEdicion()) return;
       if (id) ls.set(KB + id, '');
       var r;
       try { r = await orig.apply(this, arguments); }
@@ -1182,12 +1183,75 @@
   }
 
   // =====================================================================
+  // EDITAR un mensaje enviado (dueño 30-oct-2026: «Editar el texto»).
+  // WhatsApp no deja editar ni borrar desde un sistema (Zernio: editar solo Telegram; borrar en WhatsApp = 400).
+  // Lo que sí se puede: abrir el texto en la caja para cambiarlo y mandarlo citando el original con «✏️ *Editado:*».
+  // En el CRM el mensaje viejo queda marcado «Editado» y atenuado. No toca la base ni el envío.
+  // =====================================================================
+  var PRE_ED = '✏️ *Editado:* ', editando = null;
+  function sinPrefijo(t){ return String(t || '').replace(/^✏️ \*Editado:\* /, '').replace(/^\*Corrección:\* /, ''); }
+  function editarMensaje(msgId){
+    var m = null; try { m = _waMensajes.find(function(x){ return x.id === msgId; }); } catch(e){}
+    if (!m || m.direccion !== 'out' || !m.cuerpo) return;
+    try { _waActivarRespuesta(msgId); } catch(e){ return; }
+    var t = document.getElementById('waTexto'); if (!t) return;
+    editando = { hilo: hiloId(), id: msgId, original: sinPrefijo(m.cuerpo) };
+    try { _waRespondiendoA.quien = '✏️ Editando su mensaje'; _waPintarReplyBar(); } catch(e){}
+    t.value = editando.original;
+    try { t.dispatchEvent(new Event('input', { bubbles: true })); } catch(e){}
+    try { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } catch(e){}
+    try { if (typeof _waActualizarBotonEnvio === 'function') _waActualizarBotonEnvio(); } catch(e){}
+  }
+  window._waCorregirMensaje = editarMensaje;
+  // Se llama desde el envío: si la caja está editando, le pone el prefijo. Devuelve false si no cambió nada.
+  function prepararEdicion(){
+    if (!editando) return true;
+    var activo = null; try { activo = _waRespondiendoA; } catch(e){}
+    if (!activo || activo.id !== editando.id || editando.hilo !== hiloId()){ editando = null; return true; }
+    var t = document.getElementById('waTexto'); if (!t) return true;
+    var nuevo = sinPrefijo(t.value).trim();
+    if (!nuevo || nuevo === editando.original.trim()){ try { toast('No cambió nada del mensaje.'); } catch(e){} return false; }
+    t.value = PRE_ED + nuevo; editando = null; return true;
+  }
+  function marcarEditados(){
+    var lista = []; try { lista = _waMensajes || []; } catch(e){}
+    var ed = {};
+    lista.forEach(function(m){ if (m && m.direccion === 'out' && m.responde_a_id && /^(✏️ \*Editado:\*|\*Corrección:\*)/.test(m.cuerpo || '')) ed[m.responde_a_id] = true; });
+    document.querySelectorAll('#waMessagesScroll .wa-brow.out[data-msgid]').forEach(function(row){
+      var on = !!ed[row.getAttribute('data-msgid')];
+      var tick = row.querySelector('.wa-tick-line'), lab = tick && tick.querySelector('.bcwa-ed');
+      row.classList.toggle('bcwa-editado', on);
+      if (on && tick && !lab){ var s = document.createElement('span'); s.className = 'bcwa-ed'; s.textContent = 'Editado'; tick.insertBefore(s, tick.firstChild); }
+      else if (!on && lab) lab.remove();
+    });
+  }
+  function envolverMenuEditar(){
+    if (typeof window._waAbrirMenuAcciones === 'function' && !window._waAbrirMenuAcciones.__bcwaEd){
+      var orig = window._waAbrirMenuAcciones;
+      var n = function(ev, msgId){
+        var r = orig.apply(this, arguments);
+        try {
+          var b = document.getElementById('waMenuCorregir');
+          if (b){
+            if (!b.__bcwaEd){ b.innerHTML = '<i class="ti ti-pencil"></i> Editar'; b.__bcwaEd = true; }
+            var m = _waMensajes.find(function(x){ return x.id === msgId; });
+            if (!m || !m.cuerpo || (m.tipo_contenido && m.tipo_contenido !== 'text')) b.style.display = 'none';
+          }
+        } catch(e){}
+        return r;
+      };
+      Object.keys(orig).forEach(function(k){ n[k] = orig[k]; });
+      n.__bcwaEd = true; window._waAbrirMenuAcciones = n;
+    }
+  }
+
+  // =====================================================================
   // Aplicar todo al pintarse el CRM
   // =====================================================================
   var hiloAntes = null;
   function aplicar(){
     if (!document.getElementById('waWrap')) return;
-    envolverEnviar(); envolverMenu(); botonContactos(); envolverVincular(); envolverFiltro(); ordenBarra();
+    envolverEnviar(); envolverMenu(); envolverMenuEditar(); botonContactos(); envolverVincular(); envolverFiltro(); ordenBarra();
     if (!etiquetasCargadas) cargarEtiquetas().then(function(){ decorarLista(); });
     if (lineaId() && extrasDeLinea !== lineaId()){ extrasDeLinea = lineaId(); modoArchivados = false; filtroEtiqueta = null; cargarExtras(); }
     var id = hiloId();
@@ -1196,7 +1260,7 @@
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
     decorarLista();
-    if (id){ cargarReferido(id); avisoReferido(); cargarHistorialReferido(id); pintarHistorialEnChat(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); asignacionEnCabecera(); ordenCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
+    if (id){ cargarReferido(id); avisoReferido(); cargarHistorialReferido(id); pintarHistorialEnChat(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); asignacionEnCabecera(); ordenCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); marcarEditados(); }
     borradoresEnLista();
   }
   var pendiente = false;
