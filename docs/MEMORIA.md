@@ -104,6 +104,8 @@ listas y sincronización.
 
 - **Etiquetas «estudio de etiqueta» (30-oct-2026, PUBLICADO, dueño «Publícalo», opción B):** capa `bc-etiquetas-pro.css/js` (`html.bc-etq`, apagar `bc_etq_off='1'`): formulario en 2 columnas, marca sola según el modelo, botones de capacidad y estado, aviso de IMEI, vista previa grande fija con copias e Imprimir; mismos id y funciones de impresión. Bit. 2026-10-30-1520.
 
+- **CRM: vaciar / eliminar chat solo administrador (30-oct-2026, PUBLICADO):** RPC `crm_vaciar_hilo` y `crm_eliminar_hilo` (app_is_admin, auditoría `CRM_*_CONVERSACION`, eliminar conserva leads con hilo_id null); opciones rojas en el menú del chat (`crm-wa-identico.js` w19). Pendiente: cerrar políticas `app_authenticated_all` de hilos/mensajes. Bit. 2026-10-30-1530 y 1545.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
