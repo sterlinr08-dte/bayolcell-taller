@@ -95,6 +95,8 @@ listas y sincronización.
 
 - **10 agentes (26-oct-2026, PUBLICADO, PR #124, merge 68fd120):** interfaz de Inicio, Órdenes, Inventario, Despachos, Finanzas, global, y Reacondicionados (pantalla, prueba de punta a punta 25/25, rentabilidad por teléfono, mapa del proceso `docs/REACONDICIONADOS-PROCESO.md`). Cada capa se apaga con su `localStorage`. 4 SQL propuestos sin aplicar. Bit. 2026-10-26-0240.
 
+- **Espaciado de formularios, piloto (30-oct-2026, rama `claude/espaciado-piloto`, SIN publicar):** capa `bc-form-espaciado.css` (`html.bc-fesp`, apagar `bc_fesp_off='1'`) en 5 formularios: Prefactura (+Buscar cliente +plegable Equipo/falla/orden), Nuevo empleado, Login, Nuevo cliente (Financiamientos). Los 6 medidos pasan a «cumple» a 390 y 1280. Pendiente: que el dueño vea las comparativas y decida barra de título/pie y si sigue con los otros 68. Bit. 2026-10-30-0802.
+
 ## 7. Errores a no repetir
 - **22-oct:** un `//` al final de una línea con varias sentencias rompió `taller-prefactura.js` y se publicó porque el `push` no iba encadenado con `&&` tras el chequeo de sintaxis. Siempre encadenar y parsear el archivo publicado.
 - **Clasificador de seguridad bloqueó** (no reintentar): una Edge **pública** que usa la clave de Info Plus; que Claude **la llame por su
