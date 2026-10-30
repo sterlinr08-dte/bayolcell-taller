@@ -1806,6 +1806,9 @@ body{
 <!-- Interfaz global (26-oct-2026): menú, barra de arriba, Configuración, Reportes, sin MAYÚSCULAS forzadas. Apagar: BC_UI=false o localStorage bc_ui_off=1 -->
 <script>var BC_UI=true;try{if(BC_UI&&localStorage.getItem('bc_ui_off')!=='1')document.documentElement.classList.add('bc-ui');}catch(e){if(BC_UI)document.documentElement.classList.add('bc-ui');}</script>
 <link rel="stylesheet" href="taller-ui-global.css?v=20261026-u1">
+<!-- Espaciado de formularios (regla del dueño 29-oct-2026; piloto 30-oct en 5 formularios): capa reversible. Apagar: BC_FESP=false o localStorage bc_fesp_off=1 -->
+<script>var BC_FESP=true;try{if(BC_FESP&&localStorage.getItem('bc_fesp_off')!=='1')document.documentElement.classList.add('bc-fesp');}catch(e){if(BC_FESP)document.documentElement.classList.add('bc-fesp');}</script>
+<link rel="stylesheet" href="bc-form-espaciado.css?v=20261030-e1">
 </head>
 <body>
 

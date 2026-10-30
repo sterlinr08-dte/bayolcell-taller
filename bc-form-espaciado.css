@@ -1,0 +1,124 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   Bayol Cell · Espaciado de formularios — PILOTO (dueño, 29-oct-2026; piloto 30-oct-2026)
+   Regla en DESIGN.md «Espaciado de formularios» + §4b + §5:
+     título → ayuda 8 · etiqueta → cajita 8 · cajita → ayuda 4 · campo → campo 20 · grupo → grupo 24 ·
+     botones de una lista 8 · borde interior 48/40 en PC y 24/16 en celular · campos 48 px con letra 16 ·
+     botón principal 54 · tocables ≥ 44 · letra mínima 13 · etiquetas 13 px #475569 · casillas en fila (tarjeta 48).
+   Solo 5 formularios: Prefactura (documento, Buscar cliente, plegable «Equipo, falla y más datos»),
+   Nuevo empleado (#modalTecnico), Login, Nuevo/Editar cliente de Financiamientos (#modalGenerico).
+   Capa aislada y reversible: solo actúa con html.bc-fesp (la pone el <head> de taller.html).
+   Apagar en un equipo: localStorage.bc_fesp_off = '1'; para todos: BC_FESP = false.
+   Solo espacios, altos y letras. No cambia lógica ni colores de marca (naranja #e4572e se mantiene).
+   «#bcE#bcE#bcE» dentro de :is() solo sube la especificidad (ese id no existe) para ganarle a las capas anteriores.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+html.bc-fesp { --fe-pv: 24px; --fe-ph: 16px; --fe-gris: #475569; }
+@media (min-width: 761px) { html.bc-fesp { --fe-pv: 48px; --fe-ph: 40px; } }
+
+/* ── 1 · Ventanas estándar: Nuevo empleado y Buscar cliente (.modal-box > .modal-header / .modal-body / .modal-footer) ── */
+html.bc-fesp body :is(#modalTecnico, #modalRpCli, #modalPrefCli, #bcE#bcE#bcE) .modal-body {
+  padding: var(--fe-pv) var(--fe-ph) 0;
+}
+html.bc-fesp body :is(#modalRpCli, #modalPrefCli, #bcE#bcE#bcE) .modal-body { padding-bottom: var(--fe-pv); }
+/* El pie deja de ser una franja aparte: 24 px desde el último campo (grupo → grupo), borde interior abajo y a los lados */
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .modal-footer {
+  padding: 24px var(--fe-ph) var(--fe-pv); gap: 8px; background: transparent; border-top: 0;
+}
+/* 5 id (#bcE×5): la capa táctil usa 4 (#bcT×3 + :not(#waWrap *)) */
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE#bcE#bcE) .modal-footer .btn { min-height: 44px !important; }
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE#bcE#bcE) .modal-footer .btn-blue { min-height: 54px !important; padding-left: 22px; padding-right: 22px; }
+/* Campo → campo 20; etiqueta → cajita 8; cajita → ayuda 4 */
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .form-row { margin-bottom: 20px; }
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .modal-body > .form-row:last-child { margin-bottom: 0; }
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .form-row > label:not(:has(input)) {
+  margin-bottom: 8px; font-size: 13px !important; color: var(--fe-gris) !important; letter-spacing: 0;
+}
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .form-row > small { display: block; margin-top: 4px; font-size: 13px !important; line-height: 1.4; }
+/* Grupo «Credenciales de acceso»: 24 arriba y abajo; su título → ayuda 8; ayuda → primer campo 20 */
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .modal-body > div[style*="#ede9fe"] { margin: 24px 0 !important; padding: 16px !important; }
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .modal-body > div[style*="#ede9fe"] > b { display: block; font-size: 14px !important; }
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .modal-body > div[style*="#ede9fe"] > p { margin: 8px 0 20px !important; font-size: 13px !important; line-height: 1.45; }
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .modal-body > div[style*="#ede9fe"] > .form-row:last-child { margin-bottom: 0; }
+/* Casilla «Activo»: en fila con su texto, dentro de una tarjeta de 48 px (§4b) */
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .form-row > label:has(> input[type="checkbox"]) {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; margin: 0;
+  border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
+  font-size: 14px !important; font-weight: 600; color: #0f172a; text-transform: none; letter-spacing: 0; cursor: pointer;
+}
+html.bc-fesp body :is(#modalTecnico, #bcE#bcE#bcE) .form-row > label > input[type="checkbox"] { width: 22px; height: 22px; margin: 0; flex: none; }
+/* Buscar cliente: campo → lista 20; filas de la lista a 8 px y de 44 px o más */
+html.bc-fesp body :is(#modalRpCli, #modalPrefCli, #bcE#bcE#bcE) .modal-body > input { margin-bottom: 20px !important; min-height: 48px; font-size: 16px !important; }
+html.bc-fesp body :is(#modalRpCli, #modalPrefCli, #bcE#bcE#bcE) .modal-body div[onclick] { min-height: 44px; padding: 12px 12px !important; margin-bottom: 8px !important; box-sizing: border-box; }
+html.bc-fesp body :is(#modalRpCli, #modalPrefCli, #bcE#bcE#bcE) .modal-body div[onclick]:last-child { margin-bottom: 0 !important; }
+html.bc-fesp body :is(#modalRpCli, #modalPrefCli, #bcE#bcE#bcE) .modal-body div[onclick] > div:last-child { font-size: 13px !important; }
+html.bc-fesp body :is(#modalRpCli, #modalPrefCli, #bcE#bcE#bcE) .modal-body div[onclick] > span { font-size: 13px !important; }
+
+/* ── 2 · Login del taller (#login .login-card) ── */
+html.bc-fesp body #login .login-card { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp body #login .login-card .logo-login { margin-bottom: 24px !important; }           /* grupo → grupo */
+html.bc-fesp body #login .login-card .logo-login h1 { line-height: 1.1; }
+html.bc-fesp body #login .login-card .logo-login small { margin-top: 8px; font-size: 13px !important; letter-spacing: 0 !important; } /* título → ayuda 8 · letra mínima 13 */
+html.bc-fesp body #login .login-card .form-row { margin-bottom: 20px; }                       /* campo → campo */
+html.bc-fesp body #login .login-card .form-row > label {
+  margin-bottom: 8px; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none; letter-spacing: 0;
+}
+html.bc-fesp body #login .login-card input { min-height: 48px !important; font-size: 16px !important; padding-top: 0; padding-bottom: 0; }
+html.bc-fesp body #login .login-card #loginPassEye { min-width: 44px; min-height: 44px; justify-content: center; right: 2px !important; }
+html.bc-fesp body #login .login-card > .btn-blue { min-height: 54px !important; margin-top: 24px; font-size: 15px; } /* grupo → botón principal 24 */
+html.bc-fesp body #login .login-card > a { min-height: 44px; margin-top: 8px !important; padding-top: 0 !important; padding-bottom: 0 !important; box-sizing: border-box; } /* botones de una lista 8 */
+html.bc-fesp body #login .login-card .form-row:has(+ .btn-blue) { margin-bottom: 0; }
+
+/* ── 3 · Nuevo / Editar cliente de Financiamientos (#modalGenerico, cuerpo con estilos en línea) ── */
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) { padding: var(--fe-pv) var(--fe-ph) !important; }
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) > div:first-child { margin-bottom: 24px !important; }          /* título → contenido (grupo) */
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) > div:first-child > button:not(.bcn-btn) { width: 44px; height: 44px; }
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) > .bcn-head { --bcn-s: 44px; } /* la ✕ de taller-nav-apple.js mide 44 y su columna también */
+@media (max-width: 768px) { html.bc-fesp body #modalGenericoBody:has(#ecNombre):has(> .bcn-head) { padding-top: 8px !important; } } /* + 16 px de la agarradera = 24 */
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div[style*="display:flex"] { gap: 20px 10px !important; margin-bottom: 20px; } /* campo → campo 20 (también al envolver) */
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido .form-row { margin-bottom: 0; }
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido .form-row > label {
+  margin-bottom: 8px; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none; letter-spacing: 0;
+}
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido :is(input, select) { min-height: 48px !important; font-size: 16px !important; }
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido h4 { margin: 24px 0 12px !important; font-size: 13px !important; } /* grupo «Referencias» */
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div:last-child { margin: 24px 0 0 !important; gap: 8px !important; } /* campos → botones 24; botones 8 */
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div:last-child .btn { min-height: 44px; font-size: 13px; }
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div:last-child .btn-blue { min-height: 54px !important; padding-left: 22px; padding-right: 22px; }
+
+/* ── 4 · Prefactura: documento (.bcpf-doc) ── */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-pad { padding: var(--fe-pv) var(--fe-ph); }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion :is(.bcpf-campos label, .bcpf-coment label, .plab) {
+  margin-bottom: 8px; color: var(--fe-gris); font-size: 13px !important; letter-spacing: 0;
+}
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-campos { gap: 20px; }                       /* campo → campo */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-partes { gap: 20px; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-campos > div[style*="display:flex"],
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-campos > div[style*="display: flex"] { gap: 20px 10px !important; } /* al envolver en el celular, 20 entre filas */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .pcli { margin-bottom: 0; }
+/* Franja (Cliente · Precio · Almacén · Vendedor) → datos del cliente: 20 (siguen siendo campos del mismo grupo) */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-partes { margin-bottom: 8px; padding-bottom: 12px; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-clidatos { margin-top: 0; margin-bottom: 0; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-clidatos .bcpf-campos { align-items: start; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-clidatos .bc-mkt-consent { box-sizing: border-box; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-clidatos .bc-mkt-meta { row-gap: 4px; } /* cajita → su aviso 4 */
+/* Grupo → grupo 24: datos del cliente → buscador de artículos → artículos → pie → «Equipo, falla y más datos» */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-clidatos + .bcpf-busc { margin-top: 24px; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-busc { margin-bottom: 24px; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-pie { margin-top: 24px; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-mas { margin-top: 24px; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-qs { gap: 8px; }                             /* botones de una lista */
+/* Interruptor «Promos» (switch, no casilla): zona de toque de 44 × 44 también en el celular */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-clidatos .bc-mkt-switch { width: 44px; min-width: 44px; height: 44px; display: grid; place-items: center; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-clidatos .bc-mkt-slider { inset: auto; width: 38px; height: 22px; }
+
+/* ── 5 · Prefactura: plegable «Equipo, falla y más datos» (.bcpf-mas) = recepción del equipo / orden ──
+   El cajón solo guarda las 4 tarjetas (Equipo recibido · Falla reportada · Orden de reparación · Otras herramientas);
+   cada tarjeta lleva el borde interior de la regla y entre tarjetas van 24 px. */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-mas-body { padding: 0 16px 16px; gap: 24px; align-items: start; } /* cada tarjeta con su alto; no se estiran */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-mas-body > .bcpf-nota { padding-bottom: 12px; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-sec { padding: var(--fe-pv) var(--fe-ph); }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-sec h4 { margin-bottom: 8px; font-size: 13px !important; } /* título de la tarjeta → su contenido 8 */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-sec .card div[style*="display:flex"] { row-gap: 20px !important; } /* la fila de la rifa trae gap:8px en línea */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-sec #btnBoletoRifa { min-height: 54px !important; } /* botón principal de la tarjeta (5 id) */
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-sec #rifaBoletoMsg:empty { display: none; }
+html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-plegable { margin-top: 20px !important; }
