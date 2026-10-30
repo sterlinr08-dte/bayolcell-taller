@@ -1,0 +1,65 @@
+/* BAYOL CELL · Reacondicionados: lista de lotes compacta (dueño, 30-oct-2026, opción B).
+   Cada lote en una fila: código y proveedor a la izquierda, el número de la etapa elegida en grande, solo las etapas
+   con equipos, barra fina con %. Toda la tarjeta abre el lote. Solo visual: los datos y «Abrir lote» son los de siempre.
+   La arma bc-reacond-lotes.js. Apagar: BC_RLC=false o localStorage bc_rlc_off='1'. */
+html.bc-rlc #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc {
+  display: grid !important; align-items: center; column-gap: 20px; row-gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "info dest btn" "chips pct pct" "bar bar bar";
+  padding: 14px 16px !important; margin-bottom: 8px !important; border-radius: 14px !important;
+  cursor: pointer; transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+html.bc-rlc #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc:hover { border-color: #bfdbfe !important; background: #f8fbff !important; }
+html.bc-rlc #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc:active { transform: scale(.995); }
+html.bc-rlc #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc:focus-visible { outline: 3px solid rgba(37,99,235,.35); outline-offset: 2px; }
+/* el envoltorio viejo (info + botón) se aplana para que sus hijos entren en la cuadrícula */
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc > .rlc-cab { display: contents !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-info { grid-area: info; min-width: 0 !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-name { font-size: 16px !important; line-height: 1.2; display: inline; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-prov { font-size: 14px; font-weight: 600; color: #475569; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-meta { font-size: 13px !important; margin-top: 2px !important; color: #64748b !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-meta .rlc-ocultar { display: none; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest { grid-area: dest; display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest b { font-size: 26px; font-weight: 800; line-height: 1; color: #0f172a; font-variant-numeric: tabular-nums; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest span { font-size: 14px; font-weight: 600; color: #475569; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest em { font-style: normal; font-size: 13px; color: #64748b; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest.e4 b { color: #15803d; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest.e2 b { color: #c2410c; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest.e1 b { color: #1d4ed8; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest.e3 b { color: #7e22ce; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest.e5 b { color: #0f766e; }
+/* «Abrir ›»: botón con borde (el naranja lleno competía con todo) */
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-btn {
+  grid-area: btn; min-height: 44px !important; min-width: 96px; padding: 0 16px !important; border-radius: 12px !important;
+  background: #fff !important; color: #1d4ed8 !important; border: 1px solid #bfdbfe !important; box-shadow: none !important;
+  font-size: 14px !important; font-weight: 700 !important; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-btn:hover { background: #eff6ff !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-btn > i { display: none; }
+/* etapas: solo las que tienen equipos; la elegida ya está en grande */
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-stages { grid-area: chips; margin-top: 0 !important; gap: 6px !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-stage { min-height: 28px; font-size: 13px !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-stages:not(:has(.reacond-lote-stage:not(.rlc-cero):not(.rlc-elegida):not(.reacond-lote-total))) { min-height: 0; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-stage.rlc-cero,
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-stage.reacond-lote-total,
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-stage.rlc-elegida { display: none !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-progress { grid-area: bar; margin-top: 0 !important; height: 4px !important; border-radius: 4px !important; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-progress-label { grid-area: pct; margin-top: 0 !important; font-size: 13px !important; font-weight: 700; color: #334155 !important; min-width: 44px; text-align: right; }
+html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-progress-label .rlc-ocultar { display: none; }
+
+/* Buscador de esta pantalla: el aviso «Esc» tapaba el título «Lo que está parado» y los puntitos parecían manchas */
+html.bc-rlc #app #v-refurb .bcbp-esc, html.bc-rlc #app #v-refurb .bcbp-aura { display: none !important; }
+
+@media (max-width: 640px) {
+  html.bc-rlc #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc {
+    grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px;
+    grid-template-areas: "info btn" "dest dest" "chips chips" "bar bar";
+    padding: 12px !important;
+  }
+  html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-dest b { font-size: 22px; }
+  html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .reacond-lote-progress-label { display: none; }
+  html.bc-rlc #app #v-refurb .reacond-lote-card.rlc .rlc-btn { min-width: 76px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.bc-rlc #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc { transition: none; }
+}

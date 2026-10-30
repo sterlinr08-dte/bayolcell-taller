@@ -1785,6 +1785,9 @@ body{
 <!-- Reacondicionados, capa visual (26-oct-2026): apagar BC_RCU=false o localStorage bc_reacond_ui_off=1 -->
 <script>var BC_RCU=true;try{if(BC_RCU&&localStorage.getItem('bc_reacond_ui_off')!=='1')document.documentElement.classList.add('bc-rcu');}catch(e){if(BC_RCU)document.documentElement.classList.add('bc-rcu');}</script>
 <link rel="stylesheet" href="taller-ui-reacond.css?v=20261026-rcu1">
+<!-- Reacondicionados: lista de lotes compacta (dueño 30-oct-2026, opción B). Apagar: BC_RLC=false o localStorage bc_rlc_off=1 -->
+<script>var BC_RLC=true;try{if(BC_RLC&&localStorage.getItem('bc_rlc_off')!=='1')document.documentElement.classList.add('bc-rlc');}catch(e){if(BC_RLC)document.documentElement.classList.add('bc-rlc');}</script>
+<link rel="stylesheet" href="bc-reacond-lotes.css?v=20261030-rlc1">
 <!-- Reacondicionados → Rentabilidad: costo final y margen por teléfono y lote (26-oct-2026): capa reversible. Apagar: BC_RR=false o localStorage bc_rr_off=1 -->
 <script>var BC_RR=true;try{if(BC_RR&&localStorage.getItem('bc_rr_off')!=='1')document.documentElement.classList.add('bc-rr');}catch(e){if(BC_RR)document.documentElement.classList.add('bc-rr');}</script>
 <link rel="stylesheet" href="taller-reacond-rentabilidad.css?v=20261026-rr1">
@@ -5708,6 +5711,7 @@ body{
 <script defer src="taller-ui-finanzas.js?v=20261026-f1"></script>
 <script defer src="taller-ui-global.js?v=20261026-u1"></script>
 <script defer src="taller-ui-reacond.js?v=20261026-rcu1"></script>
+<script defer src="bc-reacond-lotes.js?v=20261030-rlc1"></script>
 <script defer src="taller-reacond-rentabilidad.js?v=20261027-rr2"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
 <script defer src="taller-ui-despachos.js?v=20261026-a4"></script>
