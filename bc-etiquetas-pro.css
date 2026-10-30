@@ -1,0 +1,59 @@
+/* BAYOL CELL · Etiquetas «estudio de etiqueta» (dueño, 30-oct-2026, opción B). La arma bc-etiquetas-pro.js.
+   Apagar: BC_ETQ=false o localStorage bc_etq_off='1'. */
+html.bc-etq #v-etiquetas > .layout-dashboard { display: grid !important; grid-template-columns: minmax(0, 1fr) 440px; gap: 24px; align-items: start; }
+html.bc-etq #v-etiquetas .etq-oculto { display: none !important; }
+html.bc-etq #v-etiquetas .etq-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 20px; margin-top: 8px; }
+html.bc-etq #v-etiquetas .etq-form .etq-ancho { grid-column: 1 / -1; }
+html.bc-etq #v-etiquetas .etq-form .form-row { margin: 0 !important; }
+html.bc-etq #v-etiquetas .etq-form label { display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px; }
+html.bc-etq #v-etiquetas .etq-form input { min-height: 48px; font-size: 16px !important; width: 100%; box-sizing: border-box; }
+html.bc-etq #v-etiquetas .etq-ayuda { display: block; margin-top: 4px; font-size: 13px; color: #64748b; min-height: 18px; }
+html.bc-etq #v-etiquetas .etq-ayuda.ok { color: #15803d; }
+html.bc-etq #v-etiquetas .etq-ayuda.ojo { color: #b45309; }
+html.bc-etq #v-etiquetas .etq-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+html.bc-etq #v-etiquetas .etq-chip { min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid #e2e8f0; background: #fff; color: #334155; font-size: 14px; font-weight: 700; cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease; }
+html.bc-etq #v-etiquetas .etq-chip:hover { border-color: #93c5fd; background: #f8fbff; }
+html.bc-etq #v-etiquetas .etq-chip:active { transform: scale(.97); }
+html.bc-etq #v-etiquetas .etq-chip.on { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
+html.bc-etq #v-etiquetas .etq-sec { grid-column: 1 / -1; margin: 4px 0 -8px; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #64748b; }
+html.bc-etq #v-etiquetas .etq-papel { grid-column: 1 / -1; display: grid !important; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 !important; }
+html.bc-etq #v-etiquetas .etq-papel .btn-orientacion { min-height: 96px; }
+html.bc-etq #v-etiquetas .etq-papel .btn-orientacion small { font-size: 13px !important; }
+html.bc-etq #v-etiquetas details.etq-fino { grid-column: 1 / -1; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; }
+html.bc-etq #v-etiquetas details.etq-fino > summary { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 16px; cursor: pointer; font-size: 14px; font-weight: 700; color: #334155; list-style: none; }
+html.bc-etq #v-etiquetas details.etq-fino > summary::-webkit-details-marker { display: none; }
+html.bc-etq #v-etiquetas details.etq-fino > summary::after { content: "›"; margin-left: auto; font-size: 20px; transition: transform 160ms ease; }
+html.bc-etq #v-etiquetas details.etq-fino[open] > summary::after { transform: rotate(90deg); }
+html.bc-etq #v-etiquetas details.etq-fino > .etq-fino-cuerpo { padding: 4px 16px 16px; display: grid; gap: 16px; }
+html.bc-etq #v-etiquetas details.etq-fino .form-row { margin: 0 !important; }
+html.bc-etq #v-etiquetas details.etq-fino label, html.bc-etq #v-etiquetas details.etq-fino span[id^="val_"] { font-size: 13px !important; }
+html.bc-etq #v-etiquetas details.etq-fino input[type="range"] { width: 100%; min-height: 44px; }
+html.bc-etq #v-etiquetas details.etq-fino select { min-height: 48px; font-size: 16px; }
+
+/* Vista previa: grande, fija mientras se baja, con copias e Imprimir debajo */
+html.bc-etq #v-etiquetas .etq-vista { position: sticky; top: 0; justify-content: flex-start !important; gap: 16px; padding: 20px !important; background: #fff !important; border-radius: 20px !important; }
+html.bc-etq #v-etiquetas .etq-vista > h4 { margin: 0; align-self: flex-start; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #64748b; }
+html.bc-etq #v-etiquetas .etq-lienzo { width: 100%; min-height: 220px; display: grid; place-items: center; border-radius: 16px; background: repeating-conic-gradient(#f1f5f9 0 25%, #fff 0 50%) 0 0 / 16px 16px; padding: 20px 8px; box-sizing: border-box; }
+html.bc-etq #v-etiquetas .etq-lienzo > #labelCard { zoom: 1.6; box-shadow: 0 8px 24px -10px rgba(15,23,42,.35); background: #fff; }
+html.bc-etq #v-etiquetas .etq-dim { font-size: 13px; color: #64748b; margin-top: -8px; }
+html.bc-etq #v-etiquetas .etq-cop { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+html.bc-etq #v-etiquetas .etq-cop > span { font-size: 14px; font-weight: 700; color: #334155; }
+html.bc-etq #v-etiquetas .etq-cop .ctl { display: inline-flex; align-items: center; gap: 6px; }
+html.bc-etq #v-etiquetas .etq-cop .ctl button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; font-size: 20px; font-weight: 700; cursor: pointer; }
+html.bc-etq #v-etiquetas .etq-cop .ctl input { width: 64px !important; min-height: 44px; text-align: center; font-size: 18px !important; font-weight: 800 !important; border-radius: 12px; }
+html.bc-etq #v-etiquetas .etq-imp { width: 100%; display: grid; grid-template-columns: 1fr 54px; gap: 8px; margin: 0 !important; }
+html.bc-etq #v-etiquetas .etq-imp > .btn { min-height: 54px !important; border-radius: 14px !important; font-size: 16px !important; margin: 0 !important; }
+
+@media (max-width: 1100px) {
+  html.bc-etq #v-etiquetas > .layout-dashboard { grid-template-columns: minmax(0, 1fr); }
+  html.bc-etq #v-etiquetas .etq-vista { position: static; order: -1; }
+}
+@media (max-width: 640px) {
+  html.bc-etq #v-etiquetas .etq-form { grid-template-columns: minmax(0, 1fr); }
+  html.bc-etq #v-etiquetas .etq-lienzo > #labelCard { zoom: 1.15; }
+}
+@media (prefers-reduced-motion: reduce) { html.bc-etq #v-etiquetas .etq-chip, html.bc-etq #v-etiquetas details.etq-fino > summary::after { transition: none; } }
+/* Regla de espaciado (20 px campo→campo): la capa general ponía margen extra a cada .form-row */
+html.bc-etq body #v-etiquetas#v-etiquetas#v-etiquetas#v-etiquetas#v-etiquetas .etq-form > .form-row,
+html.bc-etq body #v-etiquetas#v-etiquetas#v-etiquetas#v-etiquetas#v-etiquetas details.etq-fino .form-row { margin: 0 !important; padding: 0 !important; }
+html.bc-etq body #v-etiquetas#v-etiquetas .etq-form > .form-row > label { margin: 0 0 8px !important; }
