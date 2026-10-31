@@ -885,32 +885,51 @@ html.bc-pf #v-recepcion .bcpf-deliv-sug > i { font-size: 20px; }
   html.bc-pf #v-recepcion .bcpf-busc-fila .bcrx-srv span { display: block; font-size: 11px; font-weight: 700; margin-top: 2px; }
 }
 
-/* 31-oct-2026 (dueño): accesos rápidos en fila encima de «Buscar artículo» (ícono y nombre debajo) */
-html.bc-pf #v-recepcion .bcpf-rapidos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
-html.bc-pf #v-recepcion .bcpf-rap { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 700; color: #0f172a; cursor: pointer; transition: transform .12s ease, background .12s ease; }
-html.bc-pf #v-recepcion .bcpf-rap i { font-size: 22px; color: #e4572e; }
-html.bc-pf #v-recepcion .bcpf-rap[data-rap="1161"] i { color: #0e7490; }
-html.bc-pf #v-recepcion .bcpf-rap[data-rap="1187"] i { color: #7c3aed; }
-html.bc-pf #v-recepcion .bcpf-rap[data-rap="1186"] i { color: #16a34a; }
-html.bc-pf #v-recepcion .bcpf-rap:hover { background: #f8fafc; }
+/* 31-oct-2026 (dueño): accesos rápidos en fila encima de «Buscar artículo».
+   Ordenados (dueño, 31-oct: «organizar los íconos»): los cuatro con la misma estructura —ícono en su cuadrito de color, nombre y
+   una segunda línea siempre presente (precio, «Precio libre» o «✓ Agregado»)—, misma altura y separados del campo de arriba.
+   Celular: ícono arriba y texto debajo. PC (≥ 900 px): cuatro columnas iguales a lo ancho de «Buscar artículo», ícono a la izquierda. */
+html.bc-pf #v-recepcion .bcpf-rapidos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0 10px; }
+html.bc-pf #v-recepcion .bcpf-rap {
+  --rc: #c2410c; --rb: #fff7ed;
+  position: relative; min-height: 78px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid #e2e8f0; background: #fff; border-radius: 14px; font: inherit; color: #0f172a; cursor: pointer; text-align: center;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+html.bc-pf #v-recepcion .bcpf-rap[data-rap="1161"] { --rc: #0e7490; --rb: #ecfeff; }
+html.bc-pf #v-recepcion .bcpf-rap[data-rap="srv"]  { --rc: #c2410c; --rb: #fff7ed; }
+html.bc-pf #v-recepcion .bcpf-rap[data-rap="1187"] { --rc: #6d28d9; --rb: #f5f3ff; }
+html.bc-pf #v-recepcion .bcpf-rap[data-rap="1186"] { --rc: #15803d; --rb: #f0fdf4; }
+html.bc-pf #v-recepcion .bcpf-rap .ic { width: 32px; height: 32px; flex: none; border-radius: 10px; background: var(--rb); color: var(--rc); display: grid; place-items: center; }
+html.bc-pf #v-recepcion .bcpf-rap .ic i { font-size: 20px; line-height: 1; color: inherit; }
+html.bc-pf #v-recepcion .bcpf-rap .tx { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; max-width: 100%; }
+html.bc-pf #v-recepcion .bcpf-rap .nm { font-size: 13px; font-weight: 700; line-height: 1.15; }
+html.bc-pf #v-recepcion .bcpf-rap .rp { font-size: 12px; font-weight: 700; color: #64748b; line-height: 1.1; min-height: 13px; }
+html.bc-pf #v-recepcion .bcpf-rap .nm, html.bc-pf #v-recepcion .bcpf-rap .rp { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+html.bc-pf #v-recepcion .bcpf-rap:hover { background: #f8fafc; border-color: #cbd5e1; }
 html.bc-pf #v-recepcion .bcpf-rap:active { transform: scale(.97); }
 html.bc-pf #v-recepcion .bcpf-rap:focus-visible { outline: 3px solid var(--pf-acc, #e4572e); outline-offset: 2px; }
-@media (min-width: 900px) { html.bc-pf #v-recepcion .bcpf-rapidos { grid-template-columns: repeat(4, minmax(0, 140px)); } }
-
-/* Smart: precio debajo, ✓ cuando ya está (otro toque lo quita) y punto naranja cuando se sugiere */
-html.bc-pf #v-recepcion .bcpf-rap { position: relative; min-height: 64px; }
-html.bc-pf #v-recepcion .bcpf-rap .rp { font-size: 12px; font-weight: 700; color: #64748b; line-height: 1; min-height: 12px; }
+/* Smart: ✓ cuando ya está (otro toque lo quita) y punto naranja cuando se sugiere */
 html.bc-pf #v-recepcion .bcpf-rap.puesto { background: #ecfdf5; border-color: #34d399; }
 html.bc-pf #v-recepcion .bcpf-rap.puesto .rp { color: #047857; }
 html.bc-pf #v-recepcion .bcpf-rap.sug { border-color: #fdba74; background: #fff7ed; }
 html.bc-pf #v-recepcion .bcpf-rap.sug::after { content: ""; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,.18); }
 @media (prefers-reduced-motion: no-preference) { html.bc-pf #v-recepcion .bcpf-rap.sug::after { animation: bcpfSug 1.6s ease-in-out infinite; } }
 @keyframes bcpfSug { 50% { box-shadow: 0 0 0 6px rgba(249,115,22,0); } }
+@media (min-width: 900px) {
+  html.bc-pf #v-recepcion .bcpf-rap { min-height: 60px; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 8px 14px; text-align: left; }
+  html.bc-pf #v-recepcion .bcpf-rap .ic { width: 38px; height: 38px; border-radius: 11px; }
+  html.bc-pf #v-recepcion .bcpf-rap .ic i { font-size: 22px; }
+  html.bc-pf #v-recepcion .bcpf-rap .tx { align-items: flex-start; }
+  html.bc-pf #v-recepcion .bcpf-rap .nm { font-size: 14.5px; }
+  html.bc-pf #v-recepcion .bcpf-rap .rp { font-size: 12.5px; }
+}
 @media (max-width: 640px) {
   html.bc-pf #v-recepcion .bcpf-rapidos { gap: 6px; }
-  html.bc-pf #v-recepcion .bcpf-rap { font-size: 12px; padding: 4px 2px; letter-spacing: -.01em; }
-  html.bc-pf #v-recepcion .bcpf-rap span, html.bc-pf #v-recepcion .bcpf-rap .rp { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  html.bc-pf #v-recepcion .bcpf-rap { padding: 8px 2px; letter-spacing: -.01em; }
   html.bc-pf #v-recepcion .bcpf-rap .rp { font-size: 11px; }
+  /* «✓ Agregado» cabe entero en 79 px: un poco más compacto solo en ese estado */
+  html.bc-pf #v-recepcion .bcpf-rap.puesto .rp { font-size: 10.5px; letter-spacing: -.03em; }
 }
 
 /* 31-oct-2026 (dueño: «ese ícono vamos a quitar, aún no funciona»): la tarjeta «Recibir promociones por WhatsApp»
