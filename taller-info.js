@@ -39,7 +39,7 @@
     // ── Recepción ──
     { notas: function () { return porTexto('#v-recepcion', '.rx-toolsbox > summary > span', '— pedir reseña'); },
       titulo: function (n) { return n.parentElement; }, texto: function () { return 'Pedir reseña de Google a un cliente y generar boletos de rifa. Toque para abrir.'; } },
-    { notas: function () { return porTexto('#v-recepcion', '.rx-tools p', 'Para clientes que').concat(porTexto('#v-recepcion', '.rx-tools p', 'Rifa presencial')); },
+    { notas: function () { return porTexto('#v-recepcion', '.card > p', 'Envía el enlace').concat(porTexto('#v-recepcion', '.card > p', 'Número al azar')); },
       titulo: function (n) { var c = n.closest('.card') || n.parentElement; return c.querySelector('h3'); } },
     { notas: function () { return todos('#v-recepcion .rx-head > span[style*="94a3b8"]').filter(function (e) { return /Info Plus/.test(e.textContent); }); },
       titulo: function (n) { return n.parentElement; }, texto: function () { return 'Estos datos se toman de Info Plus y se guardan allí.'; } },
@@ -105,6 +105,9 @@
       texto: function () { return 'Su usuario todavía no está enlazado con Info Plus: la prefactura sale a nombre del vendedor que elija aquí.\n\nPida al administrador que registre su código en Configuración → Técnicos.'; } },
     // 23-oct-2026 (dueño: «no pongas texto tan explicativo; si es necesario, la ⓘ»): la nota «No cobra ni descuenta
     // inventario: se factura en Info Plus» de los totales queda detrás de una ⓘ junto a «Total».
+    // 31-oct-2026 (reglamento de microcopy): las notas de «Comentario» y «Equipo y falla» van detrás de la ⓘ de su título
+    { notas: function () { return todos('#v-recepcion .bcpf-nota'); },
+      titulo: function (n) { var d = n.closest('details'); return d ? d.querySelector('summary > span') : null; } },
     { notas: function () { return porTexto('#v-recepcion', '.bcpf-tot .t-info', 'No cobra ni descuenta'); },
       titulo: function () { var t = doc.querySelector('#v-recepcion .bcpf-tot .tt > span'); return t; } },
   ];

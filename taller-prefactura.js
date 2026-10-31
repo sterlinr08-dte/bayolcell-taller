@@ -196,9 +196,9 @@
     detCom.innerHTML = '<summary><i class="ti ti-note" aria-hidden="true"></i><span>Comentario</span><i class="ti ti-chevron-down bcpf-chev" aria-hidden="true"></i></summary>';
     if (fComent) {
       var lCom = q('label', fComent); if (lCom) lCom.innerHTML = 'Comentario';
-      var tCom = doc.getElementById('o_observaciones'); if (tCom) tCom.placeholder = 'Ej. cliente pasa a buscarlo el viernes; trae su propio cargador…';
+      var tCom = doc.getElementById('o_observaciones'); if (tCom) tCom.placeholder = 'Nota';
       detCom.appendChild(fComent);
-      detCom.appendChild(el('p', 'bcpf-nota', 'Se guarda en el taller, sale al imprimir y se manda a Info Plus como comentario de la prefactura.'));
+      detCom.appendChild(el('p', 'bcpf-nota', 'Sale impreso y va a Info Plus.'));
     }
     otras.appendChild(detCom);
     R.com = detCom;
@@ -215,10 +215,10 @@
 
     // «Equipo, falla y más datos (opcional)»: todo lo que salió de la pantalla principal, plegado
     var mas = el('details', 'bcpf-mas');
-    mas.innerHTML = '<summary><i class="ti ti-device-mobile" aria-hidden="true"></i><span class="mt">Equipo, falla y más datos <em>(opcional)</em></span>' +
+    mas.innerHTML = '<summary><i class="ti ti-device-mobile" aria-hidden="true"></i><span class="mt">Equipo y falla</span>' +
       '<span class="bcpf-res"></span><i class="ti ti-chevron-down bcpf-chev" aria-hidden="true"></i></summary>';
     var cuerpo = el('div', 'bcpf-mas-body');
-    cuerpo.appendChild(el('p', 'bcpf-nota', 'Si llena el equipo, al guardar también se crea la orden de reparación para el técnico (pide nombre, WhatsApp y modelo). Si lo deja vacío, solo se crea la prefactura.'));
+    cuerpo.appendChild(el('p', 'bcpf-nota', 'Con equipo, se crea también la orden.'));
     function seccion(tit, nodos) { var s = el('section', 'bcpf-sec', '<h4>' + tit + '</h4>'); nodos.forEach(function (n) { if (n) s.appendChild(n); }); cuerpo.appendChild(s); return s; }
     seccion('Equipo recibido', [camposEq]);
     var sFa = seccion('Falla reportada', [camposFa]);

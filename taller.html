@@ -2777,8 +2777,8 @@ body{
                 <summary style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:#475569; background:#fff; border:1px solid #eef2f7; border-radius:12px; padding:9px 13px; box-shadow:0 1px 3px rgba(15,23,42,.06);"><i class="ti ti-tools" style="color:#f59e0b;"></i> Herramientas rápidas <span style="font-weight:500; color:#94a3b8; font-size:11.5px;">— pedir reseña / boleto de rifa (toque para abrir)</span><i class="ti ti-chevron-down" style="margin-left:auto; color:#94a3b8;"></i></summary>
                 <div class="rx-tools" style="margin:12px 0 0;">
                 <div class="card" style="margin-bottom:0; border-top:3px solid #f59e0b;">
-                    <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña a un cliente (sin orden)</h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Indique su WhatsApp y envíele el enlace de reseña de Google.</p>
+                    <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña</h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Envía el enlace de Google.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <input id="resenaWa" data-marketing-consent-phone data-marketing-consent-source="venta" placeholder="WhatsApp (ej. 809-123-4567)" onkeydown="if(event.key==='Enter')enviarResenaWhatsapp()" style="flex:1; min-width:180px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
                         <button class="btn" style="background:#f59e0b; color:#fff; font-size:13px; padding:9px 14px;" onclick="enviarResenaWhatsapp()"><i class="ti ti-brand-whatsapp"></i> Enviar reseña</button>
@@ -2786,8 +2786,8 @@ body{
                     <div id="resenaWaMsg" style="font-size:12px; margin-top:6px;"></div>
                 </div>
                 <div class="card" style="margin-bottom:0; border-top:3px solid #7c3aed;">
-                    <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-ticket" style="color:#7c3aed;"></i> Generar boleto de rifa</h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Rifa presencial: indique el nombre y teléfono del cliente. El sistema asigna el número al azar y el boleto queda <b>confirmado</b>. Requiere una rifa activa.</p>
+                    <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-ticket" style="color:#7c3aed;"></i> Boleto de rifa</h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Número al azar. Requiere rifa activa.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <input id="rifaNombre" placeholder="Nombre del cliente" style="flex:1; min-width:160px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
                         <input id="rifaTelefono" placeholder="Teléfono (809-...)" onkeydown="if(event.key==='Enter')generarBoletoRifa()" style="flex:1; min-width:150px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;" inputmode="tel" autocomplete="tel">
@@ -2860,7 +2860,7 @@ body{
                       <div class="rx-card">
                         <div class="rx-head c4"><i class="ti ti-stethoscope"></i> Diagnóstico<span class="rx-num">4</span></div>
                         <div class="rx-body">
-                          <div><label>Falla reportada</label><textarea id="o_falla" rows="3" placeholder="No enciende, cliente indica que el equipo cayó al agua…" oninput="_rpRenderResumen()"></textarea></div>
+                          <div><label>Falla reportada</label><textarea id="o_falla" rows="3" placeholder="Qué le pasa" oninput="_rpRenderResumen()"></textarea></div>
                           <div><label>Observaciones (van como comentario a la prefactura)</label><textarea id="o_observaciones" rows="3" placeholder="Se revisará placa base y se limpiará por dentro…" oninput="_rpRenderResumen()"></textarea></div>
                         </div>
                       </div>
@@ -2902,9 +2902,9 @@ body{
                         <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-lock" style="color:#7c3aed;"></i> Seguridad del dispositivo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(claves, patrón — toque para abrir)</span></summary>
                         <div style="margin-top:12px; max-width:560px;">
                             <div class="access-note" style="font-size:12px;color:#64748b;margin-bottom:8px;">Las claves quedan ocultas por defecto. Solo se muestran cuando se pulsa Mostrar.</div>
-                            <div><label>Tipo de Bloqueo</label><select id="o_acceso" onchange="togglePatternPanel()"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin Clave</option></select></div>
+                            <div><label>Bloqueo</label><select id="o_acceso" onchange="togglePatternPanel()"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin Clave</option></select></div>
                             <div>
-                                <label>PIN / Patrón / Contraseña del Equipo</label>
+                                <label>Clave del equipo</label>
                                 <div class="password-field"><input id="o_clave" type="password" autocomplete="off" placeholder="Clave del dispositivo"><button type="button" class="btn btn-light" onclick="togglePasswordField('o_clave', this)"><i class="ti ti-eye"></i> Mostrar</button></div>
                             </div>
                             <div id="patternPanel" class="pattern-panel">
@@ -2927,12 +2927,12 @@ body{
                                     <button type="button" class="btn btn-light" onclick="clearPattern()">Limpiar patrón</button>
                                 </div>
                             </div>
-                            <div><label>Apple ID / Correo</label><input id="o_apple_id" type="email" autocomplete="off" placeholder="usuario@icloud.com"></div>
+                            <div><label>Apple ID</label><input id="o_apple_id" type="email" autocomplete="off" placeholder="usuario@icloud.com"></div>
                             <div>
                                 <label>Contraseña Apple ID</label>
                                 <div class="password-field"><input id="o_apple_password" type="password" autocomplete="off" placeholder="Opcional"><button type="button" class="btn btn-light" onclick="togglePasswordField('o_apple_password', this)"><i class="ti ti-eye"></i> Mostrar</button></div>
                             </div>
-                            <div><label>Cuenta Google / Gmail</label><input id="o_google_account" type="email" autocomplete="off" placeholder="usuario@gmail.com"></div>
+                            <div><label>Google</label><input id="o_google_account" type="email" autocomplete="off" placeholder="usuario@gmail.com"></div>
                             <div>
                                 <label>Contraseña Google</label>
                                 <div class="password-field"><input id="o_google_password" type="password" autocomplete="off" placeholder="Opcional"><button type="button" class="btn btn-light" onclick="togglePasswordField('o_google_password', this)"><i class="ti ti-eye"></i> Mostrar</button></div>
@@ -5706,16 +5706,16 @@ body{
 <div id="printArea" class="print-area"></div>
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
-<script defer src="taller-app.min.js?v=20261028-o1"></script>
+<script defer src="taller-app.min.js?v=20261031-o2"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
-<script defer src="taller-recepcion.js?v=20261030-g12"></script>
-<script defer src="taller-prefactura.js?v=20261030-i28"></script>
-<script defer src="bc-prefactura-pro.js?v=20261030-p1"></script>
+<script defer src="taller-recepcion.js?v=20261031-g13"></script>
+<script defer src="taller-prefactura.js?v=20261031-i29"></script>
+<script defer src="bc-prefactura-pro.js?v=20261031-p2"></script>
 <script defer src="bc-etiquetas-pro.js?v=20261030-e1"></script>
 <script defer src="bc-raspa.js?v=20261029-r1"></script>
 <script defer src="bc-prefactura-imprimir.js?v=20261029-i12"></script>
 <script defer src="bc-permisos-listas.js?v=20261021-pl1"></script>
-<script defer src="taller-info.js?v=20261026-t10"></script>
+<script defer src="taller-info.js?v=20261031-t11"></script>
 <script defer src="taller-ui-inicio.js?v=20261026-a1"></script>
 <script defer src="taller-ui-ordenes.js?v=20261026-o1"></script>
 <script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
