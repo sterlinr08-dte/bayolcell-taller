@@ -78,7 +78,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     const bt = card.querySelector('.bif-probar');
     return { movil: card.classList.contains('bif-movil'), instalador: vis(card.querySelector('#qzNoInstalado .bif-btn')), pasos: vis(card.querySelector('.bif-pasos')),
       caja: vis(card.querySelector('.bif-movil-caja')), texto: (card.querySelector('.bif-movil-caja') || {}).textContent || '', btnH: bt ? Math.round(bt.getBoundingClientRect().height) : 0,
-      pie: vis(document.querySelector('.bcpro-imp-pie')), badge: document.getElementById('qzEstadoBadge').textContent, intentos: window.__qzIntentos,
+      pie: vis(document.querySelector('.bcpro-imp-pie')), titulo: (document.getElementById('bcproImpT') || {}).textContent || '', badge: document.getElementById('qzEstadoBadge').textContent, intentos: window.__qzIntentos,
       desborde: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/imp-iphone.png` });
   c('modo celular, sin instalador de Windows ni pasos de QZ', m.movil && !m.instalador && !m.pasos && m.caja, m);
@@ -87,6 +87,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   c('sin botones de QZ abajo (Reconectar / Prueba de ticket)', !m.pie);
   c('no intenta conectar QZ en el celular', m.intentos === 0, m.intentos);
   c('aviso «Celular»', m.badge === 'Celular', m.badge);
+  c('título «Impresora», no «de esta computadora»', /Impresora/.test(m.titulo) && !/computadora/.test(m.titulo), m.titulo);
   const [pop] = await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), p.click('.bif-probar')]);
   c('«Probar impresora» abre la página de prueba', !!pop && /Prueba de impresión/.test(await pop.content()));
   c('sin desborde ni errores', m.desborde <= 0 && errs.length === 0, { d: m.desborde, errs });

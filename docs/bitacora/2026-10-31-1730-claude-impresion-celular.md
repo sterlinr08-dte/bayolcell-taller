@@ -14,7 +14,7 @@ ofrecía en el celular el instalador de Windows, que ahí no sirve.
   «En el celular se imprime por wifi» con 3 pasos (Guardar e imprimir → Impresora → Imprimir), aviso AirPrint/Bluetooth (en Android:
   complemento de la marca) y que el PDF llega por WhatsApp al guardar si hay número (comportamiento que ya existía).
 - Botón **Probar impresora** (54 px): abre una página de prueba y la ventana de imprimir del teléfono.
-- No intenta conectar QZ en el celular (`qzVerificarConexion` queda en silencio solo ahí); aviso «Celular»; título de la ventana
+- No intenta conectar QZ en el celular (`qzVerificarConexion` queda en silencio solo ahí); aviso «Celular»; título de la ventana (se repinta cuando aparece la ventana rápida)
   «Impresora» (no «de esta computadora»).
 
 ## C — Navarrete (pendiente del dueño)

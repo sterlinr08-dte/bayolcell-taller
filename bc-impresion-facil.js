@@ -191,6 +191,12 @@
   doc.addEventListener('visibilitychange', function () { if (!doc.hidden) { ultimo = 0; probar(); } });
   window.addEventListener('focus', function () { ultimo = 0; probar(); });
   setInterval(probar, 3000);
+  // La ventana rápida de la Prefactura (bc-prefactura-pro.js) se arma al tocar el engranaje: se repinta cuando aparece.
+  new MutationObserver(function (ms) {
+    for (var i = 0; i < ms.length; i++) for (var j = 0; j < ms[i].addedNodes.length; j++) {
+      var n = ms[i].addedNodes[j]; if (n.nodeType === 1 && n.classList && n.classList.contains('bcpro-imp-velo')) { setTimeout(pintar, 0); return; }
+    }
+  }).observe(doc.body || doc.documentElement, { childList: true });
 
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', function () { buscarYArmar(); vigilar(); });
   else { buscarYArmar(); vigilar(); }
