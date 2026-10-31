@@ -43,8 +43,14 @@ const ARTS = [
   // abrir detalle: panel se despliega y filas de abajo se corren (FLIP)
   await p.evaluate(() => { window.__anims = 0; const o = Element.prototype.animate; Element.prototype.animate = function () { window.__anims++; return o.apply(this, arguments); }; });
   const filas = await p.$$('.bcrx-ppk-row'); await filas[0].click({ position: { x: 40, y: 10 } }); await p.waitForTimeout(80);
-  out.detalle = await p.evaluate(() => ({ abre: !!document.querySelector('.bcrx-ppk-det.bmo-abre'), flips: window.__anims }));
-  await p.waitForTimeout(300);
+  out.detalle = await p.evaluate(() => { const d = document.querySelector('.bcrx-ppk-det.bmo-abre'); return { abre: !!d, flips: window.__anims, anim: d ? getComputedStyle(d).animationName : '' }; });
+  await p.waitForTimeout(350);
+  // cerrar la misma fila: queda una copia que se recoge hacia arriba y desaparece sola
+  await (await p.$$('.bcrx-ppk-row'))[0].click({ position: { x: 40, y: 10 } }); await p.waitForTimeout(60);
+  out.cierra = await p.evaluate(() => ({ copia: !!document.querySelector('.bcrx-ppk-det.bmo-cierra'), abiertos: document.querySelectorAll('.bcrx-ppk-det:not(.bmo-cierra)').length }));
+  await p.waitForTimeout(400);
+  out.cierraFin = await p.evaluate(() => document.querySelectorAll('.bcrx-ppk-det').length);
+  await (await p.$$('.bcrx-ppk-row'))[0].click({ position: { x: 40, y: 10 } }); await p.waitForTimeout(350);
   if (SHOTS && !quieto) await p.screenshot({ path: `${SHOTS}/motion-${W}.png` });
   // agregar: pulso en el botón, línea nueva y total que rueda
   await p.evaluate(() => { window.__pulso = false; document.addEventListener('pointerdown', () => { setTimeout(() => { window.__pulso = !!document.querySelector('.pk-add.bmo-pulso'); }, 0); }, true); });
@@ -65,12 +71,13 @@ const ARTS = [
     c('cascada al escribir (todas las filas, retraso ≤ 90 ms)', out.cascada.con === out.cascada.n && out.cascada.n > 0 && out.cascada.delays.every(d => parseInt(d) <= 90), out.cascada);
     c('con flecha no se repite', out.flecha === 0, out.flecha);
     c('ficha: cascada otra vez y píldora encendida', out.cascadaChip > 0 && out.pildoraOn.on && /translate/.test(out.pildoraOn.tr), out.pildoraOn);
-    c('detalle se despliega y las filas de abajo se corren', out.detalle.abre && out.detalle.flips > 0, out.detalle);
+    c('detalle se desliza hacia abajo y las filas de abajo se corren', out.detalle.abre && out.detalle.flips > 0 && out.detalle.anim === 'bmoDet', out.detalle);
+    c('al cerrar, el panel se recoge hacia arriba y la copia desaparece', out.cierra.copia && out.cierra.abiertos === 0 && out.cierraFin === 0, { ...out.cierra, fin: out.cierraFin });
     c('botón hace pulso al tocar', out.pulso);
     c('línea nueva entra y el total rueda', out.lineaNueva && out.rueda, { lineaNueva: out.lineaNueva, rueda: out.rueda });
     if (W === 390) c('nombre en dos líneas en el celular', out.lineas390 === '2', out.lineas390);
   } else {
-    c('sin movimiento: nada de clases de animación', !out.foco && out.cascada.con === 0 && !out.detalle.abre && !out.pulso && !out.rueda, { foco: out.foco, casc: out.cascada.con, abre: out.detalle.abre });
+    c('sin movimiento: nada de clases de animación', !out.foco && out.cascada.con === 0 && !out.detalle.abre && !out.pulso && !out.rueda && !out.cierra.copia, { foco: out.foco, casc: out.cascada.con, abre: out.detalle.abre, copia: out.cierra.copia });
   }
   c('total correcto al final', /3,000\.00|4,000\.00|3,500\.00/.test(out.totalFinal), out.totalFinal);
   c('sin desborde horizontal', out.desborde <= 0, out.desborde);
