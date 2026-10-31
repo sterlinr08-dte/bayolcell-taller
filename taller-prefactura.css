@@ -912,3 +912,7 @@ html.bc-pf #v-recepcion .bcpf-rap.sug::after { content: ""; position: absolute; 
   html.bc-pf #v-recepcion .bcpf-rap span, html.bc-pf #v-recepcion .bcpf-rap .rp { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   html.bc-pf #v-recepcion .bcpf-rap .rp { font-size: 11px; }
 }
+
+/* 31-oct-2026 (dueño: «ese ícono vamos a quitar, aún no funciona»): la tarjeta «Recibir promociones por WhatsApp»
+   no se muestra en la Prefactura. Volver a mostrarla: borrar esta regla. */
+html.bc-pf #v-recepcion .bc-mkt-consent { display: none !important; }
