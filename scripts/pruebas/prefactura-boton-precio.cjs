@@ -35,6 +35,13 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
       document.querySelector('.bcrx-ppk-det .pk-nv[data-nv="2"]').click(); await w(150);
       out.btnTrasNivel = btn(0).textContent.replace(/\s+/g, ' ').trim(); out.btnAzul = btn(0).classList.contains('otro');
     }
+    out.claseN1 = document.querySelectorAll('.bcrx-ppk-row')[1].querySelector('.pk-add').classList.contains('pk-n1');
+    if (admin) out.claseN2 = btn(0).classList.contains('pk-n2');
+    const sinB = [...document.querySelectorAll('.bcrx-ppk-row')].find(f => /SIN STOCK/i.test(f.textContent)).querySelector('.pk-add');
+    out.sinColor = getComputedStyle(sinB).color;
+    _rpState.nivel = 3; document.getElementById('rxNivel') && (document.getElementById('rxNivel').value = '3'); document.querySelector('.bcrx-ppk input').dispatchEvent(new Event('input', { bubbles: true })); await w(150);
+    out.claseN3 = [...document.querySelectorAll('.bcrx-ppk-row')].some(f => f.querySelector('.pk-add.pk-n3'));
+    _rpState.nivel = 1; document.getElementById('rxNivel') && (document.getElementById('rxNivel').value = '1'); document.querySelector('.bcrx-ppk input').dispatchEvent(new Event('input', { bubbles: true })); await w(150);
     out.anchoDesborde = document.querySelector('.bcrx-ppk-list').scrollWidth - document.querySelector('.bcrx-ppk-list').clientWidth;
     return out;
   }, admin);
@@ -56,6 +63,8 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     c('empleado: niveles solo informativos', r.nivelesBotones === 0, r.nivelesBotones);
     c('se agrega a RD$1,500', r2.precio === 1500, r2);
   }
+  c('Cliente final = naranja (pk-n1)', r.claseN1); if (admin) c('Por mayor = azul (pk-n2)', r.claseN2);
+  c('Extremo = amarillo (pk-n3)', r.claseN3); c('sin stock = rojo', r.sinColor === 'rgb(220, 38, 38)', r.sinColor);
   c('sin desplazamiento horizontal', r.anchoDesborde <= 1, r.anchoDesborde);
   c('sin errores de JavaScript', errs.length === 0, errs);
   await ctx.close(); }
