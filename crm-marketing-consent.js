@@ -6,7 +6,7 @@
 
   var V='20261023-u2';
   var SOCIAL_HUB='20261014-ig1';
-  var PERF='20260929-f1';
+  var PERF='20261031-f2';
   var FB_DIRECT='20260920-incr1';
   var GLASS='20260916-glass2';
   var AMBIENT='20260915-hotfix3';
@@ -184,13 +184,13 @@
 
     // Fase 2 CRM: mismo diseño en WhatsApp/Instagram/Facebook + separadores de fecha.
     var unificado=document.createElement('script');
-    unificado.src='crm-chat-unificado.js?v=20260929-f3';
+    unificado.src='crm-chat-unificado.js?v=20261031-f4';
     unificado.onerror=function(){console.warn('[CRM] No se pudo cargar el diseño unificado del chat.');};
     document.head.appendChild(unificado);
 
     // WhatsApp idéntico a WhatsApp Web / app (solo la pestaña WhatsApp). Va después del diseño unificado.
     var waIdentico=document.createElement('script');
-    waIdentico.src='crm-wa-identico.js?v=20261030-w20';
+    waIdentico.src='crm-wa-identico.js?v=20261031-w21';
     document.head.appendChild(waIdentico);
 
     // Automatizaciones estilo ManyChat (Fase 1: comentario → privado en Instagram/Facebook). Solo admin.

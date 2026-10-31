@@ -30403,7 +30403,7 @@ async function cargarHilosWhatsapp() {
     if(!_crmLineaActualId) { _waHilos = []; return; }
     let q = supabaseClient.from('whatsapp_hilos').select('*, whatsapp_lineas(nombre)').eq('linea_id', _crmLineaActualId).order('ultimo_mensaje_at', { ascending: false, nullsFirst: false });
     const { data, error } = await q;
-    if(error) { logError('cargarHilosWhatsapp', error); toastError('No se pudieron cargar las conversaciones.'); return; }
+    if(error) { logError('cargarHilosWhatsapp', error); toastError('Sin conexión · Reintentar'); return; }
     let lista = data || [];
     if(!isAdminUser()) {
         const yo = _crmMiIdentidad();
@@ -30872,7 +30872,7 @@ async function cargarMensajesHilo(hiloId) {
     const token = ++_waCargaToken;
     const { data, error } = await supabaseClient.from('whatsapp_mensajes').select('*').eq('hilo_id', hiloId).order('creado_en', { ascending: true });
     if(token !== _waCargaToken) return; // ya hay una carga mas nueva en curso
-    if(error) { logError('cargarMensajesHilo', error); toastError('No se pudieron cargar los mensajes.'); if(token === _waCargaToken) _waMensajes = []; return; }
+    if(error) { logError('cargarMensajesHilo', error); toastError('No cargaron los mensajes'); if(token === _waCargaToken) _waMensajes = []; return; }
     const lista = data || [];
     for(const m of lista) {
         if(m.media_path) m._mediaUrl = await _waSignedUrl(m.media_path);
@@ -30967,7 +30967,7 @@ function _waIaNivelDe(cfg) {
 }
 
 async function _waAbrirConfigAgenteIA() {
-    if(!isAdminUser()) return toast('Solo un administrador puede configurar el Agente de IA.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
     let conocimiento = {}, sucursales = [], configs = [];
     try {
         const [{ data: c }, { data: s }, { data: cfg }] = await Promise.all([
@@ -31136,7 +31136,7 @@ async function _waAbrirMapaUbicacion(sucursalId) {
         await _waCargarLeaflet();
     } catch(e) {
         logError('_waAbrirMapaUbicacion', e);
-        toastError('No se pudo cargar el mapa. Revise su conexión e intente de nuevo.');
+        toastError('Mapa sin conexión');
         _waCerrarMapaUbicacion();
         return;
     }
@@ -31199,7 +31199,7 @@ async function _waBuscarEnMapaUbicacion() {
         const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=do&q=' + encodeURIComponent(q);
         const resp = await fetch(url, { headers: { 'Accept-Language': 'es' } });
         const data = await resp.json();
-        if(!data || !data[0]) { toastError('No se encontró ese lugar. Pruebe con otras palabras o mueva el mapa manualmente.'); return; }
+        if(!data || !data[0]) { toastError('Lugar no encontrado'); return; }
         _waMapaUbicMap.setView([Number(data[0].lat), Number(data[0].lon)], 17);
     } catch(e) { logError('_waBuscarEnMapaUbicacion', e); toastError('No se pudo buscar ese lugar. Mueva el mapa manualmente.'); }
     finally { btn.disabled = false; btn.innerHTML = original; }
@@ -31212,7 +31212,7 @@ function _waUsarUbicacionDelMapa() {
     const lngInp = document.getElementById('iaLng_' + _waMapaUbicSucursalId);
     if(latInp) latInp.value = p.lat.toFixed(6);
     if(lngInp) lngInp.value = p.lng.toFixed(6);
-    toast('📍 Coordenadas listas. Toque 💾 para guardar.');
+    toast('Ubicación lista · Guardar');
     _waCerrarMapaUbicacion();
 }
 
@@ -31228,7 +31228,7 @@ async function _waGuardarUbicacionSucursal(sucursalId) {
     const lngRaw = (document.getElementById('iaLng_' + sucursalId)?.value || '').trim();
     const lat = latRaw ? Number(latRaw) : null;
     const lng = lngRaw ? Number(lngRaw) : null;
-    if((latRaw && isNaN(lat)) || (lngRaw && isNaN(lng))) return toast('Latitud/longitud tienen que ser números.', 'error');
+    if((latRaw && isNaN(lat)) || (lngRaw && isNaN(lng))) return toast('Coordenadas no válidas', 'error');
     try {
         const { error } = await supabaseClient.from('whatsapp_ia_config').upsert({ sucursal_id: sucursalId, direccion, lat, lng }, { onConflict: 'sucursal_id' });
         if(error) throw error;
@@ -31281,7 +31281,7 @@ async function _waActualizarBadgeEpisodios() {
 }
 
 async function _waAbrirRevisionEpisodios() {
-    if(!isAdminUser()) return toast('Solo un administrador puede revisar el aprendizaje del Agente de IA.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
     let episodios = [];
     try {
         const { data, error } = await supabaseClient.from('whatsapp_ia_episodios')
@@ -31921,7 +31921,7 @@ async function _waEnviarUbicacionSucursal(sucursalId) {
         const { data: cfg, error: cfgErr } = await supabaseClient.from('whatsapp_ia_config').select('lat, lng').eq('sucursal_id', sucursalId).maybeSingle();
         if(cfgErr) throw cfgErr;
         if(!cfg || cfg.lat == null || cfg.lng == null) {
-            toastError('Esta sucursal todavía no tiene coordenadas guardadas — configúrelas en el botón 🤖 (Agente de IA) del CRM.');
+            toastError('Sucursal sin ubicación · Agente de IA');
             return;
         }
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -32458,7 +32458,7 @@ async function _waCargarSucursalPlantilla(h) {
 
 async function _waAbrirModalPlantilla() {
     const h = _waHilos.find(x => x.id === _waHiloId);
-    if(!h || !h.linea_id) { toastError('Este hilo no tiene una línea de WhatsApp asignada.'); return; }
+    if(!h || !h.linea_id) { toastError('Chat sin línea'); return; }
     const token = ++_waPlantillaToken;
     _waCargarSucursalPlantilla(h);
     document.getElementById('modalWaPlantilla').classList.add('active');
@@ -32575,7 +32575,7 @@ async function _waEnviarPlantilla() {
     const esNombrado = tokens.length > 0 && tokens.some(tk => !/^\d+$/.test(tk));
     const inputs = [...document.querySelectorAll('.wa-plantilla-var')];
     for(const inp of inputs) {
-        if(!inp.value.trim()) { toastError('Complete todas las variables de la plantilla.'); inp.focus(); return; }
+        if(!inp.value.trim()) { toastError('Faltan datos de la plantilla'); inp.focus(); return; }
     }
     let plantillaPayload;
     let texto = body?.text || '';
@@ -32633,12 +32633,12 @@ async function _waIniciarGrabacion() {
     const hiloActual = _waHiloId;
     if(!hiloActual) return;
     const mime = _waPickAudioMime();
-    if(!mime) { toastError('Este navegador no puede grabar audio.'); return; }
+    if(!mime) { toastError('Este navegador no graba audio'); return; }
     let stream;
     try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch(e) {
-        toastError('No se pudo acceder al micrófono. Revise los permisos del navegador.');
+        toastError('Micrófono bloqueado');
         return;
     }
     _waAudioStream = stream;
@@ -32713,7 +32713,7 @@ function _waDetenerYEnviarNota() {
     _waMediaRecorder.onstop = async () => {
         const blob = new Blob(_waAudioChunks, { type: mime });
         _waLimpiarGrabacion();
-        if(blob.size < 500) { toastError('La nota de voz quedó muy corta.'); return; }
+        if(blob.size < 500) { toastError('Audio muy corto'); return; }
         try {
             const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : 'webm';
             const path = `out/audio/${crypto.randomUUID()}.${ext}`;
@@ -32895,7 +32895,7 @@ function _waSePuedeEliminar(m) {
 // mensaje queda «Este mensaje fue eliminado» aquí y en el teléfono del cliente.
 async function _waEliminarParaTodos(msgId) {
     const m = _waMensajes.find(x => x.id === msgId);
-    if(!_waSePuedeEliminar(m)) { toastError('Este mensaje ya no se puede eliminar para todos.'); return; }
+    if(!_waSePuedeEliminar(m)) { toastError('Ya no se puede eliminar'); return; }
     if(!window.confirm('¿Eliminar este mensaje para todos?\n\nDesaparecerá también en el WhatsApp del cliente. No se puede deshacer.')) return;
     const lockKey = `wa-eliminar:${msgId}`;
     if(!_crmIniciarAccion(lockKey)) return;
@@ -32911,7 +32911,7 @@ async function _waEliminarParaTodos(msgId) {
         const j = await res.json().catch(() => null);
         if(j && j.ok) {
             m.estado = 'eliminado';
-            if(j.aviso) toast('⚠️ ' + j.aviso); else toast('🚫 Mensaje eliminado para todos.');
+            if(j.aviso) toast('⚠️ ' + j.aviso); else toast('Eliminado');
             if(_waHiloId === hiloDelMsg) { try { await cargarMensajesHilo(hiloDelMsg); } catch(e) {} await _crmRepintarWhatsappSilencioso(); }
         } else {
             toastError((j && j.mensaje) || 'No se pudo eliminar el mensaje.');
@@ -33559,7 +33559,7 @@ async function _waConfirmarTransferir(hiloId) {
         const { data, error } = await supabaseClient.rpc('whatsapp_transferir_hilo', { p_hilo: hiloId, p_a: destino, p_nota: nota || null });
         if(error) throw error;
         document.getElementById('modalGenerico')?.remove();
-        toast(`✅ Cliente transferido a ${data?.a_nombre || 'su compañero'}.`);
+        toast(`Transferido a ${data?.a_nombre || 'su compañero'}`);
         const h = _waHilos.find(x => x.id === hiloId);
         if(h) { h.asignado_tipo = 'tecnico'; h.asignado_id = destino; }
         await cargarHilosWhatsapp();
@@ -34366,7 +34366,7 @@ async function _igImportarHistorial() {
         } while(cursor && paginas < 100);
 
         await renderInstagram();
-        toast(`Historial de Instagram actualizado: ${mensajes} mensajes nuevos en ${conversaciones} conversaciones.`, 'success');
+        toast(`+${mensajes} mensajes de Instagram`, 'success');
     } catch(e) {
         logError('_igImportarHistorial', e);
         toast(e?.message || 'No se pudo importar el historial de Instagram.', 'error');
@@ -34511,7 +34511,7 @@ async function cargarMensajesInstagramHilo(hiloId) {
     const token = ++_igCargaToken;
     const { data, error } = await supabaseClient.from('instagram_mensajes').select('*').eq('hilo_id', hiloId).order('creado_en', { ascending: true });
     if(token !== _igCargaToken) return;
-    if(error) { logError('cargarMensajesInstagramHilo', error); toastError('No se pudieron cargar los mensajes.'); if(token === _igCargaToken) _igMensajes = []; return; }
+    if(error) { logError('cargarMensajesInstagramHilo', error); toastError('No cargaron los mensajes'); if(token === _igCargaToken) _igMensajes = []; return; }
     const lista = data || [];
     for(const m of lista) {
         if(m.media_path) m._mediaUrl = await _igSignedUrl(m.media_path);
