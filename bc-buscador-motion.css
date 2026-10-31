@@ -1,0 +1,67 @@
+/* BAYOL CELL · Buscar artículo con movimiento (dueño, 31-oct-2026, opción C). Lógica en bc-buscador-motion.js.
+   Reglas (DESIGN.md §7): curva (.22,1,.36,1), 160–260 ms, solo transform y opacity, nada al cargar (sin FOUC) y todo
+   instantáneo con «reducir movimiento». Activa con html.bc-bmo. Apagar: BC_BMO=false o localStorage bc_bmo_off='1'. */
+html.bc-bmo { --bmo-curva: cubic-bezier(.22, 1, .36, 1); --bmo-pop: cubic-bezier(.34, 1.56, .64, 1); }
+
+/* 1. Filas en cascada al escribir o tocar una ficha (el JS pone .bmo-in y el retraso por fila, máx. 90 ms). */
+html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-in { animation: bmoFila .22s var(--bmo-curva) both; }
+@keyframes bmoFila { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* 2. Detalle que se despliega (las filas de abajo se corren con FLIP desde el JS). */
+html.bc-bmo #v-recepcion .bcrx-ppk-det.bmo-abre { animation: bmoDet .22s var(--bmo-curva) both; transform-origin: top center; }
+@keyframes bmoDet { from { opacity: 0; transform: translateY(-6px) scaleY(.96); } to { opacity: 1; transform: none; } }
+html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-flip { will-change: transform; }
+
+/* 3. Botón de precio: se hunde al tocar y hace un pulso al agregar (anillo con opacidad, sin sombra animada). */
+html.bc-bmo #v-recepcion .pk-add.pk-btn { position: relative; transition: transform .14s var(--bmo-curva); }
+html.bc-bmo #v-recepcion .pk-add.pk-btn:active:not(:disabled) { transform: scale(.95); }
+html.bc-bmo #v-recepcion .pk-add.pk-btn::after { content: ''; position: absolute; inset: -3px; border-radius: inherit; border: 2px solid currentColor; opacity: 0; pointer-events: none; }
+html.bc-bmo #v-recepcion .pk-add.pk-btn.bmo-pulso { animation: bmoPulso .26s var(--bmo-curva); }
+html.bc-bmo #v-recepcion .pk-add.pk-btn.bmo-pulso::after { animation: bmoAnillo .42s var(--bmo-curva); }
+@keyframes bmoPulso { 0% { transform: scale(.95); } 55% { transform: scale(1.05); } 100% { transform: none; } }
+@keyframes bmoAnillo { 0% { opacity: .55; transform: scale(.96); } 100% { opacity: 0; transform: scale(1.18); } }
+html.bc-bmo #v-recepcion .pk-ya.bmo-pop { animation: bmoPop .3s var(--bmo-pop); }
+@keyframes bmoPop { from { transform: scale(.6); } 60% { transform: scale(1.18); } to { transform: none; } }
+
+/* 4. Fichas de categoría: el fondo activo se desliza (una píldora que el JS mueve con FLIP). */
+html.bc-bmo #v-recepcion .bcrx-ppk-chips { position: relative; }
+html.bc-bmo #v-recepcion .bcrx-ppk-chips .bmo-pil { position: absolute; left: 0; top: 0; height: 10px; width: 10px; border-radius: 999px; background: #1d4ed8; opacity: 0; pointer-events: none; transform-origin: left top; transition: transform .22s var(--bmo-curva), opacity .16s ease; z-index: 0; }
+html.bc-bmo #v-recepcion .bcrx-ppk-chips .bmo-pil.on { opacity: 1; }
+html.bc-bmo #v-recepcion .bcrx-ppk-chip { position: relative; z-index: 1; transition: color .16s ease, transform .14s var(--bmo-curva), background .16s ease; }
+html.bc-bmo #v-recepcion .bcrx-ppk-chips.bmo-lista .bcrx-ppk-chip.on { background: transparent; border-color: transparent; }
+html.bc-bmo #v-recepcion .bcrx-ppk-chip:active { transform: scale(.96); }
+
+/* 5. Campo de búsqueda: al enfocar, el borde azul respira una vez. «Entendido como…» entra deslizándose. */
+html.bc-bmo #v-recepcion .bcrx-ppk-inp { position: relative; }
+html.bc-bmo #v-recepcion .bcrx-ppk-inp::after { content: ''; position: absolute; inset: -3px; border-radius: 16px; border: 2px solid #2563eb; opacity: 0; pointer-events: none; }
+html.bc-bmo #v-recepcion .bcrx-ppk-inp.bmo-foco::after { animation: bmoRespira .6s var(--bmo-curva); }
+@keyframes bmoRespira { 0% { opacity: .5; transform: scale(.995); } 100% { opacity: 0; transform: scale(1.02); } }
+html.bc-bmo #v-recepcion .bcrx-ppk-ent, html.bc-bmo #v-recepcion .bcrx-ppk-nv { animation: bmoEnt .18s var(--bmo-curva) both; }
+@keyframes bmoEnt { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+
+/* 6. Números que ruedan (total de la barra, importes y «×N»): dos capas, la vieja sube y se va, la nueva entra desde abajo. */
+html.bc-bmo .bmo-rol { display: inline-grid; overflow: hidden; vertical-align: bottom; }
+html.bc-bmo .bmo-rol > span { grid-area: 1 / 1; display: block; white-space: nowrap; }
+html.bc-bmo .bmo-rol > .v { animation: bmoSube .26s var(--bmo-curva) both; }
+html.bc-bmo .bmo-rol > .n { animation: bmoEntra .26s var(--bmo-curva) both; }
+@keyframes bmoSube { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-70%); } }
+@keyframes bmoEntra { from { opacity: 0; transform: translateY(70%); } to { opacity: 1; transform: none; } }
+
+/* 7. Vacío / sin resultados y la línea nueva de la prefactura. */
+html.bc-bmo #v-recepcion .bcrx-ppk-vacio { animation: bmoFade .22s ease both; }
+@keyframes bmoFade { from { opacity: 0; } to { opacity: 1; } }
+html.bc-bmo #v-recepcion .bcpf-it.bmo-nueva { animation: bmoLinea .3s var(--bmo-curva) both; }
+@keyframes bmoLinea { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+
+/* Nombre del artículo en dos líneas en el celular (dueño, 31-oct-2026: «BATERIA IPHONE 14 NORMAL…» no se distinguía). */
+@media (max-width: 640px) {
+  html.bc-bmo #v-recepcion .pk-nom .pk-dtx { -webkit-line-clamp: 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-in, html.bc-bmo #v-recepcion .bcrx-ppk-det.bmo-abre, html.bc-bmo #v-recepcion .pk-add.pk-btn.bmo-pulso,
+  html.bc-bmo #v-recepcion .pk-add.pk-btn.bmo-pulso::after, html.bc-bmo #v-recepcion .pk-ya.bmo-pop, html.bc-bmo #v-recepcion .bcrx-ppk-inp.bmo-foco::after,
+  html.bc-bmo #v-recepcion .bcrx-ppk-ent, html.bc-bmo #v-recepcion .bcrx-ppk-nv, html.bc-bmo .bmo-rol > span, html.bc-bmo #v-recepcion .bcrx-ppk-vacio,
+  html.bc-bmo #v-recepcion .bcpf-it.bmo-nueva { animation: none; }
+  html.bc-bmo #v-recepcion .bcrx-ppk-chips .bmo-pil, html.bc-bmo #v-recepcion .bcrx-ppk-chip, html.bc-bmo #v-recepcion .pk-add.pk-btn { transition: none; }
+}
