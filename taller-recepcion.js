@@ -152,6 +152,10 @@
     function precioDe(a) { var nv = nivel(); if (a.niveles && a.niveles[nv] != null) return Number(a.niveles[nv]); if (a.niveles && a.niveles['1'] != null) return Number(a.niveles['1']); return Number(a.precio || 0); }
     function esServ(a) { return String(a.codigo) === '1121' || /^SERVICIO\b/i.test(String(a.descripcion || '').trim()); }
     function existe(a) { if (esServ(a)) return null; var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : null; return ex ? (Number(ex[almacen()]) || 0) : null; }
+    // 31-oct-2026 (dueño, opción A): cuando el almacén elegido está en 0, la fila dice dónde falta y cuántos hay en las
+    // demás tiendas («Navarrete: 0 · 5 en otras»), en vez de un «Sin stock» que parecía «no hay ninguno». El bloqueo sigue.
+    function enOtras(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : null; if (!ex) return 0; var aq = almacen(), t = 0; Object.keys(ex).forEach(function (c) { if (c !== aq) t += Math.max(0, Number(ex[c]) || 0); }); return t; }
+    function almNombre() { var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {}; return alms[almacen()] || 'Aquí'; }
     // Detalle del artículo al tocar la fila, igual que STUDIO (dueño 19-oct-2026: «qué formato tenemos en studio, podemos
     // usar lo mismo»): recuadros con los precios de cada nivel lado a lado (el del cliente resaltado), existencia y
     // «Elegir — RD$ …». El mínimo no se puede mostrar: la API de Info Plus solo entrega el precio de cada nivel.
@@ -283,17 +287,17 @@
         if (buscando || !l.length) { cont.innerHTML = aviso; return; }
       }
       var filas = show.map(function (a, i) {
-        var ex = existe(a), pr = precioFila(a), ya = enLista(a), sinEx = ex !== null && ex <= 0;
-        var chip = esServ(a) ? '<span class="bcrx-stk srv">Servicio</span>' : ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin stock</span>' : '<span class="bcrx-stk">Stock: ' + ex + '</span>';
+        var ex = existe(a), pr = precioFila(a), ya = enLista(a), sinEx = ex !== null && ex <= 0, otras = sinEx ? enOtras(a) : 0;
+        var chip = esServ(a) ? '<span class="bcrx-stk srv">Servicio</span>' : ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? (otras > 0 ? '<span class="bcrx-stk out otras" title="No hay en ' + esc(almNombre()) + '; sí en otras tiendas">' + esc(almNombre()) + ': 0 · <b>' + otras + ' en otras</b></span>' : '<span class="bcrx-stk out">Sin stock</span>') : '<span class="bcrx-stk">Stock: ' + ex + '</span>';
         // 30-oct-2026 (dueño: «el botón naranja donde está el precio… hazlo smart»): precio y agregar son un solo botón.
         // Muestra el precio del nivel elegido, cuántos ya hay en la prefactura y se apaga si no hay existencia.
         var otroNv = nivelFila(a) !== nivel(), nomNv = otroNv ? (NIV.filter(function (n) { return n[0] === nivelFila(a); })[0] || [, ''])[1] : '';
         // 31-oct-2026 (dueño): el color dice el nivel del precio: naranja Cliente final, azul Por mayor, amarillo Extremo;
         // sin existencia, gris con rojo.
         var btn = '<button type="button" class="pk-add pk-btn pk-n' + nivelFila(a) + (otroNv ? ' otro' : '') + '" data-i="' + i + '"' + (sinEx ? ' disabled' : '') +
-          ' aria-label="' + (sinEx ? 'Sin existencia: ' : 'Agregar ') + esc((a.descripcion || '').trim()) + (pr > 0 ? ' a ' + plata(pr) : '') + '">' +
+          ' aria-label="' + (sinEx ? (otras > 0 ? 'Sin existencia en ' + esc(almNombre()) + ', ' + otras + ' en otras tiendas: ' : 'Sin existencia: ') : 'Agregar ') + esc((a.descripcion || '').trim()) + (pr > 0 ? ' a ' + plata(pr) : '') + '">' +
           (ya ? '<span class="pk-ya" title="Ya en la prefactura">×' + ya + '</span>' : '') +
-          '<span class="pk-bp">' + (sinEx ? 'Sin stock' : pr > 0 ? plata(pr) : 'Agregar') + (otroNv ? '<small>' + esc(nomNv) + '</small>' : '') + '</span>' +
+          '<span class="pk-bp">' + (sinEx ? (otras > 0 ? otras + ' en otras' : 'Sin stock') : pr > 0 ? plata(pr) : 'Agregar') + (otroNv ? '<small>' + esc(nomNv) + '</small>' : '') + '</span>' +
           (sinEx ? '' : '<i class="ti ti-plus" aria-hidden="true"></i>') + '</button>';
         return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (sinEx ? ' sin' : '') + '" role="option" data-fila="' + i + '" aria-expanded="' + (estado.det === i) + '" title="Ver precios y existencia">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
