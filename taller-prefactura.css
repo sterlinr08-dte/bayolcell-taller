@@ -896,3 +896,19 @@ html.bc-pf #v-recepcion .bcpf-rap:hover { background: #f8fafc; }
 html.bc-pf #v-recepcion .bcpf-rap:active { transform: scale(.97); }
 html.bc-pf #v-recepcion .bcpf-rap:focus-visible { outline: 3px solid var(--pf-acc, #e4572e); outline-offset: 2px; }
 @media (min-width: 900px) { html.bc-pf #v-recepcion .bcpf-rapidos { grid-template-columns: repeat(4, minmax(0, 140px)); } }
+
+/* Smart: precio debajo, ✓ cuando ya está (otro toque lo quita) y punto naranja cuando se sugiere */
+html.bc-pf #v-recepcion .bcpf-rap { position: relative; min-height: 64px; }
+html.bc-pf #v-recepcion .bcpf-rap .rp { font-size: 12px; font-weight: 700; color: #64748b; line-height: 1; min-height: 12px; }
+html.bc-pf #v-recepcion .bcpf-rap.puesto { background: #ecfdf5; border-color: #34d399; }
+html.bc-pf #v-recepcion .bcpf-rap.puesto .rp { color: #047857; }
+html.bc-pf #v-recepcion .bcpf-rap.sug { border-color: #fdba74; background: #fff7ed; }
+html.bc-pf #v-recepcion .bcpf-rap.sug::after { content: ""; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,.18); }
+@media (prefers-reduced-motion: no-preference) { html.bc-pf #v-recepcion .bcpf-rap.sug::after { animation: bcpfSug 1.6s ease-in-out infinite; } }
+@keyframes bcpfSug { 50% { box-shadow: 0 0 0 6px rgba(249,115,22,0); } }
+@media (max-width: 640px) {
+  html.bc-pf #v-recepcion .bcpf-rapidos { gap: 6px; }
+  html.bc-pf #v-recepcion .bcpf-rap { font-size: 12px; padding: 4px 2px; letter-spacing: -.01em; }
+  html.bc-pf #v-recepcion .bcpf-rap span, html.bc-pf #v-recepcion .bcpf-rap .rp { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  html.bc-pf #v-recepcion .bcpf-rap .rp { font-size: 11px; }
+}

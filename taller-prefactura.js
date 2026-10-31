@@ -158,13 +158,15 @@
     if (bSrv && !q('.bcpf-rapidos', pad)) {
       bSrv.classList.add('bcpf-oculto');
       var fila = el('div', 'bcpf-rapidos'); fila.setAttribute('role', 'group'); fila.setAttribute('aria-label', 'Accesos rápidos');
-      [['1161', 'ti-truck-delivery', 'Delivery'], ['srv', 'ti-tool', 'Servicio'], ['1187', 'ti-sim', 'Activación'], ['1186', 'ti-coin', 'Recarga']].forEach(function (b) {
+      [['1161', 'ti-truck-delivery', 'Delivery'], ['srv', 'ti-tool', 'Servicio'], ['1187', 'ti-sim', 'Activar'], ['1186', 'ti-coin', 'Recarga']].forEach(function (b) {
         var x = el('button', 'bcpf-rap'); x.type = 'button'; x.setAttribute('data-rap', b[0]);
-        x.innerHTML = '<i class="ti ' + b[1] + '" aria-hidden="true"></i><span>' + b[2] + '</span>';
-        x.addEventListener('click', function () { if (b[0] === 'srv') { try { _rpAgregarServicio(); } catch (e) {} } else agregarRapido(b[0]); });
+        x.innerHTML = '<i class="ti ' + b[1] + '" aria-hidden="true"></i><span>' + b[2] + '</span><small class="rp"></small>';
+        x.addEventListener('click', function () { if (b[0] === 'srv') { try { _rpAgregarServicio(); } catch (e) {} } else tocarRapido(b[0]); });
         fila.appendChild(x);
       });
       pad.insertBefore(fila, busc);
+      var fFalla = doc.getElementById('o_falla'); if (fFalla) fFalla.addEventListener('input', function () { actualizarRapidos(); });
+      setTimeout(actualizarRapidos, 0);
     }
 
     // Artículos
@@ -376,7 +378,7 @@
   function pintarCarrito() {
     var c = doc.getElementById('rxArticulos'); if (!c) return;
     var s = st();
-    if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos</div>'; return; }
+    if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos</div>'; actualizarRapidos(); return; }
     c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>Código</span><span>Artículo</span><span>IMEI / serie</span><span>Precio</span><span>Desc.</span><span>Cant.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
       var cant = it.serial
         ? '<span class="stp fijo" title="La cantidad sale del número de IMEI">' + it.cant + '</span>'
@@ -397,6 +399,7 @@
         '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';
     }).join('') + '</div>' + sugerenciaDelivery();
+    actualizarRapidos();
   }
 
   function precioLibre(it) { try { if (typeof isAdminUser === 'function' && isAdminUser()) return true; } catch (e) {} return !!(it && (it.servicio || esRapido(it))); }
@@ -428,6 +431,40 @@
     enfocarPrecio(s.items.length - 1, !r.monto); // en la recarga el cursor va al monto
   }
   window.bcAgregarRapido = agregarRapido;
+  // ---- Smart (dueño 31-oct-2026: «que sea smart») ----
+  // · Cada botón dice el precio que va a poner según el cliente (Delivery RD$ 50 si es por mayor).
+  // · Si ya está en la prefactura queda marcado con ✓ y otro toque lo quita (un solo botón para poner y quitar).
+  // · Sugerido (punto naranja): Delivery con cliente por mayor; Activación si hay un chip o Turbo SIM en la lista;
+  //   Servicio si se escribió una falla y todavía no hay servicio.
+  function precioRapido(cod) {
+    var r = RAPIDOS[cod]; if (!r) return 0; var nv = r.def;
+    try { var a = _findInfoplusArt(cod); if (a && a.niveles) nv = a.niveles; } catch (e) {}
+    try { return _rpNivelPrecio({ niveles: nv, precio: 0 }); } catch (e) { return Number(nv['1']) || 0; }
+  }
+  function idxCod(cod) { var s = st(); if (!s) return -1; for (var i = 0; i < s.items.length; i++) if (String(s.items[i].cod) === cod && !s.items[i].servicio) return i; return -1; }
+  function tocarRapido(cod) {
+    var k = idxCod(cod);
+    if (k >= 0) { try { _rpQuitar(k); } catch (e) {} try { toast(RAPIDOS[cod].nom + ' quitado'); } catch (e) {} return; }
+    agregarRapido(cod);
+  }
+  function sugerido(cod) {
+    var s = st(); if (!s || !s.items.length) return cod === 'srv' && !!val('o_falla') && !(s && s.items.some(function (x) { return x.servicio; }));
+    if (cod === '1161') return idxCod('1161') < 0 && String(s.nivel || 1) === '2' && !s.sinDelivery;
+    if (cod === '1187') return idxCod('1187') < 0 && s.items.some(function (x) { return !esRapido(x) && /\b(SIM|CHIP|E-SIM|ESIM)\b/i.test(String(x.desc || '')); });
+    if (cod === 'srv') return !!val('o_falla') && !s.items.some(function (x) { return x.servicio; });
+    return false;
+  }
+  function actualizarRapidos() {
+    Array.prototype.forEach.call(doc.querySelectorAll('#v-recepcion .bcpf-rap'), function (b) {
+      var cod = b.getAttribute('data-rap'), puesto = cod === 'srv' ? false : idxCod(cod) >= 0, sug = !puesto && sugerido(cod);
+      var rp = b.querySelector('.rp');
+      if (rp) rp.textContent = cod === 'srv' ? '' : (puesto ? '✓ Agregado' : plata(precioRapido(cod)));
+      b.classList.toggle('puesto', puesto); b.classList.toggle('sug', !!sug);
+      b.setAttribute('aria-pressed', String(puesto));
+      b.title = puesto ? 'Tocar para quitar' : (sug ? 'Sugerido' : '');
+    });
+  }
+  window.bcActualizarRapidos = actualizarRapidos;
   function idxDelivery() { var s = st(); if (!s) return -1; for (var i = 0; i < s.items.length; i++) if (esDelivery(s.items[i])) return i; return -1; }
   function nivelesDelivery() { try { var a = _findInfoplusArt(COD_DELIV); if (a && a.niveles) return a.niveles; } catch (e) {} return { 1: 100, 2: 50, 3: 200 }; }
   function precioDelivery() { var it = { niveles: nivelesDelivery(), precio: 0 }; try { return _rpNivelPrecio(it); } catch (e) { return Number(it.niveles['1']) || 0; } }
@@ -448,6 +485,7 @@
   }
   window.bcAgregarDelivery = agregarDelivery;
   function sugerenciaDelivery() {
+    if (doc.querySelector('#v-recepcion .bcpf-rap')) return ''; // con la fila de accesos, la sugerencia va en el botón Delivery
     var s = st(); if (!s || !s.items.length || idxDelivery() >= 0 || s.sinDelivery) return '';
     if (String(s.nivel || 1) !== '2') return '';
     // 30-oct-2026 (dueño: «simplificar, no ser tan descriptivo»): un solo botón, sin pregunta.
