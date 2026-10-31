@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261030-w20';
+  var VERSION = '20261031-w21';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -656,7 +656,7 @@
       var h = hiloPorId(id); if (!h) return;
       if (!h.fijado_en){
         var n = hilos().filter(function(x){ return x.fijado_en && x.linea_id === h.linea_id; }).length;
-        if (n >= 3){ try { toastError('Solo puedes fijar 3 chats. Desfija uno primero.'); } catch(e){} return; }
+        if (n >= 3){ try { toastError('Máx. 3 fijados'); } catch(e){} return; }
       }
       actualizarHilo(id, { fijado_en: h.fijado_en ? null : new Date().toISOString() }, h.fijado_en ? 'Chat desfijado' : 'Chat fijado');
     },
@@ -1210,7 +1210,7 @@
     if (!activo || activo.id !== editando.id || editando.hilo !== hiloId()){ editando = null; return true; }
     var t = document.getElementById('waTexto'); if (!t) return true;
     var nuevo = sinPrefijo(t.value).trim();
-    if (!nuevo || nuevo === editando.original.trim()){ try { toast('No cambió nada del mensaje.'); } catch(e){} return false; }
+    if (!nuevo || nuevo === editando.original.trim()){ try { toast('Sin cambios'); } catch(e){} return false; }
     t.value = PRE_ED + nuevo; editando = null; return true;
   }
   function marcarEditados(){

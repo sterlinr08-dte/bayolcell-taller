@@ -148,7 +148,7 @@
     try { id = _waMenuAccionesMsgId; lista = _waMensajes || []; } catch(e) {}
     var m = lista.find(function(x){ return x.id === id; });
     try { _waCerrarMenuAcciones(); } catch(e) {}
-    if(!m || !m.cuerpo){ try { toast('Este mensaje no tiene texto para copiar.'); } catch(e) {} return; }
+    if(!m || !m.cuerpo){ try { toast('Sin texto'); } catch(e) {} return; }
     copiarTexto(m.cuerpo).then(function(){ try { toast('Texto copiado.'); } catch(e) {} });
   };
   function envolverMenuWa(){

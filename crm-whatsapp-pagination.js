@@ -166,7 +166,7 @@
       if(q.length >= 2) scheduleRemoteSearch(q, 0);
     } catch(e) {
       try { logError('cargarHilosWhatsapp paginado', e); } catch(_e) {}
-      try { toastError('No se pudieron cargar las conversaciones.'); } catch(_e) {}
+      try { toastError('Sin conexión · Reintentar'); } catch(_e) {}
     } finally {
       if(gen === s.generation) s.loading = false;
     }
@@ -370,7 +370,7 @@
       .limit(MESSAGE_PAGE);
     if(token !== _waCargaToken) return;
     if(error){
-      try { logError('cargarMensajesHilo paginado', error); toastError('No se pudieron cargar los mensajes.'); } catch(_e) {}
+      try { logError('cargarMensajesHilo paginado', error); toastError('No cargaron los mensajes'); } catch(_e) {}
       if(token === _waCargaToken && !preserveOlder) _waMensajes = [];
       return;
     }
