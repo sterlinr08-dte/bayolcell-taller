@@ -1,0 +1,70 @@
+/* BAYOL CELL · Impresión fácil (dueño, 31-oct-2026). Lógica en bc-impresion-facil.js. Activa con html.bc-bif.
+   Apagar: BC_BIF=false o localStorage bc_bif_off='1'. */
+html.bc-bif #qzPanelCard.bif { border-top: 0 !important; }
+html.bc-bif #qzPanelCard.bif h3 { font-size: 17px; display: flex; align-items: center; gap: 8px; }
+html.bc-bif #qzPanelCard.bif h3 i { color: #2563eb; }
+
+/* Pasos ① ② ③ */
+html.bc-bif .bif-pasos { list-style: none; margin: 14px 0 4px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; counter-reset: none; }
+html.bc-bif .bif-paso { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-size: 13px; font-weight: 700; min-width: 0; }
+html.bc-bif .bif-paso .n { width: 30px; height: 30px; flex: none; border-radius: 9px; background: #e2e8f0; color: #64748b; display: grid; place-items: center; }
+html.bc-bif .bif-paso .n i { font-size: 17px; grid-area: 1 / 1; }
+html.bc-bif .bif-paso .n .ok { display: none; }
+html.bc-bif .bif-paso .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-bif .bif-paso.actual { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+html.bc-bif .bif-paso.actual .n { background: #2563eb; color: #fff; }
+html.bc-bif .bif-paso.hecho { background: #ecfdf5; border-color: #86efac; color: #047857; }
+html.bc-bif .bif-paso.hecho .n { background: #10b981; color: #fff; }
+html.bc-bif .bif-paso.hecho .n i:not(.ok) { display: none; }
+html.bc-bif .bif-paso.hecho .n .ok { display: block; }
+
+/* Caja «no conectado» */
+html.bc-bif #qzNoInstalado .bif-caja { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px; color: #7c2d12; }
+html.bc-bif .bif-tit { display: block; font-size: 15px; color: #9a3412; }
+html.bc-bif .bif-acc { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 6px; }
+html.bc-bif .bif-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 54px; padding: 0 22px; border-radius: 14px;
+  background: linear-gradient(135deg, #f06a3c, #e4572e); color: #fff !important; font-size: 16px; font-weight: 800; text-decoration: none !important;
+  box-shadow: 0 4px 14px rgba(228,87,46,.28); transition: transform .14s cubic-bezier(.22,1,.36,1); }
+html.bc-bif .bif-btn:active { transform: scale(.97); }
+html.bc-bif .bif-btn i { font-size: 20px; }
+html.bc-bif .bif-sec { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700; color: #c2410c !important; text-decoration: underline; text-underline-offset: 3px; }
+html.bc-bif .bif-buscando { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 13px; font-weight: 600; color: #9a3412; }
+html.bc-bif .bif-buscando[hidden] { display: none; }
+html.bc-bif .bif-buscando i { font-size: 16px; animation: bifGira 1s linear infinite; }
+@keyframes bifGira { to { transform: rotate(360deg); } }
+
+/* Plegables: ayuda y certificado */
+html.bc-bif .bif-ayuda, html.bc-bif .bif-perm { margin-top: 10px; border-radius: 12px; }
+html.bc-bif .bif-ayuda summary, html.bc-bif .bif-perm summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #334155; list-style: none; }
+html.bc-bif .bif-ayuda summary::-webkit-details-marker, html.bc-bif .bif-perm summary::-webkit-details-marker { display: none; }
+html.bc-bif .bif-ayuda summary::after, html.bc-bif .bif-perm summary::after { content: '›'; margin-left: auto; font-size: 20px; color: #94a3b8; transition: transform .2s cubic-bezier(.22,1,.36,1); }
+html.bc-bif details[open] > summary::after { transform: rotate(90deg); }
+html.bc-bif .bif-ayuda ol, html.bc-bif .bif-perm ol { margin: 4px 0 6px 20px; padding: 0; font-size: 13px; line-height: 1.6; color: #334155; }
+html.bc-bif .bif-nota { font-size: 12.5px; line-height: 1.5; color: #64748b; margin: 6px 0; }
+html.bc-bif .bif-perm { border-top: 1px solid #e2e8f0; margin-top: 14px; padding-top: 4px; }
+html.bc-bif .bif-perm summary i { color: #f59e0b; font-size: 18px; }
+html.bc-bif .bif-perm > button { margin: 6px 0 4px; min-height: 44px; }
+
+/* Conectado */
+html.bc-bif .bif-listo { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 14px; font-weight: 700; color: #065f46; }
+html.bc-bif .bif-listo[hidden] { display: none; }
+html.bc-bif .bif-listo i { font-size: 20px; color: #10b981; }
+
+@media (max-width: 640px) {
+  html.bc-bif .bif-pasos { gap: 6px; }
+  html.bc-bif .bif-paso { flex-direction: column; gap: 4px; padding: 8px 4px; font-size: 12px; text-align: center; }
+  html.bc-bif .bif-btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.bc-bif .bif-buscando i { animation: none; }
+  html.bc-bif .bif-btn, html.bc-bif details > summary::after { transition: none; }
+}
+
+/* En la ventana de la Prefactura la nota larga sobra: los pasos ya dicen qué hacer */
+html.bc-bif .bcpro-imp-nota { display: none; }
+
+/* Sin repeticiones: dentro de la ventana el título ya lo dice la ventana; «Listo» reemplaza «Cliente conectado correctamente» */
+html.bc-bif .bcpro-imp #qzPanelCard.bif h3 { display: none; }
+html.bc-bif .bcpro-imp #qzPanelCard.bif > div:first-child { justify-content: flex-end !important; }
+html.bc-bif #qzConectado > div > b:first-child { display: none; }
+html.bc-bif #qzConectado > div > div { margin-top: 0 !important; }
