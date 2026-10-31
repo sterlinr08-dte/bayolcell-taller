@@ -158,9 +158,11 @@
     if (bSrv && !q('.bcpf-rapidos', pad)) {
       bSrv.classList.add('bcpf-oculto');
       var fila = el('div', 'bcpf-rapidos'); fila.setAttribute('role', 'group'); fila.setAttribute('aria-label', 'Accesos rápidos');
-      [['1161', 'ti-truck-delivery', 'Delivery'], ['srv', 'ti-tool', 'Servicio'], ['1187', 'ti-sim', 'Activar'], ['1186', 'ti-coin', 'Recarga']].forEach(function (b) {
+      // 31-oct-2026 (dueño: «organizar los íconos»): ti-sim no existe en Tabler 2.47 (Activar salía sin ícono) → ti-device-sim;
+      // Recarga con un celular (no una moneda, que se confundía con pago). Cada ícono va en su cuadrito y todos tienen 2 líneas.
+      [['1161', 'ti-truck-delivery', 'Delivery'], ['srv', 'ti-tool', 'Servicio'], ['1187', 'ti-device-sim', 'Activar'], ['1186', 'ti-device-mobile-up', 'Recarga']].forEach(function (b) {
         var x = el('button', 'bcpf-rap'); x.type = 'button'; x.setAttribute('data-rap', b[0]);
-        x.innerHTML = '<i class="ti ' + b[1] + '" aria-hidden="true"></i><span>' + b[2] + '</span><small class="rp"></small>';
+        x.innerHTML = '<span class="ic" aria-hidden="true"><i class="ti ' + b[1] + '"></i></span><span class="tx"><span class="nm">' + b[2] + '</span><small class="rp"></small></span>';
         x.addEventListener('click', function () { if (b[0] === 'srv') { try { _rpAgregarServicio(); } catch (e) {} } else tocarRapido(b[0]); });
         fila.appendChild(x);
       });
@@ -458,7 +460,7 @@
     Array.prototype.forEach.call(doc.querySelectorAll('#v-recepcion .bcpf-rap'), function (b) {
       var cod = b.getAttribute('data-rap'), puesto = cod === 'srv' ? false : idxCod(cod) >= 0, sug = !puesto && sugerido(cod);
       var rp = b.querySelector('.rp');
-      if (rp) rp.textContent = cod === 'srv' ? '' : (puesto ? '✓ Agregado' : plata(precioRapido(cod)));
+      if (rp) rp.textContent = cod === 'srv' ? 'Precio libre' : (puesto ? '✓ Agregado' : plata(precioRapido(cod)));
       b.classList.toggle('puesto', puesto); b.classList.toggle('sug', !!sug);
       b.setAttribute('aria-pressed', String(puesto));
       b.title = puesto ? 'Tocar para quitar' : (sug ? 'Sugerido' : '');

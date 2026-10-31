@@ -37,7 +37,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     out.actSug = document.querySelector('.bcpf-rap[data-rap="1187"]').classList.contains('sug');
     _rpState.items.pop(); _rpRenderCart(); await w(50);
     // accesos rápidos: fila con 4, activación y recarga
-    const raps = [...document.querySelectorAll('#v-recepcion .bcpf-rap')]; out.raps = raps.map(x => x.querySelector('span').textContent.trim()); out.precios = raps.map(x => x.querySelector('.rp').textContent.trim()); out.rapAlto = Math.min(...raps.map(x => Math.round(x.getBoundingClientRect().height)));
+    const raps = [...document.querySelectorAll('#v-recepcion .bcpf-rap')]; out.raps = raps.map(x => x.querySelector('.nm').textContent.trim()); out.iconos = raps.map(x => { const i = x.querySelector('.ic i'); return i ? Math.round(i.getBoundingClientRect().width) : 0; }); out.precios = raps.map(x => x.querySelector('.rp').textContent.trim()); out.rapAlto = Math.min(...raps.map(x => Math.round(x.getBoundingClientRect().height)));
     const fila = document.querySelector('#v-recepcion .bcpf-rapidos'), busc = document.querySelector('#v-recepcion .bcpf-busc');
     out.filaArriba = !!(fila && busc && fila.getBoundingClientRect().bottom <= busc.getBoundingClientRect().top + 1);
     out.servicioViejoOculto = [...document.querySelectorAll('#v-recepcion .bcpf-busc .bcrx-srv')].every(x => x.offsetParent === null);
@@ -63,7 +63,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   c('por mayor: Delivery sugerido con RD$ 50', /^sug Delivery ?RD\$ ?50\.00$/.test(r.sugerencia), r.sugerencia); c('botón ≥ 44 px', r.sugAlto >= 44, r.sugAlto);
   c('«Sí» agrega RD$50', r2.precioMayor === 50, r2.precioMayor); c('al agregar queda ✓ (sin punto)', r2.sugSeVa);
   c('otro toque lo quita', r2.quitaConToque); c('al quitarlo vuelve la sugerencia', r2.vuelve);
-  c('fila de 4 accesos', r.raps.join('|') === 'Delivery|Servicio|Activar|Recarga', r.raps); c('precio debajo (por mayor)', r.precios.join('|') === 'RD$ 50.00||RD$ 100.00|RD$ 25.00', r.precios); c('accesos ≥ 44 px', r.rapAlto >= 44, r.rapAlto);
+  c('fila de 4 accesos', r.raps.join('|') === 'Delivery|Servicio|Activar|Recarga', r.raps); c('precio debajo (por mayor)', r.precios.join('|') === 'RD$ 50.00|Precio libre|RD$ 100.00|RD$ 25.00', r.precios); c('accesos ≥ 44 px', r.rapAlto >= 44, r.rapAlto);
   c('fila encima del buscador', r.filaArriba); c('sin botón Servicio repetido', r.servicioViejoOculto);
   c('activación RD$100', r.act === 100, r.act); c('recarga RD$25 y cursor en el monto', r.rec === 25 && r.recFoco, [r.rec, r.recFoco]); c('activación sin existencia', r.actStock); c('con Turbo SIM se sugiere Activación', r.actSug);
   c('sin desplazamiento horizontal', r2.desborde <= 1, r2.desborde); c('sin errores de JavaScript', errs.length === 0, errs);
