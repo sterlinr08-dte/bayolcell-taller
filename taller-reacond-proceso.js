@@ -60,7 +60,7 @@
     return async function(equipoId){
       var e = eqPorId(equipoId);
       if (e && e.estado_evaluacion !== 'vendido') {
-        return error('Primero registre la salida. «Cerrar salida» es solo para equipos Despachados; este está en «' + txtEstado(e) + '».');
+        return error('Primero registre la salida');
       }
       return orig.apply(this, arguments);
     };
@@ -72,7 +72,7 @@
       var e = eqPorId(equipoId);
       if (e && e.estado_evaluacion === 'vendido') return aviso('Este equipo ya está Despachado.');
       if (e && e.estado_evaluacion !== 'listo_venta') {
-        if (!esAdmin()) return error('Solo se registra la salida de un equipo en Listo para venta. Este está en «' + txtEstado(e) + '».');
+        if (!esAdmin()) return error('Solo equipos en Listo');
         if (!await confirmar('«' + nombre(e) + '» está en «' + txtEstado(e) + '», no en Listo para venta.\n\nSi registra la salida se salta el control de calidad. ¿Continuar?', { ok: 'Registrar salida' })) return;
         return sinSegundaConfirmacion(orig, this, arguments);
       }

@@ -210,7 +210,7 @@ function sugerir(lista){
 }
 function abrirRepartir(){
   var lista = grupos().sinTec.slice().sort(porDias);
-  if (!lista.length) return ok('No hay equipos evaluados sin técnico.');
+  if (!lista.length) return ok('Todos tienen técnico');
   var T = tecnicos(), sug = sugerir(lista), carga = cargaActual();
   var chips = T.map(function(t){ return '<span class="rss-chip">' + esc(t.nombre) + ': ' + carga[t.id] + ' en reparación</span>'; }).join('');
   var filas = lista.map(function(e){
@@ -234,7 +234,7 @@ async function asignarRepartidos(b, btn){
     var id = f.querySelector('.rss-chk').getAttribute('data-id'), t = f.querySelector('select').value;
     if (f.querySelector('.rss-chk').checked && t) (porTec[t] = porTec[t] || []).push(id);
   });
-  var tecs = Object.keys(porTec); if (!tecs.length) return mal('Seleccione el técnico de al menos un equipo.');
+  var tecs = Object.keys(porTec); if (!tecs.length) return mal('Falta el técnico');
   var resumen = tecs.map(function(t){ return '• ' + nomTec(t) + ': ' + porTec[t].length; }).join('\n');
   if (!await confirmar('¿Asignar así?\n\n' + resumen + '\n\nPasarán a «En proceso».', { peligro: false, ok: 'Asignar' })) return;
   var orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Asignando…';
@@ -274,7 +274,7 @@ function abrirLentos(){
 var rev = null;
 function abrirRevision(){
   var lista = grupos().revision.slice().sort(porDias);
-  if (!lista.length) return ok('No hay equipos esperando control de calidad.');
+  if (!lista.length) return ok('Nada en control');
   rev = { ids: lista.map(function(e){ return e.id; }), i: 0, aprobados: 0, devueltos: 0, cambio: false };
   pintarRevision();
 }
@@ -321,7 +321,7 @@ async function accionRevision(a, e, btn){
     } else if (a === 'devolver') {
       var motivo = await pedirTexto('Indique qué le falta. El técnico lo verá en las notas del equipo.', { placeholder: 'Ej.: la cámara frontal no enfoca', multilinea: true });
       if (motivo === null) { btn.disabled = false; return; }
-      motivo = motivo.trim(); if (!motivo) { btn.disabled = false; return mal('Indique qué le falta para devolverlo.'); }
+      motivo = motivo.trim(); if (!motivo) { btn.disabled = false; return mal('¿Qué le falta?'); }
       var prev = e.notas_diagnostico || '';
       var upd = { estado_evaluacion: 'en_proceso', veces_devuelto: (Number(e.veces_devuelto) || 0) + 1, notas_diagnostico: prev + (prev ? '\n\n' : '') + '[Control de calidad] ' + motivo };
       var r2 = await sb().from('equipos_refurbish').update(upd).eq('id', e.id);
@@ -342,10 +342,10 @@ function terminarRevision(){ var hubo = rev && rev.cambio; rev = null; cerrar('r
 /* ---------- 3 · Despachar listos en bloque ---------- */
 var pendienteIP = null; // equipos a marcar como Despachado cuando el despacho de Info Plus salga bien
 function abrirDespacho(){
-  if (!puedeDespachar()) return mal('No tiene permiso para despachar equipos.');
+  if (!puedeDespachar()) return mal('Sin permiso');
   pendienteIP = null;
   var lista = grupos().listos;
-  if (!lista.length) return ok('No hay equipos listos para despachar.');
+  if (!lista.length) return ok('Nada listo para despachar');
   var porLote = {};
   lista.forEach(function(e){ (porLote[e.lote_id] = porLote[e.lote_id] || []).push(e); });
   var cuerpo = Object.keys(porLote).map(function(lid){
