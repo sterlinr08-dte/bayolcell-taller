@@ -63,7 +63,7 @@
   function mover(nodo, dest) { if (!nodo) return; devolver.push({ nodo: nodo, padre: nodo.parentNode, sig: nodo.nextSibling }); dest.appendChild(nodo); }
   function pruebaTicket() {
     try {
-      if (typeof _qzConectado === 'undefined' || !_qzConectado) { toast('QZ Tray no está conectado. Toque «Reconectar».', 'error'); return; }
+      if (typeof _qzConectado === 'undefined' || !_qzConectado) { toast('Impresora desconectada · Reconectar', 'error'); return; }
       if (typeof qzImpresoraTickets !== 'function' || !qzImpresoraTickets()) { toast('Elija primero la impresora de TICKETS.', 'error'); return; }
       var h = '<div style="font:14px/1.4 Arial;padding:6px;text-align:center"><b>BAYOL CELL</b><br>Prueba de impresión<br>' + new Date().toLocaleString('es-DO') + '<br>Si lee esto, la impresora de tickets funciona.</div>';
       Promise.resolve(qzImprimirHtml(h, 76, null, 1, 'tickets')).then(function (ok) { if (ok !== false) toast('Prueba enviada a ' + qzImpresoraTickets() + '.'); });

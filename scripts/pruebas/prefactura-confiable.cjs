@@ -30,7 +30,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright'); const f
     // T1 doble clic
     nuevo(''); setInv([]); toasts.length = 0;
     await Promise.all([_rpGuardar(false), _rpGuardar(false)]);
-    out.T1 = { invocaciones: getInv().filter(i => i.fn === 'infoplus-prefactura-crear').length, filas: BD.tablas.recepcion_prefacturas.length, avisoDoble: toasts.some(t => /Ya se está guardando/.test(t)) };
+    out.T1 = { invocaciones: getInv().filter(i => i.fn === 'infoplus-prefactura-crear').length, filas: BD.tablas.recepcion_prefacturas.length, avisoDoble: toasts.some(t => /Guardando/.test(t)) };
     return out; });
   await T('T2', async () => { const { BD, nuevo, toasts, getInv, setInv, setFallar } = window.__ctx; const out = {};
 

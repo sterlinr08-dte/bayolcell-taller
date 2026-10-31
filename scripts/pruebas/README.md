@@ -11,7 +11,7 @@ Necesita Playwright y Chromium (en el equipo de pruebas está en `/opt/node22/li
 ## prefactura-confiable.cjs — qué comprueba
 | Prueba | Escenario | Resultado esperado |
 |---|---|---|
-| T1 | Doble clic en Guardar | 1 sola llamada a Info Plus, 1 fila, aviso «Ya se está guardando» |
+| T1 | Doble clic en Guardar | 1 sola llamada a Info Plus, 1 fila, aviso «Guardando…» |
 | T2a | Info Plus crea, el historial falla | sin «✅ creada», estado `error_historial`, Nº recordado en `bc_pf_pendientes`, botones activos |
 | T2b | Reintento | misma Nº (actualiza, no crea), historial guardado, pendiente borrado |
 | T3 | Cambiar teléfono y agregar artículo mientras Info Plus responde | el historial guarda la foto original; el WhatsApp sale al número original |

@@ -20810,7 +20810,7 @@ async function _rpAgregarArticulo(a) {
             if(data && data.ok && data.existencias && vivo) vivo.existencias = data.existencias;
         } catch(e) { logError('existencia en vivo prefactura', e); }
         const stock = _rpStockItem(it);
-        if(stock !== null && stock <= 0) return toast(`"${it.desc}" no tiene existencia en ${_rpAlmNombre()}. No se puede facturar.`, 'error');
+        if(stock !== null && stock <= 0) return toast(`Sin stock en ${_rpAlmNombre()}`, 'error');
         _rpState.items.push(it);
         _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
         if(it.serial) setTimeout(() => document.getElementById('rpImei_' + (_rpState.items.length - 1))?.focus(), 60);
@@ -20938,7 +20938,7 @@ function _rpCant(i, v) {
 // 24-oct-2026 (dueño): el empleado solo cambia el precio en líneas de Servicio; en artículos del catálogo no (el admin sí).
 function _rpPrecio(i, v) {
     const it = _rpState.items[i]; if(!it) return;
-    if(!(typeof isAdminUser === 'function' && isAdminUser()) && !it.servicio) { toast('El precio del catálogo no se cambia. Pida al administrador.', 'error'); _rpRenderCart(); return; }
+    if(!(typeof isAdminUser === 'function' && isAdminUser()) && !it.servicio) { toast('Precio fijo · solo administrador', 'error'); _rpRenderCart(); return; }
     _rpState.items[i].precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 // 20-oct-2026 (dueño, como STUDIO): descuento por línea en %. Importe = precio × cantidad − descuento.
 // Descuento máximo (%) de la prefactura: Configuración → Datos del taller (config_taller.prefactura_desc_max_pct; 10 si no está).
@@ -20946,7 +20946,7 @@ function _rpDescMaxPct() { const v = Number(cache.configTaller && cache.configTa
 function _rpDescPct(i, v) {
     let p = Math.min(100, Math.max(0, parseFloat(String(v).replace(/[,%]/g, '')) || 0));
     const max = _rpDescMaxPct();
-    if(p > max) { p = max; toast(`El descuento máximo permitido es ${max}%.`, 'error'); }
+    if(p > max) { p = max; toast(`Máx. ${max} %`, 'error'); }
     _rpState.items[i].descPct = p; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
 }
 // Descuento en dinero sobre toda la prefactura (dueño, 22-oct-2026). Va a Info Plus en «descuento»/«descuentototal»
@@ -20956,7 +20956,7 @@ function _rpDescMonto(v) {
     let m = Math.max(0, parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0);
     const base = _rpTotales(_rpState.items, 0);
     const tope = Math.max(0, Math.round((base.subtotal * _rpDescMaxPct() / 100 - base.descuento) * 100) / 100);
-    if(m > tope) { m = tope; toast(`El descuento máximo es ${_rpDescMaxPct()}% del subtotal: quedan ${money(tope)} disponibles.`, 'error'); }
+    if(m > tope) { m = tope; toast(`Máx. ${_rpDescMaxPct()} % · quedan ${money(tope)}`, 'error'); }
     if(m > base.total) m = base.total;
     _rpState.descMonto = Math.round(m * 100) / 100; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
 }
@@ -21070,8 +21070,8 @@ function _rpBotonesGuardar(on) {
 }
 async function _rpCrearPrefactura() {
     if(!_rpState || !_rpState.items.length) return toast('Agregue al menos un artículo o servicio.', 'error');
-    if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
-    if(_rpGuardando || _rpState.estado === 'actualizando') return toast('Ya se está guardando. Espere un momento.', 'error');
+    if(_rpState.estado === 'facturada') return toast('Ya facturada', 'error');
+    if(_rpGuardando || _rpState.estado === 'actualizando') return toast('Guardando…', 'error');
     const probs = _rpProblemasFactura();
     if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
     const bloqueo = _rpDescCambioBloqueado();
@@ -21198,7 +21198,7 @@ async function _rpEnviarCuentasWhatsApp() {
     if(_rpEnviandoWa) return;
     const g = id => (document.getElementById(id)?.value || '').trim();
     const cuentas = ((cache.configTaller && cache.configTaller.cuentas_pago) || '').trim();
-    if(!cuentas) return toast('Escriba las cuentas en Configuración → Datos del taller → «Cuentas para pagos».', 'error');
+    if(!cuentas) return toast('Faltan las cuentas · Configuración', 'error');
     const wa = g('c_whatsapp').replace(/\D/g, '');
     if(wa.length < 10) { document.getElementById('c_whatsapp')?.focus(); return toast('Escriba el WhatsApp del cliente.', 'error'); }
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
@@ -21272,7 +21272,7 @@ function _rpAvisoEscribanos(linea, suc, waCliente) {
 }
 async function _rpEnviarWhatsApp() {
     if(_rpEnviandoWa) return;
-    if(!_rpState || !_rpState.codprefactura) return toast('Guarde la prefactura antes de enviarla.', 'error');
+    if(!_rpState || !_rpState.codprefactura) return toast('Guárdela primero', 'error');
     const g = id => (document.getElementById(id)?.value || '').trim();
     // 24-oct-2026 (auditoría): el destinatario es el del documento guardado (_rpUltima.ref.telefono); si en pantalla
     // hay otro número, se avisa y se usa el guardado. Sin documento guardado, el de pantalla.
@@ -21407,7 +21407,7 @@ async function _rpGuardar(imprimir) {
     if(_pfNueva) {
         const g = id => (document.getElementById(id)?.value || '').trim();
         _pfConEquipo = !!(g('e_marca') || g('e_modelo') || g('e_imei'));
-        if(!hayItems && !_pfConEquipo) return toast('Agregue al menos un artículo, o llene el equipo en «Equipo, falla y más datos».', 'error');
+        if(!hayItems && !_pfConEquipo) return toast('Falta un artículo o el equipo', 'error');
         if(_pfConEquipo) {
             const nom = document.getElementById('c_nombre');
             if(nom && !nom.value.trim() && _rpState && String(_rpState.codcliente) !== '1' && _rpState.infoNombre) nom.value = _rpState.infoNombre;
