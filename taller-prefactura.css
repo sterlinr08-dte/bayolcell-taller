@@ -884,3 +884,15 @@ html.bc-pf #v-recepcion .bcpf-deliv-sug > i { font-size: 20px; }
   html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { width: 62px; min-width: 62px !important; flex-direction: column; gap: 0; line-height: 1; }
   html.bc-pf #v-recepcion .bcpf-busc-fila .bcrx-srv span { display: block; font-size: 11px; font-weight: 700; margin-top: 2px; }
 }
+
+/* 31-oct-2026 (dueño): accesos rápidos en fila encima de «Buscar artículo» (ícono y nombre debajo) */
+html.bc-pf #v-recepcion .bcpf-rapidos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
+html.bc-pf #v-recepcion .bcpf-rap { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 700; color: #0f172a; cursor: pointer; transition: transform .12s ease, background .12s ease; }
+html.bc-pf #v-recepcion .bcpf-rap i { font-size: 22px; color: #e4572e; }
+html.bc-pf #v-recepcion .bcpf-rap[data-rap="1161"] i { color: #0e7490; }
+html.bc-pf #v-recepcion .bcpf-rap[data-rap="1187"] i { color: #7c3aed; }
+html.bc-pf #v-recepcion .bcpf-rap[data-rap="1186"] i { color: #16a34a; }
+html.bc-pf #v-recepcion .bcpf-rap:hover { background: #f8fafc; }
+html.bc-pf #v-recepcion .bcpf-rap:active { transform: scale(.97); }
+html.bc-pf #v-recepcion .bcpf-rap:focus-visible { outline: 3px solid var(--pf-acc, #e4572e); outline-offset: 2px; }
+@media (min-width: 900px) { html.bc-pf #v-recepcion .bcpf-rapidos { grid-template-columns: repeat(4, minmax(0, 140px)); } }

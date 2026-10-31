@@ -16,7 +16,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     const avisos = []; toast = (m) => avisos.push(m); toastError = (m) => avisos.push('ERR ' + m);
     cache.infoplusArticulos = [{ codigo: '1161', descripcion: 'ENVIO  -  MENSAJERIA', niveles: { 1: 100, 2: 50, 3: 200 }, precio: 100, existencias: {} }];
     await w(300);
-    const bDel = document.querySelector('#v-recepcion .bcpf-deliv');
+    const bDel = document.querySelector('#v-recepcion .bcpf-rap[data-rap="1161"]');
     out.boton = !!bDel; out.botonAlto = bDel ? Math.round(bDel.getBoundingClientRect().height) : 0; out.botonVisible = bDel && bDel.offsetParent !== null;
     // cliente final
     _rpState.nivel = 1; _rpState.items = [{ cod: '2139', desc: 'BATERIA SAMSUNG', precio: 1500, cant: 1, niveles: { 1: 1500, 2: 600 } }]; _rpRenderCart(); await w(100);
@@ -33,6 +33,16 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     _rpState.items = [{ cod: '2139', desc: 'BATERIA SAMSUNG', precio: 600, cant: 1, niveles: { 1: 1500, 2: 600 } }]; _rpState.nivel = 2; _rpState.sinDelivery = false; _rpRenderCart(); await w(100);
     const sug = document.querySelector('.bcpf-deliv-sug'); out.sugerencia = sug ? sug.textContent.replace(/\s+/g, ' ').trim() : '';
     out.sugAlto = sug ? Math.round(sug.getBoundingClientRect().height) : 0;
+    // accesos rápidos: fila con 4, activación y recarga
+    const raps = [...document.querySelectorAll('#v-recepcion .bcpf-rap')]; out.raps = raps.map(x => x.textContent.trim()); out.rapAlto = Math.min(...raps.map(x => Math.round(x.getBoundingClientRect().height)));
+    const fila = document.querySelector('#v-recepcion .bcpf-rapidos'), busc = document.querySelector('#v-recepcion .bcpf-busc');
+    out.filaArriba = !!(fila && busc && fila.getBoundingClientRect().bottom <= busc.getBoundingClientRect().top + 1);
+    out.servicioViejoOculto = [...document.querySelectorAll('#v-recepcion .bcpf-busc .bcrx-srv')].every(x => x.offsetParent === null);
+    cache.infoplusArticulos.push({ codigo: '1187', descripcion: 'ACTIVACION SIM CAR - E-SIM', niveles: { 1: 100, 2: 100 }, precio: 100, existencias: {} }, { codigo: '1186', descripcion: 'RECARGA', niveles: { 1: 25, 2: 25 }, precio: 25, existencias: {} });
+    document.querySelector('.bcpf-rap[data-rap="1187"]').click(); document.querySelector('.bcpf-rap[data-rap="1186"]').click(); await w(200);
+    const act = _rpState.items.find(x => String(x.cod) === '1187'), rec = _rpState.items.find(x => String(x.cod) === '1186');
+    out.act = act && act.precio; out.rec = rec && rec.precio; out.actStock = _rpStockItem(act) === null;
+    out.recFoco = document.activeElement && document.activeElement.classList.contains('pin');
     out._shot = true; return out;
   }, admin);
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/delivery-${W}${admin ? '-admin' : ''}.png` });
@@ -50,6 +60,9 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   c('por mayor: botón «+ Delivery RD$ 50»', /^\+ Delivery RD\$ ?50\.00$/.test(r.sugerencia), r.sugerencia); c('botón ≥ 44 px', r.sugAlto >= 44, r.sugAlto);
   c('«Sí» agrega RD$50', r2.precioMayor === 50, r2.precioMayor); c('el botón se va al agregar', r2.sugSeVa);
   c('al quitarlo vuelve el botón', r2.vuelve);
+  c('fila de 4 accesos', r.raps.join('|') === 'Delivery|Servicio|Activación|Recarga', r.raps); c('accesos ≥ 44 px', r.rapAlto >= 44, r.rapAlto);
+  c('fila encima del buscador', r.filaArriba); c('sin botón Servicio repetido', r.servicioViejoOculto);
+  c('activación RD$100', r.act === 100, r.act); c('recarga RD$25 y cursor en el monto', r.rec === 25 && r.recFoco, [r.rec, r.recFoco]); c('activación sin existencia', r.actStock);
   c('sin desplazamiento horizontal', r2.desborde <= 1, r2.desborde); c('sin errores de JavaScript', errs.length === 0, errs);
   await ctx.close(); }
  await b.close(); console.log(fallos ? fallos + ' fallo(s)' : 'Todo bien'); process.exit(fallos ? 1 : 0); })();
