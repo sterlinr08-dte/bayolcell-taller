@@ -17,6 +17,7 @@
   var razon = '';          // qué hizo el usuario justo antes de que la lista se volviera a pintar
   var codAgregado = '';    // código del artículo que se tocó para agregar
   var posAntes = null;     // posición de cada fila antes de repintar (para el FLIP del detalle)
+  var cierre = null;       // copia del panel que se estaba cerrando (para recogerlo hacia arriba)
   var lista = null;
 
   function limpiar(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
@@ -71,7 +72,16 @@
       return;
     }
     if (t.closest('.pk-nv[data-nv]')) { razon = 'nivel'; return; }
-    if (t.closest('[data-fila]')) { razon = 'detalle'; posAntes = posiciones(l); }
+    if (t.closest('[data-fila]')) {
+      razon = 'detalle'; posAntes = posiciones(l);
+      // si la fila tocada ya estaba abierta, se guarda una copia del panel para recogerlo hacia arriba al cerrar
+      var det = l.querySelector('.bcrx-ppk-det'); // el panel abierto, sea de esta fila o de otra
+      cierre = null;
+      if (det) {
+        var rl = l.getBoundingClientRect(), rd = det.getBoundingClientRect();
+        cierre = { html: det.outerHTML, top: rd.top - rl.top + l.scrollTop, h: rd.height };
+      }
+    }
   }, true);
   v.addEventListener('focusin', function (e) {
     var inp = e.target.closest && e.target.closest('.bcrx-ppk-inp');
@@ -104,10 +114,20 @@
         var k = c.textContent.trim(), d = (antes[k] != null && ahora[k] != null) ? antes[k] - ahora[k] : 0;
         if (Math.abs(d) < 1 || typeof f.animate !== 'function') return;
         f.classList.add('bmo-flip');
-        f.animate([{ transform: 'translateY(' + d + 'px)' }, { transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.22,1,.36,1)' })
+        f.animate([{ transform: 'translateY(' + d + 'px)' }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(.22,1,.36,1)' })
           .onfinish = function () { f.classList.remove('bmo-flip'); };
       });
       var det = l.querySelector('.bcrx-ppk-det'); if (det) det.classList.add('bmo-abre');
+      // cerrar: la copia del panel se recoge hacia arriba mientras las filas suben (FLIP)
+      if (cierre) {
+        var tmp = doc.createElement('div'); tmp.innerHTML = cierre.html; var copia = tmp.firstElementChild;
+        if (copia) {
+          copia.classList.remove('bmo-abre'); copia.classList.add('bmo-cierra'); copia.style.top = cierre.top + 'px'; copia.setAttribute('aria-hidden', 'true');
+          l.classList.add('bmo-rel'); l.appendChild(copia);
+          setTimeout(function () { if (copia.parentNode) copia.parentNode.removeChild(copia); }, 240);
+        }
+      }
+      cierre = null;
       return;
     }
     if (r === 'agregar' && codAgregado) {

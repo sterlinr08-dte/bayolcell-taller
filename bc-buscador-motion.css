@@ -7,10 +7,14 @@ html.bc-bmo { --bmo-curva: cubic-bezier(.22, 1, .36, 1); --bmo-pop: cubic-bezier
 html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-in { animation: bmoFila .22s var(--bmo-curva) both; }
 @keyframes bmoFila { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-/* 2. Detalle que se despliega (las filas de abajo se corren con FLIP desde el JS). */
-html.bc-bmo #v-recepcion .bcrx-ppk-det.bmo-abre { animation: bmoDet .22s var(--bmo-curva) both; transform-origin: top center; }
-@keyframes bmoDet { from { opacity: 0; transform: translateY(-6px) scaleY(.96); } to { opacity: 1; transform: none; } }
-html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-flip { will-change: transform; }
+/* 2. Detalle que se desliza hacia abajo como un cajón (dueño, 31-oct-2026): se descubre de arriba hacia abajo (clip-path)
+   mientras baja; las filas de abajo se corren con FLIP desde el JS. Al cerrar, una copia del panel se recoge hacia arriba. */
+html.bc-bmo body #v-recepcion#v-recepcion .bcrx-ppk-det.bmo-abre { animation: bmoDet .28s var(--bmo-curva) both; transform-origin: top center; }
+@keyframes bmoDet { from { opacity: .4; transform: translateY(-14px); clip-path: inset(0 0 100% 0 round 12px); } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 12px); } }
+html.bc-bmo body #v-recepcion#v-recepcion .bcrx-ppk-det.bmo-cierra { position: absolute; left: 0; right: 0; margin: 0; pointer-events: none; z-index: 0; animation: bmoDetCierra .2s var(--bmo-curva) both; transform-origin: top center; }
+@keyframes bmoDetCierra { from { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 12px); } to { opacity: .3; transform: translateY(-14px); clip-path: inset(0 0 100% 0 round 12px); } }
+html.bc-bmo #v-recepcion .bcrx-ppk-list.bmo-rel { position: relative; }
+html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-flip { will-change: transform; position: relative; z-index: 1; background-clip: padding-box; }
 
 /* 3. Botón de precio: se hunde al tocar y hace un pulso al agregar (anillo con opacidad, sin sombra animada). */
 html.bc-bmo #v-recepcion .pk-add.pk-btn { position: relative; transition: transform .14s var(--bmo-curva); }
@@ -59,7 +63,7 @@ html.bc-bmo #v-recepcion .bcpf-it.bmo-nueva { animation: bmoLinea .3s var(--bmo-
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-in, html.bc-bmo #v-recepcion .bcrx-ppk-det.bmo-abre, html.bc-bmo #v-recepcion .pk-add.pk-btn.bmo-pulso,
+  html.bc-bmo #v-recepcion .bcrx-ppk-row.bmo-in, html.bc-bmo body #v-recepcion#v-recepcion .bcrx-ppk-det.bmo-abre, html.bc-bmo body #v-recepcion#v-recepcion .bcrx-ppk-det.bmo-cierra, html.bc-bmo #v-recepcion .pk-add.pk-btn.bmo-pulso,
   html.bc-bmo #v-recepcion .pk-add.pk-btn.bmo-pulso::after, html.bc-bmo #v-recepcion .pk-ya.bmo-pop, html.bc-bmo #v-recepcion .bcrx-ppk-inp.bmo-foco::after,
   html.bc-bmo #v-recepcion .bcrx-ppk-ent, html.bc-bmo #v-recepcion .bcrx-ppk-nv, html.bc-bmo .bmo-rol > span, html.bc-bmo #v-recepcion .bcrx-ppk-vacio,
   html.bc-bmo #v-recepcion .bcpf-it.bmo-nueva { animation: none; }
