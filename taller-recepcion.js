@@ -288,7 +288,9 @@
         // 30-oct-2026 (dueño: «el botón naranja donde está el precio… hazlo smart»): precio y agregar son un solo botón.
         // Muestra el precio del nivel elegido, cuántos ya hay en la prefactura y se apaga si no hay existencia.
         var otroNv = nivelFila(a) !== nivel(), nomNv = otroNv ? (NIV.filter(function (n) { return n[0] === nivelFila(a); })[0] || [, ''])[1] : '';
-        var btn = '<button type="button" class="pk-add pk-btn' + (otroNv ? ' otro' : '') + '" data-i="' + i + '"' + (sinEx ? ' disabled' : '') +
+        // 31-oct-2026 (dueño): el color dice el nivel del precio: naranja Cliente final, azul Por mayor, amarillo Extremo;
+        // sin existencia, gris con rojo.
+        var btn = '<button type="button" class="pk-add pk-btn pk-n' + nivelFila(a) + (otroNv ? ' otro' : '') + '" data-i="' + i + '"' + (sinEx ? ' disabled' : '') +
           ' aria-label="' + (sinEx ? 'Sin existencia: ' : 'Agregar ') + esc((a.descripcion || '').trim()) + (pr > 0 ? ' a ' + plata(pr) : '') + '">' +
           (ya ? '<span class="pk-ya" title="Ya en la prefactura">×' + ya + '</span>' : '') +
           '<span class="pk-bp">' + (sinEx ? 'Sin stock' : pr > 0 ? plata(pr) : 'Agregar') + (otroNv ? '<small>' + esc(nomNv) + '</small>' : '') + '</span>' +

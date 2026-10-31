@@ -331,3 +331,11 @@ html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nvtip { font-size: 13px; color: #64748
   html.bc-rx #v-recepcion .pk-stk { text-align: left; }
   html.bc-rx #v-recepcion .pk-add.pk-btn { grid-area: add; min-width: 0; padding: 0 10px; font-size: 14px; }
 }
+
+/* 31-oct-2026 (dueño): color del botón según el nivel de precio. Naranja = Cliente final, azul = Por mayor,
+   amarillo = Extremo; sin existencia = gris con rojo. Vale aunque el nivel venga del cliente o lo elija el administrador. */
+html.bc-rx #v-recepcion .pk-add.pk-btn.pk-n1 { background: linear-gradient(135deg, #f06a3c, #e4572e); box-shadow: 0 3px 10px rgba(228,87,46,.25); color: #fff; }
+html.bc-rx #v-recepcion .pk-add.pk-btn.pk-n2 { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 3px 10px rgba(37,99,235,.25); color: #fff; }
+html.bc-rx #v-recepcion .pk-add.pk-btn.pk-n3 { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 3px 10px rgba(245,158,11,.28); color: #1f2937; }
+html.bc-rx #v-recepcion .pk-add.pk-btn:disabled,
+html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-add.pk-btn { background: #f1f5f9; color: #dc2626; border: 1.5px solid #fca5a5; box-shadow: none; }
