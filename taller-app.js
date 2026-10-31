@@ -7443,7 +7443,7 @@ async function agregarEquipoAlLote() {
     const _selItem = (_ss && _ss.items) ? _ss.items.find(i => String(i.id) === String(artId)) : null;
     const art = (_selItem && _selItem._ip) || _findInfoplusArt(artId);
     if(!art) return toast('Artículo no encontrado en el catálogo de Info Plus.', 'error');
-    if(!imei) return toast('Este equipo requiere IMEI / Serial.', 'error');
+    if(!imei) return toast('Falta el IMEI', 'error');
 
     const esGarantia = !!document.getElementById('eq_garantia')?.checked;
     // 24-oct-2026 (auditoría) R13: el IMEI es único en la base (imei_unico). Una garantía NO crea otro
@@ -7923,7 +7923,7 @@ async function _reacondPasarA(destino) {
     const m = document.getElementById('reacondPasarMenu'); if(m) m.style.display = 'none';
     document.removeEventListener('click', _reacondCerrarPasarMenu);
     const ids = [..._reacondSel];
-    if(!ids.length) return toast('Marque primero los equipos que desea mover.', 'error');
+    if(!ids.length) return toast('Marque los equipos', 'error');
     const labels = { pendiente:'Recibido', evaluado:'Diagnóstico listo', en_proceso:'En reparación', listo_venta:'Listo para venta', vendido:'Despachado', completado:'Cerrar salida' };
     const equiposCache = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
     const bloqueado = equiposCache.find(r => !_reacondValidarMovimientoMasivo(r, destino));
@@ -7988,7 +7988,7 @@ function _reacondActualizarSelCostoUI() {
 async function _reacondMarcarCompletado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && !r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marque primero las salidas pendientes de cierre.', 'error');
+    if(!ids.length) return toast('Marque las salidas', 'error');
     if(!await confirmar(`¿Cerrar administrativamente ${ids.length} salida(s)? Los equipos seguirán disponibles para garantías.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: true, fecha_completado: new Date().toISOString() }).in('id', ids);
@@ -8002,7 +8002,7 @@ async function _reacondMarcarCompletado() {
 async function _reacondRegresarDespachado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marque primero las salidas cerradas.', 'error');
+    if(!ids.length) return toast('Marque las salidas', 'error');
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: false, fecha_completado: null }).in('id', ids);
         if(error) throw error;
@@ -8176,15 +8176,15 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
 
 // ---- Reporte de los equipos SELECCIONADOS (Listo/Despachado) ----
 function imprimirCostosSeleccionados(_modo) {
-    if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
     const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
-    if(!equipos.length) return toast('Marque primero los equipos (Listo/Completado/Despachado) que desea imprimir.', 'error');
+    if(!equipos.length) return toast('Marque los equipos', 'error');
     _reporteCostosPrintHTML({ titulo: 'Costos equipos seleccionados', subtitulo: 'Reporte de costos — Equipos seleccionados', infoChips: [`<b>Equipos seleccionados:</b> ${equipos.length}`], equipos, pdf: _modo === 'pdf', filename: 'Costos_seleccionados_' + new Date().toISOString().slice(0,10) });
 }
 function exportarCostosSeleccionadosExcel() {
-    if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
     const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
-    if(!equipos.length) return toast('Marque primero los equipos que desea exportar.', 'error');
+    if(!equipos.length) return toast('Marque los equipos', 'error');
     _reporteCostosExcelDL({ titulo: 'Costos · Equipos seleccionados', infoLineas: [`Equipos seleccionados: ${equipos.length}`], equipos, filename: `Costos_seleccionados_${new Date().toISOString().slice(0,10)}.xls` });
 }
 
@@ -8562,7 +8562,7 @@ function _aduanaInfoCab() {
 function imprimirLiquidacionAduana() {
     const r = _aduanaCalcular();
     if(!r.items.length || r.subtotalUSD <= 0) return toast('Agregue productos con precio primero.', 'error');
-    if(r.tasa <= 0) return toast('Indique la tasa US$→RD$ para convertir a pesos.', 'error');
+    if(r.tasa <= 0) return toast('Falta la tasa del dólar', 'error');
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
@@ -8620,7 +8620,7 @@ function imprimirLiquidacionAduana() {
 function exportarLiquidacionAduanaExcel() {
     const r = _aduanaCalcular();
     if(!r.items.length || r.subtotalUSD <= 0) return toast('Agregue productos con precio primero.', 'error');
-    if(r.tasa <= 0) return toast('Indique la tasa US$→RD$ para convertir a pesos.', 'error');
+    if(r.tasa <= 0) return toast('Falta la tasa del dólar', 'error');
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const cab = _aduanaInfoCab();
@@ -8701,7 +8701,7 @@ function _aduanaCopiarCelda(el) {
 }
 // ===== Guardar / Historial de liquidaciones (solo admin) =====
 async function guardarLiquidacionAduana() {
-    if(!isAdminUser()) return toast('Solo el administrador puede guardar liquidaciones.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
     _aduanaLeerInputs();
     _aduanaOtrosLeer();
     const r = _aduanaCalcular();
@@ -8841,7 +8841,7 @@ function _matchArticuloPorNombre(desc) {
 async function abrirComparacionInfoPlus() {
     const r = _aduanaCalcular();
     if(!r.items.length || r.subtotalUSD <= 0) return toast('Agregue productos con precio primero.', 'error');
-    if(r.tasa <= 0) return toast('Indique la tasa US$→RD$ para convertir a pesos.', 'error');
+    if(r.tasa <= 0) return toast('Falta la tasa del dólar', 'error');
     toast('Cargando artículos de Info Plus…');
     await _ensureInfoplusArticulos();
     _compArtIndex = null; // reconstruir índice por si se sincronizó
@@ -9088,7 +9088,7 @@ function exportarFormatoCompraIPExcel() {
    Cae directo en su estado real y asignado a su técnico, en el lote HISTÓRICO.
    ============================================================ */
 async function abrirModalRegistrarExistente() {
-    if(!isAdminUser()) return toast('Solo el administrador puede registrar equipos existentes.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
     // Limpiar campos
     ['rex_costo','rex_imei','rex_serial','rex_nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     document.getElementById('rex_estado').value = 'en_proceso';
@@ -9141,7 +9141,7 @@ async function _getOrCreateLoteHistorico() {
     return ins.id;
 }
 async function guardarEquipoExistente(btn) {
-    if(!isAdminUser()) return toast('Solo el administrador puede registrar equipos existentes.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
     const v = (id) => (document.getElementById(id)?.value || '').trim();
     // El equipo se elige del inventario Info Plus
     const codigoArt = smartSelectGetValue('ss-rex-modelo');
@@ -9152,7 +9152,7 @@ async function guardarEquipoExistente(btn) {
     const tecnicoId = v('rex_tecnico');
     const estado = v('rex_estado') || 'en_proceso';
     if(!modelo) return toast('Seleccione el equipo del inventario Info Plus.', 'error');
-    if(!tecnicoId) return toast('Seleccione el técnico que tiene el equipo.', 'error');
+    if(!tecnicoId) return toast('Falta el técnico', 'error');
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
     try {
@@ -9184,7 +9184,7 @@ async function guardarEquipoExistente(btn) {
                 usuario: sessionUser?.nombre || 'Admin'
             }]);
         } catch(_e) {}
-        toast('✅ Equipo registrado y asignado al técnico.');
+        toast('Registrado · asignado');
         cerrarModalRegistrarExistente();
         await loadAll();
         if(typeof cargarLotesReacond === 'function') cargarLotesReacond();
@@ -9248,7 +9248,7 @@ async function guardarConsumoTaller(btn){
             creado_por: sessionUser?.nombre || sessionUser?.usuario || null
         }]);
         if(error) throw error;
-        toast('✅ Pieza usada registrada. Descontada del control del Taller.');
+        toast('Pieza descontada');
         cerrarModalConsumoTaller();
     } catch(e){ logError('Registrar consumo taller', e); if(msg){ msg.style.color='#dc2626'; msg.textContent='⚠️ '+getFriendlyError(e); } }
     finally { if(btn){ btn.disabled=false; btn.innerHTML=orig; } }
@@ -9260,7 +9260,7 @@ async function reconciliarTaller(codigo){
         const { data, error } = await supabaseClient.rpc('reconciliar_taller_consumo', { p_codigo: codigo });
         if(error) throw error;
         if(data && data.error) return toast('No autorizado.', 'error');
-        toast('✅ Reconciliado. Ya cuadra con Info Plus.');
+        toast('Cuadra con Info Plus');
         if(typeof renderEstadisticas === 'function') renderEstadisticas();
     } catch(e){ logError('Reconciliar taller', e); toastError(getFriendlyError(e)); }
 }
@@ -9355,7 +9355,7 @@ function renderLotesReacondTab(lotesConEstado) {
             : reacondTabActual === 'proceso'
             ? 'No hay equipos en reparación.'
             : reacondTabActual === 'control_calidad'
-            ? 'No hay equipos esperando control de calidad.'
+            ? 'Nada en control'
             : reacondTabActual === 'listo_venta'
             ? 'No hay lotes con equipos listos para venta.'
             : 'No hay lotes con equipos despachados.';
@@ -9462,7 +9462,7 @@ function _datosReporteCostosLote(sinCostos) {
     const _fd = document.getElementById('reacondFechaDesde')?.value || '';
     const _fh = document.getElementById('reacondFechaHasta')?.value || '';
     if(_fd || _fh) { equipos = equipos.filter(e => _reacondPasaFecha(e)); filtrosTxt.push('Fecha: ' + (_fd || '…') + ' a ' + (_fh || '…')); }
-    if(!equipos.length) { toast('No hay equipos para el reporte (revise los filtros).', 'error'); return null; }
+    if(!equipos.length) { toast('Sin equipos con ese filtro', 'error'); return null; }
     const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
     return { lote, equipos, prov, filtrosTxt };
 }
@@ -17597,7 +17597,7 @@ async function _ipLiberarReservaManual(piezaId) {
     await loadAll(); if(pz.equipo_id) _refrescarVistaEquipo(pz.equipo_id);
 }
 async function _descontarPiezaPendiente(piezaId, skipRefresh) {
-    if(!tienePermiso('piezas_aprobar_extra')) { toast('Solo el administrador puede descontar piezas.', 'error'); return false; }
+    if(!tienePermiso('piezas_aprobar_extra')) { toast('Solo administrador', 'error'); return false; }
     try {
         const { data: pz, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
         if(e0 || !pz) throw (e0 || new Error('Pieza no encontrada'));
@@ -17632,7 +17632,7 @@ async function _descontarPiezaPendiente(piezaId, skipRefresh) {
 }
 // Descontar TODAS las pendientes de un equipo (una por una, preguntando el almacén de cada una).
 async function descontarPiezasPendientesEquipo(equipoId) {
-    if(!tienePermiso('piezas_aprobar_extra')) return toast('Solo el administrador puede descontar piezas.', 'error');
+    if(!tienePermiso('piezas_aprobar_extra')) return toast('Solo administrador', 'error');
     const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('id')
         .eq('equipo_id', equipoId).not('pieza_codigo', 'is', null).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
     const ids = (data || []).map(r => r.id);
@@ -17772,7 +17772,7 @@ async function agregarPiezaExtra(equipoId) {
             agregada_por_tecnico: true
         }]);
         if(error) throw error;
-        toast('Pieza extra agregada, esperando aprobación del admin.');
+        toast('Pieza extra · espera aprobación');
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Agregar pieza extra', e);
@@ -17813,7 +17813,7 @@ async function agregarFallaAdicional(equipoId) {
         if(e1) throw e1;
         const { error: e2 } = await supabaseClient.from('tareas_trabajo').insert([{ tipo: 'equipo', ref_id: equipoId, descripcion: fNom, tecnico_id: eq.tecnico_asignado_id || null, estado: 'pendiente', adicional: true, creado_por: sessionUser?.id || null }]);
         if(e2) throw e2;
-        toast('✅ Falla adicional agregada (marcada como ADICIONAL).');
+        toast('Falla adicional agregada');
         await loadAll();
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) { logError('Agregar falla adicional', e); toastError(getFriendlyError(e)); }
@@ -17828,7 +17828,7 @@ async function enviarRefurbExterno(equipoId) {
         destino = await pedirTexto('🔧 REPARACIÓN EXTERNA\n\n¿A dónde / a quién se envía el equipo? (OBLIGATORIO)\n\nEjemplo: "Taller microsoldadura Juan", "Centro X - capital"');
         if(destino === null) return;
         if(destino.trim()) break;
-        toast('Indique a dónde se envió el equipo.', 'error');
+        toast('¿A dónde se envió?', 'error');
     }
     const nota = await pedirTexto('Nota / motivo (opcional):\n\nEjemplo: "Requiere reballing de CPU"', { valor: '' });
     if(nota === null) return;
@@ -17875,7 +17875,7 @@ async function solicitarPiezaReacondLibre() {
             agregada_por_tecnico: true
         }]);
         if(error) throw error;
-        toast('✅ Pieza solicitada. Aparece en Piezas Solicitadas (Reacondicionados).');
+        toast('Pieza solicitada');
         await loadAll();
         if(typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas();
     } catch(e) {
@@ -17887,7 +17887,7 @@ async function solicitarPiezaReacondLibre() {
 async function aprobarTerminado(equipoId) {
     // Solo el admin (o quien tenga permiso de aprobar) puede aprobar. No juez y parte.
     if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra')) {
-        return toast('Solo el administrador puede aprobar equipos. El técnico no puede aprobar su propio trabajo.', 'error');
+        return toast('Lo aprueba el administrador', 'error');
     }
     if(!await confirmar('¿Aprobar este equipo en CONTROL DE CALIDAD? Pasará a Listo para venta.')) return;
     try {
@@ -17901,7 +17901,7 @@ async function aprobarTerminado(equipoId) {
             accion: 'Aprobado por admin → Listo para venta',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast('Equipo aprobado y enviado a Listo para venta.');
+        toast('Listo para venta');
         cerrarPanelProceso();
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
@@ -17914,11 +17914,11 @@ async function aprobarTerminado(equipoId) {
 // Cierra administrativamente una salida (mantiene los campos históricos por compatibilidad).
 async function marcarEquipoCompletado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
-        return toast('No tiene permiso para completar equipos.', 'error');
+        return toast('Sin permiso', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
-    if(eq.completado) return toast('La salida de este equipo ya está cerrada.');
+    if(eq.completado) return toast('Salida ya cerrada');
     if(!await confirmar(`¿Cerrar la salida de "${eq.modelo || 'equipo'}"?\n\nEl equipo seguirá disponible para garantías.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
@@ -17936,7 +17936,7 @@ async function marcarEquipoCompletado(equipoId) {
 // Marca el equipo como LISTO para venta (estado listo_venta). Si estaba completado/despachado, lo revierte.
 async function marcarEquipoListo(equipoId) {
     if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra') && !tienePermiso('estado_despachar')) {
-        return toast('Solo el administrador puede cambiar el estado.', 'error');
+        return toast('Solo administrador', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
@@ -17949,7 +17949,7 @@ async function marcarEquipoListo(equipoId) {
         }).eq('id', equipoId);
         if(error) throw error;
         try { await _histInsert([{ equipo_id: equipoId, estado_anterior: antes, estado_nuevo: 'listo_venta', accion: 'Marcado como Listo para venta', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
-        toast('Equipo marcado como Listo para venta.');
+        toast('Listo para venta');
         const mf = document.getElementById('modalFichaEquipo'); if(mf) mf.remove();
         const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
         await loadAll();
@@ -17959,13 +17959,13 @@ async function marcarEquipoListo(equipoId) {
 const _despachoEnCurso = new Set();
 async function marcarDespachado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
-        return toast('No tiene permiso para despachar equipos.', 'error');
+        return toast('Sin permiso', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     // 26-oct-2026 (prueba de punta a punta): solo sale lo que está Listo, y un doble toque no registra dos salidas
     // (antes se duplicaba el historial y se pisaba la fecha de despacho de un equipo ya despachado).
-    if(eq.estado_evaluacion !== 'listo_venta') return toast(eq.estado_evaluacion === 'vendido' ? 'Este equipo ya tiene la salida registrada.' : 'Solo se registra la salida de un equipo en Listo.', 'error');
+    if(eq.estado_evaluacion !== 'listo_venta') return toast(eq.estado_evaluacion === 'vendido' ? 'Ya tiene salida' : 'Solo equipos en Listo', 'error');
     if(_despachoEnCurso.has(equipoId)) return;
     _despachoEnCurso.add(equipoId);
     // El taller es para CONTROL: "despachar" = entregar al almacén principal (no es una venta, no se pide precio)
@@ -17976,7 +17976,7 @@ async function marcarDespachado(equipoId) {
             fecha_despacho: new Date().toISOString()
         }).eq('id', equipoId).eq('estado_evaluacion', 'listo_venta').select('id');
         if(error) throw error;
-        if(Array.isArray(_salio) && !_salio.length) { toast('Este equipo ya tiene la salida registrada.', 'error'); await loadAll(); return; }
+        if(Array.isArray(_salio) && !_salio.length) { toast('Ya tiene salida', 'error'); await loadAll(); return; }
         eq.estado_evaluacion = 'vendido';
         await _histInsert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
@@ -22847,7 +22847,7 @@ async function derivarExterno(ordenId) {
         destino = await pedirTexto('🔧 REPARACIÓN EXTERNA\n\n¿A dónde / a quién se envía el equipo? (OBLIGATORIO)\n\nEjemplo: "Taller microsoldadura Juan", "Centro X - capital"');
         if(destino === null) return; // canceló
         if(destino.trim()) break;
-        toast('Indique a dónde se envió el equipo.', 'error');
+        toast('¿A dónde se envió?', 'error');
     }
     const nota = await pedirTexto('Nota / motivo (opcional):\n\nEjemplo: "Requiere reballing de CPU"', { valor: '' });
     if(nota === null) return; // canceló
