@@ -168,7 +168,7 @@
       // El administrador toca un nivel para cambiar el precio con el que se agrega esa línea.
       var cajas = NIV.map(function (n) {
         var v = Number(nv[n[0]]) || 0, puede = admin && v > 0;
-        return '<' + (puede ? 'button type="button" data-nv="' + n[0] + '" data-i="' + i + '" aria-pressed="' + (n[0] === act) + '"' : 'div') + ' class="pk-nv' + (n[0] === act ? ' act' : '') + (v > 0 ? '' : ' no') + (puede ? ' elegible' : '') + '"><small>' + n[1] + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b></' + (puede ? 'button' : 'div') + '>';
+        return '<' + (puede ? 'button type="button" data-nv="' + n[0] + '" data-i="' + i + '" aria-pressed="' + (n[0] === act) + '"' : 'div') + ' class="pk-nv pk-nv-' + n[0] + (n[0] === act ? ' act' : '') + (v > 0 ? '' : ' no') + (puede ? ' elegible' : '') + '"><small>' + n[1] + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b></' + (puede ? 'button' : 'div') + '>';
       }).join('');
       var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
       var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {};
