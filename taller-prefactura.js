@@ -153,12 +153,20 @@
     // Texto corto del buscador para que se lea completo en el celular (antes «Buscar o escanear por nombre, c…»)
     var bScan = q('.bcrx-scan > span', busc); if (bScan) bScan.textContent = 'Buscar artículo';
     var bSrv = q('.bcrx-srv', busc); if (bSrv) { bSrv.innerHTML = '<i class="ti ti-tool" aria-hidden="true"></i><span>Servicio</span>'; bSrv.setAttribute('aria-label', 'Agregar servicio o falla'); }
-    // 30-oct-2026 (dueño): botón «Delivery» al lado de Servicio. Agrega el artículo 1161 (ENVIO - MENSAJERIA) de Info Plus.
-    if (bSrv && !q('.bcpf-deliv', busc)) {
-      var bDel = el('button', 'btn bcrx-srv bcpf-deliv'); bDel.type = 'button';
-      bDel.innerHTML = '<i class="ti ti-truck-delivery" aria-hidden="true"></i><span>Delivery</span>'; bDel.setAttribute('aria-label', 'Agregar delivery');
-      bDel.addEventListener('click', function () { agregarDelivery(); });
-      bSrv.parentNode.insertBefore(bDel, bSrv.nextSibling);
+    // 31-oct-2026 (dueño): accesos rápidos en una fila encima de «Buscar artículo»: Delivery, Servicio, Activación y
+    // Recarga (artículos de Info Plus 1161, 1121, 1187 y 1186). El botón Servicio de siempre queda escondido y la fila lo usa.
+    if (bSrv && !q('.bcpf-rapidos', pad)) {
+      bSrv.classList.add('bcpf-oculto');
+      var fila = el('div', 'bcpf-rapidos'); fila.setAttribute('role', 'group'); fila.setAttribute('aria-label', 'Accesos rápidos');
+      [['1161', 'ti-truck-delivery', 'Delivery'], ['srv', 'ti-tool', 'Servicio'], ['1187', 'ti-sim', 'Activar'], ['1186', 'ti-coin', 'Recarga']].forEach(function (b) {
+        var x = el('button', 'bcpf-rap'); x.type = 'button'; x.setAttribute('data-rap', b[0]);
+        x.innerHTML = '<i class="ti ' + b[1] + '" aria-hidden="true"></i><span>' + b[2] + '</span><small class="rp"></small>';
+        x.addEventListener('click', function () { if (b[0] === 'srv') { try { _rpAgregarServicio(); } catch (e) {} } else tocarRapido(b[0]); });
+        fila.appendChild(x);
+      });
+      pad.insertBefore(fila, busc);
+      var fFalla = doc.getElementById('o_falla'); if (fFalla) fFalla.addEventListener('input', function () { actualizarRapidos(); });
+      setTimeout(actualizarRapidos, 0);
     }
 
     // Artículos
@@ -370,7 +378,7 @@
   function pintarCarrito() {
     var c = doc.getElementById('rxArticulos'); if (!c) return;
     var s = st();
-    if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos</div>'; return; }
+    if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos</div>'; actualizarRapidos(); return; }
     c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>Código</span><span>Artículo</span><span>IMEI / serie</span><span>Precio</span><span>Desc.</span><span>Cant.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
       var cant = it.serial
         ? '<span class="stp fijo" title="La cantidad sale del número de IMEI">' + it.cant + '</span>'
@@ -381,7 +389,7 @@
         // 23-oct-2026 (dueño: «quitar #, mejor que salgan los códigos»): en PC la primera columna es el código; en celular sigue el 01, 02.
         '<span class="n"><em class="ni">' + ('0' + (i + 1)).slice(-2) + '</em><em class="nc" title="' + esc(it.cod) + '">' + esc(it.cod) + '</em></span>' +
         '<div class="d"><button type="button" class="dnb" data-ver="' + i + '" title="Ver precios y cambiar la descripción">' + esc(it.desc) + '</button>' +
-        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (esDelivery(it) ? '<span class="srv dlv">Delivery</span>' : '') + '</div></div>' +
+        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (esRapido(it) ? '<span class="srv dlv">' + RAPIDOS[String(it.cod)].nom + '</span>' : '') + '</div></div>' +
         '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
         // 24-oct-2026 (dueño: «bloquea el precio libre para empleados, solamente en servicio»): el empleado solo escribe el
@@ -391,15 +399,72 @@
         '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';
     }).join('') + '</div>' + sugerenciaDelivery();
+    actualizarRapidos();
   }
 
-  function precioLibre(it) { try { if (typeof isAdminUser === 'function' && isAdminUser()) return true; } catch (e) {} return !!(it && (it.servicio || esDelivery(it))); }
+  function precioLibre(it) { try { if (typeof isAdminUser === 'function' && isAdminUser()) return true; } catch (e) {} return !!(it && (it.servicio || esRapido(it))); }
   // ---------- Delivery (dueño 30-oct-2026) ----------
   // Artículo 1161 de Info Plus «ENVIO - MENSAJERIA». Precio según el tipo de cliente (Cliente final 100, Por mayor 50,
   // según Info Plus); cualquiera puede escribir otro precio en su línea. Si el cliente es Por mayor y hay artículos sin
   // delivery, sale el botón «+ Delivery RD$ 50» debajo de los artículos.
   var COD_DELIV = '1161';
   function esDelivery(it) { return !!it && String(it.cod) === COD_DELIV; }
+  // Accesos rápidos (31-oct-2026): mismas reglas que el delivery (precio libre, sin existencia, sin duplicar).
+  var RAPIDOS = {
+    '1161': { desc: 'DELIVERY', nom: 'Delivery', def: { 1: 100, 2: 50, 3: 200 } },
+    '1187': { desc: 'ACTIVACIÓN CHIP', nom: 'Activación', def: { 1: 100, 2: 100 } },
+    '1186': { desc: 'RECARGA', nom: 'Recarga', def: { 1: 25, 2: 25 }, monto: true }
+  };
+  function esRapido(it) { return !!it && Object.prototype.hasOwnProperty.call(RAPIDOS, String(it.cod)); }
+  function agregarRapido(cod) {
+    if (cod === COD_DELIV) return agregarDelivery();
+    var r = RAPIDOS[cod]; if (!r) return;
+    try { if (!st()) _rpInit(); } catch (e) {}
+    var s = st(); if (!s) return;
+    for (var k = 0; k < s.items.length; k++) if (String(s.items[k].cod) === cod) { try { toast('Ya tiene ' + r.nom.toLowerCase()); } catch (e) {} enfocarPrecio(k); return; }
+    var nv = r.def; try { var a = _findInfoplusArt(cod); if (a && a.niveles) nv = a.niveles; } catch (e) {}
+    var it = { cod: cod, desc: r.desc, niveles: nv, precio: 0, cant: 1 };
+    try { it.precio = _rpNivelPrecio(it); } catch (e) { it.precio = Number(nv['1']) || 0; }
+    s.items.push(it);
+    try { _rpMarcarCambio(); } catch (e) {}
+    try { _rpRenderCart(); _rpRenderResumen(); } catch (e) {}
+    enfocarPrecio(s.items.length - 1, !r.monto); // en la recarga el cursor va al monto
+  }
+  window.bcAgregarRapido = agregarRapido;
+  // ---- Smart (dueño 31-oct-2026: «que sea smart») ----
+  // · Cada botón dice el precio que va a poner según el cliente (Delivery RD$ 50 si es por mayor).
+  // · Si ya está en la prefactura queda marcado con ✓ y otro toque lo quita (un solo botón para poner y quitar).
+  // · Sugerido (punto naranja): Delivery con cliente por mayor; Activación si hay un chip o Turbo SIM en la lista;
+  //   Servicio si se escribió una falla y todavía no hay servicio.
+  function precioRapido(cod) {
+    var r = RAPIDOS[cod]; if (!r) return 0; var nv = r.def;
+    try { var a = _findInfoplusArt(cod); if (a && a.niveles) nv = a.niveles; } catch (e) {}
+    try { return _rpNivelPrecio({ niveles: nv, precio: 0 }); } catch (e) { return Number(nv['1']) || 0; }
+  }
+  function idxCod(cod) { var s = st(); if (!s) return -1; for (var i = 0; i < s.items.length; i++) if (String(s.items[i].cod) === cod && !s.items[i].servicio) return i; return -1; }
+  function tocarRapido(cod) {
+    var k = idxCod(cod);
+    if (k >= 0) { try { _rpQuitar(k); } catch (e) {} try { toast(RAPIDOS[cod].nom + ' quitado'); } catch (e) {} return; }
+    agregarRapido(cod);
+  }
+  function sugerido(cod) {
+    var s = st(); if (!s || !s.items.length) return cod === 'srv' && !!val('o_falla') && !(s && s.items.some(function (x) { return x.servicio; }));
+    if (cod === '1161') return idxCod('1161') < 0 && String(s.nivel || 1) === '2' && !s.sinDelivery;
+    if (cod === '1187') return idxCod('1187') < 0 && s.items.some(function (x) { return !esRapido(x) && /\b(SIM|CHIP|E-SIM|ESIM)\b/i.test(String(x.desc || '')); });
+    if (cod === 'srv') return !!val('o_falla') && !s.items.some(function (x) { return x.servicio; });
+    return false;
+  }
+  function actualizarRapidos() {
+    Array.prototype.forEach.call(doc.querySelectorAll('#v-recepcion .bcpf-rap'), function (b) {
+      var cod = b.getAttribute('data-rap'), puesto = cod === 'srv' ? false : idxCod(cod) >= 0, sug = !puesto && sugerido(cod);
+      var rp = b.querySelector('.rp');
+      if (rp) rp.textContent = cod === 'srv' ? '' : (puesto ? '✓ Agregado' : plata(precioRapido(cod)));
+      b.classList.toggle('puesto', puesto); b.classList.toggle('sug', !!sug);
+      b.setAttribute('aria-pressed', String(puesto));
+      b.title = puesto ? 'Tocar para quitar' : (sug ? 'Sugerido' : '');
+    });
+  }
+  window.bcActualizarRapidos = actualizarRapidos;
   function idxDelivery() { var s = st(); if (!s) return -1; for (var i = 0; i < s.items.length; i++) if (esDelivery(s.items[i])) return i; return -1; }
   function nivelesDelivery() { try { var a = _findInfoplusArt(COD_DELIV); if (a && a.niveles) return a.niveles; } catch (e) {} return { 1: 100, 2: 50, 3: 200 }; }
   function precioDelivery() { var it = { niveles: nivelesDelivery(), precio: 0 }; try { return _rpNivelPrecio(it); } catch (e) { return Number(it.niveles['1']) || 0; } }
@@ -420,6 +485,7 @@
   }
   window.bcAgregarDelivery = agregarDelivery;
   function sugerenciaDelivery() {
+    if (doc.querySelector('#v-recepcion .bcpf-rap')) return ''; // con la fila de accesos, la sugerencia va en el botón Delivery
     var s = st(); if (!s || !s.items.length || idxDelivery() >= 0 || s.sinDelivery) return '';
     if (String(s.nivel || 1) !== '2') return '';
     // 30-oct-2026 (dueño: «simplificar, no ser tan descriptivo»): un solo botón, sin pregunta.
@@ -585,19 +651,19 @@
   function enganchar() {
     if (typeof window._rpStockItem === 'function' && !window._rpStockItem._bcdl) {
       var origS = window._rpStockItem;
-      var envS = function (it) { if (esDelivery(it)) return null; return origS.apply(this, arguments); }; // el envío no lleva existencia
+      var envS = function (it) { if (esRapido(it)) return null; return origS.apply(this, arguments); }; // el envío no lleva existencia
       envS._bcdl = true; window._rpStockItem = envS;
     }
     if (typeof window._rpDescInfoplus === 'function' && !window._rpDescInfoplus._bcdl) {
       var origD = window._rpDescInfoplus; // la línea del delivery va limpia a Info Plus (sin equipo, IMEI ni falla pegados)
-      var envD = function (it) { if (esDelivery(it)) return String(it.desc || 'DELIVERY').trim().slice(0, 100); return origD.apply(this, arguments); };
+      var envD = function (it) { if (esRapido(it)) return String(it.desc || RAPIDOS[String(it.cod)].desc).trim().slice(0, 100); return origD.apply(this, arguments); };
       envD._bcdl = true; window._rpDescInfoplus = envD;
     }
     if (typeof window._rpPrecio === 'function' && !window._rpPrecio._bcdl) {
       var origP = window._rpPrecio;
       var envP = function (i, v) {
         var s = st(), it = s && s.items[i];
-        if (esDelivery(it)) { // cualquiera puede poner el precio del delivery; queda fijo aunque cambie el tipo de cliente
+        if (esRapido(it)) { // cualquiera puede poner el precio de los accesos rápidos; queda fijo aunque cambie el tipo de cliente
           it.precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); delete it.niveles;
           try { _rpMarcarCambio(); } catch (e) {} try { _rpRenderCart(); _rpRenderResumen(); } catch (e) {} return;
         }
