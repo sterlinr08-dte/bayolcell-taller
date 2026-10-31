@@ -20546,7 +20546,7 @@ function _prefAgregar() {
         const p1 = Number(a.precio || 0);
         const pe = Number(a.precio_especial || 0);
         const p2 = pe > 0 ? pe : p1;
-        const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), precio1: p1, precio2: p2, cant: 1 };
+        const it = { cod: a.codigo, desc: _ipDescCompleta(a), precio1: p1, precio2: p2, cant: 1 };
         it.precio = _prefPrecioItem(it);
         _pref.items.push(it);
         _prefRender();
@@ -20789,10 +20789,22 @@ function _rpAgregar() {
 // Agrega un artículo de Info Plus a la prefactura de Recepción. La usan el buscador grande (_rpAgregar) y la
 // pestaña «Buscar o escanear» de Recepción (taller-recepcion.js, 19-oct-2026): misma regla de precio,
 // existencia en vivo e IMEI para los celulares.
+// 31-oct-2026 (dueño, opción A): la línea de la prefactura lleva la referencia de Info Plus junto a la descripción
+// («CELULAR IPHONE 14 NORMAL · 128GB», «HOUSING IPHONE X BLANCO · VACIO», «AVISO» → «Con aviso»). Antes se perdía al agregar.
+// No se repite si la referencia ya está dentro de la descripción. La usan la Prefactura y la prefactura desde Órdenes.
+function _ipDescCompleta(a) {
+    const d = String((a && a.descripcion) || '').replace(/\s+/g, ' ').trim();
+    const r = String((a && a.referencia) || '').replace(/\s+/g, ' ').trim();
+    if(!r) return d;
+    // «HOUSING 8G PLUS BLANCO» ya está en «HOUSING IPHONE 8G PLUS BLANCO COMPLETO» aunque no vaya seguido.
+    const pal = d.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+    if(r.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).every(x => pal.includes(x))) return d;
+    return (d + ' · ' + (/^AVISO$/i.test(r) ? 'Con aviso' : r)).slice(0, 100);
+}
 async function _rpAgregarArticulo(a) {
         if(!a) return;
         if(!_rpState) _rpInit();
-        const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
+        const it = { cod: a.codigo, desc: _ipDescCompleta(a), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
         it.precio = _rpNivelPrecio(it);
         // 22-oct-2026 (dueño): si lleva IMEI lo decide Info Plus (compras o listaserie), no la palabra «celular».
         if(await _rpEsSerial(it.cod, it.desc)) { it.serial = true; it.imeis = []; it.cant = 0; }
