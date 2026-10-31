@@ -14,6 +14,28 @@
   var INSTALADOR = 'instalar/bayol-impresion.bat';
   var probando = false, ultimo = 0;
 
+  // 31-oct-2026 (dueño: «desde el iPhone no entiendo», eligió B): en iPhone/iPad/Android QZ Tray no existe. Ahí no se ofrece
+  // el instalador de Windows: se explica cómo imprimir por wifi (AirPrint) y hay un botón para probar la impresora.
+  var MOVIL = (function () {
+    var ua = navigator.userAgent || '';
+    return /iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+  })();
+  var IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent || '') || (/Macintosh/.test(navigator.userAgent || '') && (navigator.maxTouchPoints || 0) > 1);
+  function probarImpresoraMovil() {
+    var w = window.open('', '_blank');
+    if (!w) { try { toast('Permita las ventanas emergentes para probar', 'error'); } catch (e) {} return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>Prueba BAYOL CELL</title><style>@page{margin:4mm}body{font:15px/1.4 Arial,sans-serif;text-align:center;padding:10px}b{font-size:18px}</style></head>' +
+      '<body><b>BAYOL CELL</b><br>Prueba de impresión<br>' + new Date().toLocaleString('es-DO') + '<br><br>Si lee esto, la impresora funciona.' +
+      '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script></body></html>');
+    w.document.close();
+  }
+
+  // En el celular no se intenta conectar a QZ (no existe): la función vieja queda en silencio y la impresión usa el navegador.
+  if (MOVIL && typeof window.qzVerificarConexion === 'function' && !window.qzVerificarConexion._bif) {
+    var nada = function () { return Promise.resolve(); }; nada._bif = true; window.qzVerificarConexion = nada;
+  }
+
   function conectado() { try { return !!_qzConectado; } catch (e) { return false; } }
   function hayQz() { return typeof qz !== 'undefined' && qz && qz.websocket; }
   function impresoraTickets() { try { return typeof qzImpresoraTickets === 'function' ? qzImpresoraTickets() : ''; } catch (e) { return ''; } }
@@ -21,6 +43,7 @@
 
   // ---- Conexión silenciosa: no llena la consola ni cambia nada si QZ no está ----
   function probar() {
+    if (MOVIL) return;
     var card = doc.getElementById('qzPanelCard');
     if (probando || conectado() || !hayQz() || !visible(card)) return;
     if (Date.now() - ultimo < 2500) return;
@@ -42,6 +65,11 @@
   }
   function pintar(buscando) {
     var card = doc.getElementById('qzPanelCard'); if (!card) return;
+    if (MOVIL) {
+      var bm = doc.getElementById('qzEstadoBadge'); if (bm && bm.textContent !== 'Celular') bm.textContent = 'Celular';
+      var tv = doc.getElementById('bcproImpT'); if (tv && /computadora/.test(tv.textContent)) tv.innerHTML = '<i class="ti ti-printer" aria-hidden="true"></i> Impresora';
+      return;
+    }
     var e = estado(), pasos = card.querySelectorAll('.bif-paso');
     Array.prototype.forEach.call(pasos, function (p, i) {
       var n = i + 1, hecho = n < e || e === 4, actual = n === e || (e === 1 && n === 1);
@@ -78,6 +106,28 @@
       return '<li class="bif-paso"><span class="n" aria-hidden="true"><i class="ti ' + x[0] + '"></i><i class="ti ti-check ok"></i></span><span class="t">' + (i + 1) + '. ' + x[1] + '</span></li>';
     }).join('');
     if (cab) cab.insertAdjacentElement('afterend', pasos);
+
+    // Celular: cómo imprimir por wifi + probar. Nada de QZ ni del instalador de Windows.
+    if (MOVIL) {
+      card.classList.add('bif-movil');
+      var mv = doc.createElement('div'); mv.className = 'bif-movil-caja';
+      mv.innerHTML =
+        '<b class="bif-tit"><i class="ti ti-wifi" aria-hidden="true"></i> En el celular se imprime por wifi</b>' +
+        '<ol class="bif-pasos-movil">' +
+          '<li>Toque <b>Guardar e imprimir</b>.</li>' +
+          (IOS ? '<li>Toque <b>Impresora</b> y elija la de la tienda.</li>' : '<li>Toque <b>Seleccionar impresora</b> y elija la de la tienda.</li>') +
+          '<li>Toque <b>Imprimir</b>.</li>' +
+        '</ol>' +
+        '<button type="button" class="bif-btn bif-probar"><i class="ti ti-printer" aria-hidden="true"></i> Probar impresora</button>' +
+        '<p class="bif-nota">' + (IOS ? 'Solo salen impresoras con wifi compatibles con <b>AirPrint</b>. Por Bluetooth el iPhone no imprime desde aquí.'
+          : 'Si la impresora no sale, instale el complemento de impresión de su marca (Play Store).') + '</p>' +
+        '<p class="bif-nota"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> Si escribió el WhatsApp del cliente, al guardar le llega la prefactura en PDF.</p>';
+      var ref = doc.getElementById('qzNoInstalado') || card.lastElementChild;
+      card.insertBefore(mv, ref);
+      mv.querySelector('.bif-probar').addEventListener('click', probarImpresoraMovil);
+      pintar();
+      return;
+    }
 
     // Estado «no conectado»: un solo botón
     var no = doc.getElementById('qzNoInstalado');
@@ -144,5 +194,5 @@
 
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', function () { buscarYArmar(); vigilar(); });
   else { buscarYArmar(); vigilar(); }
-  window.bcImpresionFacil = { probar: probar, pintar: pintar };
+  window.bcImpresionFacil = { probar: probar, pintar: pintar, movil: MOVIL };
 })();

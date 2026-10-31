@@ -54,4 +54,41 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   const r = await p.evaluate(async () => { const t = await (await fetch('instalar/bayol-impresion.bat')).text(); const c2 = await (await fetch('instalar/bayol-cell.crt')).text(); return { bat: /bayol-impresion\.ps1/.test(t), crt: /BEGIN CERTIFICATE/.test(c2) }; });
   c('instalador y certificado publicados', r.bat && r.crt, r);
   await ctx.close(); }
+
+ // iPhone: QZ no existe. Sin instalador de Windows; explica wifi/AirPrint y «Probar impresora» abre la impresión.
+ { const W = 390; const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Mobile/15E148 Safari/604.1' });
+  await ctx.route(/supabase-js|googleapis|gstatic|unpkg|jsdelivr|cdnjs/, r => { const u = r.request().url();
+    if (TD && /tabler-icons\.min\.css/.test(u)) return r.fulfill({ contentType: 'text/css', body: fs.readFileSync(TD + '/tabler-icons.min.css', 'utf8') });
+    if (TD && /tabler-icons\.woff2/.test(u)) return r.fulfill({ contentType: 'font/woff2', body: fs.readFileSync(TD + '/fonts/tabler-icons.woff2') });
+    if (/supabase-js/.test(u)) return r.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(B + '/supabase-stub.js', 'utf8') });
+    r.fulfill({ status: 200, contentType: /css/.test(u) ? 'text/css' : 'application/javascript', body: '' }); });
+  await ctx.addInitScript(() => { window.__qzIntentos = 0; window.qz = { security: { setCertificatePromise() {}, setSignaturePromise() {}, setSignatureAlgorithm() {} },
+    websocket: { isActive: () => false, connect: () => { window.__qzIntentos++; return Promise.reject(new Error('no')); } }, printers: { find: () => Promise.resolve([]) } }; });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 160)));
+  await p.goto('http://127.0.0.1:8788/taller.html?f=' + Date.now(), { waitUntil: 'load', timeout: 120000 }); await p.waitForTimeout(3500);
+  await p.evaluate(async () => { const w = ms => new Promise(r => setTimeout(r, ms));
+    sessionUser = { id: 'u1', nombre: 'Admin', usuario: 'admin', rol: 'admin', _tipo: 'usuario' };
+    document.body.classList.add('logged-in'); document.getElementById('app').style.display = 'block'; document.getElementById('login').style.display = 'none'; document.getElementById('appLoader').style.display = 'none';
+    document.querySelectorAll('.view.active').forEach(x => x.classList.remove('active')); document.getElementById('v-recepcion').classList.add('active');
+    try { _rpInit(); } catch (e) {} toast = () => {}; toastError = () => {};
+    window.__qzIntentos = 0; window.bcImpresoraRapida.abrir(); await w(3600); });
+  const c = (n, ok, d) => { console.log((ok ? 'OK   ' : 'FALLO') + ` [iPhone] ${n}` + (d !== undefined ? ' · ' + JSON.stringify(d) : '')); if (!ok) fallos++; };
+  const m = await p.evaluate(() => { const card = document.getElementById('qzPanelCard'); const vis = el => !!(el && el.offsetParent !== null);
+    const bt = card.querySelector('.bif-probar');
+    return { movil: card.classList.contains('bif-movil'), instalador: vis(card.querySelector('#qzNoInstalado .bif-btn')), pasos: vis(card.querySelector('.bif-pasos')),
+      caja: vis(card.querySelector('.bif-movil-caja')), texto: (card.querySelector('.bif-movil-caja') || {}).textContent || '', btnH: bt ? Math.round(bt.getBoundingClientRect().height) : 0,
+      pie: vis(document.querySelector('.bcpro-imp-pie')), badge: document.getElementById('qzEstadoBadge').textContent, intentos: window.__qzIntentos,
+      desborde: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
+  if (SHOTS) await p.screenshot({ path: `${SHOTS}/imp-iphone.png` });
+  c('modo celular, sin instalador de Windows ni pasos de QZ', m.movil && !m.instalador && !m.pasos && m.caja, m);
+  c('explica AirPrint y Bluetooth', /AirPrint/.test(m.texto) && /Bluetooth/.test(m.texto));
+  c('«Probar impresora» ≥ 44 px', m.btnH >= 44, m.btnH);
+  c('sin botones de QZ abajo (Reconectar / Prueba de ticket)', !m.pie);
+  c('no intenta conectar QZ en el celular', m.intentos === 0, m.intentos);
+  c('aviso «Celular»', m.badge === 'Celular', m.badge);
+  const [pop] = await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), p.click('.bif-probar')]);
+  c('«Probar impresora» abre la página de prueba', !!pop && /Prueba de impresión/.test(await pop.content()));
+  c('sin desborde ni errores', m.desborde <= 0 && errs.length === 0, { d: m.desborde, errs });
+  await ctx.close(); }
  await b.close(); console.log(fallos ? `\n${fallos} fallo(s)` : '\nTodo bien'); process.exit(fallos ? 1 : 0); })();

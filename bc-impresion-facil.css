@@ -68,3 +68,18 @@ html.bc-bif .bcpro-imp #qzPanelCard.bif h3 { display: none; }
 html.bc-bif .bcpro-imp #qzPanelCard.bif > div:first-child { justify-content: flex-end !important; }
 html.bc-bif #qzConectado > div > b:first-child { display: none; }
 html.bc-bif #qzConectado > div > div { margin-top: 0 !important; }
+
+/* Celular (iPhone, iPad, Android): sin QZ. Solo la caja «se imprime por wifi» y «Probar impresora». */
+html.bc-bif #qzPanelCard.bif-movil .bif-pasos,
+html.bc-bif #qzPanelCard.bif-movil #qzNoInstalado,
+html.bc-bif #qzPanelCard.bif-movil #qzConectado,
+html.bc-bif #qzPanelCard.bif-movil .bif-perm,
+html.bc-bif #qzPanelCard.bif-movil > div:not(.bif-movil-caja):not(:first-child) { display: none !important; }
+html.bc-bif .bcpro-imp:has(#qzPanelCard.bif-movil) .bcpro-imp-pie { display: none; }
+html.bc-bif .bif-movil-caja { margin-top: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 14px; padding: 14px; color: #1e3a8a; }
+html.bc-bif .bif-movil-caja .bif-tit { color: #1d4ed8; display: flex; align-items: center; gap: 8px; }
+html.bc-bif .bif-movil-caja .bif-tit i { font-size: 20px; }
+html.bc-bif .bif-pasos-movil { margin: 10px 0 12px 20px; padding: 0; font-size: 14.5px; line-height: 1.7; color: #1e293b; }
+html.bc-bif .bif-movil-caja .bif-btn { width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 14px rgba(37,99,235,.28); border: 0; cursor: pointer; font-family: inherit; }
+html.bc-bif .bif-movil-caja .bif-nota { color: #475569; }
+html.bc-bif .bif-movil-caja .bif-nota i { color: #16a34a; }
