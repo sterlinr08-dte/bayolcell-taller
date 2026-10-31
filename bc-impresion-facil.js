@@ -37,16 +37,32 @@
   }
 
   function conectado() { try { return !!_qzConectado; } catch (e) { return false; } }
+  // Conexión real: si QZ Tray se cierra, _qzConectado sigue en true; el socket dice la verdad.
+  function activo() { try { return conectado() && hayQz() && qz.websocket.isActive(); } catch (e) { return false; } }
+
+  // 31-oct-2026 (dueño: «poner en verde el ícono de la impresora para entender que está conectada»): el engranaje de la
+  // Prefactura (.ibtn-imp) va verde con QZ conectado y con un punto naranja si no. En el celular no cambia (no hay QZ).
+  function engranaje() {
+    if (MOVIL) return;
+    var ok = activo();
+    Array.prototype.forEach.call(doc.querySelectorAll('#v-recepcion .ibtn-imp'), function (b) {
+      if (b.classList.contains('bif-ok') === ok && b.classList.contains('bif-no') === !ok) return;
+      b.classList.toggle('bif-ok', ok); b.classList.toggle('bif-no', !ok);
+      b.title = ok ? 'Impresora conectada' : 'Impresora sin conectar';
+      b.setAttribute('aria-label', ok ? 'Impresora conectada: configurar' : 'Impresora sin conectar: configurar');
+    });
+  }
   function hayQz() { return typeof qz !== 'undefined' && qz && qz.websocket; }
   function impresoraTickets() { try { return typeof qzImpresoraTickets === 'function' ? qzImpresoraTickets() : ''; } catch (e) { return ''; } }
   function visible(el) { return !!(el && el.offsetParent !== null && !doc.hidden); }
 
   // ---- Conexión silenciosa: no llena la consola ni cambia nada si QZ no está ----
-  function probar() {
+  function probar(fondo) {
     if (MOVIL) return;
     var card = doc.getElementById('qzPanelCard');
-    if (probando || conectado() || !hayQz() || !visible(card)) return;
-    if (Date.now() - ultimo < 2500) return;
+    if (probando || activo() || !hayQz() || doc.hidden) return;
+    if (!fondo && !visible(card)) return;
+    if (Date.now() - ultimo < (fondo ? 15000 : 2500)) return;
     probando = true; ultimo = Date.now();
     pintar('buscando');
     try { if (typeof qzConfigurarFirma === 'function') qzConfigurarFirma(); } catch (e) {}
@@ -55,7 +71,7 @@
     p.then(function () {
       try { _qzConectado = true; } catch (e) {}
       try { if (typeof qzMostrarConectado === 'function') qzMostrarConectado(); } catch (e) {}
-    }, function () {}).then(function () { probando = false; pintar(); });
+    }, function () {}).then(function () { probando = false; pintar(); engranaje(); });
   }
 
   // ---- Estado de los tres pasos ----
@@ -190,7 +206,7 @@
   doc.addEventListener('change', function (e) { if (e.target && /^qzImpresora/.test(e.target.id || '')) setTimeout(pintar, 0); });
   doc.addEventListener('visibilitychange', function () { if (!doc.hidden) { ultimo = 0; probar(); } });
   window.addEventListener('focus', function () { ultimo = 0; probar(); });
-  setInterval(probar, 3000);
+  setInterval(function () { probar(); probar(true); engranaje(); }, 3000);
   // La ventana rápida de la Prefactura (bc-prefactura-pro.js) se arma al tocar el engranaje: se repinta cuando aparece.
   new MutationObserver(function (ms) {
     for (var i = 0; i < ms.length; i++) for (var j = 0; j < ms[i].addedNodes.length; j++) {
@@ -198,7 +214,7 @@
     }
   }).observe(doc.body || doc.documentElement, { childList: true });
 
-  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', function () { buscarYArmar(); vigilar(); });
-  else { buscarYArmar(); vigilar(); }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', function () { buscarYArmar(); vigilar(); engranaje(); });
+  else { buscarYArmar(); vigilar(); engranaje(); }
   window.bcImpresionFacil = { probar: probar, pintar: pintar, movil: MOVIL };
 })();

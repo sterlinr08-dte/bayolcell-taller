@@ -83,3 +83,11 @@ html.bc-bif .bif-pasos-movil { margin: 10px 0 12px 20px; padding: 0; font-size: 
 html.bc-bif .bif-movil-caja .bif-btn { width: 100%; background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 14px rgba(37,99,235,.28); border: 0; cursor: pointer; font-family: inherit; }
 html.bc-bif .bif-movil-caja .bif-nota { color: #475569; }
 html.bc-bif .bif-movil-caja .bif-nota i { color: #16a34a; }
+
+/* Engranaje de la Prefactura con el estado de la impresora: verde conectada, punto naranja sin conectar */
+html.bc-bif body #v-recepcion#v-recepcion .bcpf-dh .ibtn-imp { position: relative; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+html.bc-bif body #v-recepcion#v-recepcion .bcpf-dh .ibtn-imp.bif-ok { color: #047857 !important; background: #ecfdf5 !important; border-color: #6ee7b7 !important; }
+html.bc-bif body #v-recepcion#v-recepcion .bcpf-dh .ibtn-imp.bif-ok::after,
+html.bc-bif body #v-recepcion#v-recepcion .bcpf-dh .ibtn-imp.bif-no::after { content: ''; position: absolute; top: 3px; right: 3px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; }
+html.bc-bif body #v-recepcion#v-recepcion .bcpf-dh .ibtn-imp.bif-ok::after { background: #10b981; }
+html.bc-bif body #v-recepcion#v-recepcion .bcpf-dh .ibtn-imp.bif-no::after { background: #f97316; }

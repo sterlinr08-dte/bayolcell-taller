@@ -605,7 +605,7 @@ html.bc-pf #v-recepcion .bcrx-ppk-slot:has(> .bcrx-ppk)::before {
   content: ""; position: fixed; inset: 0; z-index: 9400; background: rgba(15,23,42,.18);
 }
 html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk {
-  position: fixed; z-index: 9401; left: 50%; top: 50%; width: min(860px, calc(100vw - 32px)); height: min(640px, calc(100vh - 48px));
+  position: fixed; z-index: 9401; left: 50%; top: 50%; width: min(1120px, calc(100vw - 48px)); height: min(860px, calc(100dvh - 48px)); /* 31-oct-2026 (dueño): más grande en PC (antes 860×640) */
   margin: 0; translate: -50% -50%; display: flex; flex-direction: column;
   border: 1px solid #cbd5e1; border-radius: 12px; box-shadow: 0 30px 70px -20px rgba(15,23,42,.55), 0 0 0 1px rgba(15,23,42,.04);
   animation-fill-mode: backwards;

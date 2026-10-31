@@ -34,6 +34,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
       reconectarViejo: !!card.querySelector('button[onclick="qzVerificarConexion()"]') && card.querySelector('button[onclick="qzVerificarConexion()"]').offsetParent !== null,
       perm: (() => { const d = card.querySelector('details.bif-perm'); return d ? { abierto: d.open, cert: !!d.querySelector('button') } : null; })(),
       listo: (() => { const e = card.querySelector('.bif-listo'); return e && !e.hidden ? e.textContent.trim() : ''; })(),
+      engr: (() => { const g = document.querySelector('#v-recepcion .ibtn-imp'); return g ? (g.classList.contains('bif-ok') ? 'verde' : g.classList.contains('bif-no') ? 'naranja' : '-') + '|' + getComputedStyle(g).color : 'no hay'; })(),
       intentos: window.__qzIntentos, desborde: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
   const a = await leer();
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/imp-apagado-${W}.png` });
@@ -42,13 +43,22 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   c('el botón baja el instalador', a.btn && a.btn.href === 'instalar/bayol-impresion.bat', a.btn && a.btn.href);
   c('ya no está «Ya lo instalé, reconectar»', !a.reconectarViejo);
   c('certificado plegado', a.perm && !a.perm.abierto && a.perm.cert, a.perm);
+  c('engranaje con punto naranja sin QZ', /^naranja/.test(a.engr), a.engr);
   // Se «abre» QZ Tray: debe conectarse solo en ≤ 4 s, sin tocar nada
   await p.evaluate(() => { window.__qzOn = true; }); await p.waitForTimeout(4200);
   const d = await leer();
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/imp-conectado-${W}.png` });
   c('se conecta solo al abrir QZ', d.si !== 'none' && d.no === 'none', { si: d.si, no: d.no, intentos: d.intentos });
   c('elige sola la impresora de tickets y los 3 pasos quedan hechos', /POS-80C/.test(d.listo) && d.pasos.every(x => x === 'hecho'), { listo: d.listo, pasos: d.pasos });
+  c('engranaje verde con QZ conectado', /^verde\|rgb\(4, 120, 87\)/.test(d.engr), d.engr);
   c('sin desborde horizontal', d.desborde <= 0, d.desborde);
+  // Buscador más grande en PC (antes 860×640 como máximo)
+  const bs = await p.evaluate(async () => { const w = ms => new Promise(r => setTimeout(r, ms)); window.bcImpresoraRapida.cerrar(); await w(200);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true })); await w(500);
+    const d = document.querySelector('.bcrx-ppk-slot > .bcrx-ppk'); if (!d) return null; const r = d.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), vw: innerWidth, vh: innerHeight }; });
+  if (SHOTS && W === 1280) await p.screenshot({ path: `${SHOTS}/buscador-grande-1280.png` });
+  if (W === 1280) c('buscador más grande (≥ 1100 × 800 a 1280×900)', bs && bs.w >= 1100 && bs.h >= 800, bs);
+  else c('buscador a pantalla completa en el celular', bs && bs.w >= 380 && bs.h >= 780, bs);
   c('sin errores de JS', errs.length === 0, errs);
   // El instalador existe y descarga
   const r = await p.evaluate(async () => { const t = await (await fetch('instalar/bayol-impresion.bat')).text(); const c2 = await (await fetch('instalar/bayol-cell.crt')).text(); return { bat: /bayol-impresion\.ps1/.test(t), crt: /BEGIN CERTIFICATE/.test(c2) }; });
