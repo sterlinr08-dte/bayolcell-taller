@@ -41,7 +41,9 @@
     }
   }catch(e){}
   try{var avp=document.createElement('script');avp.async=false;avp.src='taller-pestana-avisos.js?v=20261018-nl1';document.head.appendChild(avp);}catch(e){} // Aviso en la pestaña: (N) sin leer + parpadeo con mensaje nuevo
-  try{var bcr=document.createElement('script');bcr.async=false;bcr.src='bc-reflector.js?v=20261021r3';document.head.appendChild(bcr);}catch(e){} // Efectos reflector (réplica de NEXUS PRO): barra superior, brillo fijo, luz de vidrio
+  // 1-nov-2026 (PC de bajos recursos): el reflector sigue al ratón y vuelve a medir la pantalla en cada movimiento;
+  // con la CPU 6 veces más lenta duplicaba el trabajo de la PC solo por mover el ratón. En modo ligero no se carga.
+  try{if(!document.documentElement.classList.contains('bc-ligero')){var bcr=document.createElement('script');bcr.async=false;bcr.src='bc-reflector.js?v=20261021r3';document.head.appendChild(bcr);}}catch(e){} // Efectos reflector (réplica de NEXUS PRO): barra superior, brillo fijo, luz de vidrio
   try{var bcb=document.createElement('script');bcb.async=false;bcb.src='bc-busqueda.js?v=20261009b3';document.head.appendChild(bcb);}catch(e){} // Buscador «Premium» (réplica de NEXUS PRO): lupa que se estira a píldora en todos los buscadores
 
   try{var nav=document.createElement('script');nav.async=false;nav.src='taller-nav-apple.js?v=20261003-n1';document.head.appendChild(nav);}catch(e){} // Barra de navegación de ventanas estilo Apple (capa reversible)
