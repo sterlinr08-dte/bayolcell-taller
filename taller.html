@@ -33,6 +33,9 @@ if(on)document.documentElement.classList.add('bc-ligero');}catch(e){}})();</scri
 <style>
 html.bc-ligero #bcAmbientOrbSafe,html.bc-ligero bcr-luz{display:none!important}
 html.bc-ligero *,html.bc-ligero *::before,html.bc-ligero *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+/* PC de bajos recursos (1-nov-2026): animaciones y transiciones casi instantáneas (0.01 ms, no «none», para que los
+   avisos de fin de animación sigan llegando y nada se quede trabado). Una sola vuelta en las que se repiten. */
+html.bc-ligero body :is(#bcLig#bcLig#bcLig,*),html.bc-ligero body :is(#bcLig#bcLig#bcLig,*)::before,html.bc-ligero body :is(#bcLig#bcLig#bcLig,*)::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
 #appLoader.hide,#appLoader.hide *,#appLoader.hide *::after{animation:none!important}
 #bcrzLinea:not(.on)::before{animation:none!important}
 </style>
@@ -5735,13 +5738,13 @@ body{
 <script defer src="taller-app.min.js?v=20261031-o5"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
 <script defer src="taller-recepcion.js?v=20261031-g16"></script>
-<script defer src="taller-prefactura.js?v=20261031-i32"></script>
+<script defer src="taller-prefactura.js?v=20261101-i33"></script>
 <script defer src="bc-prefactura-pro.js?v=20261031-p2"></script>
 <script defer src="bc-etiquetas-pro.js?v=20261030-e1"></script>
 <script defer src="bc-raspa.js?v=20261029-r1"></script>
 <script defer src="bc-prefactura-imprimir.js?v=20261029-i12"></script>
 <script defer src="bc-permisos-listas.js?v=20261021-pl1"></script>
-<script defer src="taller-info.js?v=20261031-t11"></script>
+<script defer src="taller-info.js?v=20261101-t12"></script>
 <script defer src="taller-ui-inicio.js?v=20261026-a1"></script>
 <script defer src="taller-ui-ordenes.js?v=20261026-o1"></script>
 <script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
