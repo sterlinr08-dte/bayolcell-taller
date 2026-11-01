@@ -36,6 +36,21 @@ html.bc-ligero *,html.bc-ligero *::before,html.bc-ligero *::after{-webkit-backdr
 #appLoader.hide,#appLoader.hide *,#appLoader.hide *::after{animation:none!important}
 #bcrzLinea:not(.on)::before{animation:none!important}
 </style>
+<script>/* Modo PC rápido (1-nov-2026, dueño: «en PC le siento como lag»). En computadora (ratón y pantalla de 1025 px o más)
+   y en el modo ligero se quita el vidrio difuminado y los brillos con desenfoque: el menú y la barra de arriba ya son
+   opacos, así que se ven igual, pero la PC deja de redibujar el desenfoque en cada movimiento. Se decide antes de pintar.
+   El modo ligero de arriba existía pero otras capas con !important le ganaban; este bloque usa más especificidad.
+   Apagar en un equipo: localStorage bc_pcr_off='1'; para todos: BC_PCR=false. */
+var BC_PCR=true;try{var _pc=false;try{_pc=matchMedia('(pointer:fine) and (min-width:1025px)').matches;}catch(e){}
+if(BC_PCR&&localStorage.getItem('bc_pcr_off')!=='1'&&(_pc||document.documentElement.classList.contains('bc-ligero')))document.documentElement.classList.add('bc-pcr');}catch(e){}</script>
+<style>
+/* :is(#bcPcr#bcPcr#bcPcr,*) sube la especificidad a 3 ids (ese id no existe) para ganarle a las capas de diseño con !important. */
+html.bc-pcr body :is(#bcPcr#bcPcr#bcPcr,*),html.bc-pcr body :is(#bcPcr#bcPcr#bcPcr,*)::before,html.bc-pcr body :is(#bcPcr#bcPcr#bcPcr,*)::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.bc-pcr body :is(#bcPcr#bcPcr#bcPcr,.bcbp-brillo){filter:none!important}
+html.bc-pcr body :is(#bcPcr#bcPcr#bcPcr,.bc-ambient-orb,#bcAmbientOrbSafe,bcr-luz){display:none!important}
+/* Sin desenfoque detrás de las ventanas: el velo se hace un poco más tupido para que el fondo no distraiga. */
+html.bc-pcr body :is(#bcPcr#bcPcr#bcPcr,.modal-backdrop){background-color:rgba(241,245,249,.78)!important}
+</style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -5735,7 +5750,7 @@ body{
 <script defer src="taller-ui-reacond.js?v=20261026-rcu1"></script>
 <script defer src="bc-reacond-lotes.js?v=20261030-rlc1"></script>
 <script defer src="bc-buscador-motion.js?v=20261031-bmo2"></script>
-<script defer src="bc-impresion-facil.js?v=20261031-bif4"></script>
+<script defer src="bc-impresion-facil.js?v=20261101-bif5"></script>
 <script defer src="bc-sin-internet.js?v=20261101-sin3"></script>
 <script defer src="taller-reacond-rentabilidad.js?v=20261027-rr2"></script>
 <script defer src="bc-dialogos.js?v=20261024-d1"></script>
