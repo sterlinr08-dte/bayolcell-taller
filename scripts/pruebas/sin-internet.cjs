@@ -24,11 +24,14 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   c('sin internet aparece la ventana', a.visible, a);
   c('cabe en la pantalla y sin desborde', a.w <= a.vw - 32 && a.desborde <= 0, a);
   c('botón «Seguir trabajando» de 44 px o más', a.btnH >= 44, a.btnH);
+  const rojo = () => p.evaluate(() => { const e = document.getElementById('bcrzRed'); return !!(e && e.className === 'mal' && getComputedStyle(e).display !== 'none'); });
+  c('una sola señal: el aviso rojo de arriba no se ve con la ventana', !(await rojo()));
   // se dibuja la animación: comparar dos cuadros del lienzo
   const cambia = await p.evaluate(async () => { const cv = document.querySelector('#bcSinRed canvas'); const u1 = cv.toDataURL(); await new Promise(r => setTimeout(r, 450)); return u1 !== cv.toDataURL(); });
   c('la animación se mueve', cambia);
   await p.click('#bcSinRed .bsr-seguir'); await p.waitForTimeout(400);
   c('«Seguir trabajando» la cierra', !(await ver()).visible);
+  c('al cerrarla vuelve el aviso rojo pequeño', await rojo());
   await ctx.setOffline(false); await p.waitForTimeout(400); await ctx.setOffline(true); await p.waitForTimeout(500);
   c('si se va otra vez el internet, vuelve a salir', (await ver()).visible);
   await ctx.setOffline(false); await p.waitForTimeout(500);

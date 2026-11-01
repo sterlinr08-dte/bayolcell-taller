@@ -3,6 +3,7 @@
    animación del wifi: escanea, una raya roja lo tacha con «Sin conexión» y vuelve a buscar (bucle de 4 s).
    · Se quita sola cuando vuelve el internet; el aviso pequeño de taller-rapidez.js dice «Conexión de vuelta».
    · «Seguir trabajando» la cierra; si sigue sin internet queda el aviso pequeño de siempre.
+   · Mientras la ventana está abierta se esconde el aviso rojo pequeño de taller-rapidez.js (una sola señal).
    · Con «reducir movimiento» se ve quieta, en el cuadro de «Sin conexión».
    · No toca guardar, datos ni Supabase. Apagar: BC_SIN=false o localStorage bc_sin_off='1'. */
 (function () {
@@ -68,7 +69,7 @@
     caja = doc.createElement('div'); caja.id = 'bcSinRed'; caja.hidden = true;
     caja.setAttribute('role', 'alertdialog'); caja.setAttribute('aria-modal', 'false'); caja.setAttribute('aria-label', 'Sin conexión a internet');
     caja.innerHTML = '<div class="bsr-card"><canvas aria-hidden="true"></canvas>' +
-      '<div class="bsr-pie"><p>Se quita sola al volver el internet.</p>' +
+      '<div class="bsr-pie"><p>Lo que guarde ahora no se guarda. Se quita sola al volver.</p>' +
       '<button type="button" class="bsr-seguir">Seguir trabajando</button></div></div>';
     doc.body.appendChild(caja);
     cv = caja.querySelector('canvas'); ctx = cv.getContext('2d');
@@ -84,11 +85,11 @@
     caja.hidden = false; medir();
     cancelAnimationFrame(raf);
     if (quieto) cuadro(2.6); else { t0 = performance.now(); raf = requestAnimationFrame(bucle); }
-    void caja.offsetWidth; caja.classList.add('on');
+    void caja.offsetWidth; caja.classList.add('on'); root.classList.add('bc-sin-abierto');
   }
   function ocultar() {
     if (!caja || caja.hidden) return;
-    caja.classList.remove('on'); clearTimeout(tQuitar);
+    caja.classList.remove('on'); root.classList.remove('bc-sin-abierto'); clearTimeout(tQuitar);
     tQuitar = setTimeout(function () { if (caja && !caja.classList.contains('on')) { caja.hidden = true; cancelAnimationFrame(raf); } }, 240);
   }
 

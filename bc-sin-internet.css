@@ -22,4 +22,6 @@ html.bc-sin #bcSinRed .bsr-pie button:active{transform:scale(.97)}
 html.bc-sin #bcSinRed .bsr-pie button:focus-visible{outline:2px solid #38C6FF;outline-offset:2px}
 @media (max-width:420px){html.bc-sin #bcSinRed .bsr-pie{flex-direction:column;align-items:stretch;text-align:center}}
 @media (prefers-reduced-motion:reduce){html.bc-sin #bcSinRed,html.bc-sin #bcSinRed .bsr-card{transition:none}}
+/* Una sola señal: con la ventana abierta no se ve el aviso rojo pequeño de arriba (vuelve al cerrarla). */
+html.bc-sin.bc-sin-abierto #bcrzRed.mal{display:none!important}
 @media print{html.bc-sin #bcSinRed{display:none!important}}
