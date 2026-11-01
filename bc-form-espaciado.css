@@ -69,21 +69,8 @@ html.bc-fesp body #login .login-card > a { min-height: 44px; margin-top: 8px !im
 html.bc-fesp body #login .login-card .form-row:has(+ .btn-blue) { margin-bottom: 0; }
 
 /* ── 3 · Nuevo / Editar cliente de Financiamientos (#modalGenerico, cuerpo con estilos en línea) ── */
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) { padding: var(--fe-pv) var(--fe-ph) !important; }
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) > div:first-child { margin-bottom: 24px !important; }          /* título → contenido (grupo) */
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) > div:first-child > button:not(.bcn-btn) { width: 44px; height: 44px; }
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) > .bcn-head { --bcn-s: 44px; } /* la ✕ de taller-nav-apple.js mide 44 y su columna también */
-@media (max-width: 768px) { html.bc-fesp body #modalGenericoBody:has(#ecNombre):has(> .bcn-head) { padding-top: 8px !important; } } /* + 16 px de la agarradera = 24 */
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div[style*="display:flex"] { gap: 20px 10px !important; margin-bottom: 20px; } /* campo → campo 20 (también al envolver) */
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido .form-row { margin-bottom: 0; }
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido .form-row > label {
-  margin-bottom: 8px; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none; letter-spacing: 0;
-}
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido :is(input, select) { min-height: 48px !important; font-size: 16px !important; }
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido h4 { margin: 24px 0 12px !important; font-size: 13px !important; } /* grupo «Referencias» */
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div:last-child { margin: 24px 0 0 !important; gap: 8px !important; } /* campos → botones 24; botones 8 */
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div:last-child .btn { min-height: 44px; font-size: 13px; }
-html.bc-fesp body #modalGenericoBody:has(#ecNombre) #modalGenericoContenido > div:last-child .btn-blue { min-height: 54px !important; padding-left: 22px; padding-right: 22px; }
+html.bc-fesp body #modalGenericoBody:has(#ecNombre) { padding: var(--fe-pv) var(--fe-ph) !important; }          /* título → contenido (grupo) */ /* la ✕ de taller-nav-apple.js mide 44 y su columna también */
+@media (max-width: 768px) { } /* + 16 px de la agarradera = 24 */ /* campo → campo 20 (también al envolver) */ /* grupo «Referencias» */ /* campos → botones 24; botones 8 */
 
 /* ── 4 · Prefactura: documento (.bcpf-doc) ── */
 html.bc-fesp.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-pad { padding: var(--fe-pv) var(--fe-ph); }
@@ -152,18 +139,12 @@ html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) {
   row-gap: 20px !important; column-gap: 10px; margin-bottom: 20px;
 }
-html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) > .form-row { margin-bottom: 0 !important; }
 /* Rejillas sin .form-row (ventanas armadas por código: cada celda es un div con etiqueta + cajita) */
-html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"]):has(> :is(div, label) > :is(input, select, textarea)):not(:has(> .form-row)) { row-gap: 20px !important; }
-html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(div[style*="display:grid"], div[style*="display: grid"]):has(> :is(div, label) > :is(input, select, textarea)):not(:has(> .form-row)):not(:last-child) { margin-bottom: 20px; }
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body > :last-child { margin-bottom: 0 !important; }
 /* Listas de botones en columna (p. ej. avisos del MDM): 8 px entre ellos */
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body div[style*="flex-direction:column"]:has(> .btn) { gap: 8px !important; }
 /* Etiqueta encima de la cajita: 8 px, 13 px, gris #475569, minúscula normal (también si trae estilo en línea).
    No toca las que llevan casilla/campo adentro ni las que van al lado de la cajita en una rejilla de dos columnas. */
-html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:not(:has(input, select, textarea)):not([style*="grid-template-columns"] > *) {
-  margin-bottom: 8px !important; font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none !important; letter-spacing: 0 !important; line-height: 1.3;
-}
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body div[style*="grid-template-columns"] > label:not(:has(input, select, textarea)) {
   font-size: 13px !important; color: var(--fe-gris) !important; text-transform: none !important; letter-spacing: 0 !important;
 }
@@ -173,13 +154,6 @@ html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(.btn, button, a):not(.modal-close):not(#waWrap *) { font-size: max(13px, 1em) !important; }
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body :is(.btn, button):not(.modal-close) { min-height: 44px !important; }
 /* Casillas (§4b): en fila con su texto, cuadrito de 22, dentro de una tarjeta clara de 48 px (igual que «Activo» del piloto) */
-html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:has(> input[type="checkbox"]):not(#permisosContainer *) {
-  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px !important; margin: 0 !important; box-sizing: border-box;
-  border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
-  font-size: 14px !important; font-weight: 600; color: #0f172a; text-transform: none !important; letter-spacing: 0; cursor: pointer; line-height: 1.3;
-}
-html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:has(> input[type="checkbox"]):not(#permisosContainer *) > input[type="checkbox"] { width: 22px !important; height: 22px !important; min-height: 0 !important; margin: 0 !important; flex: none; }
-html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body label:has(> input[type="checkbox"]) :is(b, small, span) { font-size: inherit !important; }
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body .form-row + .form-row:has(> label > input[type="checkbox"]) { margin-top: 0; }
 /* Lista de permisos de «Nuevo rol»: las casillas se quedan como lista, solo con fila de 44 y letra 13 */
 html.bc-fesp body :is(.modal-backdrop, #bcE#bcE#bcE):not(#waWrap *) .modal-box .modal-body #permisosContainer label:has(> input[type="checkbox"]) { min-height: 44px; font-size: 13px !important; text-transform: none !important; }
@@ -281,49 +255,25 @@ html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisico
 html.bc-fesp body :is(#v-etiquetas, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #finContenido, #bcE#bcE#bcE) :is(.card, .fv-cq-card, .fv-cfg-section) .form-row { margin-bottom: 20px !important; }
 html.bc-fesp body :is(#v-etiquetas, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #finContenido, #bcE#bcE#bcE) :is(.card, .fv-cq-card, .fv-cfg-section) > .form-row:last-child { margin-bottom: 0 !important; }
 html.bc-fesp body :is(#v-configImpresora, #bcE#bcE#bcE) .card .form-row div[style*="gap:6px"]:has(> .btn) { gap: 8px !important; }
-html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE#bcE#bcE) .card:has(#despachoOrigen) > div:has(+ .btn-blue) { margin-bottom: 0 !important; }
-html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE#bcE#bcE) .card:has(#invAlmSel) p:has(+ .btn-success) { margin-bottom: 0 !important; }
-html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE#bcE#bcE) .card:has(#invAlmSel) > div[style*="display:flex"] { row-gap: 24px !important; column-gap: 10px !important; }
-html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE#bcE#bcE) .card:has(#invAlmSel) > div[style*="display:flex"] > .btn-success { margin-top: 0 !important; }
 /* Separadores (hr) entre grupos: 12 + 1 + 12 = el espacio de grupo */
 html.bc-fesp body :is(#v-etiquetas, #v-configImpresora, #bcE#bcE#bcE#bcE#bcE) .card .form-row:has(+ hr) { margin-bottom: 0 !important; }
 html.bc-fesp body :is(#v-etiquetas, #v-configImpresora, #bcE#bcE#bcE#bcE#bcE) .card hr { margin: 12px 0 !important; }
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card > :last-child { margin-bottom: 0 !important; }
-html.bc-fesp body :is(#v-rifaFactura, #bcE#bcE#bcE#bcE#bcE) .card:has(#rf_nombre) #rf_msg:empty { display: none; }
-html.bc-fesp body :is(#v-rifaFactura, #bcE#bcE#bcE#bcE#bcE) .card:has(#rf_nombre) div:has(> #rf_btnGuardar) { margin-top: 0 !important; }
 /* Financiamientos · Consulta: título → ayuda 8, ayuda → campos 24 */
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-head:has(+ .fv-cq-sub) { margin-bottom: 8px !important; }
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-sub { margin: 0 0 24px !important; font-size: 13px !important; }
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card .form-row label { margin-bottom: 8px !important; }
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card :is(div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) { row-gap: 20px !important; column-gap: 10px; margin-bottom: 20px !important; }
-html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card :is(div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) > .form-row { margin-bottom: 0 !important; }
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE#bcE#bcE) .fv-cq-card .fv-cq-fin-box { margin: 0 0 20px !important; }
 /* Liquidación de aduana: encabezados ordenables de 44 y, en el celular, la rejilla de 4 campos en 2 columnas para que nada se salga */
-html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) th[onclick] { height: 44px; }
-@media (max-width: 760px) { html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) div[style*="grid-template-columns:1fr 1fr 1fr 1fr"] { grid-template-columns: 1fr 1fr !important; } }
-html.bc-fesp body :is(#cfgContentGeneral, #bcE#bcE#bcE) .card:has(#cfgTallerNombre) > :is(input, select, textarea) { margin: 0 0 20px !important; }
-html.bc-fesp body :is(#cfgContentGeneral, #bcE#bcE#bcE) .card:has(#cfgTallerNombre) > :is(input, select, textarea):has(+ .btn) { margin-bottom: 24px !important; }
+@media (max-width: 760px) { }
 html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> :is(div, .form-row) > :is(input, select, textarea, label)) { row-gap: 20px !important; column-gap: 10px; }
-html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(div[style*="display:grid"], div[style*="display: grid"], div[style*="display:flex"], div[style*="display: flex"]):has(> .form-row) > .form-row { margin-bottom: 0 !important; }
 /* grupo → botón principal 24 · botón principal 54 · botones chicos legibles */
 html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(.btn-blue, .btn-success, .btn-teal, .btn-primary, .inc-btn-red):not(.btn-sm) { min-height: 54px !important; }
 html.bc-fesp body :is(#misIncentivosContenido, #bcE#bcE#bcE#bcE#bcE) .card .btn-blue.btn-sm { min-height: 54px !important; height: auto !important; }
 html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(.btn, button, .inc-btn):not(.modal-close):not(:is(.btn-blue, .btn-success, .btn-teal, .btn-primary, .inc-btn-red)) { font-size: max(13px, 1em) !important; min-height: 44px !important; }
 html.bc-fesp body :is(#v-etiquetas, #cfgContentGeneral, #v-despachos, #invFisicoCont, #v-liquidacion, #v-rifaFactura, #v-configImpresora, #misIncentivosContenido, #incentivosContenido, #finContenido, #bcE#bcE#bcE#bcE#bcE) :is(.card, .inc-card, .fv-cq-card, .fv-cfg-section) :is(.btn-blue, .btn-success, .btn-teal, .btn-primary, .inc-btn-red) { font-size: max(13px, 1em) !important; }
-html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE) .card:has(#despachoOrigen) > .btn-blue,
-html.bc-fesp body :is(#v-rifaFactura, #bcE#bcE#bcE) .card:has(#rf_nombre) #rf_btnGuardar,
-html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE) .card:has(#invAlmSel) .btn-success,
-html.bc-fesp body :is(#v-etiquetas, #bcE#bcE#bcE) .card:has(#lbl_marca) .form-row + div:has(> .btn-blue),
-html.bc-fesp body :is(#misIncentivosContenido, #bcE#bcE#bcE) .card:has(#miTicket) div:has(> .btn-blue),
-html.bc-fesp body :is(#incentivosContenido, #bcE#bcE#bcE) .inc-wrap div:has(> .inc-btn-red),
-html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) .fv-cfg-section div:has(> .btn-blue) { margin-top: 24px !important; }
-html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE) .card:has(#despachoOrigen) > :is(div, .btn-light) { margin-bottom: 20px !important; }
-html.bc-fesp body :is(#v-despachos, #bcE#bcE#bcE) .card:has(#despachoOrigen) > .btn-light { margin-top: 0 !important; }
-html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE) .card:has(#invAlmSel) p { margin: 0 0 20px !important; font-size: 13px !important; }
-html.bc-fesp body :is(#invFisicoCont, #bcE#bcE#bcE) .card:has(#invAlmSel) p:last-child { margin: 20px 0 0 !important; }
 /* Etiquetas adhesivas: la fila de cantidad + botón a 24 y los deslizadores a 20 */
-html.bc-fesp body :is(#v-etiquetas, #bcE#bcE#bcE) .card:has(#lbl_marca) .form-row[style*="margin:0 0 10px"] { margin-bottom: 20px !important; }
-html.bc-fesp body :is(#v-etiquetas, #bcE#bcE#bcE) .card:has(#lbl_marca) h4 { margin: 24px 0 8px !important; font-size: 13px !important; text-transform: none !important; letter-spacing: 0 !important; }
 /* Financiamientos: la hoja de estilos de la pantalla pone 10 px entre filas y 3 px bajo la etiqueta; aquí 20 y 8; título → ayuda 8 */
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) :is(.fv-cq-head, .fv-cfg-head) { margin-bottom: 24px !important; }
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) :is(.fv-cq-head, .fv-cfg-head) :is(h2, h3) { margin: 0 !important; }
@@ -331,8 +281,6 @@ html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) :is(.fv-cq-head, .fv-cfg-head
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) .fv-cfg-section .form-row:last-child { margin-bottom: 0 !important; }
 html.bc-fesp body :is(#finContenido, #bcE#bcE#bcE) .fv-cfg-section .fv-cfg-vars { margin-top: 20px !important; }
 /* Liquidación de aduana: botones de la barra a 8 y 44 */
-html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) div[style*="flex-wrap:wrap"] { gap: 8px !important; }
-html.bc-fesp body :is(#v-liquidacion, #bcE#bcE#bcE) .card:has(#aduana_prov) :is(input, select):not([type="file"]) { min-height: 48px !important; }
 /* Incentivos: tarjeta interior del registro con etiqueta/campo a 8/20 */
 html.bc-fesp body :is(#incentivosContenido, #bcE#bcE#bcE) .inc-wrap .inc-card:has(input) { margin-bottom: 24px !important; }
 html.bc-fesp body :is(#incentivosContenido, #bcE#bcE#bcE) .inc-wrap .inc-title { margin-bottom: 24px !important; }
@@ -351,7 +299,6 @@ html.bc-fesp.bc-pag-tienda body #panCel label.toggle, html.bc-fesp body .tools l
 html.bc-fesp.bc-pag-tienda body label.toggle input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
 html.bc-fesp.bc-pag-tienda body :is(.vacio, .res .info) a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; }
 /* Campañas (CRM): tarjeta 24/16 · 48/40, etiquetas 13 gris sin MAYÚSCULAS, campos 48/16, campo → campo 20, título → ayuda 8 */
-html.bc-fesp.bc-pag-campanas body .card:has(.card-body .field) .card-body { padding: var(--fe-pv) var(--fe-ph) !important; }
 html.bc-fesp.bc-pag-campanas body .card-step { padding: 16px var(--fe-ph) !important; }
 html.bc-fesp.bc-pag-campanas body .card-step p { margin-top: 8px !important; }
 html.bc-fesp.bc-pag-campanas body .card-body .field { margin-bottom: 20px !important; }
