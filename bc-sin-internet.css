@@ -6,21 +6,12 @@ html.bc-sin #bcSinRed{position:fixed;inset:0;z-index:2147483000;display:grid;pla
   opacity:0;transition:opacity .22s cubic-bezier(.22,1,.36,1)}
 html.bc-sin #bcSinRed[hidden]{display:none!important}
 html.bc-sin #bcSinRed.on{opacity:1}
-html.bc-sin #bcSinRed .bsr-card{width:min(470px,100%);background:#13131C;border-radius:24px;overflow:hidden;
+html.bc-sin #bcSinRed{cursor:pointer}
+html.bc-sin #bcSinRed .bsr-card{width:min(240px,62vw);background:#13131C;border-radius:24px;overflow:hidden;
   box-shadow:0 30px 80px -20px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.06);
   transform:translateY(10px) scale(.98);transition:transform .26s cubic-bezier(.22,1,.36,1)}
 html.bc-sin #bcSinRed.on .bsr-card{transform:none}
-html.bc-sin #bcSinRed canvas{display:block;width:100%;aspect-ratio:470/260;height:auto}
-html.bc-sin #bcSinRed .bsr-pie{display:flex;align-items:center;gap:12px;padding:0 20px 20px;
-  font:500 14px/1.4 "Segoe UI",Inter,system-ui,sans-serif;color:#A9A7C4}
-html.bc-sin #bcSinRed .bsr-pie p{margin:0;flex:1;min-width:0}
-html.bc-sin #bcSinRed .bsr-pie button{flex:none;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.06);color:#F4F4FA;font:600 14px "Segoe UI",Inter,system-ui,sans-serif;cursor:pointer;
-  transition:transform .14s cubic-bezier(.22,1,.36,1),background .16s ease}
-html.bc-sin #bcSinRed .bsr-pie button:hover{background:rgba(255,255,255,.1)}
-html.bc-sin #bcSinRed .bsr-pie button:active{transform:scale(.97)}
-html.bc-sin #bcSinRed .bsr-pie button:focus-visible{outline:2px solid #38C6FF;outline-offset:2px}
-@media (max-width:420px){html.bc-sin #bcSinRed .bsr-pie{flex-direction:column;align-items:stretch;text-align:center}}
+html.bc-sin #bcSinRed canvas{display:block;width:100%;aspect-ratio:240/200;height:auto}
 @media (prefers-reduced-motion:reduce){html.bc-sin #bcSinRed,html.bc-sin #bcSinRed .bsr-card{transition:none}}
 /* Una sola señal: con la ventana abierta no se ve el aviso rojo pequeño de arriba (vuelve al cerrarla). */
 html.bc-sin.bc-sin-abierto #bcrzRed.mal{display:none!important}

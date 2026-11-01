@@ -14,8 +14,8 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     document.body.classList.add('logged-in'); document.getElementById('app').style.display = 'block'; document.getElementById('login').style.display = 'none'; document.getElementById('appLoader').style.display = 'none'; });
   const c = (n, ok, d) => { console.log((ok ? 'OK   ' : 'FALLO') + ` [${W}] ${n}` + (d !== undefined ? ' · ' + JSON.stringify(d) : '')); if (!ok) fallos++; };
   const ver = () => p.evaluate(() => { const e = document.getElementById('bcSinRed'); if (!e) return { hay: false };
-    const r = e.querySelector('.bsr-card').getBoundingClientRect(), bt = e.querySelector('.bsr-seguir').getBoundingClientRect();
-    return { hay: true, visible: !e.hidden && getComputedStyle(e).opacity > 0.5, w: Math.round(r.width), vw: innerWidth, btnH: Math.round(bt.height), z: getComputedStyle(e).zIndex,
+    const r = e.querySelector('.bsr-card').getBoundingClientRect();
+    return { hay: true, visible: !e.hidden && getComputedStyle(e).opacity > 0.5, w: Math.round(r.width), vw: innerWidth, textos: e.querySelectorAll('p,button').length, z: getComputedStyle(e).zIndex,
       cv: e.querySelector('canvas').width, desborde: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
   c('con internet no aparece', !(await ver()).visible);
   await ctx.setOffline(true); await p.waitForTimeout(2600);
@@ -23,14 +23,14 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/sin-internet-${W}.png` });
   c('sin internet aparece la ventana', a.visible, a);
   c('cabe en la pantalla y sin desborde', a.w <= a.vw - 32 && a.desborde <= 0, a);
-  c('botón «Seguir trabajando» de 44 px o más', a.btnH >= 44, a.btnH);
+  c('solo el logo: sin textos ni botón', a.textos === 0, a.textos);
   const rojo = () => p.evaluate(() => { const e = document.getElementById('bcrzRed'); return !!(e && e.className === 'mal' && getComputedStyle(e).display !== 'none'); });
   c('una sola señal: el aviso rojo de arriba no se ve con la ventana', !(await rojo()));
   // se dibuja la animación: comparar dos cuadros del lienzo
   const cambia = await p.evaluate(async () => { const cv = document.querySelector('#bcSinRed canvas'); const u1 = cv.toDataURL(); await new Promise(r => setTimeout(r, 450)); return u1 !== cv.toDataURL(); });
   c('la animación se mueve', cambia);
-  await p.click('#bcSinRed .bsr-seguir'); await p.waitForTimeout(400);
-  c('«Seguir trabajando» la cierra', !(await ver()).visible);
+  await p.mouse.click(20, 20); await p.waitForTimeout(400);
+  c('tocar la pantalla lo cierra', !(await ver()).visible);
   c('al cerrarla vuelve el aviso rojo pequeño', await rojo());
   await ctx.setOffline(false); await p.waitForTimeout(400); await ctx.setOffline(true); await p.waitForTimeout(500);
   c('si se va otra vez el internet, vuelve a salir', (await ver()).visible);
