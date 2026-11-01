@@ -1,0 +1,18 @@
+/* BAYOL CELL · Sin internet (dueño, 1-nov-2026: «ponlo en taller cuando no haya internet»). Lógica en bc-sin-internet.js.
+   Activa con html.bc-sin. Apagar: BC_SIN=false o localStorage bc_sin_off='1'. No toca guardar ni datos: solo avisa. */
+html.bc-sin #bcSinRed{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:rgba(8,8,14,.55);-webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);
+  opacity:0;transition:opacity .22s cubic-bezier(.22,1,.36,1)}
+html.bc-sin #bcSinRed[hidden]{display:none!important}
+html.bc-sin #bcSinRed.on{opacity:1}
+html.bc-sin #bcSinRed{cursor:pointer}
+html.bc-sin #bcSinRed .bsr-card{width:min(240px,62vw);background:#13131C;border-radius:24px;overflow:hidden;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.06);
+  transform:translateY(10px) scale(.98);transition:transform .26s cubic-bezier(.22,1,.36,1)}
+html.bc-sin #bcSinRed.on .bsr-card{transform:none}
+html.bc-sin #bcSinRed canvas{display:block;width:100%;aspect-ratio:240/200;height:auto}
+@media (prefers-reduced-motion:reduce){html.bc-sin #bcSinRed,html.bc-sin #bcSinRed .bsr-card{transition:none}}
+/* Una sola señal: con la ventana abierta no se ve el aviso rojo pequeño de arriba (vuelve al cerrarla). */
+html.bc-sin.bc-sin-abierto #bcrzRed.mal{display:none!important}
+@media print{html.bc-sin #bcSinRed{display:none!important}}
