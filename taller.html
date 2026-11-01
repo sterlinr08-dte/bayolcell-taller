@@ -35,6 +35,9 @@ html.bc-ligero #bcAmbientOrbSafe,html.bc-ligero bcr-luz{display:none!important}
 html.bc-ligero *,html.bc-ligero *::before,html.bc-ligero *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 /* PC de bajos recursos (1-nov-2026): animaciones y transiciones casi instantáneas (0.01 ms, no «none», para que los
    avisos de fin de animación sigan llegando y nada se quede trabado). Una sola vuelta en las que se repiten. */
+/* PC de bajos recursos (1-nov-2026): sin sombras. Las tarjetas ya tienen borde y se siguen viendo; en el banco con la CPU
+   6 veces más lenta, el pintado (raster) bajó de unos 610 a 475 ms al moverse por 4 pantallas. */
+html.bc-ligero body :is(#bcLig#bcLig#bcLig,*),html.bc-ligero body :is(#bcLig#bcLig#bcLig,*)::before,html.bc-ligero body :is(#bcLig#bcLig#bcLig,*)::after{box-shadow:none!important;text-shadow:none!important}
 html.bc-ligero body :is(#bcLig#bcLig#bcLig,*),html.bc-ligero body :is(#bcLig#bcLig#bcLig,*)::before,html.bc-ligero body :is(#bcLig#bcLig#bcLig,*)::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
 #appLoader.hide,#appLoader.hide *,#appLoader.hide *::after{animation:none!important}
 #bcrzLinea:not(.on)::before{animation:none!important}
