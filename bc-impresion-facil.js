@@ -62,6 +62,8 @@
     var card = doc.getElementById('qzPanelCard');
     if (probando || activo() || !hayQz() || doc.hidden) return;
     if (!fondo && !visible(card)) return;
+    // Modo PC rápido (1-nov-2026): la búsqueda de fondo solo con Recepción/Prefactura a la vista (donde está el engranaje)
+    if (fondo && !visible(doc.getElementById('v-recepcion'))) return;
     if (Date.now() - ultimo < (fondo ? 15000 : 2500)) return;
     probando = true; ultimo = Date.now();
     pintar('buscando');
