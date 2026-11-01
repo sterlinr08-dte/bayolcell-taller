@@ -52,9 +52,8 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   });
   const c = (n, ok, d) => { console.log((ok ? 'OK   ' : 'FALLO') + ` [${W}] ${n}` + (d !== undefined ? ' · ' + JSON.stringify(d) : '')); if (!ok) fallos++; };
   c('la línea entra en menos de 150 ms (Info Plus tarda 2 s)', r.lineaVisible && r.msHastaLinea < 150, r.msHastaLinea);
-  c('muestra «Comprobando existencia…»', r.etiqueta);
+  c('no muestra ninguna etiqueta (dueño: «quítala»)', !r.etiqueta);
   c('Guardar espera la comprobación (≥ 1.5 s) y luego guarda', r.guardoTrasEsperar && r.msGuardar >= 1500 && r.avisoComprobando, r.msGuardar);
-  c('la etiqueta se quita al terminar', r.etiquetaSeVa);
   c('sin stock real: entra, se pone roja, avisa y bloquea', r.sinStockEntra && r.sinStockRojo && r.sinStockAviso && r.sinStockBloquea);
   c('lleva IMEI aunque el nombre no lo diga: se convierte a línea con IMEI', !r.imeiProvisional && r.imeiFinal);
   c('recuerda que lleva IMEI para la próxima vez', r.imeiRecordado);

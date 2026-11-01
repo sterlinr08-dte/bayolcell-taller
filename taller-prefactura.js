@@ -391,7 +391,7 @@
         // 23-oct-2026 (dueño: «quitar #, mejor que salgan los códigos»): en PC la primera columna es el código; en celular sigue el 01, 02.
         '<span class="n"><em class="ni">' + ('0' + (i + 1)).slice(-2) + '</em><em class="nc" title="' + esc(it.cod) + '">' + esc(it.cod) + '</em></span>' +
         '<div class="d"><button type="button" class="dnb" data-ver="' + i + '" title="Ver precios y cambiar la descripción">' + esc(it.desc) + '</button>' +
-        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.comprobando ? '<span class="srv chk" title="Info Plus está confirmando la existencia y si lleva IMEI"><i class="ti ti-loader-2" aria-hidden="true"></i> Comprobando…</span>' : '') + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (esRapido(it) ? '<span class="srv dlv">' + RAPIDOS[String(it.cod)].nom + '</span>' : '') + '</div></div>' +
+        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (esRapido(it) ? '<span class="srv dlv">' + RAPIDOS[String(it.cod)].nom + '</span>' : '') + '</div></div>' +
         '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
         // 24-oct-2026 (dueño: «bloquea el precio libre para empleados, solamente en servicio»): el empleado solo escribe el
