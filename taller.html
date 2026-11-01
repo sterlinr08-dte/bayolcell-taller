@@ -1851,7 +1851,15 @@ body{
 <link rel="stylesheet" href="taller-ui-global.css?v=20261026-u1">
 <!-- Espaciado de formularios (regla del dueño 29-oct-2026; piloto 30-oct en 5 formularios): capa reversible. Apagar: BC_FESP=false o localStorage bc_fesp_off=1 -->
 <script>var BC_FESP=true;try{if(BC_FESP&&localStorage.getItem('bc_fesp_off')!=='1')document.documentElement.classList.add('bc-fesp');}catch(e){if(BC_FESP)document.documentElement.classList.add('bc-fesp');}</script>
-<link rel="stylesheet" href="bc-form-espaciado.css?v=20261030-e2">
+<link rel="stylesheet" href="bc-form-espaciado.css?v=20261101-e3">
+<!-- Reglas pesadas del espaciado (:has con descendiente): solo encendidas con una ventana abierta o en las pantallas que las usan (1-nov-2026, PC de bajos recursos). Siempre encendidas: localStorage bc_fesp_has_siempre=1 -->
+<link rel="stylesheet" id="bcFespHas" href="bc-form-espaciado-has.css?v=20261101-e3" media="not all">
+<script>(function(){var l=document.getElementById('bcFespHas');if(!l)return;var siempre=false;try{siempre=localStorage.getItem('bc_fesp_has_siempre')==='1';}catch(e){}
+if(siempre){l.media='all';return;}
+var Q='.modal-backdrop.active,#modalGenerico,.view.active:is(#v-etiquetas,#v-despachos,#v-liquidacion,#v-rifaFactura),.view.active :is(#invFisicoCont,#cfgContentGeneral,#finContenido,#incentivosContenido,#misIncentivosContenido)';
+var on=null;function ver(){var b=!!document.querySelector(Q);if(b!==on){on=b;l.media=b?'all':'not all';}}
+function arrancar(){ver();new MutationObserver(ver).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});}
+if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',arrancar);window.bcFespHasVer=ver;})();</script>
 </head>
 <body>
 
