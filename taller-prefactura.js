@@ -533,6 +533,14 @@
 
   // ── Cabecera, cliente, totales y barra ──
   function iniciales(n) { var p = String(n || '').trim().split(/\s+/).filter(Boolean); return ((p[0] || '')[0] || '').toUpperCase() + ((p[1] || '')[0] || '').toUpperCase(); }
+  var tDoc = 0;
+  function escribiendo() { var a = doc.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && doc.documentElement.classList.contains('bc-pcr')); }
+  function pintarDocLuego() { clearTimeout(tDoc); tDoc = setTimeout(function () { tDoc = 0; try { pintarDoc(); } catch (e) {} }, 120); }
+  function pintarDocYa() { if (tDoc) { clearTimeout(tDoc); tDoc = 0; } pintarDoc(); }
+  // Pendiente → se pinta antes de cualquier toque o tecla especial (Guardar, imprimir, Enter, Tab…)
+  doc.addEventListener('pointerdown', function () { if (tDoc) pintarDocYa(); }, true);
+  doc.addEventListener('keydown', function (e) { if (tDoc && e.key && e.key.length > 1) pintarDocYa(); }, true);
+  window.addEventListener('beforeprint', function () { if (tDoc) pintarDocYa(); });
   function pintarDoc() {
     var s = st(); if (!R.num) return;
     // El aviso «usuario no enlazado» lo crea _rpInit junto al vendedor: va debajo, a todo el ancho
@@ -696,7 +704,9 @@
     }
     if (typeof window._rpRenderResumen === 'function' && !window._rpRenderResumen._bcpf) {
       var orig = window._rpRenderResumen;
-      var envR = function () { var r = orig.apply(this, arguments); try { pintarDoc(); } catch (e) {} return r; };
+      // PC lenta (1-nov-2026): al escribir en un campo, la hoja se repinta 120 ms después de la última tecla (no en cada
+      // tecla). Cualquier toque, Guardar o imprimir la pinta al instante (pintarDocYa), así nunca sale una hoja vieja.
+      var envR = function () { var r = orig.apply(this, arguments); try { if (escribiendo()) pintarDocLuego(); else pintarDocYa(); } catch (e) {} return r; };
       envR._bcpf = true; window._rpRenderResumen = envR;
     }
     if (typeof window._rpAgregarArticulo === 'function' && !window._rpAgregarArticulo._bcpf) {
@@ -750,7 +760,7 @@
     top.classList.add('arr'); top.addEventListener('pointermove', mover); top.addEventListener('pointerup', soltar); top.addEventListener('pointercancel', soltar);
   });
 
-  window.bcPfPintar = function () { pintarCarrito(); pintarDoc(); };
+  window.bcPfPintar = function () { pintarCarrito(); pintarDocYa(); };
   if (!organizar()) {
     var mo = new MutationObserver(function () { if (organizar()) mo.disconnect(); });
     mo.observe(doc.documentElement, { childList: true, subtree: true });

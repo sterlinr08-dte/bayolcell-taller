@@ -184,7 +184,16 @@
   }, true);
 
   var pend = false;
-  function programar() { if (pend) return; pend = true; requestAnimationFrame(function () { pend = false; try { aplicar(); } catch (e) {} }); }
+  // PC lenta (1-nov-2026): aplicar() recorre toda la pantalla. Antes corría en CADA cambio (cada tecla repinta la
+  // prefactura). Ahora: al primer cambio, en el próximo cuadro como siempre; si vuelven a llegar cambios seguidos,
+  // como mucho una vez cada 300 ms (la última siempre corre).
+  var ultimaVez = 0, tInfo = 0;
+  function correr() { pend = false; tInfo = 0; ultimaVez = Date.now(); try { aplicar(); } catch (e) {} }
+  function programar() {
+    if (pend) return; pend = true;
+    var espera = 300 - (Date.now() - ultimaVez);
+    if (espera <= 0) requestAnimationFrame(correr); else tInfo = setTimeout(function () { requestAnimationFrame(correr); }, espera);
+  }
   function iniciar() { aplicar(); new MutationObserver(programar).observe(doc.body, { childList: true, subtree: true }); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', iniciar); else iniciar();
   window.bcInfoAplicar = aplicar;
