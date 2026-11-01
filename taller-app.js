@@ -20801,13 +20801,16 @@ function _ipDescCompleta(a) {
     if(r.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).every(x => pal.includes(x))) return d;
     return (d + ' · ' + (/^AVISO$/i.test(r) ? 'Con aviso' : r)).slice(0, 100);
 }
+// 1-nov-2026 (dueño: «al seleccionar un artículo dura mucho en cargar»): la línea entra AL INSTANTE con lo que el taller ya
+// sabe, marcada «comprobando…». Las dos preguntas a Info Plus (¿lleva IMEI? y existencia en vivo) corren a la vez por detrás.
+// El candado no se pierde: se movió de «antes de pintar» a «antes de guardar» (_rpGuardar espera las comprobaciones y
+// _rpProblemasFactura bloquea si no hay existencia o falta el IMEI). Medido en producción: 1–5 s de espera → 0.
+const _rpComprobando = new Set();
 async function _rpAgregarArticulo(a) {
         if(!a) return;
         if(!_rpState) _rpInit();
         const it = { cod: a.codigo, desc: _ipDescCompleta(a), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
         it.precio = _rpNivelPrecio(it);
-        // 22-oct-2026 (dueño): si lleva IMEI lo decide Info Plus (compras o listaserie), no la palabra «celular».
-        if(await _rpEsSerial(it.cod, it.desc)) { it.serial = true; it.imeis = []; it.cant = 0; }
         // 20-oct-2026: si el artículo ya está en la prefactura se usa la misma línea (como STUDIO):
         // celular → el cursor va al IMEI de esa línea (cada IMEI suma 1); otro artículo → cantidad + 1.
         const ya = _rpState.items.findIndex(x => String(x.cod) === String(it.cod) && !x.servicio);
@@ -20816,27 +20819,45 @@ async function _rpAgregarArticulo(a) {
             if(x.serial) { toast('Ya está en la línea ' + (ya + 1) + ': escanee el IMEI del otro equipo ahí.'); setTimeout(() => document.getElementById('rpImei_' + ya)?.focus(), 60); return true; }
             _rpCant(ya, Number(x.cant || 0) + 1); return true;
         }
-        try {
-            const { data } = await supabaseClient.functions.invoke('infoplus-existencia-art', { body: { codarticulo: Number(a.codigo) } });
-            const vivo = _findInfoplusArt(a.codigo);
-            if(data && data.ok && data.existencias && vivo) vivo.existencias = data.existencias;
-        } catch(e) { logError('existencia en vivo prefactura', e); }
-        const stock = _rpStockItem(it);
-        if(stock !== null && stock <= 0) return toast(`Sin stock en ${_rpAlmNombre()}`, 'error');
+        // Provisional: lo que ya se sabe de este código (sesiones anteriores) o, si no, el nombre; Info Plus confirma detrás.
+        const k = String(it.cod || '');
+        const sabido = (k in _rpSerialCache) ? _rpSerialCache[k] : null;
+        if(sabido === true || (sabido === null && _abCat(it.desc) === 'celular')) { it.serial = true; it.imeis = []; it.cant = 0; }
+        it.comprobando = true;
         _rpState.items.push(it);
         _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
-        if(it.serial) setTimeout(() => document.getElementById('rpImei_' + (_rpState.items.length - 1))?.focus(), 60);
+        if(it.serial) setTimeout(() => document.getElementById('rpImei_' + _rpState.items.indexOf(it))?.focus(), 60);
+        const tarea = (async () => {
+            const [serial] = await Promise.all([
+                _rpEsSerial(it.cod, it.desc),
+                (async () => { try {
+                    const { data } = await supabaseClient.functions.invoke('infoplus-existencia-art', { body: { codarticulo: Number(a.codigo) } });
+                    const vivo = _findInfoplusArt(a.codigo);
+                    if(data && data.ok && data.existencias && vivo) vivo.existencias = data.existencias;
+                } catch(e) { logError('existencia en vivo prefactura', e); } })()
+            ]);
+            if(!_rpState || _rpState.items.indexOf(it) < 0) return; // la quitaron mientras tanto
+            it.comprobando = false;
+            if(serial && !it.serial) { it.serial = true; it.imeis = it.imeis || []; it.cant = (it.imeis || []).length; }
+            else if(!serial && it.serial && !(it.imeis || []).length) { it.serial = false; delete it.imeis; it.cant = 1; }
+            const stock = _rpStockItem(it);
+            if(stock !== null && stock <= 0) toast(`Sin stock en ${_rpAlmNombre()}`, 'error');
+            _rpRenderCart(); _rpRenderResumen();
+            if(serial && !(it.imeis || []).length) { const idx = _rpState.items.indexOf(it); try { document.dispatchEvent(new CustomEvent('rp:serial', { detail: { i: idx } })); } catch(e) {} setTimeout(() => document.getElementById('rpImei_' + idx)?.focus(), 60); }
+        })();
+        _rpComprobando.add(tarea); tarea.finally(() => _rpComprobando.delete(tarea));
         return true;
 }
 // ¿El artículo lleva IMEI/serie? Pregunta a Info Plus (Edge infoplus-imei-almacen, pregunta:'serial'); se guarda por
 // sesión. Si Info Plus no responde, se decide por el nombre como antes (_abCat === 'celular').
-const _rpSerialCache = {};
+const _rpSerialCache = (() => { try { const j = JSON.parse(localStorage.getItem('bc_rp_serial') || '{}'); return (Date.now() - (j.t || 0) < 7 * 86400e3 && j.v) ? j.v : {}; } catch(e) { return {}; } })();
+function _rpSerialGuardar() { try { localStorage.setItem('bc_rp_serial', JSON.stringify({ t: Date.now(), v: _rpSerialCache })); } catch(e) {} }
 async function _rpEsSerial(cod, desc) {
     const k = String(cod || '');
     if(k in _rpSerialCache) return _rpSerialCache[k];
     try {
         const { data } = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { pregunta: 'serial', codarticulo: k } });
-        if(data && data.ok && typeof data.serial === 'boolean') { _rpSerialCache[k] = data.serial; return data.serial; }
+        if(data && data.ok && typeof data.serial === 'boolean') { _rpSerialCache[k] = data.serial; _rpSerialGuardar(); return data.serial; }
     } catch(e) { logError('serial Info Plus', e); }
     return _abCat(desc) === 'celular';
 }
@@ -20900,7 +20921,7 @@ function _rpRenderCart() {
     if(!_rpState || !_rpState.items.length) { c.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:16px;text-align:center;border:1px dashed #cbd5e1;border-radius:10px;">Agregue artículos o servicios de Info Plus con el botón de arriba.</div>`; return; }
     c.innerHTML = `<table class="rx-table"><thead><tr><th>Código</th><th>Descripción</th><th style="width:58px;">Cant.</th><th style="width:96px;">Precio</th><th style="text-align:right;">Subtotal</th><th></th></tr></thead><tbody>${_rpState.items.map((it, i) => `<tr>
         <td style="font-weight:800;color:#e31e24;white-space:nowrap;">${escapeHtml(String(it.cod))}</td>
-        <td><input value="${escapeHtml(it.desc)}" onchange="_rpDesc(${i},this.value)" title="Descripción editable (no cambia el artículo maestro)" style="width:100%;min-width:150px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">${it.niveles ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Contado ${money(it.niveles['1'] || 0)}${it.niveles['2'] != null ? (' · Mayor ' + money(it.niveles['2'])) : ''}${it.niveles['3'] != null ? (' · Extremo ' + money(it.niveles['3'])) : ''}</div>` : ''}</td>
+        <td><input value="${escapeHtml(it.desc)}" onchange="_rpDesc(${i},this.value)" title="Descripción editable (no cambia el artículo maestro)" style="width:100%;min-width:150px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">${it.comprobando ? `<div class="rx-comprobando" style="font-size:10.5px;color:#64748b;margin-top:2px;"><i class="ti ti-loader-2"></i> Comprobando existencia…</div>` : ''}${it.niveles ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Contado ${money(it.niveles['1'] || 0)}${it.niveles['2'] != null ? (' · Mayor ' + money(it.niveles['2'])) : ''}${it.niveles['3'] != null ? (' · Extremo ' + money(it.niveles['3'])) : ''}</div>` : ''}</td>
         <td>${it.serial
             ? `<div title="La cantidad sale del número de IMEI" style="width:52px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;text-align:center;font-weight:700;">${it.cant}</div>`
             : `<input type="number" min="1" step="1" value="${it.cant}" onchange="_rpCant(${i},this.value)" style="width:52px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;">`}</td>
@@ -21431,6 +21452,7 @@ async function _rpGuardar(imprimir) {
         }
     }
     if(hayItems) {
+        if(_rpComprobando.size) { toast('Comprobando existencia…'); await Promise.all([..._rpComprobando]); }
         const probs = _rpProblemasFactura();
         if(probs.length) { _rpRenderCart(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
         const creada = await _rpCrearPrefactura();

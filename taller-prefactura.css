@@ -873,6 +873,11 @@ html.bc-pf #v-recepcion .bcpf-it .pin[readonly] { background: #f8fafc; color: #4
 /* 30-oct-2026 (dueño): Delivery (artículo 1161) junto a Servicio y pregunta «¿incluir delivery?» para clientes por mayor */
 html.bc-pf #v-recepcion .bcpf-deliv i { color: #0e7490; }
 html.bc-pf #v-recepcion .bcpf-it .dsub .srv.dlv { color: #0e7490; background: #ecfeff; }
+/* 1-nov-2026: la línea entra al instante; mientras Info Plus confirma existencia e IMEI lleva esta etiqueta gris. */
+html.bc-pf #v-recepcion .bcpf-it .dsub .srv.chk { color: #64748b; background: #f1f5f9; }
+html.bc-pf #v-recepcion .bcpf-it .dsub .srv.chk .ti { display: inline-block; animation: bcpfGira 1s linear infinite; }
+@keyframes bcpfGira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { html.bc-pf #v-recepcion .bcpf-it .dsub .srv.chk .ti { animation: none; } }
 html.bc-pf #v-recepcion .bcpf-it.bcpf-nuevo { animation: bcpfNuevo 1.2s ease-out; }
 @keyframes bcpfNuevo { from { background: #ecfeff; } to { background: transparent; } }
 html.bc-pf #v-recepcion .bcpf-deliv-sug { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0 0; min-height: 44px; padding: 0 16px; border: 1px dashed #0e7490; background: #ecfeff; border-radius: 999px; font-size: 14px; font-weight: 800; color: #0e7490; cursor: pointer; }
