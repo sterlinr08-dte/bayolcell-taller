@@ -681,6 +681,8 @@
       };
       envP._bcdl = true; window._rpPrecio = envP;
     }
+    // 1-nov-2026: la línea entra al instante y Info Plus confirma detrás; si resulta que lleva IMEI, se abre la ventana del IMEI.
+    if (!doc.documentElement._bcpfSerial) { doc.documentElement._bcpfSerial = true; doc.addEventListener('rp:serial', function (e) { try { var i = e && e.detail && e.detail.i; if (i >= 0) abrirImei(i); } catch (er) {} }); }
     if (typeof window._rpRenderCart === 'function' && !window._rpRenderCart._bcpf) {
       var envC = function () { pintarCarrito(); pintarDoc(); refrescarImei(); };
       envC._bcpf = true; window._rpRenderCart = envC;
