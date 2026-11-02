@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { corregirTexto, metaConOrtografia, fusionarOrtografiaEnFila } from "./_shared/ortografia.ts";
 
 // whatsapp-enviar — responde un hilo de WhatsApp existente desde la bandeja.
 //
@@ -106,6 +107,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ZERNIO_API_KEY = Deno.env.get("ZERNIO_API_KEY") ?? "";
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const ZERNIO_TIMEOUT_MS = 20000;
 
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -235,6 +237,7 @@ interface Plantilla {
 }
 
 Deno.serve(async (req: Request) => {
+  const t0 = Date.now();
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ ok: false, error: "Metodo no permitido" }, 405);
   if (!ZERNIO_API_KEY) return json({ ok: false, error: "Falta ZERNIO_API_KEY en el proyecto" }, 500);
@@ -305,6 +308,15 @@ Deno.serve(async (req: Request) => {
     replyToWaId = original?.wa_message_id ?? null;
   }
 
+  // 2-nov-2026 — Ortografía (plan v2): DESPUÉS de ventana, línea, identidad y permisos; ANTES de armar el envío.
+  // Solo texto escrito por una persona: nunca plantillas, ubicación, contacto ni notas de voz.
+  // Interruptor en crm_ortografia_config (apagado). Ante cualquier falla devuelve el original.
+  const aplicaOrtografia = !!mensaje && !plantilla && !ubicacion && !contacto && !adjunto?.es_nota_voz;
+  const orto = aplicaOrtografia
+    ? await corregirTexto(mensaje, { db, canal: "whatsapp", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.linea_id })
+    : null;
+  const texto = orto ? orto.texto : mensaje;
+
   let resultado: ResultadoZernio;
   try {
     if (plantilla) {
@@ -365,7 +377,7 @@ Deno.serve(async (req: Request) => {
         campos.attachmentUrl = adjunto.url;
         campos.attachmentType = TIPO_A_ATTACHMENT[adjunto.tipo] || "file";
         if (adjunto.tipo === "documento" && adjunto.nombre) campos.attachmentName = adjunto.nombre;
-        if (mensaje) campos.message = mensaje;
+        if (texto) campos.message = texto;
       } else if (ubicacion) {
         campos.location = { latitude: ubicacion.lat, longitude: ubicacion.lng };
       } else if (contacto) {
@@ -374,7 +386,7 @@ Deno.serve(async (req: Request) => {
           ...(contacto.telefono ? { phones: [{ phone: contacto.telefono }] } : {}),
         }];
       } else {
-        campos.message = mensaje;
+        campos.message = texto;
       }
       resultado = await mandarAZernio(conversationId, linea.zernio_account_id, campos, replyToWaId);
       if (!resultado.ok && replyToWaId && resultado.status >= 400 && resultado.status < 500 && !esConversacionNoEncontrada(resultado)) {
@@ -422,9 +434,9 @@ Deno.serve(async (req: Request) => {
   const ahora = new Date().toISOString();
 
   let tipoContenido = "text";
-  let cuerpoGuardado: string | null = mensaje || null;
+  let cuerpoGuardado: string | null = texto || null;
   let mediaPath: string | null = null;
-  let preview = mensaje.slice(0, 200);
+  let preview = texto.slice(0, 200);
 
   if (adjunto) {
     tipoContenido = adjunto.es_nota_voz ? "audio" : adjunto.tipo;
@@ -457,7 +469,12 @@ Deno.serve(async (req: Request) => {
     enviado_por_id: refId,
     plantilla_nombre: plantilla?.nombre ?? null,
     plantilla_variables: plantilla ? JSON.stringify(plantilla.variables ?? plantilla.variablesNombradas ?? null) : null,
+    ...(orto?.corregido ? { meta: metaConOrtografia(null, orto) } : {}),
   });
+  // Webhook adelantado: el eco ya creó la fila -> solo se fusiona la marca, nunca se reenvía.
+  if (msgError?.code === "23505" && orto?.corregido) {
+    await fusionarOrtografiaEnFila(db, "whatsapp_mensajes", "meta", "wa_message_id", resultado.data?.data?.messageId ?? null, orto);
+  }
 
   const guardadoLocal = !msgError;
   if (msgError) {
@@ -481,7 +498,9 @@ Deno.serve(async (req: Request) => {
     }).eq("id", hiloId);
   }
 
-  const respuesta: Record<string, unknown> = { ok: true, messageId: resultado.data?.data?.messageId ?? null };
+  const respuesta: Record<string, unknown> = { ok: true, messageId: resultado.data?.data?.messageId ?? null, texto_enviado: texto };
+  if (orto?.corregido) respuesta.ortografia = { corregido: true, original: orto.original };
+  console.log(JSON.stringify({ evento: "envio", canal: "whatsapp", ms_envio_total: Date.now() - t0, ms_corrector: orto?.ms ?? 0, ortografia: orto?.motivo ?? "no_aplica" }));
   if (!guardadoLocal) {
     respuesta.guardado_local = false;
     respuesta.aviso = "El mensaje se envió al cliente, pero no se pudo guardar en el historial local — recarga la conversación para verificarlo (puede tardar un momento en aparecer solo).";

@@ -507,3 +507,19 @@ export function metaConOrtografia(existente: unknown, r: ResultadoOrtografia): R
   if (r.corregido) base.ortografia = { original: r.original, en: new Date().toISOString(), ms: r.ms };
   return Object.keys(base).length ? base : null;
 }
+
+/**
+ * Webhook adelantado: si el eco de Zernio ya guardó la fila, se fusiona solo la marca
+ * de ortografía (conservando lo demás). Nunca reenvía nada.
+ */
+export async function fusionarOrtografiaEnFila(
+  // deno-lint-ignore no-explicit-any
+  db: any, tabla: string, columnaMeta: string, columnaId: string, valorId: string | null, r: ResultadoOrtografia | null,
+): Promise<void> {
+  if (!r?.corregido || !valorId) return;
+  try {
+    const { data } = await db.from(tabla).select(columnaMeta).eq(columnaId, valorId).maybeSingle();
+    if (!data) return;
+    await db.from(tabla).update({ [columnaMeta]: metaConOrtografia(data[columnaMeta], r) }).eq(columnaId, valorId);
+  } catch { /* la marca es secundaria: el mensaje ya salió */ }
+}
