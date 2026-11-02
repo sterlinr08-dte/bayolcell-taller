@@ -49,7 +49,7 @@
   function fbHora(d){try{return new Date(d).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});}catch(_e){return '';}}
   function fbTick(e){return typeof window._waIconoEstado==='function'?window._waIconoEstado(e||'enviado'):'· '+esc(e||'enviado');}
   function fbTexto(c){const t=esc(c||'');return typeof window.linkifyText==='function'?window.linkifyText(t):t;}
-  function fbFilaHTML(m){return `<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}" data-ts="${esc(m.creado_en||'')}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${fbTexto(m.cuerpo)}</div><small>${esc(fbHora(m.creado_en))}${m.direccion==='out'?' '+fbTick(m.estado):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`;}
+  function fbFilaHTML(m){return `<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}" data-ts="${esc(m.creado_en||'')}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${fbTexto(m.cuerpo)}</div><small>${esc(fbHora(m.creado_en))}${m.direccion==='out'?' '+fbTick(m.estado):''}${m.direccion==='out'&&window.bcOrtoMarca?window.bcOrtoMarca(m.metadata&&m.metadata.ortografia&&m.metadata.ortografia.original,m.estado):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`;}
   function render(thread,rows,cb){
     const host=$('#bcFbChat');if(!host)return;
     const same=selected===thread.id;

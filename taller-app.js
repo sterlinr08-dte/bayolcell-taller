@@ -31545,6 +31545,7 @@ function _waBurbujaRowHTML(m, nombre, porId) {
             <div class="wa-tick-line" style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                 ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                 ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
+                ${esOut && window.bcOrtoMarca ? window.bcOrtoMarca(m.meta && m.meta.ortografia && m.meta.ortografia.original, m.estado) : ''}
             </div>
             ${esOut ? _waMotivoFallo(m) : ''}
             ${_waReaccionesHTML(m)}
@@ -33205,6 +33206,9 @@ async function enviarMensajeWhatsapp() {
             if(opt) {
                 opt.estado = 'enviado';
                 opt.wa_message_id = j.messageId || null;
+                // 2-nov-2026 (ortografía): mostrar exactamente lo que recibió el cliente.
+                if(typeof j.texto_enviado === 'string' && j.texto_enviado) opt.cuerpo = j.texto_enviado;
+                if(j.ortografia && j.ortografia.corregido) opt.meta = Object.assign({}, opt.meta || {}, { ortografia: { original: String(j.ortografia.original || '') } });
             }
             if(_waHiloId === hiloDestino) {
                 _pintarWhatsappDetalle();

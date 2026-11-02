@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { crearClienteDB, identidadVerificada, tieneAccesoARedSocial, mandarAZernio, esTimeout, json, cors } from "./_shared/inbox-common.ts";
+import { corregirTexto, metaConOrtografia, fusionarOrtografiaEnFila } from "./_shared/ortografia.ts";
 
 // instagram-enviar — responde un hilo de Instagram Direct existente.
 //
@@ -39,12 +40,14 @@ import { crearClienteDB, identidadVerificada, tieneAccesoARedSocial, mandarAZern
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ZERNIO_API_KEY = Deno.env.get("ZERNIO_API_KEY") ?? "";
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 const db = crearClienteDB(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 const TIPO_A_ATTACHMENT: Record<string, string> = { imagen: "image", documento: "file", video: "video", audio: "audio" };
 
 Deno.serve(async (req: Request) => {
+  const t0 = Date.now();
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ ok: false, error: "Metodo no permitido" }, 405);
   if (!ZERNIO_API_KEY) return json({ ok: false, error: "Falta ZERNIO_API_KEY en el proyecto" }, 500);
@@ -86,13 +89,20 @@ Deno.serve(async (req: Request) => {
   const fueraDeVentana =
     !hilo.ultimo_inbound_at || (Date.now() - new Date(hilo.ultimo_inbound_at).getTime()) / 3600000 > 24;
 
+  // 2-nov-2026 — Ortografía (plan v2): DESPUÉS de identidad, permisos y ventana; ANTES de armar el envío.
+  // Interruptor en crm_ortografia_config (apagado). Ante cualquier falla devuelve el original.
+  const orto = mensaje
+    ? await corregirTexto(mensaje, { db, canal: "instagram", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.cuenta_id, empleadoId: refId })
+    : null;
+  const texto = orto ? orto.texto : mensaje;
+
   const campos: Record<string, unknown> = {};
   if (adjunto) {
     campos.attachmentUrl = adjunto.url;
     campos.attachmentType = TIPO_A_ATTACHMENT[adjunto.tipo] || "file";
-    if (mensaje) campos.message = mensaje;
+    if (texto) campos.message = texto;
   } else {
-    campos.message = mensaje;
+    campos.message = texto;
   }
   if (fueraDeVentana) {
     campos.messagingType = "MESSAGE_TAG";
@@ -118,8 +128,8 @@ Deno.serve(async (req: Request) => {
 
   const ahora = new Date().toISOString();
   let tipoContenido = "text";
-  const cuerpoGuardado: string | null = mensaje || null;
-  let preview = mensaje.slice(0, 200);
+  const cuerpoGuardado: string | null = texto || null;
+  let preview = texto.slice(0, 200);
 
   if (adjunto) {
     tipoContenido = adjunto.tipo;
@@ -149,14 +159,20 @@ Deno.serve(async (req: Request) => {
     enviado_por_tipo: tipo,
     enviado_por_id: refId,
     media_path: mediaPath,
-    metadata: partialFailure ? { partialFailure } : null,
+    metadata: orto ? metaConOrtografia(partialFailure ? { partialFailure } : null, orto) : (partialFailure ? { partialFailure } : null),
   });
   if (msgError) console.error("insertar mensaje saliente instagram error:", msgError.message);
+  // Webhook adelantado: el eco ya creó la fila -> solo se fusiona la marca, nunca se reenvía.
+  if (msgError?.code === "23505" && orto?.corregido) await fusionarOrtografiaEnFila(db, "instagram_mensajes", "metadata", "zernio_message_id", zernioMsgId, orto);
 
   await db
     .from("instagram_hilos")
     .update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: preview, actualizado_en: ahora })
     .eq("id", hiloId);
 
-  return json({ ok: true, messageId: zernioMsgId, partialFailure });
+  console.log(JSON.stringify({ evento: "envio", canal: "instagram", ms_envio_total: Date.now() - t0, ms_corrector: orto?.ms ?? 0, ortografia: orto?.motivo ?? "no_aplica" }));
+  return json({
+    ok: true, messageId: zernioMsgId, partialFailure, texto_enviado: texto,
+    ...(orto?.corregido ? { ortografia: { corregido: true, original: orto.original } } : {}),
+  });
 });
