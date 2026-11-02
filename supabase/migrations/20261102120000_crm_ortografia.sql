@@ -1,6 +1,6 @@
 -- 2-nov-2026 — Corrección ortográfica automática del CRM (fase 2 del plan v2).
 -- Plan: docs/bitacora/2026-11-01-2345-claude-plan-correccion-ortografica-v2.md
--- NO APLICADA. Aplicar solo con autorización expresa del dueño.
+-- Aplicada el 2-nov-2026 con autorización del dueño («Si»). Queda APAGADA (activo = false).
 -- Sin sentencias destructivas (sin drop/revoke de objetos existentes), para que la
 -- herramienta de Supabase no la retenga.
 
@@ -81,6 +81,11 @@ declare
   v_asistente integer;
   v_ok integer;
 begin
+  -- Solo el servidor (clave de servicio) puede reservar. Se hace aquí y no con «revoke»,
+  -- porque la herramienta de Supabase retiene las sentencias revoke (ver MEMORIA §8).
+  if coalesce(auth.role(), '') <> 'service_role' then
+    return false;
+  end if;
   if p_servicio is null or p_tope is null or p_techo_global is null or p_tope <= 0 then
     return false;
   end if;
@@ -100,7 +105,8 @@ begin
   return true;
 end;
 $$;
-revoke all on function public.ia_reservar_cupo(text, integer, integer) from public, anon, authenticated;
+-- (sin «revoke»: el candado está dentro de la función; opcional en el SQL Editor:
+--  revoke all on function public.ia_reservar_cupo(text, integer, integer) from public, anon, authenticated;)
 grant execute on function public.ia_reservar_cupo(text, integer, integer) to service_role;
 
 -- 3) Los webhooks e importaciones reescriben el metadato completo del mensaje

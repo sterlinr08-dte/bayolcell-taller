@@ -127,7 +127,7 @@ const PATRONES: RegExp[] = [
     "giu",
   ),
   // emojis (compuestos con ZWJ, tonos, banderas, teclas)
-  /(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[#*0-9]️?⃣)(?:️|⃣|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}))*/gu,
+  /(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[#*0-9]\uFE0F?\u20E3)(?:\uFE0F|\u20E3|\p{Emoji_Modifier}|\p{Regional_Indicator}|\u200D(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}))*/gu,
   // códigos, IMEI, capacidades, horas, fechas y cualquier número
   /(?<![\p{L}\p{N}-])(?:\p{L}+-)?\p{L}*\d[\p{L}\p{N}\-/:.,]*(?<![.,:\-/])/gu,
   // nombres y expresiones permitidas
