@@ -313,7 +313,7 @@ Deno.serve(async (req: Request) => {
   // Interruptor en crm_ortografia_config (apagado). Ante cualquier falla devuelve el original.
   const aplicaOrtografia = !!mensaje && !plantilla && !ubicacion && !contacto && !adjunto?.es_nota_voz;
   const orto = aplicaOrtografia
-    ? await corregirTexto(mensaje, { db, canal: "whatsapp", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.linea_id })
+    ? await corregirTexto(mensaje, { db, canal: "whatsapp", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.linea_id, empleadoId: refId })
     : null;
   const texto = orto ? orto.texto : mensaje;
 

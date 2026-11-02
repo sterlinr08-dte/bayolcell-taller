@@ -92,7 +92,7 @@ Deno.serve(async (req: Request) => {
   // 2-nov-2026 — Ortografía (plan v2): DESPUÉS de identidad, permisos y ventana; ANTES de armar el envío.
   // Interruptor en crm_ortografia_config (apagado). Ante cualquier falla devuelve el original.
   const orto = mensaje
-    ? await corregirTexto(mensaje, { db, canal: "instagram", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.cuenta_id })
+    ? await corregirTexto(mensaje, { db, canal: "instagram", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.cuenta_id, empleadoId: refId })
     : null;
   const texto = orto ? orto.texto : mensaje;
 

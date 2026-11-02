@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
   // Ortografía: DESPUÉS de identidad, permisos y datos del hilo; ANTES de armar el envío.
   // Interruptor en crm_ortografia_config (apagado). Ante cualquier falla devuelve el original.
-  const orto = await corregirTexto(mensaje, { db, canal: "facebook", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.cuenta_id });
+  const orto = await corregirTexto(mensaje, { db, canal: "facebook", apiKey: ANTHROPIC_API_KEY, hiloId, cuentaId: hilo.cuenta_id, empleadoId: refId });
   const text = orto.texto;
 
   const r = await fetch("https://zernio.com/api/v1/inbox/conversations/" + encodeURIComponent(hilo.zernio_conversation_id) + "/messages", {

@@ -165,7 +165,7 @@ test("omite vacíos, solo emojis/números, cortas ya correctas y largos (sin tru
 });
 
 test("los mensajes cortos de 1–2 palabras SÍ se corrigen", async () => {
-  for (const [t, ok] of [["Esta listo", "Está listo."], ["Cuanto cuesta", "¿Cuánto cuesta?"], ["bienos dias", "Buenos días."]]) {
+  for (const [t, ok] of [["bienos dias", "buenos dias"], ["ya resivimos", "ya recibimos"], ["oy no", "hoy no"]]) {
     const { r, ia } = await corregir(t, () => ok);
     assert.equal(ia.llamadas, 1); assert.equal(r.corregido, true); assert.equal(r.texto, ok);
   }
@@ -255,7 +255,7 @@ test("configuración: ausente, con error, lenta, apagada, otro canal o fuera del
     assert.equal(ia.llamadas, 0); assert.equal(db.uso.rpc.length, 0);
   }
   const db = dbFalsa({ cfg: { ...CFG, piloto_hilos: ["hilo-dueno"] } });
-  const { r } = await corregir("esta listo", () => "Está listo.", { db, hiloId: "hilo-dueno" });
+  const { r } = await corregir("ya resivimos", () => "ya recibimos", { db, hiloId: "hilo-dueno" });
   assert.equal(r.corregido, true);
 });
 
@@ -313,10 +313,10 @@ test("nombres ambiguos, inglés y jerga: solo tildes; nunca se cambia el nombre 
 test("concurrencia: envíos simultáneos no se mezclan", async () => {
   O._reiniciarCacheOrtografia();
   const db = dbFalsa();
-  const fetchImpl = iaFalsa((x) => x.replace("esta", "está"), { demoraMs: 50 });
-  const textos = Array.from({ length: 8 }, (_, i) => `cliente ${"abcdefgh"[i]} esta listo`);
+  const fetchImpl = iaFalsa((x) => x.replace("resivimos", "recibimos"), { demoraMs: 50 });
+  const textos = Array.from({ length: 8 }, (_, i) => `cliente ${"abcdefgh"[i]} ya resivimos`);
   const rs = await Promise.all(textos.map((t) => O.corregirTexto(t, { canal: "whatsapp", apiKey: "k", db, fetchImpl })));
-  rs.forEach((r, i) => assert.equal(r.texto, textos[i].replace("esta", "está")));
+  rs.forEach((r, i) => assert.equal(r.texto, textos[i].replace("resivimos", "recibimos")));
   assert.equal(fetchImpl.uso.llamadas, 8);
   assert.equal(db.uso.rpc.length, 8);
 });
@@ -343,4 +343,25 @@ test("si ↔ sí cambia el sentido: se envía el original", () => {
   assert.equal(valida("si hay que cambiar la pantalla RD$ 2,000.00", "Sí, hay que cambiar la pantalla RD$ 2,000.00."), "palabras");
   assert.equal(valida("si esta en santiago", "Si está en Santiago."), null);
   assert.equal(valida("sí, ya esta", "Sí, ya está."), null);
+});
+
+test("dueño 2-nov: solo mala escritura y solo los empleados elegidos", async () => {
+  // solo tildes/signos/mayúsculas → original, sin marca
+  let { r } = await corregir("esta listo", () => "¿Está listo?");
+  assert.equal(r.corregido, false); assert.equal(r.motivo, "solo_tildes_o_signos"); assert.equal(r.texto, "esta listo");
+  // mala escritura → corregido (aunque la IA también ponga tildes)
+  ({ r } = await corregir("ya resivimos su equipo", () => "Ya recibimos su equipo."));
+  assert.equal(r.corregido, true); assert.equal(r.texto, "Ya recibimos su equipo.");
+  // palabras pegadas cuentan como mala escritura
+  ({ r } = await corregir("porfavor espere", () => "por favor espere"));
+  assert.equal(r.corregido, true);
+  // lista de empleados: solo Alejandro y Omil (ids de ejemplo)
+  const db = dbFalsa({ cfg: { ...CFG, empleados: ["id-alejandro", "id-omil"] } });
+  ({ r } = await corregir("ya resivimos", () => "ya recibimos", { db, empleadoId: "id-otro" }));
+  assert.equal(r.motivo, "empleado_no_incluido"); assert.equal(r.texto, "ya resivimos");
+  assert.equal(db.uso.rpc.length, 0);
+  ({ r } = await corregir("ya resivimos", () => "ya recibimos", { db: dbFalsa({ cfg: { ...CFG, empleados: ["id-alejandro", "id-omil"] } }), empleadoId: "id-omil" }));
+  assert.equal(r.corregido, true);
+  ({ r } = await corregir("ya resivimos", () => "ya recibimos", { db: dbFalsa({ cfg: { ...CFG, empleados: ["id-alejandro"] } }), empleadoId: null }));
+  assert.equal(r.motivo, "empleado_no_incluido");
 });

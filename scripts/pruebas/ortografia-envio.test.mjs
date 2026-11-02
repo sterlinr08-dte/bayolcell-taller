@@ -112,47 +112,47 @@ const llamar = async (fn, body, token = "token-bueno") => {
   const resp = await handlers[fn](new Request("http://local/" + fn, { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) }));
   return { status: resp.status, j: await resp.json() };
 };
-const CORRIGE = (x) => x.replace("esta", "está").replace("cuanto", "cuánto");
+const CORRIGE = (x) => x.replace("resivimos", "recibimos").replace("aser", "hacer");
 
 for (const c of CANALES) {
   test(`${c.fn}: sin permiso → 403, cero envío y cero IA`, async () => {
     globalThis.__db = crearDB({ vinculo: false });
     red = crearRed({ corregir: CORRIGE });
-    const { status } = await llamar(c.fn, c.body("esta listo"));
+    const { status } = await llamar(c.fn, c.body("ya resivimos"));
     assert.equal(status, 403);
     assert.equal(red.zernio.length, 0); assert.equal(red.ia, 0); assert.equal(globalThis.__db.reg.rpc.length, 0);
-    const r2 = await llamar(c.fn, c.body("esta listo"), "token-malo");
+    const r2 = await llamar(c.fn, c.body("ya resivimos"), "token-malo");
     assert.equal(r2.status, 403); assert.equal(red.zernio.length, 0); assert.equal(red.ia, 0);
   });
 
   test(`${c.fn}: sin configuración (tabla aún no creada) → sale el original, sin IA`, async () => {
     globalThis.__db = crearDB({ configFalla: true });
     red = crearRed({ corregir: CORRIGE });
-    const { status, j } = await llamar(c.fn, c.body("esta listo"));
-    assert.equal(status, 200); assert.equal(j.texto_enviado, "esta listo"); assert.equal(j.ortografia, undefined);
-    assert.equal(red.zernio[0].body[c.campoTexto], "esta listo"); assert.equal(red.ia, 0);
+    const { status, j } = await llamar(c.fn, c.body("ya resivimos"));
+    assert.equal(status, 200); assert.equal(j.texto_enviado, "ya resivimos"); assert.equal(j.ortografia, undefined);
+    assert.equal(red.zernio[0].body[c.campoTexto], "ya resivimos"); assert.equal(red.ia, 0);
   });
 
   test(`${c.fn}: interruptor apagado → original, sin IA ni cupo`, async () => {
     globalThis.__db = crearDB({ config: { ...CFG, activo: false } });
     red = crearRed({ corregir: CORRIGE });
-    const { j } = await llamar(c.fn, c.body("esta listo"));
-    assert.equal(j.texto_enviado, "esta listo"); assert.equal(red.ia, 0); assert.equal(globalThis.__db.reg.rpc.length, 0);
+    const { j } = await llamar(c.fn, c.body("ya resivimos"));
+    assert.equal(j.texto_enviado, "ya resivimos"); assert.equal(red.ia, 0); assert.equal(globalThis.__db.reg.rpc.length, 0);
   });
 
   test(`${c.fn}: encendido → el MISMO texto corregido va a Zernio, al cuerpo, a la vista previa y a la respuesta`, async () => {
     const db = (globalThis.__db = crearDB());
     red = crearRed({ corregir: CORRIGE });
-    const { j } = await llamar(c.fn, c.body("esta listo, cuanto es RD$ 4,500.00?"));
-    const final = "está listo, cuánto es RD$ 4,500.00?";
+    const { j } = await llamar(c.fn, c.body("ya resivimos, hay que aser el pago de RD$ 4,500.00?"));
+    const final = "ya recibimos, hay que hacer el pago de RD$ 4,500.00?";
     assert.equal(red.zernio.length, 1); assert.equal(red.ia, 1);
     assert.equal(red.zernio[0].body[c.campoTexto], final);
     const fila = db.tablas[c.tabla][0];
     assert.equal(fila.cuerpo, final);
-    assert.equal(fila[c.col].ortografia.original, "esta listo, cuanto es RD$ 4,500.00?");
+    assert.equal(fila[c.col].ortografia.original, "ya resivimos, hay que aser el pago de RD$ 4,500.00?");
     const prev = db.reg.updates.find((u) => u.tabla === c.hilos);
     assert.equal(prev.cambios.ultimo_mensaje_preview, final);
-    assert.equal(j.texto_enviado, final); assert.deepEqual(j.ortografia, { corregido: true, original: "esta listo, cuanto es RD$ 4,500.00?" });
+    assert.equal(j.texto_enviado, final); assert.deepEqual(j.ortografia, { corregido: true, original: "ya resivimos, hay que aser el pago de RD$ 4,500.00?" });
     assert.equal(db.reg.rpc[0].args.p_servicio, "ortografia");
   });
 
@@ -160,21 +160,21 @@ for (const c of CANALES) {
     globalThis.__db = crearDB();
     red = crearRed({ corregir: CORRIGE, iaDemoraMs: 3000 });
     const t0 = Date.now();
-    const { j } = await llamar(c.fn, c.body("esta listo"));
+    const { j } = await llamar(c.fn, c.body("ya resivimos"));
     assert.ok(Date.now() - t0 < 1700, "tardó " + (Date.now() - t0));
-    assert.equal(j.texto_enviado, "esta listo"); assert.equal(red.zernio.length, 1);
-    assert.equal(red.zernio[0].body[c.campoTexto], "esta listo");
+    assert.equal(j.texto_enviado, "ya resivimos"); assert.equal(red.zernio.length, 1);
+    assert.equal(red.zernio[0].body[c.campoTexto], "ya resivimos");
   });
 
   test(`${c.fn}: webhook adelantado (fila ya existe) → se fusiona la marca, sin reenviar`, async () => {
     const db = (globalThis.__db = crearDB({ insertError: { [c.tabla]: { code: "23505", message: "duplicate" } } }));
     const idCol = c.tabla === "whatsapp_mensajes" ? "wa_message_id" : "zernio_message_id";
-    db.tablas[c.tabla].push({ [idCol]: "zm-1", cuerpo: "está listo", [c.col]: c.tabla === "social_mensajes" ? { event: "message.sent" } : null });
+    db.tablas[c.tabla].push({ [idCol]: "zm-1", cuerpo: "ya recibimos", [c.col]: c.tabla === "social_mensajes" ? { event: "message.sent" } : null });
     red = crearRed({ corregir: CORRIGE });
-    await llamar(c.fn, c.body("esta listo"));
+    await llamar(c.fn, c.body("ya resivimos"));
     assert.equal(red.zernio.length, 1);
     const fila = db.tablas[c.tabla][0];
-    assert.equal(fila[c.col].ortografia.original, "esta listo");
+    assert.equal(fila[c.col].ortografia.original, "ya resivimos");
     if (c.tabla === "social_mensajes") assert.equal(fila[c.col].event, "message.sent");
   });
 }
@@ -182,7 +182,7 @@ for (const c of CANALES) {
 test("whatsapp-enviar: plantilla, ubicación y contacto no pasan por la IA", async () => {
   globalThis.__db = crearDB();
   red = crearRed({ corregir: CORRIGE });
-  await llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "esta listo", plantilla: { nombre: "factura", idioma: "es" } });
+  await llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "ya resivimos", plantilla: { nombre: "factura", idioma: "es" } });
   await llamar("whatsapp-enviar", { hilo_id: "h-wa", ubicacion: { lat: 19.4, lng: -70.6 } });
   await llamar("whatsapp-enviar", { hilo_id: "h-wa", contacto: { nombre: "Bayol", telefono: "8095551234" } });
   assert.equal(red.ia, 0);
@@ -191,39 +191,39 @@ test("whatsapp-enviar: plantilla, ubicación y contacto no pasan por la IA", asy
 test("whatsapp-enviar: foto con texto → se corrige el pie de foto", async () => {
   globalThis.__db = crearDB();
   red = crearRed({ corregir: CORRIGE });
-  await llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "esta es la pantalla", adjunto: { url: "https://x/y.jpg", path: "out/y.jpg", tipo: "imagen" } });
-  assert.equal(red.zernio[0].body.message, "está es la pantalla");
+  await llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "resivimos la pantalla", adjunto: { url: "https://x/y.jpg", path: "out/y.jpg", tipo: "imagen" } });
+  assert.equal(red.zernio[0].body.message, "recibimos la pantalla");
 });
 
 test("whatsapp-enviar: enviado pero falla el guardado local → aviso honesto, sin reenvío", async () => {
   globalThis.__db = crearDB({ insertError: { whatsapp_mensajes: { code: "XX000", message: "fallo" } } });
   red = crearRed({ corregir: CORRIGE });
-  const { j } = await llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "esta listo" });
+  const { j } = await llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "ya resivimos" });
   assert.equal(j.ok, true); assert.equal(j.guardado_local, false); assert.equal(red.zernio.length, 1);
 });
 
 test("instagram-enviar: falla parcial + corrección → se conservan los dos datos", async () => {
   const db = (globalThis.__db = crearDB());
   red = crearRed({ corregir: CORRIGE, partialFailure: { text: "rechazado" } });
-  await llamar("instagram-enviar", { hilo_id: "h-ig", mensaje: "esta es la foto", adjunto: { url: "https://x/y.jpg", tipo: "imagen" } });
+  await llamar("instagram-enviar", { hilo_id: "h-ig", mensaje: "resivimos la foto", adjunto: { url: "https://x/y.jpg", tipo: "imagen" } });
   const m = db.tablas.instagram_mensajes[0].metadata;
-  assert.deepEqual(m.partialFailure, { text: "rechazado" }); assert.equal(m.ortografia.original, "esta es la foto");
+  assert.deepEqual(m.partialFailure, { text: "rechazado" }); assert.equal(m.ortografia.original, "resivimos la foto");
 });
 
 test("social-enviar: se conserva la información de Zernio junto a la corrección", async () => {
   const db = (globalThis.__db = crearDB());
   red = crearRed({ corregir: CORRIGE });
-  await llamar("social-enviar", { hiloId: "h-fb", text: "esta listo" });
+  await llamar("social-enviar", { hiloId: "h-fb", text: "ya resivimos" });
   const m = db.tablas.social_mensajes[0].metadata;
-  assert.equal(m.zernio.success, true); assert.equal(m.ortografia.original, "esta listo");
+  assert.equal(m.zernio.success, true); assert.equal(m.ortografia.original, "ya resivimos");
   assert.equal(db.tablas.social_mensajes[0].enviado_por_tipo, "usuario");
 });
 
 test("doble clic: dos envíos simultáneos salen cada uno una vez, corregidos", async () => {
   globalThis.__db = crearDB();
   red = crearRed({ corregir: CORRIGE, iaDemoraMs: 80 });
-  const [a, b] = await Promise.all([llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "esta listo" }), llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "esta listo" })]);
-  assert.equal(a.j.texto_enviado, "está listo"); assert.equal(b.j.texto_enviado, "está listo");
+  const [a, b] = await Promise.all([llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "ya resivimos" }), llamar("whatsapp-enviar", { hilo_id: "h-wa", mensaje: "ya resivimos" })]);
+  assert.equal(a.j.texto_enviado, "ya recibimos"); assert.equal(b.j.texto_enviado, "ya recibimos");
   assert.equal(red.zernio.length, 2); assert.equal(red.ia, 2);
 });
 
