@@ -21,6 +21,21 @@
   function val(id) { var e = doc.getElementById(id); return e ? String(e.value || '').trim() : ''; }
   function st() { try { return (typeof _rpState !== 'undefined' && _rpState) || null; } catch (e) { return null; } }
   function campo(id) { var e = doc.getElementById(id); return e ? (e.closest('.rx-body > div') || e.parentElement) : null; }
+  // 2-nov-2026 (dueño: «donde va el precio poner las comas y los puntos»): mientras se escribe, 10000000 → 10,000,000;
+  // un solo punto para los centavos (máx. 2). El cursor se queda en su sitio. _rpPrecio quita las comas al guardar.
+  window.bcFmtDinero = function (el) {
+    if (!el) return;
+    var v = el.value, pos = el.selectionStart == null ? v.length : el.selectionStart;
+    var antes = v.slice(0, pos).replace(/[^0-9.]/g, '').length; // cifras y punto antes del cursor
+    var limpio = v.replace(/[^0-9.]/g, ''), k = limpio.indexOf('.');
+    if (k >= 0) limpio = limpio.slice(0, k + 1) + limpio.slice(k + 1).replace(/\./g, '').slice(0, 2);
+    var partes = limpio.split('.'), ent = partes[0].replace(/^0+(?=\d)/, '');
+    var nuevo = ent.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (partes.length > 1 ? '.' + partes[1] : '');
+    if (nuevo === v) return;
+    el.value = nuevo;
+    var n = 0, p2 = 0; while (p2 < nuevo.length && n < antes) { if (/[0-9.]/.test(nuevo[p2])) n++; p2++; }
+    try { el.setSelectionRange(p2, p2); } catch (e) {}
+  };
   function num2(n) { return Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function tot(items) { try { return _rpTotales(items); } catch (e) { var t = (items || []).reduce(function (a, it) { return a + Number(it.precio) * Number(it.cant); }, 0); return { subtotal: t, descuento: 0, total: t }; } }
   function importe(it) { try { return _rpImporte(it); } catch (e) { return Number(it.precio) * Number(it.cant); } }
@@ -396,7 +411,7 @@
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
         // 24-oct-2026 (dueño: «bloquea el precio libre para empleados, solamente en servicio»): el empleado solo escribe el
         // precio en las líneas de Servicio; en artículos del catálogo la casilla es de solo lectura. El administrador, libre.
-        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio"' + ' onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"' + (precioLibre(it) ? '' : precioTope(it)) + '></label>' +
+        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio"' + ' onfocus="this.select()" oninput="bcFmtDinero(this)" onchange="_rpPrecio(' + i + ',this.value)"' + (precioLibre(it) ? '' : precioTope(it)) + '></label>' +
         '<label class="ldc"><span>Desc.</span><span class="dcw"><input class="dc" inputmode="decimal" autocomplete="off" value="' + (Number(it.descPct) || 0) + '" aria-label="Descuento en por ciento" onfocus="this.select()" onchange="_rpDescPct(' + i + ',this.value)"><i>%</i></span></label>' +
         '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';

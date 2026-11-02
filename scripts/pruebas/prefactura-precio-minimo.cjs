@@ -46,6 +46,17 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     } else {
       c(q + ' administrador libre (900)', r.bajarDebajo === 900, r.bajarDebajo);
     }
+    // Comas y punto al escribir (dueño, 2-nov-2026)
+    const pin = p.locator('#v-recepcion .pin').first();
+    await pin.click(); await p.keyboard.press('Control+A'); await p.keyboard.type('10000000');
+    const vis = await pin.inputValue();
+    await p.keyboard.type('.505');
+    const vis2 = await pin.inputValue();
+    await p.keyboard.press('Tab'); await p.waitForTimeout(150);
+    const guardado = await p.evaluate(() => _rpState.items[0].precio);
+    c(q + ' al escribir 10000000 se ve 10,000,000', vis === '10,000,000', vis);
+    c(q + ' centavos con punto y máximo 2', vis2 === '10,000,000.50', vis2);
+    c(q + ' se guarda el número sin comas', guardado === 10000000.5, guardado);
     c(q + ' sin errores de JS', errs.length === 0, errs);
     await ctx.close();
   }
