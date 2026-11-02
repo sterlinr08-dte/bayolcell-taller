@@ -117,7 +117,6 @@ const valida = (a, b) => O.motivoRechazo(O.proteger(a).texto, O.proteger(b)?.tex
 
 test("acepta tildes, mayúsculas, signos, faltas, separaciones y abreviaturas", () => {
   for (const [a, b] of [
-    ["Si tenemos", "Sí tenemos."],
     ["Esta listo", "Está listo."],
     ["Cuanto cuesta", "¿Cuánto cuesta?"],
     ["porfavor ven mañana", "Por favor, ven mañana."],
@@ -166,7 +165,7 @@ test("omite vacíos, solo emojis/números, cortas ya correctas y largos (sin tru
 });
 
 test("los mensajes cortos de 1–2 palabras SÍ se corrigen", async () => {
-  for (const [t, ok] of [["Esta listo", "Está listo."], ["Cuanto cuesta", "¿Cuánto cuesta?"], ["Si tenemos", "Sí, tenemos."], ["si", "Sí."]]) {
+  for (const [t, ok] of [["Esta listo", "Está listo."], ["Cuanto cuesta", "¿Cuánto cuesta?"], ["bienos dias", "Buenos días."]]) {
     const { r, ia } = await corregir(t, () => ok);
     assert.equal(ia.llamadas, 1); assert.equal(r.corregido, true); assert.equal(r.texto, ok);
   }
@@ -328,4 +327,20 @@ test("opción B: tilde contra las reglas → se envía el original; tildes corre
   assert.equal(valida("pero comprate uno barato", "Pero compráte uno barato."), "tilde");
   assert.equal(valida("pero comprate uno barato", "Pero cómprate uno barato."), null);
   assert.equal(valida("el sistema esta caido", "El sistema está caído."), null);
+});
+
+test("mala escritura primero: oy→hoy, palabra repetida, y tilde mal puesta se quita sin perder lo demás", async () => {
+  assert.equal(valida("porfavor confirme si lo recoge oy o mañana", "Por favor, confirme si lo recoge hoy o mañana."), null);
+  assert.equal(valida("calidad certificada en en 8mil", "Calidad certificada en 8mil."), null);
+  assert.notEqual(valida("lo tenemos en 8mil", "Lo tenemos 8mil."), null); // quitar una palabra NO repetida sigue prohibido
+  assert.equal(O.quitarTildesMalPuestas("Pero compráte uno barato, está listo."), "Pero comprate uno barato, está listo.");
+  const { r } = await corregir("pero comprate uno varato", () => "Pero compráte uno barato.");
+  assert.equal(r.corregido, true);
+  assert.equal(r.texto, "Pero comprate uno barato.");
+});
+
+test("si ↔ sí cambia el sentido: se envía el original", () => {
+  assert.equal(valida("si hay que cambiar la pantalla RD$ 2,000.00", "Sí, hay que cambiar la pantalla RD$ 2,000.00."), "palabras");
+  assert.equal(valida("si esta en santiago", "Si está en Santiago."), null);
+  assert.equal(valida("sí, ya esta", "Sí, ya está."), null);
 });
