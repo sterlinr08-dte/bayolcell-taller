@@ -2,8 +2,8 @@
  * Sacado de las referencias compartidas (docs/REFERENCIAS-DISENO.md): «¿Por qué Raycast se siente instantáneo?»
  * y la biblioteca de patrones de designmotionhq (Doherty Threshold, Loading States, Undo UX, Command Palette,
  * Autosave / Error States). Todo rehecho aquí en JavaScript normal; no se copió código de nadie.
- *  1) Línea de carga fina arriba: aparece solo si una consulta a la base tarda más de 300 ms (en vez de ruedas que
- *     tapan la pantalla). Nunca borra lo que ya se ve.
+ *  1) Línea de carga fina arriba: aparece solo si una consulta que el usuario provocó (toque/tecla hace ≤1.5 s) tarda
+ *     más de 300 ms (en vez de ruedas que tapan la pantalla). Los refrescos de fondo no la encienden. Nunca borra lo que ya se ve.
  *  2) Ventanas con el fondo DESENFOCADO, no oscurecido: detrás se sigue viendo dónde estabas.
  *  3) Buscador de pantallas y acciones con Ctrl+K (⌘K en Mac): escribe «reac», Enter y estás en Reacondicionados.
  *     Barra de abajo que dice qué hace cada tecla. Lo último que usaste sale primero.
@@ -14,7 +14,7 @@
  */
 (function(){'use strict';
 if (window.BayolRapidez) return;
-var VERSION = '20261014q1';
+var VERSION = '20261102q2';
 var quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function sinTildes(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
@@ -65,6 +65,12 @@ var st = document.createElement('style'); st.id = 'bcRapidezCSS'; st.textContent
 var linea = document.createElement('div'); linea.id = 'bcrzLinea'; linea.setAttribute('aria-hidden', 'true');
 document.body.appendChild(linea);
 var pendientes = 0, tLinea = null;
+// 2-nov-2026 (dueño, video del CRM: «por qué queda cargando», la línea mamey de arriba): la línea solo cuenta las
+// consultas que empiezan hasta 1.5 s después de un toque, clic o tecla del usuario. Los refrescos de fondo (contadores,
+// listas del CRM cada pocos segundos, sincronizaciones) ya no la encienden: antes la dejaban casi siempre corriendo.
+var ultimaAccion = 0;
+['pointerdown', 'keydown', 'submit'].forEach(function(ev){ document.addEventListener(ev, function(){ ultimaAccion = Date.now(); }, true); });
+function porUsuario(){ return Date.now() - ultimaAccion < 1500; }
 function lineaMas(){ pendientes++; if (pendientes === 1) { clearTimeout(tLinea); tLinea = setTimeout(function(){ if (pendientes > 0) linea.classList.add('on'); }, 300); } }
 function lineaMenos(){ pendientes = Math.max(0, pendientes - 1); if (!pendientes) { clearTimeout(tLinea); linea.classList.remove('on'); } }
 var servidorCaido = false;
@@ -74,11 +80,12 @@ if (typeof origFetch === 'function') {
     var url = ''; try { url = typeof input === 'string' ? input : (input && input.url) || ''; } catch(_){}
     var nuestro = /supabase\.co\//.test(url) && !/\/auth\/v1\/token/.test(url);
     if (!nuestro) return origFetch.apply(this, arguments);
-    lineaMas();
+    var cuenta = porUsuario();
+    if (cuenta) lineaMas();
     return origFetch.apply(this, arguments).then(function(r){
-      lineaMenos(); if (servidorCaido) { servidorCaido = false; avisoRed(navigator.onLine === false ? 'mal' : 'bien'); } return r;
+      if (cuenta) lineaMenos(); if (servidorCaido) { servidorCaido = false; avisoRed(navigator.onLine === false ? 'mal' : 'bien'); } return r;
     }, function(err){
-      lineaMenos();
+      if (cuenta) lineaMenos();
       if (err && err.name !== 'AbortError') { servidorCaido = true; avisoRed('mal'); }
       throw err;
     });
