@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260929-f3';
+  const VERSION = '20261102-f4';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -262,7 +262,17 @@
     await Promise.allSettled([refreshKpis(), state.channel === 'instagram' ? loadInstagram(false) : Promise.resolve()]);
   }
 
-  async function refreshKpis(){
+  // 2-nov-2026: mismo freno para los contadores de arriba (se pedían 2–3 veces seguidas al entrar al CRM).
+  let kpiReciente=null, kpiRecienteAt=0;
+  function refreshKpis(){
+    const ahora=Date.now();
+    if(kpiReciente && ahora-kpiRecienteAt<1200) return kpiReciente;
+    kpiRecienteAt=ahora;
+    kpiReciente=refreshKpisReal();
+    return kpiReciente;
+  }
+
+  async function refreshKpisReal(){
     const client = sb();
     if (!client) return;
     let waPending = null, igUnread = null, leads = null, channels = 0;
@@ -297,7 +307,22 @@
     put('#bcKpiWa',waPending); put('#bcKpiIg',igUnread); put('#bcKpiLeads',leads); put('#bcKpiChannels',`${channels}/3`);
   }
 
-  async function loadInstagram(force, options={}){
+  // 2-nov-2026 (dueño: «arregla lo de Instagram que se recarga 3 veces»): al entrar a Instagram la lista se pedía 3–4
+  // veces en 2 s (botón del canal, la capa de filtros que vuelve a llamar switchChannel, y el vigilante de clases de la
+  // vista que dispara scheduleRefresh al quitar bc-ig-chat-open). Las llamadas SIN opciones explícitas (entrar, refrescar)
+  // dentro de 1.2 s reutilizan la carga en curso. Mensajes nuevos (Realtime), envíos y __bcIgReload pasan opciones
+  // explícitas y siempre recargan de verdad.
+  let igCargaReciente=null, igCargaRecienteAt=0;
+  function loadInstagram(force, options){
+    if(options) return loadInstagramReal(force, options);
+    const ahora=Date.now();
+    if(igCargaReciente && ahora-igCargaRecienteAt<1200) return igCargaReciente;
+    igCargaRecienteAt=ahora;
+    igCargaReciente=loadInstagramReal(force, {});
+    return igCargaReciente;
+  }
+
+  async function loadInstagramReal(force, options={}){
     const refreshSelected = options.refreshSelected !== false;
     const client = sb();
     const list = $('#bcIgThreads');
@@ -355,7 +380,7 @@
       if (gen !== state.threadsGeneration) return;
       console.error('CRM Social Instagram',e);
       if(list) list.innerHTML = `<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudo cargar Instagram</b><span>${esc(e.message || 'Error inesperado.')}</span><button type="button" class="btn btn-light" id="bcIgRetry">Reintentar</button></div></div>`;
-      $('#bcIgRetry')?.addEventListener('click',()=>loadInstagram(true));
+      $('#bcIgRetry')?.addEventListener('click',()=>loadInstagram(true,{}));
       const status=$('#bcIgStatus'); if(status) status.textContent='Sin conexión';
     } finally { if(client && gen === state.threadsGeneration) refreshKpis(); }
   }
