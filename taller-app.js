@@ -31535,7 +31535,10 @@ function _waBurbujaRowHTML(m, nombre, porId) {
     if(_waEsReaccionSinDatos(m)) return '';
     const esOut = m.direccion === 'out';
     const esOptimista = !!m._optimista;
-    const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
+    // 2-nov-2026 (dueño: «¿qué empleado respondió?… ponle el nombre de usuario»): en lo enviado se ve quién lo mandó.
+    // Desde el CRM queda enviado_por_id; sin él (y no automático ni plantilla) se escribió en el celular de la línea.
+    // Antes del 9-oct-2026 no siempre se guardaba quién enviaba: ahí se deja «Tú (BayolCell)».
+    const etiqueta = esOut ? _waQuienEnvio(m, esOptimista) : nombre;
     const original = m.responde_a_id ? porId[m.responde_a_id] : null;
     const animarEnvio = esOut && m.id === _waMensajeAnimarId;
     if(m.estado === 'eliminado') {
@@ -31571,6 +31574,18 @@ function _waBurbujaRowHTML(m, nombre, porId) {
     </div>`;
 }
 
+function _waQuienEnvio(m, optimista) {
+    if(!m || m.direccion !== 'out') return '';
+    const yo = (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.usuario || '') : '';
+    if(optimista && yo) return yo.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) + ' · BayolCell';
+    if(m.enviado_por_id) {
+        const n = nombreEmpleado(m.enviado_por_id);
+        if(n && n !== '—') return n.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) + ' · BayolCell';
+        return 'Empleado · BayolCell';
+    }
+    if(m.es_automatico || m.plantilla_nombre || !m.creado_en || m.creado_en < '2026-10-09') return 'Tú (BayolCell)';
+    return '📱 Desde el celular · BayolCell';
+}
 function _waActualizarChatIncremental() {
     const scrollContainer = document.getElementById('waMessagesScroll');
     if(!scrollContainer || !_waHiloId || _waDetalleHiloPintadoId !== _waHiloId) return false;
