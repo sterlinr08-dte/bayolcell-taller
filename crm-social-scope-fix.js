@@ -195,7 +195,7 @@
       setupFacebookRealtime();
       if(!threads?.length && state.fbVerArchivados){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-archive"></i><b>No hay conversaciones archivadas</b><span>Las que archives desde el menú ⋮ aparecerán aquí.</span></div>';return;}
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
-      if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||('Cliente de Facebook ·'+String(t.participant_id||t.id||'').slice(-4));const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span><i class="bc-fb-thread-time">${escapeHtml(fbListaHora(t.ultimo_mensaje_at))}</i>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
+      if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=fbNombreHilo(t);const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span><i class="bc-fb-thread-time">${escapeHtml(fbListaHora(t.ultimo_mensaje_at))}</i>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
       if(facebookSelectedThread) host.querySelectorAll('[data-fb-thread]').forEach(r=>r.classList.toggle('on',r.dataset.fbThread===facebookSelectedThread));
     }catch(e){
       state.meta.facebook.ready=false;
@@ -219,6 +219,19 @@
   // whatsapp_hilos/whatsapp_mensajes/leads) -- sin ESA migración, esta
   // suscripción tampoco recibiría nada aunque el código esté bien.
   function fbListaHora(v){ if(!v) return ''; return typeof window._waHoraRelativa==='function' ? window._waHoraRelativa(v) : new Date(v).toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit'}); }
+  // 2-nov-2026 (dueño: «conversaciones duplicadas… sale el nombre de Bayol Cell»): 42 hilos se llaman «Usuario de
+  // Facebook» (Facebook oculta el nombre) y otros traen el nombre de la página. Para que no parezcan el mismo chat, esos
+  // nombres se tratan como vacíos y se muestra «Cliente de Facebook · …1234» (últimos 4 del id de Facebook).
+  const FB_NOMBRES_HUECOS=/^(usuario de facebook|facebook user|bayol ?cell( srl)?|cliente de facebook|contacto de facebook)$/i;
+  function fbNombreHilo(t){
+    const n=String(t?.participant_name||'').trim();
+    if(n&&!FB_NOMBRES_HUECOS.test(n))return n;
+    const u=String(t?.participant_username||'').trim();
+    if(u&&!FB_NOMBRES_HUECOS.test(u))return u;
+    const id=String(t?.participant_id||t?.id||'');
+    return 'Cliente de Facebook · …'+id.slice(-4);
+  }
+  window.bcFbNombreHilo=fbNombreHilo;
   function fbActualizarListaIncremental(host,threads){
     if(!host||!host.children.length)return false;
     const botones=host.querySelectorAll('[data-fb-thread]');
@@ -234,6 +247,7 @@
       const btn=host.querySelector(`[data-fb-thread="${t.id}"]`);if(!btn)return;
       const unread=Number(t.no_leidos_count||0);
       btn.classList.toggle('unread',!!unread);
+      const nb=btn.querySelector('b'); if(nb){const nn=fbNombreHilo(t); if(nb.textContent!==nn){nb.textContent=nn; const av=btn.querySelector('.bc-social-generic-avatar'); if(av) av.textContent=nn.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();}}
       const preview=btn.querySelector('small');
       if(preview) preview.textContent=t.ultimo_mensaje_preview||'Sin mensajes';
       const hora=btn.querySelector('.bc-fb-thread-time');
@@ -330,7 +344,7 @@
     // largo sin avisar), este fallback es lo único que pinta el chat. A
     // diferencia de render(), nunca traía un botón para volver a la lista
     // en celular -- se agrega aquí (.bc-fb-open ya se activó arriba).
-    const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
+    const name=fbNombreHilo(thread);
     chat.innerHTML=`<div class="bc-social-generic-chat-head"><button type="button" id="bcFbBackFallback" class="bc-fb-icon" aria-label="Volver a conversaciones"><i class="ti ti-arrow-left"></i></button><span class="bc-social-generic-avatar">${escapeHtml(name.slice(0,2).toUpperCase())}</span><div><b>${escapeHtml(name)}</b><small>${escapeHtml(thread.participant_username||'Messenger')}</small></div><span class="bc-social-generic-channel">Facebook</span></div><div class="bc-social-generic-messages" id="bcFbMessages">${(messages||[]).map(m=>`<div class="bc-social-generic-message ${m.direccion==='out'?'out':'in'}"><div>${escapeHtml(m.cuerpo|| (m.media_url?'Adjunto':'Mensaje sin texto'))}</div><small>${new Date(m.creado_en).toLocaleString('es-DO',{dateStyle:'short',timeStyle:'short'})} · ${m.estado||''}</small></div>`).join('')||'<div class="bc-ig-empty"><div><b>Sin mensajes</b></div></div>'}</div><form class="bc-social-generic-composer" id="bcFbComposer"><textarea id="bcFbText" rows="1" placeholder="Escribe un mensaje…"></textarea><button type="submit" aria-label="Enviar"><i class="ti ti-send"></i></button></form>`;
     $('#bcFbBackFallback').onclick=()=>{
       $('#bcSocialFacebookPanel')?.classList.remove('bc-fb-open');

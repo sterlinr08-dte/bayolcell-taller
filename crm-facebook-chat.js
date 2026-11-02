@@ -63,7 +63,7 @@
     // position:fixed -- se queda en el flujo normal, igual que WhatsApp
     // (ver resize() más abajo). Solo hace falta la clase para revelarlo.
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
-    const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
+    const name=(typeof window.bcFbNombreHilo==='function')?window.bcFbNombreHilo(thread):(thread.participant_name||thread.participant_username||'Contacto de Facebook');
     // Asignarme/Reasignar (15 sept 2026): mismo helper que ya usa WhatsApp
     // (_crmAsignarHTML, en taller.html) -- antes una conversación de
     // Facebook sin dueño quedaba visible para todos los empleados sin que
@@ -172,7 +172,7 @@
   async function loadForwardThreads(){
     if(fbForwardThreads)return fbForwardThreads;
     try{
-      const {data,error}=await withTimeout(client().from('social_hilos').select('id,participant_name,participant_username').neq('id',selected).order('actualizado_en',{ascending:false}).limit(200));
+      const {data,error}=await withTimeout(client().from('social_hilos').select('id,participant_id,participant_name,participant_username').neq('id',selected).order('actualizado_en',{ascending:false}).limit(200));
       if(error)throw error;
       fbForwardThreads=data||[];
     }catch{fbForwardThreads=[];}
@@ -187,8 +187,9 @@
     list.innerHTML='<div style="padding:8px;color:#94a3b8;font-size:12px;">Buscando…</div>';
     const threads=await loadForwardThreads();
     const filtro=(q||'').trim().toLowerCase();
-    const filtrados=threads.filter(t=>!filtro||(t.participant_name||'').toLowerCase().includes(filtro)||(t.participant_username||'').toLowerCase().includes(filtro));
-    list.innerHTML=filtrados.length?filtrados.map(t=>`<button type="button" data-forward-to="${esc(t.id)}" style="display:block;width:100%;text-align:left;border:0;background:none;padding:8px 6px;font-size:12.5px;cursor:pointer;border-bottom:1px solid #f1f5f9;color:#334155;">${esc(t.participant_name||t.participant_username||'Contacto de Facebook')}</button>`).join(''):'<div style="padding:8px 6px;color:#94a3b8;font-size:12px;">Sin conversaciones que coincidan.</div>';
+    const nom=t=>(typeof window.bcFbNombreHilo==='function')?window.bcFbNombreHilo(t):(t.participant_name||t.participant_username||'');
+    const filtrados=threads.filter(t=>!filtro||nom(t).toLowerCase().includes(filtro)||(t.participant_username||'').toLowerCase().includes(filtro));
+    list.innerHTML=filtrados.length?filtrados.map(t=>`<button type="button" data-forward-to="${esc(t.id)}" style="display:block;width:100%;text-align:left;border:0;background:none;padding:8px 6px;font-size:12.5px;cursor:pointer;border-bottom:1px solid #f1f5f9;color:#334155;">${esc(nom(t))}</button>`).join(''):'<div style="padding:8px 6px;color:#94a3b8;font-size:12px;">Sin conversaciones que coincidan.</div>';
     list.querySelectorAll('[data-forward-to]').forEach(btn=>btn.onclick=()=>forwardTo(btn.dataset.forwardTo));
   }
   async function forwardMessage(m){
