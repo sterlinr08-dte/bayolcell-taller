@@ -6569,7 +6569,7 @@ async function _ensureInfoplusArticulos(force) {
     _infoplusCargando = true;
     try {
         for(let from = 0; ; from += pageSize) {
-            const { data, error } = await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,precio_especial,existencia,existencias,niveles').order('codigo').range(from, from + pageSize - 1);
+            const { data, error } = await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,precio_especial,existencia,existencias,niveles,niveles_min').order('codigo').range(from, from + pageSize - 1);
             if(error) { huboError = true; logError('Cargar artículos Info Plus', error); break; }
             if(!data || !data.length) break;
             all.push(...data);
@@ -6933,7 +6933,7 @@ function abrirEditarPreciosArticulo(codigo) {
         return `<tr>
             <td style="padding:8px 6px; font-weight:700; color:#0f172a;">${nv.n}<div style="font-size:11px; color:#64748b; font-weight:400;">Nivel ${nv.k}</div></td>
             <td style="padding:6px 4px;"><input id="pc_${nv.k}_precio" type="number" inputmode="decimal" value="" placeholder="${ref}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
-            <td style="padding:6px 4px;"><input id="pc_${nv.k}_minimo" type="number" inputmode="decimal" value="" placeholder="mínimo" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
+            <td style="padding:6px 4px;"><input id="pc_${nv.k}_minimo" type="number" inputmode="decimal" value="" placeholder="${a.niveles_min && a.niveles_min[String(nv.k)] != null ? 'actual ' + money(a.niveles_min[String(nv.k)]) : 'mínimo'}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
         </tr>`;
     }).join('');
     const prev = document.getElementById('modalEditarPrecios'); if(prev) prev.remove();
@@ -6992,8 +6992,10 @@ async function _guardarPreciosArticulo(codigo) {
             // Actualizar el caché al instante (Contado de cada nivel).
             const a = _findInfoplusArt(codigo);
             if(a) {
-                const nv = {}; precios.forEach(p => { nv[String(p.codnivelprecio)] = p.contado; });
-                a.niveles = nv;
+                // 2-nov-2026: se fusiona (antes se reemplazaban todos los niveles) y se recuerda el mínimo de cada nivel.
+                const nv = Object.assign({}, a.niveles || {}), mn = Object.assign({}, a.niveles_min || {});
+                precios.forEach(p => { nv[String(p.codnivelprecio)] = p.contado; mn[String(p.codnivelprecio)] = p.minimo; });
+                a.niveles = nv; a.niveles_min = mn;
                 a.precio = precios.find(p => p.codnivelprecio === 1)?.contado ?? a.precio;
             }
             toast('✅ Precios actualizados en Info Plus.');
@@ -20809,7 +20811,7 @@ const _rpComprobando = new Set();
 async function _rpAgregarArticulo(a) {
         if(!a) return;
         if(!_rpState) _rpInit();
-        const it = { cod: a.codigo, desc: _ipDescCompleta(a), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
+        const it = { cod: a.codigo, desc: _ipDescCompleta(a), niveles: a.niveles || null, minimos: a.niveles_min || null, precio: Number(a.precio || 0), cant: 1 };
         it.precio = _rpNivelPrecio(it);
         // 20-oct-2026: si el artículo ya está en la prefactura se usa la misma línea (como STUDIO):
         // celular → el cursor va al IMEI de esa línea (cada IMEI suma 1); otro artículo → cantidad + 1.
@@ -20968,11 +20970,27 @@ function _rpCant(i, v) {
     if(s !== null && s >= 1 && n > s) { n = s; toast('Solo hay ' + s + ' en ' + _rpAlmNombre() + '.', 'error'); }
     it.cant = n; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
 }
-// 24-oct-2026 (dueño): el empleado solo cambia el precio en líneas de Servicio; en artículos del catálogo no (el admin sí).
+// 2-nov-2026 (dueño, reemplaza la regla del 24-oct): en artículos del catálogo el empleado puede SUBIR el precio libre y
+// BAJARLO solo hasta el mínimo del nivel del cliente. El mínimo es el que se guardó con «Editar precios» (Info Plus no lo
+// deja leer: bitácoras 2026-10-20-0930/0945). Si no se conoce el mínimo, el tope es el precio de lista (solo subir).
+// El descuento sigue aparte con su propio tope. Servicio, delivery y accesos rápidos: libre. Administrador: libre.
+function _rpPrecioMin(it) {
+    if(!it || it.servicio) return 0;
+    const nv = String((_rpState && _rpState.nivel) || 1);
+    const mins = it.minimos || (_findInfoplusArt(it.cod) || {}).niveles_min || null;
+    const m = mins && mins[nv] != null ? Number(mins[nv]) : NaN;
+    if(isFinite(m) && m > 0) return m;
+    return it.niveles ? _rpNivelPrecio(it) : 0;
+}
 function _rpPrecio(i, v) {
     const it = _rpState.items[i]; if(!it) return;
-    if(!(typeof isAdminUser === 'function' && isAdminUser()) && !it.servicio) { toast('Precio fijo · solo administrador', 'error'); _rpRenderCart(); return; }
-    _rpState.items[i].precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+    let p = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0);
+    const libre = (typeof isAdminUser === 'function' && isAdminUser()) || it.servicio || (typeof window.bcPrefPrecioLibre === 'function' && window.bcPrefPrecioLibre(it));
+    if(!libre) {
+        const min = _rpPrecioMin(it);
+        if(min > 0 && p < min) { p = min; toast('Mín. ' + money(min), 'error'); }
+    }
+    it.precio = p; _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 // 20-oct-2026 (dueño, como STUDIO): descuento por línea en %. Importe = precio × cantidad − descuento.
 // Descuento máximo (%) de la prefactura: Configuración → Datos del taller (config_taller.prefactura_desc_max_pct; 10 si no está).
 function _rpDescMaxPct() { const v = Number(cache.configTaller && cache.configTaller.prefactura_desc_max_pct); return (isFinite(v) && v >= 0 && v <= 100) ? v : 10; }
@@ -21480,7 +21498,7 @@ function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x =>
 function _rpVaciarCampos() { ['c_nombre','c_whatsapp','c_cedula','c_rnc','e_marca','e_modelo','e_capacidad','e_imei','o_falla','o_observaciones'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); }
 function _rpAplicarCargaPref(p) {
     _rpVaciarCampos();
-    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), descMonto: Number(p.descuento_monto || 0), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
+    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, minimos: it.minimos || (_findInfoplusArt(it.cod) || {}).niveles_min || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), descMonto: Number(p.descuento_monto || 0), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
     if(_rpState.codprefactura) _rpState.descEnviado = _rpDescPctCabecera();
     _rpState.clienteId = p.cliente_id || null;
     const _nvS = document.getElementById('rxNivel'); if(_nvS) _nvS.value = String(_rpState.nivel);
