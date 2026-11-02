@@ -240,6 +240,32 @@ function unida(partes: string[], b: string): boolean {
   return nps.join("") === normalizar(b);
 }
 
+// Tilde contra las reglas del español (dueño, opción B del banco 2-nov-2026: «compráte» por «cómprate»).
+// Se mira solo la palabra corregida: tilde en la penúltima sílaba de una palabra que termina en vocal, n o s
+// (llana: nunca lleva tilde), o en la última de una que NO termina en vocal, n o s (aguda: tampoco).
+// Excepción: í/ú junto a otra vocal (hiato: día, país, baúl). Monosílabos (sí, más, qué) no se miran.
+const TILDE_DIACRITICA = new Set([
+  "cuánto", "cuánta", "cuántos", "cuántas", "cuándo", "dónde", "adónde", "cómo", "quién", "quiénes", "cuál", "cuáles",
+]);
+export function tildeMalPuesta(palabra: string): boolean {
+  const w = palabra.toLowerCase();
+  if (!/[áéíóú]/.test(w)) return false;
+  if (TILDE_DIACRITICA.has(w)) return false; // preguntas y exclamaciones: cuánto, dónde, cómo…
+  const grupos = [...w.matchAll(/[aeiouáéíóúü]+/g)];
+  if (grupos.length < 2) return false;
+  const terminaVocalNS = /[aeiouáéíóúns]$/.test(w);
+  for (let g = 0; g < grupos.length; g++) {
+    const grupo = grupos[g][0];
+    const k = grupo.search(/[áéíóú]/);
+    if (k < 0) continue;
+    if (/[íú]/.test(grupo[k]) && grupo.length > 1) continue; // hiato
+    const desdeElFinal = grupos.length - g;
+    if (desdeElFinal === 2 && terminaVocalNS) return true;
+    if (desdeElFinal === 1 && !terminaVocalNS) return true;
+  }
+  return false;
+}
+
 /** Alineación palabra por palabra, en orden, sin palabras nuevas ni quitadas. */
 function alineado(A: string[], B: string[]): boolean {
   const n = A.length, m = B.length;
@@ -269,6 +295,8 @@ export function motivoRechazo(protOriginal: string, protCorregido: string): stri
   const marcasA = A.filter(esMarca).join(""), marcasB = B.filter(esMarca).join("");
   if (marcasA !== marcasB) return "fragmentos";
   if (!alineado(A, B)) return "palabras";
+  const yaMal = new Set(A.filter((p) => !esMarca(p) && tildeMalPuesta(p)).map((p) => p.toLowerCase()));
+  if (B.some((p) => !esMarca(p) && tildeMalPuesta(p) && !yaMal.has(p.toLowerCase()))) return "tilde";
   const d = distancia(protOriginal, protCorregido);
   if (d > Math.max(12, 0.4 * protOriginal.length)) return "demasiados_cambios";
   return null;

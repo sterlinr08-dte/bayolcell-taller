@@ -321,3 +321,11 @@ test("concurrencia: envíos simultáneos no se mezclan", async () => {
   assert.equal(fetchImpl.uso.llamadas, 8);
   assert.equal(db.uso.rpc.length, 8);
 });
+
+test("opción B: tilde contra las reglas → se envía el original; tildes correctas pasan", () => {
+  for (const w of ["compráte", "exámen", "hacér", "relój", "dígáme"]) assert.equal(O.tildeMalPuesta(w), true, w);
+  for (const w of ["cuánto", "dónde", "cómo", "cómprate", "dígame", "está", "también", "día", "país", "baúl", "río", "difícil", "fácil", "llegó", "salió", "Sí", "qué", "más", "tú", "Navarrete", "préstamo", "caído", "examen", "haremos"]) assert.equal(O.tildeMalPuesta(w), false, w);
+  assert.equal(valida("pero comprate uno barato", "Pero compráte uno barato."), "tilde");
+  assert.equal(valida("pero comprate uno barato", "Pero cómprate uno barato."), null);
+  assert.equal(valida("el sistema esta caido", "El sistema está caído."), null);
+});
