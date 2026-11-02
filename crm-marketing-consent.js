@@ -4,8 +4,8 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20261102-u3';
-  var SOCIAL_HUB='20261102-ig2';
+  var V='20261102-or1';
+  var SOCIAL_HUB='20261102-or1';
   var PERF='20261031-f2';
   var FB_DIRECT='20260920-incr1';
   var GLASS='20260916-glass2';

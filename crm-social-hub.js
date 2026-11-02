@@ -480,7 +480,7 @@
   function igTick(estado){ return typeof window._waIconoEstado==='function' ? window._waIconoEstado(estado||'enviado') : '· '+esc(estado||'enviado'); }
   function igTexto(c){ const t=esc(c).replace(/\n/g,'<br>'); return typeof window.linkifyText==='function' ? window.linkifyText(t) : t; }
   function igFilaHTML(m,url){
-    return `<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}" data-igmsgid="${esc(m.id)}" data-ts="${esc(m.creado_en||'')}"><div class="bc-ig-msg">${mediaMarkup(m,url)}${m.cuerpo ? `<div>${igTexto(m.cuerpo)}</div>` : ''}<span class="bc-ig-msg-time">${esc(igHora(m.creado_en))}${m.direccion==='out' ? ' '+igTick(m.estado) : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`;
+    return `<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}" data-igmsgid="${esc(m.id)}" data-ts="${esc(m.creado_en||'')}"><div class="bc-ig-msg">${mediaMarkup(m,url)}${m.cuerpo ? `<div>${igTexto(m.cuerpo)}</div>` : ''}<span class="bc-ig-msg-time">${esc(igHora(m.creado_en))}${m.direccion==='out' ? ' '+igTick(m.estado) : ''}${m.direccion==='out' && window.bcOrtoMarca && !(m.metadata&&m.metadata.partialFailure) ? window.bcOrtoMarca(m.metadata&&m.metadata.ortografia&&m.metadata.ortografia.original, m.estado) : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`;
   }
 
   function renderChat(h,mediaUrls={}){
