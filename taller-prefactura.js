@@ -396,7 +396,7 @@
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
         // 24-oct-2026 (dueño: «bloquea el precio libre para empleados, solamente en servicio»): el empleado solo escribe el
         // precio en las líneas de Servicio; en artículos del catálogo la casilla es de solo lectura. El administrador, libre.
-        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio"' + (precioLibre(it) ? ' onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"' : ' readonly tabindex="-1" title="Precio del catálogo"') + '></label>' +
+        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio"' + ' onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"' + (precioLibre(it) ? '' : precioTope(it)) + '></label>' +
         '<label class="ldc"><span>Desc.</span><span class="dcw"><input class="dc" inputmode="decimal" autocomplete="off" value="' + (Number(it.descPct) || 0) + '" aria-label="Descuento en por ciento" onfocus="this.select()" onchange="_rpDescPct(' + i + ',this.value)"><i>%</i></span></label>' +
         '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';
@@ -404,6 +404,11 @@
     actualizarRapidos();
   }
 
+  // 2-nov-2026 (dueño): en artículos del catálogo el empleado sube el precio libre y lo baja hasta el mínimo (lo controla _rpPrecio).
+  function precioTope(it) {
+    var m = 0; try { m = typeof _rpPrecioMin === 'function' ? _rpPrecioMin(it) : 0; } catch (e) {}
+    return m > 0 ? ' title="Mínimo ' + esc(money(m)) + '"' : '';
+  }
   function precioLibre(it) { try { if (typeof isAdminUser === 'function' && isAdminUser()) return true; } catch (e) {} return !!(it && (it.servicio || esRapido(it))); }
   // ---------- Delivery (dueño 30-oct-2026) ----------
   // Artículo 1161 de Info Plus «ENVIO - MENSAJERIA». Precio según el tipo de cliente (Cliente final 100, Por mayor 50,
@@ -433,6 +438,7 @@
     enfocarPrecio(s.items.length - 1, !r.monto); // en la recarga el cursor va al monto
   }
   window.bcAgregarRapido = agregarRapido;
+  window.bcPrefPrecioLibre = function (it) { return !!(it && (esRapido(it) || esDelivery(it))); };
   // ---- Smart (dueño 31-oct-2026: «que sea smart») ----
   // · Cada botón dice el precio que va a poner según el cliente (Delivery RD$ 50 si es por mayor).
   // · Si ya está en la prefactura queda marcado con ✓ y otro toque lo quita (un solo botón para poner y quitar).
