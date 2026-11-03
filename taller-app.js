@@ -25517,38 +25517,63 @@ function generarHtmlLabelDiag(equipo) {
     // que incluye bordes/paddings/márgenes entre secciones. Antes quedaba pegado al borde y se cortaba.
     const availPx = Math.max(24, (parseFloat(h) * 3.7795) - 22);
     const fitF = Math.floor(availPx / (totalLineas * 1.28));
-    const F = Math.max(6, Math.min(userF, fitF)); // usa la del usuario, pero baja si no cabe
-    const STK = '0px';       // sin engrosar: el supersampling x2 ya da nitidez; el text-stroke blobbeaba en térmica
-    const fmenor = Math.max(6, F - 1); // texto fallas un pelín menor
-    let fallasHtml = '';
-    if(fallasEq.length > 0) {
-        const itemsHtml = fallasEq.map(fa => {
-            const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
-            return `<div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
-        }).join('');
-        fallasHtml = `
-            <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
-                <div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; margin-bottom:0.5px;">REVISAR:</div>
-                <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:0 6px;">${itemsHtml}</div>
-            </div>`;
-    }
+    // Letra más grande (dueño, 3-nov-2026: «ajustar las letras para que sean más grandes»). La cuenta de arriba es muy
+    // prudente (supone 2 líneas para FECHA+LOTE y 26 letras por línea) y dejaba ~40 % del label vacío. Ahora se MIDE:
+    // se arma el label fuera de pantalla y se elige la letra más grande (hasta la del usuario) que quepa a lo ancho y
+    // a lo alto dejando ~2 mm abajo para el corte de la térmica. Si no se puede medir, queda la cuenta vieja.
+    const _armar = (F, conAlto) => {
+        const STK = '0px';       // sin engrosar: el supersampling x2 ya da nitidez; el text-stroke blobbeaba en térmica
+        const fmenor = F; // notas y fallas del mismo tamaño (dueño, 3-nov-2026: letras más grandes)
+        let fallasHtml = '';
+        if(fallasEq.length > 0) {
+            const itemsHtml = fallasEq.map(fa => {
+                const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
+                return `<div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
+            }).join('');
+            fallasHtml = `
+                <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
+                    <div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; margin-bottom:0.5px;">REVISAR:</div>
+                    <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:0 6px;">${itemsHtml}</div>
+                </div>`;
+        }
 
-    return `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; padding:0.8mm ${mr}mm 0.8mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:'Arial Black',Arial,Helvetica,sans-serif; color:#000;">
-            <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:'Arial Black',Arial,Helvetica,sans-serif;">
-                DIAGNÓSTICO
+        return `
+            <div class="diag-label" style="width:${w}mm; ${conAlto ? 'min-height:' + h + 'mm;' : ''} font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; padding:0.8mm ${mr}mm 0.8mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:'Arial Black',Arial,Helvetica,sans-serif; color:#000;">
+                <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:'Arial Black',Arial,Helvetica,sans-serif;">
+                    DIAGNÓSTICO
+                </div>
+                <div class="diag-section" style="margin-bottom:0.4mm;">
+                    <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
+                </div>
+                <div class="diag-section" style="margin-bottom:0.4mm;">
+                    <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
+                    <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
+                </div>
+                ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
+                ${fallasHtml}
             </div>
-            <div class="diag-section" style="margin-bottom:0.4mm;">
-                <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
-            </div>
-            <div class="diag-section" style="margin-bottom:0.4mm;">
-                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
-            </div>
-            ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
-            ${fallasHtml}
-        </div>
-    `;
+        `;
+
+    };
+    let F = Math.max(6, Math.min(userF, fitF));
+    try {
+        if(typeof document !== 'undefined' && document.body) {
+            const altoPx = (parseFloat(h) * 3.7795) - 7.5; // ~2 mm de aire abajo
+            const caja = document.createElement('div');
+            caja.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;';
+            document.body.appendChild(caja);
+            for(let t = userF; t >= 6; t -= 0.5) {
+                caja.innerHTML = _armar(t, false);
+                const el = caja.firstElementChild;
+                const cabe = el && el.offsetHeight <= altoPx && el.scrollWidth <= el.clientWidth + 1 &&
+                    !Array.from(el.querySelectorAll('.diag-line,.diag-header')).some(x => x.scrollWidth > x.clientWidth + 1);
+                if(cabe) { F = t; break; }
+                if(t === 6) F = 6;
+            }
+            caja.remove();
+        }
+    } catch(e) {}
+    return _armar(F, true);
 }
 
 let _labelDiagHtmlActual = '';
