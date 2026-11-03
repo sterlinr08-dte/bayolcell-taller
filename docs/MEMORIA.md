@@ -72,7 +72,7 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
-- **Imprimir label rápido (3-nov, rama `claude/imprimir-rapido`, sin publicar):** html2canvas en iframe vacío (0.9→0.4 s), estado de impresora sin espera fija, medida por mitades (bit. 2026-11-03-1100). Apagar `bc_label_iframe_off`.
+- **Imprimir label rápido (3-nov, PUBLICADO PR #214):** html2canvas en iframe vacío (0.9→0.4 s), estado de impresora sin espera fija, medida por mitades (bit. 2026-11-03-1100). Apagar `bc_label_iframe_off`.
 - **Nombre del empleado en cada mensaje del CRM (PUBLICADO 3-nov, PR #206, bit. 2026-11-02-1345 y 2026-11-03-1030):** «Nombre · BayolCell», «📱 Desde el celular · BayolCell» o «Tú (BayolCell)» (IA/plantillas/viejos).
 - **Label de diagnóstico más grande (3-nov, PUBLICADO PR #210; dueño: salió bien).** Falsa alarma «se borró de la cola» corregida y PUBLICADA (PR #211, bit. 2026-11-03-1000 y 1015): `DELETED` = trabajo terminado, no error.
 - **Rapidez 1 «guardar rápido» (3-nov, PUBLICADO PR #208, `37f64a1`; bit. 2026-11-03-0830):** loadAll() recarga solo las tablas escritas; completa si nada anotado, RPC que escribe o > 5 min. Respaldo real = 5 min (phase1), no 60 s. Apagar `bc_guardar_rapido_off`. Bit. 2026-11-03-0700.
