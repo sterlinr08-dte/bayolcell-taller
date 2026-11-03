@@ -15,27 +15,20 @@
   'use strict';
   try { if (localStorage.getItem('bc_impest_off') === '1' || window.BC_IMPEST === false) return; } catch (e) {}
 
+  // Textos cortos (reglamento de microcopy, 30-oct-2026).
   var MALOS = {
-    OFFLINE: 'está sin conexión (apagada o desconectada)',
-    NOT_AVAILABLE: 'no está disponible (apagada o desconectada)',
-    PAUSED: 'está en pausa en Windows',
-    PAPER_OUT: 'no tiene papel',
-    PAPER_JAM: 'tiene el papel atascado',
-    PAPER_PROBLEM: 'tiene un problema con el papel',
-    DOOR_OPEN: 'tiene la tapa abierta',
-    USER_INTERVENTION: 'necesita que alguien la revise',
-    OUTPUT_BIN_FULL: 'tiene la bandeja llena',
-    NO_TONER: 'no tiene tinta',
-    ERROR: 'tiene un error',
-    PENDING_DELETION: 'se está quitando de Windows'
+    OFFLINE: 'sin conexión', NOT_AVAILABLE: 'apagada', PAUSED: 'en pausa', PAPER_OUT: 'sin papel',
+    PAPER_JAM: 'papel atascado', PAPER_PROBLEM: 'falla de papel', DOOR_OPEN: 'tapa abierta',
+    USER_INTERVENTION: 'necesita revisión', OUTPUT_BIN_FULL: 'bandeja llena', NO_TONER: 'sin tinta',
+    ERROR: 'con error', PENDING_DELETION: 'quitándose de Windows'
   };
+  // 3-nov-2026: DELETED y RESTART NO son errores. Windows borra el trabajo de la cola cuando TERMINA de imprimir;
+  // avisaba «se borró de la cola» con el label ya impreso (falsa alarma, foto del dueño).
   var MALOS_TRABAJO = {
-    ERROR: 'dio error', OFFLINE: 'la impresora está sin conexión', PAPEROUT: 'la impresora no tiene papel', PAPER_OUT: 'la impresora no tiene papel',
-    BLOCKED: 'quedó bloqueado', USER_INTERVENTION: 'la impresora necesita que alguien la revise', PAUSED: 'quedó en pausa',
-    DELETED: 'se borró de la cola', RESTART: 'se reinició'
+    ERROR: 'falló en Windows', OFFLINE: 'sin conexión', PAPEROUT: 'sin papel', PAPER_OUT: 'sin papel',
+    BLOCKED: 'bloqueado', USER_INTERVENTION: 'necesita revisión', PAUSED: 'en pausa'
   };
-  var CONSEJO = 'Revise que esté encendida, con papel y con el cable puesto. En Windows: Impresoras y escáneres → la impresora → Abrir cola → ' +
-    'Impresora → quite «Pausar la impresión» y «Usar impresora sin conexión» y cancele lo que esté esperando.';
+  var CONSEJO = 'Revise la impresora y su cola.';
 
   function hay() {
     try { return typeof qz !== 'undefined' && qz && qz.printers && typeof qz.printers.getStatus === 'function' &&
@@ -85,20 +78,23 @@
   }
 
   /** Vigila el trabajo recién mandado: si Windows lo marca con un problema, avisa que no salió. */
+  var vigilando = {}; // un solo vigilante por impresora (dos impresiones seguidas no dan dos avisos)
   function vigilar(nombre) {
     if (!nombre || !hay() || !escuchando[nombre]) return;
+    if (vigilando[nombre]) { oyentes = oyentes.filter(function (f) { return f !== vigilando[nombre]; }); }
     var avisado = false, desde = Date.now();
     function oir(e) {
       // Solo el estado del TRABAJO: el estado de la impresora lo mira revisar() antes del próximo envío.
       if (avisado || e.eventType !== 'JOB' || !mismo(e.printerName, nombre) || Date.now() - desde > 20000) return;
       var malo = MALOS_TRABAJO[codigo(e)];
-      if (!malo && /^(ERROR|FATAL)$/i.test(e.severity || '')) malo = 'dio error';
+      if (!malo && /^(ERROR|FATAL)$/i.test(e.severity || '') && !/^(DELETED|RESTART|COMPLETE|PRINTED|RETAINED|SPOOLING|PRINTING|DELETING)$/.test(codigo(e))) malo = 'falló en Windows';
       if (!malo) return;
       avisado = true;
-      aviso('No salió el papel: el trabajo ' + malo + '. ' + CONSEJO);
+      aviso('No salió el papel: ' + malo + '. ' + CONSEJO);
     }
+    vigilando[nombre] = oir;
     oyentes.push(oir);
-    setTimeout(function () { oyentes = oyentes.filter(function (f) { return f !== oir; }); }, 20000);
+    setTimeout(function () { oyentes = oyentes.filter(function (f) { return f !== oir; }); if (vigilando[nombre] === oir) vigilando[nombre] = null; }, 20000);
   }
 
   function nombrePara(tipo) {
@@ -113,7 +109,7 @@
       var args = arguments, impresora = nombrePara(args[posTipo]);
       return revisar(impresora).then(function (r) {
         if (r.malo) {
-          aviso('No se imprimió: la impresora ' + impresora + ' ' + r.malo + '. ' + CONSEJO);
+          aviso('No imprimió: ' + impresora + ' ' + r.malo + '. ' + CONSEJO);
           return false;
         }
         return Promise.resolve(orig.apply(this, args)).then(function (ok) { if (ok) vigilar(impresora); return ok; });
