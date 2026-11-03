@@ -25774,7 +25774,7 @@ async function confirmarImprimirLabelDiag() {
                 document.body.removeChild(cont);
                 if(ok) algunoOk = true;
             }
-            if(algunoOk) { toast('🖨️ Enviado a la impresora (igual a la vista previa).'); return; }
+            if(algunoOk) { toast('🖨️ Enviado a la impresora.'); return; }
         }
     }
     
