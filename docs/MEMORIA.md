@@ -72,6 +72,7 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
+- **QR del IMEI en el label (3-nov, rama `claude/label-qr-imei`, sin publicar):** 10.5 mm, corrección Q, se lee a 203 dpi; apagar `bayol_dlbl_qr=0`. Si la pistola es 1D, plan B Code 128 (bit. 2026-11-03-1430).
 - **Pistola IMEI para asignar (3-nov, PUBLICADO PR #222):** capa `bc-pistola-imei.js`, solo IMEI 15 cifras con Luhn; apagar `bc_pistola_off`. Bit. 2026-11-03-1400.
 - **Ajuste «quedó muy grande» (3-nov, PUBLICADO PR #220):** vista previa zoom ≤1.7 y fallas del label sin «…» (bit. 2026-11-03-1330).
 - **Ventana «Imprimir label» pro + avisos isla animados (3-nov, PUBLICADO PR #218):** capa `bc-label-modal-pro.js`; apagar `bc_label_pro_off` / `bc_avisos_pro_off`. Bit. 2026-11-03-1300.

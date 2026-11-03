@@ -25512,6 +25512,24 @@ document.getElementById('modalConfigImpresora')?.addEventListener('click', e => 
 // Cache de fallas por equipo para el label (se llena al abrir preview)
 let _fallasPorEquipo = {};
 
+// QR chico con el IMEI para la pistola (dueño, 3-nov-2026: «ponerle un código que la pistola pueda leer, QR pequeño»).
+// Se arma con qrcodejs (ya cargado en taller.html) a 8 px por módulo y se pinta nítido (image-rendering:pixelated).
+const _bcQrCache = new Map();
+function _bcQrImei(texto) {
+    const t = String(texto || '').replace(/\D/g, '');
+    if(t.length !== 15 || typeof QRCode !== 'function' || typeof document === 'undefined') return '';
+    if(_bcQrCache.has(t)) return _bcQrCache.get(t);
+    let url = '';
+    try {
+        const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:-10000px;top:0;';
+        document.body.appendChild(d);
+        new QRCode(d, { text: t, width: 168, height: 168, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.Q }); // Q: mismo tamaño (versión 1) y aguanta más manchas que M
+        const cv = d.querySelector('canvas'); if(cv) url = cv.toDataURL('image/png');
+        d.remove();
+    } catch(e) { url = ''; }
+    if(url) _bcQrCache.set(t, url);
+    return url;
+}
 function generarHtmlLabelDiag(equipo) {
     const art = findArticulo(equipo.articulo_id);
     const lote = cache.lotes.find(l => l.id === equipo.lote_id);
@@ -25538,6 +25556,9 @@ function generarHtmlLabelDiag(equipo) {
     
     // Fallas del equipo (checklist para que el técnico marque)
     const fallasEq = _fallasPorEquipo[equipo.id] || [];
+    let qrOn = true; try { qrOn = localStorage.getItem('bayol_dlbl_qr') !== '0'; } catch(e) {}
+    const qrUrl = qrOn ? _bcQrImei(equipo.imei) : '';
+    const qrMm = Math.max(9, Math.min(12, parseFloat(h) * 0.42)); // 25 mm de alto → 10.5 mm (≈4 puntos por módulo a 203 dpi)
     const userF = Math.max(6, Math.min(parseInt(f) || 9, 40));
     // ===== AUTO-FIT: calcula una letra que QUEPA en el alto del label (para que no se corte) =====
     const cols = fallasEq.length >= 4 ? 2 : 1;
@@ -25575,12 +25596,17 @@ function generarHtmlLabelDiag(equipo) {
                 <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:'Arial Black',Arial,Helvetica,sans-serif;">
                     DIAGNÓSTICO
                 </div>
+                <div class="diag-fila" style="display:flex; align-items:flex-start; gap:1.2mm;">
+                <div style="flex:1; min-width:0;">
                 <div class="diag-section" style="margin-bottom:0.4mm;">
                     <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
                 </div>
                 <div class="diag-section" style="margin-bottom:0.4mm;">
                     <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
                     <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
+                </div>
+                </div>
+                ${qrUrl ? `<img class="diag-qr" src="${qrUrl}" alt="QR IMEI" style="flex:none; width:${qrMm}mm; height:${qrMm}mm; image-rendering:pixelated; image-rendering:crisp-edges; display:block; margin-top:0.2mm;">` : ''}
                 </div>
                 ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
                 ${fallasHtml}
