@@ -33,6 +33,36 @@ const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   global: { fetch: _bcFetch }
 });
+/* ============================================================
+   GUARDAR RÁPIDO (3-nov-2026, dueño: «empieza con el 1»). Antes, cada guardado llamaba loadAll() y se volvían a
+   bajar las 17 tablas del taller (~460 KB) antes de seguir. Ahora se anota qué tabla tocó cada escritura
+   (insert/update/upsert/delete) y loadAll() recarga solo esas. Se carga TODO como antes cuando:
+   · no hay nada anotado (entrada, respaldo de 5 min, botón «Actualizar»);
+   · hubo una RPC o una función del servidor que puede escribir (no se sabe qué tocó);
+   · la última carga completa tiene más de 5 min.
+   Ningún disparador de la base escribe de una tabla del taller en otra (revisado en pg_trigger el 3-nov-2026).
+   Apagar: localStorage.bc_guardar_rapido_off = '1'.
+   ============================================================ */
+const _bcSucio = { tablas: new Set(), todo: false, ultimaCompleta: 0 };
+const _BC_RPC_LECTURA = /^(stats_|web_visitas_|whatsapp_(lineas_directorio|empleados_directorio|hilo_para_telefono|transferencia_vista|mis_transferencias|referido_historial)$|infoplus_(valor_inventario|resumen_ventas_mensual|cxc_por_cliente)$|inventario_valor_total$|buscar_infoplus$|estado_mensual_cat$|crm_no_leidos_count$|app_(is_admin|sesion_vigente|sesiones_listar|puede_diagnostico)$|push_clave_publica$|ai_board_cases$|fin_solicitud_responsables$|raspa_(ver|buscar|topes)$)/;
+const _BC_FN_LECTURA = /^(whatsapp-enviar|instagram-enviar|social-|ai-board-chat|push-enviar|bde-diagnostico|whatsapp-flow-financiamiento|infoplus-existencia|infoplus-existencia-art|infoplus-clientes|infoplus-precio-actualizar|qz-firmar)/;
+(function _bcInstalarSucio(){
+    try {
+        const c = supabaseClient, from0 = c.from && c.from.bind(c), rpc0 = c.rpc && c.rpc.bind(c);
+        if(from0) c.from = function(tabla){
+            const b = from0(tabla);
+            try { ['insert','update','upsert','delete'].forEach(m => { const f = b && b[m]; if(typeof f === 'function') b[m] = function(){ _bcSucio.tablas.add(String(tabla)); return f.apply(b, arguments); }; }); } catch(e) {}
+            return b;
+        };
+        if(rpc0) c.rpc = function(nombre){ if(!_BC_RPC_LECTURA.test(String(nombre || ''))) _bcSucio.todo = true; return rpc0.apply(null, arguments); };
+        // En supabase-js v2 «functions» es un getter que crea un cliente nuevo cada vez: se envuelve el getter.
+        const marcarFn = (fn) => { try { if(fn && typeof fn.invoke === 'function' && !fn.invoke._bcSucio) { const inv0 = fn.invoke.bind(fn); fn.invoke = function(nombre){ if(!_BC_FN_LECTURA.test(String(nombre || ''))) _bcSucio.todo = true; return inv0.apply(null, arguments); }; fn.invoke._bcSucio = true; } } catch(e) {} return fn; };
+        let proto = Object.getPrototypeOf(c), desc = null;
+        while(proto && !desc) { desc = Object.getOwnPropertyDescriptor(proto, 'functions'); proto = Object.getPrototypeOf(proto); }
+        if(desc && desc.get) Object.defineProperty(c, 'functions', { configurable: true, get(){ return marcarFn(desc.get.call(c)); } });
+        else marcarFn(c.functions);
+    } catch(e) { _bcSucio.todo = true; }
+})();
 // Mantiene fresca la sesion segura para evitar "JWT expired" (al volver a la pestana, al enfocar y cada 10 min)
 function _bcRefreshSession(){ try{ supabaseClient.auth.refreshSession(); }catch(e){} try{ _sesComprobarVigente(); }catch(e){} }
 
@@ -2670,67 +2700,67 @@ function closeSidebar() {
     document.getElementById('sidebarBackdrop')?.classList.remove('active');
 }
 
+// Tablas del taller que carga loadAll(): tabla de la base → clave en cache. «req» = la carga falla si esa consulta falla.
+const _BC_CARGAS = [
+    { t: 'ordenes_reparacion', k: 'ordenes', req: 'Cargar órdenes', q: () => supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }) },
+    { t: 'clientes', k: 'clientes', req: 'Cargar clientes', q: () => supabaseClient.from('clientes').select('*') },
+    { t: 'equipos', k: 'equipos', req: 'Cargar equipos', q: () => supabaseClient.from('equipos').select('*') },
+    { t: 'piezas_inventario', k: 'piezas', req: 'Cargar piezas', q: () => supabaseClient.from('piezas_inventario').select('*').order('codigo', { ascending: true }) },
+    { t: 'activos_taller', k: 'activos', req: 'Cargar activos', soloAdmin: true, q: () => isAdminUser() ? supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }) : Promise.resolve({ data: [], error: null }) },
+    { t: 'equipos_refurbish', k: 'refurb', req: 'Cargar refurbish', q: () => supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false }) },
+    { t: 'proveedores', k: 'proveedores', req: 'Cargar proveedores', q: () => supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true }) },
+    { t: 'refurb_lotes', k: 'lotes', req: 'Cargar lotes', q: () => supabaseClient.from('refurb_lotes').select('*').order('creado_en', { ascending: false }) },
+    { t: 'articulos', k: 'articulos', req: 'Cargar artículos', q: () => supabaseClient.from('articulos').select('*').eq('activo', true).order('codigo', { ascending: true }) },
+    { t: 'tecnicos', k: 'tecnicos', req: 'Cargar técnicos', q: () => supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true }) },
+    { t: 'usuarios', k: 'usuarios', q: () => supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null })) },
+    { t: 'orden_piezas', k: 'ordenPiezas', q: () => supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })) },
+    { t: 'tareas_trabajo', k: 'tareas', q: () => supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })) },
+    { t: 'equipo_piezas_pedidas', k: 'piezasReacond', q: () => supabaseClient.from('equipo_piezas_pedidas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })) },
+    { t: 'fallas_comunes', k: 'fallasComunes', guardaPrevio: true, q: () => supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true }).then(r => r, () => ({ data: [], error: null })) },
+    { t: 'config_taller', k: 'configTaller', guardaPrevio: true, nulo: true, q: () => supabaseClient.from('config_taller').select('*').eq('id', 1).maybeSingle().then(r => r, () => ({ data: null, error: null })) },
+    { t: 'orden_notas', k: 'ordenNotas', guardaPrevio: true, q: () => supabaseClient.from('orden_notas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })) }
+];
+// Qué tablas recargar ahora: null = todas. Toma lo anotado y lo limpia (lo que se escriba durante la carga queda para la próxima).
+function _bcTablasARecargar() {
+    const tablas = _bcSucio.tablas, todo = _bcSucio.todo;
+    _bcSucio.tablas = new Set(); _bcSucio.todo = false;
+    let apagado = false; try { apagado = localStorage.getItem('bc_guardar_rapido_off') === '1'; } catch(e) {}
+    if(apagado || todo || !tablas.size || !_bcSucio.ultimaCompleta || (Date.now() - _bcSucio.ultimaCompleta) > 5 * 60 * 1000) return null;
+    return tablas;
+}
 async function _loadAllImpl() {
+    const solo = _bcTablasARecargar();
+    const cargas = solo ? _BC_CARGAS.filter(x => solo.has(x.t)) : _BC_CARGAS;
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR, rFC, rCT, rNotas] = await Promise.all([
-            supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('clientes').select('*'),
-            supabaseClient.from('equipos').select('*'),
-            supabaseClient.from('piezas_inventario').select('*').order('codigo', { ascending: true }),
-            isAdminUser() ? supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }) : Promise.resolve({ data: [], error: null }),
-            supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true }),
-            supabaseClient.from('refurb_lotes').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('articulos').select('*').eq('activo', true).order('codigo', { ascending: true }),
-            supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true }),
-            supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('equipo_piezas_pedidas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('config_taller').select('*').eq('id', 1).maybeSingle().then(r => r, () => ({ data: null, error: null })),
-            supabaseClient.from('orden_notas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
-        ]);
+        const res = await Promise.all(cargas.map(x => x.q()));
+        cargas.forEach((x, i) => { if(x.req && (!x.soloAdmin || isAdminUser())) requireSupabaseOk(res[i], x.req); });
 
-        requireSupabaseOk(rOrd, 'Cargar órdenes');
-        requireSupabaseOk(rCli, 'Cargar clientes');
-        requireSupabaseOk(rEq, 'Cargar equipos');
-        requireSupabaseOk(rPz, 'Cargar piezas');
-        if(isAdminUser()) requireSupabaseOk(rAct, 'Cargar activos');
-        requireSupabaseOk(rRef, 'Cargar refurbish');
-        requireSupabaseOk(rProv, 'Cargar proveedores');
-        requireSupabaseOk(rLot, 'Cargar lotes');
-        requireSupabaseOk(rArt, 'Cargar artículos');
-        requireSupabaseOk(rTec, 'Cargar técnicos');
-        
         // Detectar eventos nuevos para notificar (comparando con el cache anterior)
         const prev = cache;
-        const nuevoCache = { 
-            ordenes: rOrd.data || [], clientes: rCli.data || [], equipos: rEq.data || [], 
-            piezas: rPz.data || [], activos: rAct.data || [], refurb: rRef.data || [],
-            proveedores: rProv.data || [], lotes: rLot.data || [], articulos: rArt.data || [],
-            fallaCategorias: cache.fallaCategorias || [], fallas: cache.fallas || [],
-            tecnicos: rTec.data || [], usuarios: (rUsr && rUsr.data) || [],
-            ordenPiezas: (rOpz && rOpz.data) || [],
-            tareas: (rTk && rTk.data) || [],
-            piezasReacond: (rPzR && rPzR.data) || [],
-            fallasComunes: (rFC && rFC.data) || (cache.fallasComunes || []),
-            configTaller: (rCT && rCT.data) || (cache.configTaller || null),
-            ordenNotas: (rNotas && rNotas.data) || (cache.ordenNotas || [])
-        };
+        const nuevoCache = {};
+        cargas.forEach((x, i) => {
+            const d = res[i] && res[i].data;
+            nuevoCache[x.k] = x.guardaPrevio ? (d || cache[x.k] || (x.nulo ? null : [])) : (d || (x.nulo ? null : []));
+        });
+        if(!solo) { nuevoCache.fallaCategorias = cache.fallaCategorias || []; nuevoCache.fallas = cache.fallas || []; }
         // Solo notificar si ya había datos cargados antes (no en la primera carga)
         if(_notifYaInicializado) {
-            detectarEventosYNotificar(prev, nuevoCache);
+            detectarEventosYNotificar(prev, Object.assign({}, cache, nuevoCache));
         }
         _notifYaInicializado = true;
-        
+
         // Conservar las claves cargadas por otros módulos (nominaEmpleados, infoplusArticulos,
         // contaCategorias, etc.) — antes se borraban en cada refresco y dejaban ventanas vacías.
         cache = Object.assign({}, cache, nuevoCache);
+        if(!solo) _bcSucio.ultimaCompleta = Date.now();
+        try { (window.BayolPerformance = window.BayolPerformance || {}).ultimaCarga = { tablas: cargas.map(x => x.t), completa: !solo, en: Date.now() }; } catch(e) {}
         renderAll();
         // Si el chat de notas está abierto, refrescarlo en vivo con los mensajes nuevos
         if(typeof refrescarNotasModalAbierto === 'function') refrescarNotasModalAbierto();
-    } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
+    } catch(e) {
+        if(solo) { _bcSucio.todo = true; } // si falló una carga parcial, la próxima va completa
+        logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos."));
+    }
 }
 // Contador de cargas en curso. Las acciones del usuario (guardar, etc.) SIEMPRE cargan fresco;
 // el poller de fondo se salta si ya hay una carga en curso (así no se solapan 17 consultas + renderAll).
@@ -25089,6 +25119,8 @@ function onCambioRealtime(payload) {
     const tabla = payload?.table || '';
     if(tabla.startsWith('whatsapp_') || tabla === 'leads' || tabla.startsWith('instagram_') || tabla.startsWith('social_')) return;
 
+    // Guardar rápido (3-nov-2026): recargar solo la tabla que cambió (p. ej. orden_notas), no las 17.
+    if(tabla) _bcSucio.tablas.add(tabla); else _bcSucio.todo = true;
     // Debounce corto: si llegan varios cambios juntos, recargar una sola vez
     if(_realtimeDebounce) clearTimeout(_realtimeDebounce);
     _realtimeDebounce = setTimeout(() => {
@@ -25485,38 +25517,63 @@ function generarHtmlLabelDiag(equipo) {
     // que incluye bordes/paddings/márgenes entre secciones. Antes quedaba pegado al borde y se cortaba.
     const availPx = Math.max(24, (parseFloat(h) * 3.7795) - 22);
     const fitF = Math.floor(availPx / (totalLineas * 1.28));
-    const F = Math.max(6, Math.min(userF, fitF)); // usa la del usuario, pero baja si no cabe
-    const STK = '0px';       // sin engrosar: el supersampling x2 ya da nitidez; el text-stroke blobbeaba en térmica
-    const fmenor = Math.max(6, F - 1); // texto fallas un pelín menor
-    let fallasHtml = '';
-    if(fallasEq.length > 0) {
-        const itemsHtml = fallasEq.map(fa => {
-            const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
-            return `<div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
-        }).join('');
-        fallasHtml = `
-            <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
-                <div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; margin-bottom:0.5px;">REVISAR:</div>
-                <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:0 6px;">${itemsHtml}</div>
-            </div>`;
-    }
+    // Letra más grande (dueño, 3-nov-2026: «ajustar las letras para que sean más grandes»). La cuenta de arriba es muy
+    // prudente (supone 2 líneas para FECHA+LOTE y 26 letras por línea) y dejaba ~40 % del label vacío. Ahora se MIDE:
+    // se arma el label fuera de pantalla y se elige la letra más grande (hasta la del usuario) que quepa a lo ancho y
+    // a lo alto dejando ~2 mm abajo para el corte de la térmica. Si no se puede medir, queda la cuenta vieja.
+    const _armar = (F, conAlto) => {
+        const STK = '0px';       // sin engrosar: el supersampling x2 ya da nitidez; el text-stroke blobbeaba en térmica
+        const fmenor = F; // notas y fallas del mismo tamaño (dueño, 3-nov-2026: letras más grandes)
+        let fallasHtml = '';
+        if(fallasEq.length > 0) {
+            const itemsHtml = fallasEq.map(fa => {
+                const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
+                return `<div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
+            }).join('');
+            fallasHtml = `
+                <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
+                    <div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; margin-bottom:0.5px;">REVISAR:</div>
+                    <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:0 6px;">${itemsHtml}</div>
+                </div>`;
+        }
 
-    return `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; padding:0.8mm ${mr}mm 0.8mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:'Arial Black',Arial,Helvetica,sans-serif; color:#000;">
-            <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:'Arial Black',Arial,Helvetica,sans-serif;">
-                DIAGNÓSTICO
+        return `
+            <div class="diag-label" style="width:${w}mm; ${conAlto ? 'min-height:' + h + 'mm;' : ''} font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; padding:0.8mm ${mr}mm 0.8mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:'Arial Black',Arial,Helvetica,sans-serif; color:#000;">
+                <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:'Arial Black',Arial,Helvetica,sans-serif;">
+                    DIAGNÓSTICO
+                </div>
+                <div class="diag-section" style="margin-bottom:0.4mm;">
+                    <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
+                </div>
+                <div class="diag-section" style="margin-bottom:0.4mm;">
+                    <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
+                    <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
+                </div>
+                ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
+                ${fallasHtml}
             </div>
-            <div class="diag-section" style="margin-bottom:0.4mm;">
-                <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
-            </div>
-            <div class="diag-section" style="margin-bottom:0.4mm;">
-                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
-            </div>
-            ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
-            ${fallasHtml}
-        </div>
-    `;
+        `;
+
+    };
+    let F = Math.max(6, Math.min(userF, fitF));
+    try {
+        if(typeof document !== 'undefined' && document.body) {
+            const altoPx = (parseFloat(h) * 3.7795) - 7.5; // ~2 mm de aire abajo
+            const caja = document.createElement('div');
+            caja.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;';
+            document.body.appendChild(caja);
+            for(let t = userF; t >= 6; t -= 0.5) {
+                caja.innerHTML = _armar(t, false);
+                const el = caja.firstElementChild;
+                const cabe = el && el.offsetHeight <= altoPx && el.scrollWidth <= el.clientWidth + 1 &&
+                    !Array.from(el.querySelectorAll('.diag-line,.diag-header')).some(x => x.scrollWidth > x.clientWidth + 1);
+                if(cabe) { F = t; break; }
+                if(t === 6) F = 6;
+            }
+            caja.remove();
+        }
+    } catch(e) {}
+    return _armar(F, true);
 }
 
 let _labelDiagHtmlActual = '';

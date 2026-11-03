@@ -34,13 +34,15 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   let r = await probar(['OK'], null);
   c('impresora bien: imprime y no avisa en rojo', r.ok === true && r.mando === 1 && !r.avisos.some(a => /^error/.test(a)), r);
   r = await probar(['OFFLINE'], null);
-  c('sin conexión: NO manda y avisa qué pasa', r.ok === false && r.mando === 0 && r.avisos.length === 1 && /^error: No se imprimió: la impresora POS-80C está sin conexión/.test(r.avisos[0]), r);
+  c('sin conexión: NO manda y avisa qué pasa', r.ok === false && r.mando === 0 && r.avisos.length === 1 && /^error: No imprimió: POS-80C sin conexión\. Revise la impresora/.test(r.avisos[0]), r);
   r = await probar(['PAUSED'], null);
   c('en pausa: avisa «en pausa»', r.ok === false && r.mando === 0 && r.avisos.some(a => /en pausa/.test(a)), r);
   r = await probar(['PAPER_OUT'], null);
-  c('sin papel: avisa «no tiene papel»', r.ok === false && r.avisos.some(a => /no tiene papel/.test(a)), r);
+  c('sin papel: avisa «sin papel»', r.ok === false && r.avisos.some(a => /sin papel/.test(a)), r);
   r = await probar(['OK'], 'ERROR');
-  c('trabajo con error en Windows: avisa «No salió el papel»', r.ok === true && r.mando === 1 && r.avisos.some(a => /^error: No salió el papel/.test(a)), r);
+  c('trabajo con error en Windows: avisa «No salió el papel»', r.ok === true && r.mando === 1 && r.avisos.filter(a => /^error: No salió el papel: falló en Windows\./.test(a)).length === 1, r);
+  r = await probar(['OK'], 'DELETED');
+  c('trabajo terminado (Windows lo borra de la cola): sin aviso rojo', r.ok === true && r.mando === 1 && !r.avisos.some(a => /^error/.test(a)), r);
   r = await probar(['OFFLINE'], null, false);
   c('QZ sin informe de estado: imprime como antes', r.ok === true && r.mando === 1, r);
   r = await p.evaluate(async () => { window.__estado = ['OFFLINE']; window.__conEstado = true; window.__avisos = []; const a = window.__impresos;
