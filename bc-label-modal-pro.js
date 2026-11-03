@@ -132,7 +132,7 @@
         var disp = Math.max(200, (prev.clientWidth || m.querySelector('.modal-body').clientWidth || 480) - 16);
         var rot = 0; try { rot = parseInt(localStorage.getItem('bayol_dlbl_rot') || '0', 10); } catch (e) {}
         var anchoPx = ((rot === 90 || rot === 270) ? h : w) * 3.7795;
-        var z = Math.max(1, Math.min(2.6, disp / anchoPx));
+        var z = Math.max(1, Math.min(1.7, disp / anchoPx)); // dueño 3-nov: «quedó muy grande» → tope 1.7 (antes 2.6)
         prev.style.setProperty('--bclp-z', (Math.floor(z * 20) / 20).toFixed(2));
       }
     };

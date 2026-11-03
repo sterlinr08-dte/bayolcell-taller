@@ -72,6 +72,7 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
+- **Ajuste «quedó muy grande» (3-nov, rama `claude/label-ajuste-tamano`, sin publicar):** vista previa zoom ≤1.7 y fallas del label sin «…» (bit. 2026-11-03-1330).
 - **Ventana «Imprimir label» pro + avisos isla animados (3-nov, PUBLICADO PR #218):** capa `bc-label-modal-pro.js`; apagar `bc_label_pro_off` / `bc_avisos_pro_off`. Bit. 2026-11-03-1300.
 - **Rapidez 2 «huella por lista» (3-nov, PUBLICADO PR #216):** RPC `taller_huella()` aplicada (solo lectura). Respaldo baja solo listas cambiadas; completa cada 30 min. Apagar `bc_huella_off`. Bit. 2026-11-03-1200.
 - **Imprimir label rápido (3-nov, PUBLICADO PR #214):** html2canvas en iframe vacío (0.9→0.4 s), estado de impresora sin espera fija, medida por mitades (bit. 2026-11-03-1100). Apagar `bc_label_iframe_off`.
