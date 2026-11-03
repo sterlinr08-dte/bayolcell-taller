@@ -43,8 +43,8 @@ const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY, {
    Ningún disparador de la base escribe de una tabla del taller en otra (revisado en pg_trigger el 3-nov-2026).
    Apagar: localStorage.bc_guardar_rapido_off = '1'.
    ============================================================ */
-const _bcSucio = { tablas: new Set(), todo: false, ultimaCompleta: 0 };
-const _BC_RPC_LECTURA = /^(stats_|web_visitas_|whatsapp_(lineas_directorio|empleados_directorio|hilo_para_telefono|transferencia_vista|mis_transferencias|referido_historial)$|infoplus_(valor_inventario|resumen_ventas_mensual|cxc_por_cliente)$|inventario_valor_total$|buscar_infoplus$|estado_mensual_cat$|crm_no_leidos_count$|app_(is_admin|sesion_vigente|sesiones_listar|puede_diagnostico)$|push_clave_publica$|ai_board_cases$|fin_solicitud_responsables$|raspa_(ver|buscar|topes)$)/;
+const _bcSucio = { tablas: new Set(), todo: false, ultimaCompleta: 0, huellas: null };
+const _BC_RPC_LECTURA = /^(stats_|web_visitas_|whatsapp_(lineas_directorio|empleados_directorio|hilo_para_telefono|transferencia_vista|mis_transferencias|referido_historial)$|infoplus_(valor_inventario|resumen_ventas_mensual|cxc_por_cliente)$|inventario_valor_total$|buscar_infoplus$|estado_mensual_cat$|crm_no_leidos_count$|taller_huella$|app_(is_admin|sesion_vigente|sesiones_listar|puede_diagnostico)$|push_clave_publica$|ai_board_cases$|fin_solicitud_responsables$|raspa_(ver|buscar|topes)$)/;
 const _BC_FN_LECTURA = /^(whatsapp-enviar|instagram-enviar|social-|ai-board-chat|push-enviar|bde-diagnostico|whatsapp-flow-financiamiento|infoplus-existencia|infoplus-existencia-art|infoplus-clientes|infoplus-precio-actualizar|qz-firmar)/;
 (function _bcInstalarSucio(){
     try {
@@ -2720,18 +2720,48 @@ const _BC_CARGAS = [
     { t: 'config_taller', k: 'configTaller', guardaPrevio: true, nulo: true, q: () => supabaseClient.from('config_taller').select('*').eq('id', 1).maybeSingle().then(r => r, () => ({ data: null, error: null })) },
     { t: 'orden_notas', k: 'ordenNotas', guardaPrevio: true, q: () => supabaseClient.from('orden_notas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })) }
 ];
-// Qué tablas recargar ahora: null = todas. Toma lo anotado y lo limpia (lo que se escriba durante la carga queda para la próxima).
+// Qué tablas recargar ahora: { solo: Set|null (null = todas), huella: true si se puede preguntar la huella antes }.
+// Toma lo anotado y lo limpia (lo que se escriba durante la carga queda para la próxima).
 function _bcTablasARecargar() {
     const tablas = _bcSucio.tablas, todo = _bcSucio.todo;
     _bcSucio.tablas = new Set(); _bcSucio.todo = false;
     let apagado = false; try { apagado = localStorage.getItem('bc_guardar_rapido_off') === '1'; } catch(e) {}
-    if(apagado || todo || !tablas.size || !_bcSucio.ultimaCompleta || (Date.now() - _bcSucio.ultimaCompleta) > 5 * 60 * 1000) return null;
-    return tablas;
+    const edad = _bcSucio.ultimaCompleta ? (Date.now() - _bcSucio.ultimaCompleta) : Infinity;
+    if(apagado || todo || !_bcSucio.ultimaCompleta) return { solo: null, huella: false };
+    // RAPIDEZ 2 (3-nov-2026, dueño eligió «Huella por lista»): sin nada anotado (respaldo de 5 min, volver a la
+    // pestaña, botón Actualizar) o con la última completa vieja, primero se pregunta la huella de cada lista y se bajan
+    // solo las que cambiaron. Carga completa de seguridad cada 30 min. Apagar: localStorage.bc_huella_off = '1'.
+    let sinHuella = false; try { sinHuella = localStorage.getItem('bc_huella_off') === '1'; } catch(e) {}
+    if(edad > 30 * 60 * 1000) return { solo: null, huella: false };
+    if(!tablas.size || edad > 5 * 60 * 1000) return { solo: null, huella: !sinHuella && !!_bcSucio.huellas, extra: tablas };
+    return { solo: tablas, huella: false };
+}
+// Pregunta la huella de las 17 listas (≈1 KB). Devuelve { huellas, cambiadas:Set } o null si no se pudo.
+async function _bcPedirHuella() {
+    try {
+        const { data, error } = await supabaseClient.rpc('taller_huella');
+        if(error || !data || typeof data !== 'object') return null;
+        const prev = _bcSucio.huellas || {}, cambiadas = new Set();
+        _BC_CARGAS.forEach(x => { const h = data[x.t]; if(h == null || h !== prev[x.t]) cambiadas.add(x.t); });
+        return { huellas: data, cambiadas };
+    } catch(e) { return null; }
 }
 async function _loadAllImpl() {
-    const solo = _bcTablasARecargar();
+    const plan = _bcTablasARecargar();
+    let solo = plan.solo, huellaNueva = null, porHuella = false;
+    if(plan.huella) {
+        const hu = await _bcPedirHuella();
+        if(hu) { huellaNueva = hu.huellas; porHuella = true; solo = new Set([...hu.cambiadas, ...(plan.extra || [])]); }
+    }
     const cargas = solo ? _BC_CARGAS.filter(x => solo.has(x.t)) : _BC_CARGAS;
+    // En carga completa también se pide la huella (en paralelo) para tener con qué comparar la próxima vez.
+    const pHuella = (!solo && localStorage.getItem('bc_huella_off') !== '1') ? _bcPedirHuella() : null;
     try {
+        if(porHuella && !cargas.length) { // nada cambió: no se baja nada ni se redibuja
+            _bcSucio.huellas = huellaNueva;
+            try { (window.BayolPerformance = window.BayolPerformance || {}).ultimaCarga = { tablas: [], completa: false, huella: true, en: Date.now() }; } catch(e) {}
+            return;
+        }
         const res = await Promise.all(cargas.map(x => x.q()));
         cargas.forEach((x, i) => { if(x.req && (!x.soloAdmin || isAdminUser())) requireSupabaseOk(res[i], x.req); });
 
@@ -2753,7 +2783,10 @@ async function _loadAllImpl() {
         // contaCategorias, etc.) — antes se borraban en cada refresco y dejaban ventanas vacías.
         cache = Object.assign({}, cache, nuevoCache);
         if(!solo) _bcSucio.ultimaCompleta = Date.now();
-        try { (window.BayolPerformance = window.BayolPerformance || {}).ultimaCarga = { tablas: cargas.map(x => x.t), completa: !solo, en: Date.now() }; } catch(e) {}
+        if(huellaNueva) _bcSucio.huellas = huellaNueva;
+        else if(pHuella) { const hu = await pHuella; if(hu) _bcSucio.huellas = hu.huellas; }
+        else if(solo && _bcSucio.huellas) { solo.forEach(t => { _bcSucio.huellas[t] = null; }); } // lo recargado por guardar: se vuelve a comparar
+        try { (window.BayolPerformance = window.BayolPerformance || {}).ultimaCarga = { tablas: cargas.map(x => x.t), completa: !solo, huella: porHuella, en: Date.now() }; } catch(e) {}
         renderAll();
         // Si el chat de notas está abierto, refrescarlo en vivo con los mensajes nuevos
         if(typeof refrescarNotasModalAbierto === 'function') refrescarNotasModalAbierto();
