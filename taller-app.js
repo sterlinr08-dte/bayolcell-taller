@@ -25562,14 +25562,15 @@ function generarHtmlLabelDiag(equipo) {
             const caja = document.createElement('div');
             caja.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;';
             document.body.appendChild(caja);
-            for(let t = userF; t >= 6; t -= 0.5) {
-                caja.innerHTML = _armar(t, false);
-                const el = caja.firstElementChild;
-                const cabe = el && el.offsetHeight <= altoPx && el.scrollWidth <= el.clientWidth + 1 &&
-                    !Array.from(el.querySelectorAll('.diag-line,.diag-header')).some(x => x.scrollWidth > x.clientWidth + 1);
-                if(cabe) { F = t; break; }
-                if(t === 6) F = 6;
-            }
+            // Búsqueda por mitades en pasos de 0.5 px (antes probaba de uno en uno desde 18: hasta 25 medidas).
+            const cabeCon = (t) => { caja.innerHTML = _armar(t, false); const el = caja.firstElementChild;
+                return !!el && el.offsetHeight <= altoPx && el.scrollWidth <= el.clientWidth + 1 &&
+                    !Array.from(el.querySelectorAll('.diag-line,.diag-header')).some(x => x.scrollWidth > x.clientWidth + 1); };
+            let lo = 12, hi = Math.round(userF * 2); // en medios píxeles; 12 = 6 px
+            if(hi < lo) hi = lo;
+            if(cabeCon(hi / 2)) lo = hi;
+            else { while(hi - lo > 1) { const mid = (lo + hi) >> 1; if(cabeCon(mid / 2)) lo = mid; else hi = mid; } }
+            F = lo / 2;
             caja.remove();
         }
     } catch(e) {}
@@ -26072,16 +26073,31 @@ async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, t
         const wPx = anchoMm ? Math.round(anchoMm * pxPorMm) : elementoHtml.offsetWidth;
         const hPx = altoMm ? Math.round(altoMm * pxPorMm) : elementoHtml.offsetHeight;
         
-        const canvas = await html2canvas(elementoHtml, {
-            scale: escala,
-            backgroundColor: '#ffffff',
-            logging: false,
-            useCORS: true,
-            width: wPx,
-            height: hPx,
-            windowWidth: wPx,
-            windowHeight: hPx
-        });
+        const _h2cOpc = { scale: escala, backgroundColor: '#ffffff', logging: false, useCORS: true, width: wPx, height: hPx, windowWidth: wPx, windowHeight: hPx };
+        // RAPIDEZ (dueño, 3-nov-2026: «tarda como 5 segundos»). html2canvas copia TODO el documento antes de dibujar;
+        // con la pantalla del taller (miles de nodos y hojas de estilo) eso tomaba ~1 s o más por label. Ahora el label
+        // (todo con estilos en línea; el código de barras es <img>) se dibuja dentro de un iframe vacío: ~0.1 s.
+        // Si algo falla, se dibuja como antes. Apagar: localStorage.bc_label_iframe_off = '1'.
+        let canvas = null, _ifr = null;
+        try {
+            if(localStorage.getItem('bc_label_iframe_off') !== '1' && !elementoHtml.querySelector('canvas')) {
+                _ifr = document.createElement('iframe');
+                _ifr.setAttribute('aria-hidden', 'true'); _ifr.tabIndex = -1;
+                _ifr.style.cssText = 'position:fixed;left:-10000px;top:0;border:0;background:#fff;width:' + Math.max(wPx, elementoHtml.offsetWidth || 0) + 'px;height:' + Math.max(hPx, elementoHtml.offsetHeight || 0) + 'px;';
+                document.body.appendChild(_ifr);
+                const d = _ifr.contentDocument;
+                // Mismas hojas de estilo que la pantalla (para que el label salga idéntico), pero sin sus miles de nodos.
+                const hojas = Array.from(document.querySelectorAll('link[rel="stylesheet"],style')).map(n => n.outerHTML).join('');
+                const cuerpo = window.getComputedStyle(document.body);
+                d.open(); d.write('<!doctype html><html><head><meta charset="utf-8">' + hojas + '<style>html,body{margin:0!important;padding:0!important;background:#fff!important;min-height:0!important;overflow:hidden!important}</style></head><body class="' + (document.body.className || '').replace(/"/g, '') + '" style="font-family:' + cuerpo.fontFamily.replace(/"/g, "'") + '">' + elementoHtml.outerHTML + '</body></html>'); d.close();
+                const imgs = Array.from(d.images || []);
+                if(imgs.length) await Promise.race([Promise.all(imgs.map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; }))), new Promise(r => setTimeout(r, 1500))]);
+                if(d.fonts && d.fonts.ready) await Promise.race([d.fonts.ready, new Promise(r => setTimeout(r, 300))]);
+                canvas = await html2canvas(d.body.firstElementChild, _h2cOpc);
+            }
+        } catch(eIfr) { canvas = null; }
+        finally { if(_ifr) { try { _ifr.remove(); } catch(_e) {} } }
+        if(!canvas) canvas = await html2canvas(elementoHtml, _h2cOpc);
         
         const imgBase64 = canvas.toDataURL('image/png').split(',')[1];
         

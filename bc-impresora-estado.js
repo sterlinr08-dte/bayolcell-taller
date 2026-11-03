@@ -59,9 +59,13 @@
     instalar();
     return new Promise(function (fin) {
       var vistos = [], listo = false;
+      var pronto = null;
       function oir(e) {
         if ((e.eventType && e.eventType !== 'PRINTER') || !mismo(e.printerName, nombre)) return;
         vistos.push(codigo(e));
+        // 3-nov-2026 (rapidez): con el primer informe basta; se esperan 80 ms por si llegan juntos varios códigos
+        // (antes se esperaban siempre 600 ms después de preguntar).
+        if (!pronto) pronto = setTimeout(cerrar, 80);
       }
       function cerrar() {
         if (listo) return; listo = true;
