@@ -10,7 +10,8 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   const casos = [
     { nombre: 'foto', notas: 'COMPRAR EL GLASS', fallas: [{ falla_corto: 'GLASS' }] },
     { nombre: 'muchas fallas', notas: 'CAMBIAR PANTALLA Y BATERIA, REVISAR CAMARA TRASERA', fallas: ['PANTALLA', 'BATERIA', 'CAMARA', 'FACE ID', 'CARGA', 'BOCINA'].map(x => ({ falla_corto: x })) },
-    { nombre: 'sin notas', notas: '', fallas: [] }
+    { nombre: 'sin notas', notas: '', fallas: [] },
+    { nombre: '4 fallas largas', notas: '', fallas: ['CAMBIAR BATERIA', 'FLEX DE CARGA', 'HOUSING', 'PULIR PANTALLA'].map(x => ({ falla_corto: x })) }
   ];
   for (const k of casos) {
     const r = await p.evaluate((k) => {
@@ -26,10 +27,10 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
       const h = 25, cols = k.fallas.length >= 4 ? 2 : 1, nl = k.notas ? Math.max(1, Math.ceil(k.notas.length / 26)) : 0, fr = k.fallas.length ? 1 + Math.ceil(k.fallas.length / cols) : 0;
       const vieja = Math.max(6, Math.min(18, Math.floor(Math.max(24, h * 3.7795 - 22) / ((4 + 2 + nl + fr) * 1.28))));
       el.style.minHeight = ''; const alto = el.offsetHeight, limite = h * 3.7795, ancho = el.scrollWidth <= el.clientWidth + 1;
-      const lineasOk = !Array.from(el.querySelectorAll('.diag-line,.diag-header')).some(x => x.scrollWidth > x.clientWidth + 1);
+      const lineasOk = !Array.from(el.querySelectorAll('.diag-line,.diag-header,.diag-falla')).some(x => x.scrollWidth > x.clientWidth + 1);
       return { F, vieja, alto: Math.round(alto), limite: Math.round(limite), ancho, lineasOk };
     }, k);
-    c(`[${k.nombre}] letra igual o más grande que antes (${r.vieja}px → ${r.F}px)`, r.F >= r.vieja && (k.nombre !== 'foto' || r.F > r.vieja), r);
+    c(`[${k.nombre}] letra igual o más grande que antes (${r.vieja}px → ${r.F}px)`, k.nombre === '4 fallas largas' || (r.F >= r.vieja && (k.nombre !== 'foto' || r.F > r.vieja)), r);
     c(`[${k.nombre}] usa al menos 85 % del alto`, r.alto >= r.limite * 0.85, r);
     c(`[${k.nombre}] cabe en el alto (≤ 25 mm)`, r.alto <= r.limite, r);
     c(`[${k.nombre}] nada se sale a lo ancho`, r.ancho && r.lineasOk, r);

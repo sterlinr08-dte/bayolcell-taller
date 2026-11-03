@@ -25561,7 +25561,7 @@ function generarHtmlLabelDiag(equipo) {
         if(fallasEq.length > 0) {
             const itemsHtml = fallasEq.map(fa => {
                 const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
-                return `<div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
+                return `<div class="diag-falla" style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
             }).join('');
             fallasHtml = `
                 <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
@@ -25598,7 +25598,7 @@ function generarHtmlLabelDiag(equipo) {
             // Búsqueda por mitades en pasos de 0.5 px (antes probaba de uno en uno desde 18: hasta 25 medidas).
             const cabeCon = (t) => { caja.innerHTML = _armar(t, false); const el = caja.firstElementChild;
                 return !!el && el.offsetHeight <= altoPx && el.scrollWidth <= el.clientWidth + 1 &&
-                    !Array.from(el.querySelectorAll('.diag-line,.diag-header')).some(x => x.scrollWidth > x.clientWidth + 1); };
+                    !Array.from(el.querySelectorAll('.diag-line,.diag-header,.diag-falla')).some(x => x.scrollWidth > x.clientWidth + 1); }; // .diag-falla: que ninguna falla quede cortada con «…» (dueño, 3-nov)
             let lo = 12, hi = Math.round(userF * 2); // en medios píxeles; 12 = 6 px
             if(hi < lo) hi = lo;
             if(cabeCon(hi / 2)) lo = hi;

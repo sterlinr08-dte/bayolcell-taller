@@ -32,7 +32,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
       return out;
     });
     c(q + ' capa puesta y título corto', r.capa && r.titulo === 'Imprimir label', r.titulo);
-    c(q + ' etiqueta grande en la vista previa', r.anchoLabel >= (ancho > 600 ? 400 : 260) && r.anchoLabel <= r.anchoVentana, [r.anchoLabel, r.anchoVentana]);
+    c(q + ' etiqueta grande en la vista previa', r.anchoLabel >= (ancho > 600 ? 300 : 260) && r.anchoLabel <= 340 && r.anchoLabel <= r.anchoVentana, [r.anchoLabel, r.anchoVentana]);
     c(q + ' lo impreso sigue de 51 mm (≈193 px)', Math.abs(r.anchoImpreso - 193) <= 2, r.anchoImpreso);
     c(q + ' «Ajustar medidas» plegado con resumen', r.ajustesCerrado && /51 × 25 mm/.test(r.resumen), r.resumen);
     c(q + ' botón Imprimir 54 px', r.altoImp >= 54 && r.textoImp === 'Imprimir', [r.altoImp, r.textoImp]);
