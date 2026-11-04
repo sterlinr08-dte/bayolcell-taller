@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>iPhone en 3D · Bayol Cell</title>
+<meta name="description" content="Gire el iPhone, elija el color y véalo de tamaño real en su mesa con la cámara.">
+<meta name="theme-color" content="#0b0b0d">
+<meta name="robots" content="noindex">
+<!-- Prueba (dueño, 4-nov-2026, «opción A con un iPhone»): celular en 3D + «Ver en mi espacio» (AR).
+     model-viewer de Google: en iPhone abre AR Quick Look (arma el USDZ solo), en Android Scene Viewer / WebXR.
+     Modelo genérico propio (modelos/iphone-generico.glb, medidas de un iPhone de 6.1", sin logo). No toca el catálogo. -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.4.0/dist/model-viewer.min.js"></script>
+<style>
+:root{--naranja:#FF6B35;--naranja2:#D65225;--tinta:#0f172a;--gris:#475569;--fondo:#f4f5f8;--borde:#e5e7eb}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--fondo);color:var(--tinta);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.app{max-width:1080px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:10px;margin:4px 0 14px}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(180deg,var(--naranja),var(--naranja2));color:#fff;display:grid;place-items:center;font-weight:900;font-size:20px;box-shadow:0 8px 18px -10px rgba(214,82,37,.8)}
+header b{font-size:16px}header small{display:block;color:var(--gris);font-size:13px}
+.grid{display:grid;gap:18px}
+@media(min-width:900px){.grid{grid-template-columns:1.25fr 1fr;align-items:start}}
+.visor{position:relative;border-radius:24px;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#ffffff 0%,#eef0f4 55%,#e2e6ee 100%);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 24px 60px -30px rgba(15,23,42,.35)}
+model-viewer{width:100%;height:min(68vh,560px);--poster-color:transparent;--progress-bar-color:var(--naranja)}
+.pista{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:13px;color:var(--gris);background:rgba(255,255,255,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:7px 12px;border-radius:999px;white-space:nowrap;pointer-events:none;transition:opacity .3s ease}
+.ficha{background:#fff;border:1px solid var(--borde);border-radius:24px;padding:24px 20px}
+@media(min-width:900px){.ficha{padding:40px 32px}}
+h1{font-size:28px;line-height:1.1;letter-spacing:-.02em;margin:0 0 8px}
+.sub{color:var(--gris);margin:0 0 24px;font-size:15px;line-height:1.45}
+.etq{font-size:14px;font-weight:700;margin:0 0 10px}
+.etq span{font-weight:500;color:var(--gris)}
+.colores{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 28px}
+.color{width:48px;height:48px;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;box-shadow:inset 0 0 0 1px rgba(15,23,42,.15),0 2px 6px -2px rgba(15,23,42,.3);transition:transform .16s cubic-bezier(.22,1,.36,1)}
+.color:active{transform:scale(.94)}
+.color[aria-pressed="true"]::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2.5px solid var(--naranja)}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:56px;border-radius:16px;border:0;font-family:inherit;font-size:16px;font-weight:700;line-height:1;cursor:pointer;text-decoration:none;transition:transform .16s cubic-bezier(.22,1,.36,1),filter .16s ease}
+.btn:active{transform:scale(.97)}
+.btn-ar{background:linear-gradient(180deg,#ff7a45,var(--naranja2));color:#fff;box-shadow:0 12px 26px -12px rgba(214,82,37,.85),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn-ar svg{width:22px;height:22px}
+.btn-wa{margin-top:12px;background:#fff;color:var(--tinta);border:1px solid var(--borde)}
+.nota{margin:16px 0 0;font-size:13px;color:var(--gris);line-height:1.45}
+.sinar{display:none;margin-top:12px;font-size:13.5px;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px}
+model-viewer:not([ar-status]) ~ .x{display:none}
+@media (prefers-reduced-motion:reduce){.btn,.color{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header><div class="logo">B</div><div><b>Bayol Cell</b><small>Véalo antes de comprarlo</small></div></header>
+  <div class="grid">
+    <div class="visor">
+      <model-viewer id="mv" src="modelos/iphone-generico.glb" alt="iPhone en 3D"
+        camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="1500" rotation-per-second="18deg"
+        camera-orbit="200deg 78deg 0.44m" min-camera-orbit="auto auto 0.18m" max-camera-orbit="auto auto 0.7m"
+        field-of-view="30deg" shadow-intensity="1" shadow-softness="0.9" exposure="1.05" environment-image="neutral"
+        ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" interaction-prompt="none">
+        <button slot="ar-button" style="display:none"></button>
+      </model-viewer>
+      <div class="pista" id="pista">Arrastre para girar · pellizque para acercar</div>
+    </div>
+    <section class="ficha">
+      <h1>iPhone de 6.1"</h1>
+      <p class="sub">Gírelo, elija el color y véalo de <b>tamaño real</b> en su mesa con la cámara.</p>
+      <p class="etq">Color: <span id="nomColor">Azul</span></p>
+      <div class="colores" id="colores" role="group" aria-label="Color"></div>
+      <button class="btn btn-ar" id="btnAr" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
+        Ver en mi espacio
+      </button>
+      <div class="sinar" id="sinAr">Abra esta página en su celular (iPhone o Android) para verlo en su mesa con la cámara.</div>
+      <a class="btn btn-wa" href="https://wa.me/18495644791?text=Hola%2C%20vi%20el%20iPhone%20en%203D%20y%20quiero%20informaci%C3%B3n" target="_blank" rel="noopener">Preguntar por WhatsApp</a>
+      <p class="nota">Modelo de muestra. El color y las medidas son de referencia.</p>
+    </section>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+  // Colores de referencia (marco, vidrio trasero)
+  var COLORES = [
+    { n: 'Negro', marco: '#2c2e33', tras: '#3a3c41', chip: '#3a3c41' },
+    { n: 'Azul', marco: '#9fb4c4', tras: '#d4e2ea', chip: '#c9d9e3' },
+    { n: 'Verde', marco: '#b5c3aa', tras: '#dfe7d6', chip: '#d3dfc8' },
+    { n: 'Amarillo', marco: '#e0d6a8', tras: '#f3edcf', chip: '#efe6bd' },
+    { n: 'Rosado', marco: '#e3b7c0', tras: '#f3dbe0', chip: '#eecbd3' }
+  ];
+  var mv = document.getElementById('mv'), cont = document.getElementById('colores'), nom = document.getElementById('nomColor');
+  function hex(h) { var n = parseInt(h.slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, 1].map(function (v, i) { return i < 3 ? Math.pow(v, 2.2) : v; }); }
+  function aplicar(c) {
+    nom.textContent = c.n;
+    Array.prototype.forEach.call(cont.children, function (b) { b.setAttribute('aria-pressed', b.dataset.n === c.n ? 'true' : 'false'); });
+    if (!mv.model) return;
+    mv.model.materials.forEach(function (m) {
+      if (m.name === 'Marco') m.pbrMetallicRoughness.setBaseColorFactor(hex(c.marco));
+      if (m.name === 'Trasera') m.pbrMetallicRoughness.setBaseColorFactor(hex(c.tras));
+    });
+  }
+  var actual = COLORES[1];
+  COLORES.forEach(function (c) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'color'; b.dataset.n = c.n;
+    b.style.background = c.chip; b.setAttribute('aria-label', c.n); b.title = c.n;
+    b.onclick = function () { actual = c; aplicar(c); };
+    cont.appendChild(b);
+  });
+  mv.addEventListener('load', function () { aplicar(actual); });
+  aplicar(actual);
+  var pista = document.getElementById('pista');
+  mv.addEventListener('camera-change', function (e) { if (e.detail && e.detail.source === 'user-interaction') pista.style.opacity = '0'; });
+  document.getElementById('btnAr').onclick = function () {
+    if (mv.canActivateAR) { mv.activateAR(); }
+    else { document.getElementById('sinAr').style.display = 'block'; }
+  };
+  window.BayolIphone3D = { aplicar: aplicar, COLORES: COLORES };
+})();
+</script>
+</body>
+</html>

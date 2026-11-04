@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body><script type="module">
+import * as THREE from 'three';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+// Medidas reales aproximadas de un iPhone de 6.1" (metros): 147.6 × 71.6 × 7.8 mm. Modelo genérico, sin logo.
+const W = 0.0716, H = 0.1476, D = 0.0078, R = 0.0105;
+function rr(w, h, r) { const s = new THREE.Shape(); const x = -w/2, y = -h/2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r); s.lineTo(x + w, y + h - r);
+  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h); s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y); return s; }
+const g = new THREE.Group(); g.name = 'iPhone';
+const matMarco = new THREE.MeshStandardMaterial({ name: 'Marco', color: 0x2b3a55, metalness: 0.85, roughness: 0.32 });
+const matTrasera = new THREE.MeshStandardMaterial({ name: 'Trasera', color: 0x3a4d6e, metalness: 0.1, roughness: 0.35 });
+const matPantalla = new THREE.MeshStandardMaterial({ name: 'Pantalla', color: 0xffffff, metalness: 0, roughness: 0.12 });
+const matNegro = new THREE.MeshStandardMaterial({ name: 'Negro', color: 0x0b0b0d, metalness: 0.2, roughness: 0.15 });
+const matLente = new THREE.MeshStandardMaterial({ name: 'Lente', color: 0x101828, metalness: 0.6, roughness: 0.05 });
+const matAnillo = new THREE.MeshStandardMaterial({ name: 'AnilloLente', color: 0xc9ced6, metalness: 0.95, roughness: 0.2 });
+const matFlash = new THREE.MeshStandardMaterial({ name: 'Flash', color: 0xf5f0e1, metalness: 0, roughness: 0.4 });
+// cuerpo (marco) extruido con bisel
+const cuerpo = new THREE.Mesh(new THREE.ExtrudeGeometry(rr(W - 0.001, H - 0.001, R), { depth: D - 0.001, bevelEnabled: true, bevelThickness: 0.0005, bevelSize: 0.0005, bevelSegments: 4, curveSegments: 24 }), matMarco);
+cuerpo.position.z = -D/2 + 0.0005; cuerpo.name = 'Cuerpo'; g.add(cuerpo);
+// vidrio trasero
+const tras = new THREE.Mesh(new THREE.ShapeGeometry(rr(W - 0.0016, H - 0.0016, R - 0.0008), 24), matTrasera);
+tras.rotation.y = Math.PI; tras.position.z = -D/2 - 0.00006; tras.name = 'VidrioTrasero'; g.add(tras);
+// pantalla: marco negro + imagen
+const bisel = new THREE.Mesh(new THREE.ShapeGeometry(rr(W - 0.0016, H - 0.0016, R - 0.0008), 24), matNegro);
+bisel.position.z = D/2 + 0.00006; bisel.name = 'Bisel'; g.add(bisel);
+const cv = document.createElement('canvas'); cv.width = 590; cv.height = 1280; const c = cv.getContext('2d');
+const gr = c.createLinearGradient(0, 0, 590, 1280); gr.addColorStop(0, '#ff8a3d'); gr.addColorStop(0.5, '#d65225'); gr.addColorStop(1, '#3b1d6e');
+c.fillStyle = gr; c.fillRect(0, 0, 590, 1280);
+c.fillStyle = 'rgba(255,255,255,.95)'; c.font = '600 46px -apple-system,Helvetica,Arial'; c.textAlign = 'center'; c.fillText('martes 4 de noviembre', 295, 250);
+c.font = '700 230px -apple-system,Helvetica,Arial'; c.fillText('9:41', 295, 470);
+c.font = '800 64px Helvetica,Arial'; c.fillText('BAYOL CELL', 295, 1110);
+const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; matPantalla.map = tex; matPantalla.emissiveMap = tex; matPantalla.emissive = new THREE.Color(0xffffff); matPantalla.emissiveIntensity = 0.55;
+const sw = W - 0.0046, sh = H - 0.0046;
+const geoP = new THREE.ShapeGeometry(rr(sw, sh, R - 0.0022), 24);
+const pos = geoP.attributes.position, uv = [];
+for (let i = 0; i < pos.count; i++) uv.push(pos.getX(i) / sw + 0.5, pos.getY(i) / sh + 0.5);
+geoP.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+const pant = new THREE.Mesh(geoP, matPantalla); pant.position.z = D/2 + 0.00012; pant.name = 'Pantalla'; g.add(pant);
+// isla
+const isla = new THREE.Mesh(new THREE.ShapeGeometry(rr(0.0205, 0.0058, 0.0029), 16), matNegro); isla.position.set(0, H/2 - 0.0085, D/2 + 0.00018); isla.name = 'Isla'; g.add(isla);
+// módulo de cámaras (atrás, arriba a la izquierda vista de atrás)
+const mod = new THREE.Mesh(new THREE.ExtrudeGeometry(rr(0.0305, 0.0305, 0.0072), { depth: 0.0009, bevelEnabled: true, bevelThickness: 0.0003, bevelSize: 0.0003, bevelSegments: 3, curveSegments: 16 }), matTrasera);
+mod.rotation.y = Math.PI; mod.position.set(W/2 - 0.0215, H/2 - 0.0215, -D/2 - 0.00006); mod.name = 'ModuloCamara'; g.add(mod);
+const lente = (x, y) => { const a = new THREE.Mesh(new THREE.CylinderGeometry(0.0056, 0.0056, 0.0012, 40), matAnillo); a.rotation.x = Math.PI/2; a.position.set(x, y, -D/2 - 0.0016); g.add(a);
+  const l = new THREE.Mesh(new THREE.CylinderGeometry(0.0043, 0.0043, 0.0014, 40), matLente); l.rotation.x = Math.PI/2; l.position.set(x, y, -D/2 - 0.0018); g.add(l); };
+const cx = W/2 - 0.0215, cy = H/2 - 0.0215; lente(cx + 0.0068, cy + 0.0068); lente(cx - 0.0068, cy - 0.0068);
+const fl = new THREE.Mesh(new THREE.CylinderGeometry(0.0016, 0.0016, 0.001, 24), matFlash); fl.rotation.x = Math.PI/2; fl.position.set(cx - 0.0075, cy + 0.0075, -D/2 - 0.0013); g.add(fl);
+// botones laterales
+const boton = (x, y, h) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.0008, h, 0.0028), matMarco); b.position.set(x, y, 0); g.add(b); };
+boton(W/2 + 0.0003, 0.026, 0.016); boton(-W/2 - 0.0003, 0.038, 0.006); boton(-W/2 - 0.0003, 0.024, 0.0095); boton(-W/2 - 0.0003, 0.011, 0.0095);
+// de pie para el visor (Y arriba)
+const raiz = new THREE.Scene(); raiz.add(g);
+new GLTFExporter().parse(raiz, (r) => { const b = new Uint8Array(r); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); window.__glb = btoa(s); }, (e) => { window.__err = String(e); }, { binary: true });
+</script></body></html>
