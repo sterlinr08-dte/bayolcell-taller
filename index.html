@@ -26,7 +26,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="canonical" href="https://bayolcell.com/">
 <meta name="robots" content="index, follow, max-image-preview:large">
-<link rel="icon" href="assets/logo.png">
+<link rel="icon" href="assets/logo-64.png" sizes="64x64">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -405,8 +405,12 @@
 <link rel="preconnect" href="https://vkhwdvjtowrhkhqavnvk.supabase.co">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap"></noscript>
+<!-- 05-nov-2026: solo los íconos de esta página (assets/iconos/tabler-bc.woff2, 7 KB). Si se agrega un ícono nuevo, volver a correr el recorte (ver bitácora). -->
+<link rel="preload" href="assets/iconos/tabler-bc.woff2?v=20261105" as="font" type="font/woff2" crossorigin>
+<style id="bcIconos">@font-face{font-family:"tabler-icons";font-style:normal;font-weight:400;font-display:block;src:url("assets/iconos/tabler-bc.woff2?v=20261105") format("woff2")}.ti{font-family:"tabler-icons" !important;speak:none;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.ti-air-conditioning:before{content:"\f3a2"}.ti-arrow-down:before{content:"\ea16"}.ti-arrow-left:before{content:"\ea19"}.ti-arrow-right:before{content:"\ea1f"}.ti-arrows-exchange:before{content:"\f1f4"}.ti-bell:before{content:"\ea35"}.ti-brand-instagram:before{content:"\ec20"}.ti-brand-whatsapp:before{content:"\ec74"}.ti-calendar-dollar:before{content:"\f827"}.ti-chevron-down:before{content:"\ea5f"}.ti-chevron-up:before{content:"\ea62"}.ti-device-mobile:before{content:"\ea8a"}.ti-device-tv:before{content:"\ea8d"}.ti-flame:before{content:"\ec2c"}.ti-id:before{content:"\eac3"}.ti-layout-grid:before{content:"\edba"}.ti-lock:before{content:"\eae2"}.ti-map-2:before{content:"\eae7"}.ti-map-pin:before{content:"\eae8"}.ti-menu-2:before{content:"\ec42"}.ti-motorbike:before{content:"\eeb6"}.ti-package-import:before{content:"\f07b"}.ti-phone:before{content:"\eb09"}.ti-player-pause:before{content:"\ed45"}.ti-player-play:before{content:"\ed46"}.ti-search:before{content:"\eb1c"}.ti-shield-lock:before{content:"\ed58"}.ti-shopping-bag:before{content:"\f5f8"}.ti-shopping-bag-plus:before{content:"\fc1b"}.ti-star:before{content:"\eb2e"}.ti-star-filled:before{content:"\f6a6"}.ti-star-half-filled:before{content:"\f6a7"}.ti-ticket:before{content:"\eb3d"}.ti-tool:before{content:"\eb40"}.ti-users:before{content:"\ebf2"}.ti-x:before{content:"\eb55"}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/motion@12.23.12/dist/motion.js" defer></script>
 <script src="web-motion.js?v=20261004m2" defer></script>
@@ -969,7 +973,7 @@ html.pd-abierta body{overflow:hidden}
 
 <header>
   <div class="wrap">
-    <a class="logo" href="#inicio" aria-label="Bayol Cell, inicio"><img src="assets/logo.png" alt="Bayolcell" width="136" height="136"></a>
+    <a class="logo" href="#inicio" aria-label="Bayol Cell, inicio"><img src="assets/logo-272.webp" alt="Bayolcell" width="136" height="136"></a>
     <nav class="secciones" aria-label="Secciones">
       <a href="#catalogo">Celulares</a><a href="#financiamiento">Financiamiento</a><a href="#taller">Taller</a><a href="#movilidad">Pasola</a><a href="#canje">Plan canje</a><a href="#contacto">Sucursales</a>
     </nav>
@@ -1002,7 +1006,7 @@ html.pd-abierta body{overflow:hidden}
         <div class="hero-escena" id="hero-escena">
           <span class="hero-letra" aria-hidden="true" id="hero-letra">16</span>
           <div class="hero-pedestal" aria-hidden="true"></div>
-          <img id="hero-foto" src="assets/catalogo/ip16pro.webp" alt="iPhone 16 Pro" width="900" height="659" fetchpriority="high" draggable="false">
+          <img id="hero-foto" src="assets/catalogo/ip16pro.webp?v=2" alt="iPhone 16 Pro" width="900" height="659" fetchpriority="high" draggable="false">
           <span class="hero-contador" aria-hidden="true"><b id="hero-numero">01</b> / <span id="hero-total">04</span></span>
         </div>
         <div class="hero-controles" role="group" aria-label="Elegir equipo destacado">
@@ -1088,8 +1092,8 @@ html.pd-abierta body{overflow:hidden}
         <span class="promo-pill"><i class="ti ti-flame" aria-hidden="true"></i> Ofertas del mes</span>
       </div>
       <div class="ofertas aparece">
-        <a class="oferta" href="https://wa.me/18495644791?text=Hola%20Bayol%20Cell%2C%20quiero%20cotizar%20el%20cambio%20de%20bater%C3%ADa" target="_blank" rel="noopener"><img src="assets/reparacion-bateria.webp?v=20261013" width="900" height="1200" alt="Cambio de batería iPhone desde RD$1,000 - precios" loading="lazy" decoding="async"></a>
-        <a class="oferta" href="https://wa.me/18495644791?text=Hola%20Bayol%20Cell%2C%20quiero%20cotizar%20el%20cambio%20de%20pantalla" target="_blank" rel="noopener"><img src="assets/reparacion-pantalla.webp?v=20261009" width="900" height="1200" alt="Cambio de pantalla iPhone desde RD$1,000 - precios" loading="lazy" decoding="async"></a>
+        <a class="oferta" href="https://wa.me/18495644791?text=Hola%20Bayol%20Cell%2C%20quiero%20cotizar%20el%20cambio%20de%20bater%C3%ADa" target="_blank" rel="noopener"><img src="assets/reparacion-bateria.webp?v=20261013" srcset="assets/reparacion-bateria-480.webp?v=20261105 480w, assets/reparacion-bateria.webp?v=20261013 900w" sizes="(max-width: 700px) 46vw, 420px" width="900" height="1200" alt="Cambio de batería iPhone desde RD$1,000 - precios" loading="lazy" decoding="async"></a>
+        <a class="oferta" href="https://wa.me/18495644791?text=Hola%20Bayol%20Cell%2C%20quiero%20cotizar%20el%20cambio%20de%20pantalla" target="_blank" rel="noopener"><img src="assets/reparacion-pantalla.webp?v=20261009" srcset="assets/reparacion-pantalla-480.webp?v=20261105 480w, assets/reparacion-pantalla.webp?v=20261009 900w" sizes="(max-width: 700px) 46vw, 420px" width="900" height="1200" alt="Cambio de pantalla iPhone desde RD$1,000 - precios" loading="lazy" decoding="async"></a>
         <a class="oferta" href="https://wa.me/18495644791?text=Hola%20Bayol%20Cell%2C%20quiero%20cotizar%20el%20cambio%20del%20cristal%20de%20la%20pantalla" target="_blank" rel="noopener"><img src="assets/reparacion-cristal-frontal.webp?v=20261014" width="900" height="1200" alt="Cambio de cristal de pantalla iPhone desde RD$2,000 - precios" loading="lazy" decoding="async"></a>
         <a class="oferta" href="https://wa.me/18495644791?text=Hola%20Bayol%20Cell%2C%20quiero%20cotizar%20el%20cambio%20del%20cristal%20trasero" target="_blank" rel="noopener"><img src="assets/reparacion-cristal-trasero.webp?v=20261013" width="900" height="1200" alt="Cristal trasero iPhone desde RD$1,200 - precios" loading="lazy" decoding="async"></a>
       </div>
@@ -1402,6 +1406,14 @@ html.pd-abierta body{overflow:hidden}
   function msgQuiero(g, v){ return v.disp ? 'Hola Bayol Cell, me interesa el ' + nombreVar(g, v) + (v.precio ? ' (' + fmt(v.precio) + ')' : '') + '. ¿Está disponible? ¿En qué colores?' : 'Hola Bayol Cell, avísenme cuando tengan el ' + nombreVar(g, v) + '.'; }
   function msgFin(g, v){ return 'Hola Bayol Cell, quiero financiar el ' + nombreVar(g, v) + (v.precio ? ' (' + fmt(v.precio) + ')' : '') + '. ¿Qué necesito y cuánto sería la cuota?'; }
 
+  // 05-nov-2026 (rendimiento): las fotos del catálogo tienen una copia de 480 px (archivo-480.webp) para el celular.
+  // Si una foto nueva todavía no la tiene, el navegador vuelve a la original (onerror quita el srcset).
+  function fotoChica(u){
+    var m = /^(assets\/catalogo\/[^?#]+?)(\.webp)(\?[^#]*)?$/.exec(String(u || ''));
+    if(!m) return '';
+    return ' srcset="' + esc(m[1] + '-480' + m[2] + (m[3] || '')) + ' 480w, ' + esc(u) + ' 900w" sizes="(max-width: 700px) 48vw, 300px" onerror="this.removeAttribute(\'srcset\');this.onerror=null"';
+  }
+
   // ── Portada: equipos destacados ──
   var HERO = [], hk = 0;
   var heroFoto = document.getElementById('hero-foto'), heroLetra = document.getElementById('hero-letra');
@@ -1459,7 +1471,7 @@ html.pd-abierta body{overflow:hidden}
     TODOS[id] = {g:g, tono:tono};
     var vars = g.vars.length > 1 ? '<div class="variantes" role="group" aria-label="Elegir opción de ' + esc(g.nombre) + '">' + g.vars.map(function(x, k){ return '<button type="button" data-id="' + id + '" data-k="' + k + '" aria-pressed="' + (k === k0) + '"' + (x.disp ? '' : ' class="agot" title="Agotado"') + '>' + esc(etiquetaVar(x)) + '</button>'; }).join('') + '</div>' : '';
     return '<article class="eq' + (g.disp ? '' : ' agotado') + '" id="' + id + '" style="--tono:' + tono + '" data-k="' + k0 + '"' + (i >= 8 ? ' hidden data-extra' : '') + '>'
-      + '<div class="eq-foto"><span data-badge></span><img src="' + esc(g.foto) + '" alt="' + esc(g.nombre) + '" loading="lazy" decoding="async" draggable="false"></div>'
+      + '<div class="eq-foto"><span data-badge></span><img src="' + esc(g.foto) + '"' + fotoChica(g.foto) + ' alt="' + esc(g.nombre) + '" loading="lazy" decoding="async" draggable="false"></div>'
       + '<div class="eq-cuerpo"><h3>' + esc(g.nombre) + '</h3><p class="eq-sub" data-sub></p>' + vars
       + '<div class="precio" data-precio></div>'
       + '<div class="eq-ctas"><a class="btn btn-wa quiero" target="_blank" rel="noopener" href="#"></a><span class="pd-accion"></span></div>'
