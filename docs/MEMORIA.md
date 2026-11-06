@@ -68,6 +68,8 @@ apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
 **Taller general:** ⓘ de ayuda en todas las pantallas (`taller-info.js`), capa táctil, texto en usted, Navarrete (almacén 7) en
 listas y sincronización.
 
+- **Punto de equilibrio (6-nov, PUBLICADO):** Contabilidad → «Punto de equilibrio» (`conta-equilibrio.js`, tabla `conta_equilibrio`). Gastos fijos a mano por tienda + comunes; ventas de Info Plus; General. Falta: gastos reales y confirmar ITBIS con la contadora.
+
 ## IA de WhatsApp (resumen; detalle en MEMORIA-TECNICA)
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
