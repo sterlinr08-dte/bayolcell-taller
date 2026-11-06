@@ -322,6 +322,8 @@
       '<div class="pe-kpis">' +
         kpi('Debe vender en el mes', x.pe != null ? plata(x.pe) : '—', '#0f172a', x.peDia != null ? plata(x.peDia) + ' ' + (x.peDiaTxt || 'por día') : '') +
         kpi('Lleva vendido', plata(x.vn), null, 'Margen ' + pct(x.mb) + ' · contribución ' + pct(x.mc)) +
+        // En ganancia: lo que debe dejar la venta después del costo y los gastos variables, y lo que lleva.
+        kpi('Ganancia que necesita', plata(x.ft), null, 'Lleva ' + '<b style="color:' + colorRes(x.vn * x.mc - x.ft) + '">' + plata(Math.max(0, x.vn * x.mc)) + '</b> (venta − costo − variables)') +
         kpi('Le falta', x.falta != null ? plata(x.falta) : '—', x.falta ? '#b45309' : '#15803d', x.diaNecesario != null ? plata(x.diaNecesario) + ' por día que queda' : '') +
         kpi('Gastos fijos', plata(x.ft), null, esGeneral ? 'Propios de las tiendas ' + plata(x.gf) + ' · comunes ' + plata(x.gc) : 'Propios ' + plata(x.gf) + ' · comunes ' + plata(x.gc) + ' (' + pct(x.partePct) + ')') +
         kpi(c.em === 'pasado' ? 'Resultado del mes' : 'Resultado a la fecha', x.resultado == null ? '—' : plata(x.resultado), x.resultado == null ? null : colorRes(x.resultado),
