@@ -357,6 +357,7 @@
       '#conta-equilibrio .pe-tab.on{background:#e4572e;border-color:#e4572e;color:#fff}',
       '#conta-equilibrio .pe-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}',
       '@media (max-width:900px){#conta-equilibrio .pe-grid{grid-template-columns:1fr}}',
+      '@media (max-width:480px){#conta-equilibrio .pe-g{grid-template-columns:minmax(0,1fr) 44px;}#conta-equilibrio .pe-g-c{grid-column:1 / -1}#conta-equilibrio .pe-g-m{grid-column:1}}',
       '#conta-equilibrio .pe-card,#conta-equilibrio .pe-res{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 6px 18px -14px rgba(15,23,42,.35)}',
       '#conta-equilibrio .pe-card h4{margin:12px 0 8px;font-size:14px;color:#0f172a}',
       '#conta-equilibrio .pe-card-h{display:flex;justify-content:space-between;align-items:center;gap:8px}',
@@ -442,7 +443,7 @@
         }
       }
       cerrar();
-      return orig.apply(this, arguments);
+      return orig.call(this, name);
     };
     nuevo._pe = true;
     window.contaTab = nuevo;
@@ -463,7 +464,7 @@
     tab: function (k) { if (k !== 'general' && k !== 'comunes' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tab = k; pintar(); },
     mes: function (v) {
       if (!v) return;
-      var seguir = function () { st.mes = v; st.filas = {}; cargar(); };
+      var seguir = function () { st.mes = v; st.filas = {}; var m = $('pe_mes'); if (m) m.value = v; cargar(); };
       if (st.sucio && typeof confirmar === 'function') confirmar('Hay cambios sin guardar. ¿Cambiar de mes y perderlos?').then(function (ok) { if (ok) seguir(); else { var m = $('pe_mes'); if (m) m.value = st.mes; } });
       else seguir();
     },
