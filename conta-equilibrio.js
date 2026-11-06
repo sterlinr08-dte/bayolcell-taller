@@ -14,19 +14,24 @@
     { cod: 4, nombre: 'Moca', domingo: false },
     { cod: 7, nombre: 'Navarrete', domingo: true }
   ];
+  // Auditoría 6-nov: regalía 8.33 % (las vacaciones ya van en el sueldo); intereses y capital separados;
+  // depreciación y prestaciones; incentivos y piezas de reparación como variables; tarjeta solo sobre lo cobrado con tarjeta.
   var FIJOS_TIENDA = ['Alquiler', 'Luz (Edenorte)', 'Agua', 'Internet y teléfono', 'Nómina de la tienda (sueldos)',
-    'TSS patronal', 'Provisión regalía y vacaciones', 'Seguridad y alarma', 'Mantenimiento y limpieza', 'Otros gastos de la tienda'];
+    'TSS patronal', 'Provisión de regalía', 'Prestaciones (cesantía y preaviso)', 'Depreciación (equipos y mobiliario)',
+    'Seguridad y alarma', 'Mantenimiento y limpieza', 'Otros gastos de la tienda'];
   var FIJOS_COMUNES = ['Contadora', 'Info Plus', 'Hexnode / MDM', 'WhatsApp / Zernio', 'Supabase y hosting', 'Publicidad fija',
-    'Préstamos (cuota del mes)', 'Seguros', 'Sueldo del dueño y administración', 'Otros gastos comunes'];
+    'Intereses de préstamos', 'Seguros', 'Sueldo del dueño y administración', 'Otros gastos comunes'];
   var VARIABLES = [
     { k: 'comision_pct', t: 'Comisión de vendedores', def: 1 },
-    { k: 'tarjeta_pct', t: 'Comisión de tarjeta o banco', def: 1.5 },
+    { k: 'incentivos_pct', t: 'Incentivos de técnicos', def: 0 },
+    { k: 'piezas_pct', t: 'Piezas usadas en reparaciones', def: 0 },
     { k: 'garantias_pct', t: 'Garantías y mermas', def: 1 },
     { k: 'otros_pct', t: 'Otros variables', def: 0 }
   ];
-  var TSS_PCT = 16.29, PROV_PCT = 13.2;
+  var TARJETA_DEF = { tarjeta_pct: 3, tarjeta_parte: 50 };
+  var TSS_PCT = 16.29, PROV_PCT = 8.33;
 
-  var st = { mes: null, tab: 'general', filas: {}, ventas: {}, cargando: false, sucio: false };
+  var st = { mes: null, tab: 'general', filas: {}, ventas: {}, ventasAnt: {}, cn: {}, cargando: false, sucio: false };
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return (typeof escapeHtml === 'function') ? escapeHtml(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -55,14 +60,23 @@
     return n;
   }
 
+  function diasHastaAyer(mes, domingo) {
+    var n = contarDias(mes, domingo, true);
+    if (estadoMes(mes) !== 'actual') return n;
+    var dow = new Date().getDay();
+    return (dow !== 0 || domingo) ? Math.max(0, n - 1) : n;
+  }
+  function mesAnterior(mes) { var d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+
   // ---------- filas ----------
   function filaVacia(cod) {
     var lista = cod === 0 ? FIJOS_COMUNES : FIJOS_TIENDA, t = TIENDAS.filter(function (x) { return x.cod === cod; })[0];
-    var vars = {}; VARIABLES.forEach(function (v) { vars[v.k] = v.def; });
+    var vars = { tarjeta_pct: TARJETA_DEF.tarjeta_pct, tarjeta_parte: TARJETA_DEF.tarjeta_parte }; VARIABLES.forEach(function (v) { vars[v.k] = v.def; });
     return {
       mes: st.mes + '-01', codlocalidad: cod,
       gastos: lista.map(function (c) { return { concepto: c, monto: '' }; }),
-      variables: cod === 0 ? {} : vars,
+      // Comunes: base del reparto (mes anterior), % de ventas con ITBIS (hoy 0: el dueño confirmó el 6-nov que no llevan) y abono a capital.
+      variables: cod === 0 ? { base: 'anterior', itbis_pct: 0, capital: 0 } : vars,
       dias_habiles: cod === 0 ? null : contarDias(st.mes, t && t.domingo, false),
       incluye_itbis: false, reparto: 'venta', reparto_pct: {}, notas: '', _nueva: true
     };
@@ -70,41 +84,58 @@
   function fila(cod) { if (!st.filas[cod]) st.filas[cod] = filaVacia(cod); return st.filas[cod]; }
   function totalFijos(cod) { return (fila(cod).gastos || []).reduce(function (s, g) { return s + num(g.monto); }, 0); }
   function faltanMontos(cod) { return (fila(cod).gastos || []).filter(function (g) { return String(g.monto).trim() === ''; }).length; }
-  function pctVariables(cod) { var v = fila(cod).variables || {}; return VARIABLES.reduce(function (s, x) { return s + num(v[x.k]); }, 0) / 100; }
+  function itbisPct() { var v = fila(0).variables || {}; return Math.min(100, num(v.itbis_pct)) / 100; }
+  function pctVariables(cod) {
+    var v = fila(cod).variables || {};
+    var tarj = (v.tarjeta_pct == null ? TARJETA_DEF.tarjeta_pct : num(v.tarjeta_pct)) * (v.tarjeta_parte == null ? TARJETA_DEF.tarjeta_parte : num(v.tarjeta_parte)) / 100;
+    // El banco cobra sobre el total con ITBIS.
+    tarj = tarj * (1 + 0.18 * itbisPct());
+    return (VARIABLES.reduce(function (s, x) { return s + num(v[x.k]); }, 0) + tarj) / 100;
+  }
 
   // ---------- cálculo ----------
   function calcular() {
-    var com = fila(0), itbis = !!com.incluye_itbis, GC = totalFijos(0), em = estadoMes(st.mes);
+    var com = fila(0), g18 = itbisPct(), itbis = g18 > 0, GC = totalFijos(0), em = estadoMes(st.mes);
+    var cv = com.variables || {}, base = cv.base || 'anterior', capital = num(cv.capital);
     // Días: los transcurridos nunca pasan de los del mes; hoy cuenta como día que queda para vender.
+    function fraccion(x) { return em === 'actual' && x.diasMes > 0 ? Math.min(1, x.diasPas / x.diasMes) : 1; }
     function proyectar(x) {
       if (em === 'pasado') x.diasPas = x.diasMes; else if (em === 'futuro') x.diasPas = 0;
       x.diasPas = Math.min(x.diasPas, x.diasMes);
-      var quedan = em === 'actual' ? Math.max(1, x.diasMes - x.diasPas + 1) : 0;
+      // Hoy cuenta como día que queda (no como pasado) para la venta diaria necesaria.
+      var quedan = em === 'actual' ? Math.max(1, x.diasMes - x.diasAyer) : 0;
       x.diaNecesario = x.falta != null && x.falta > 0 && quedan > 0 ? x.falta / quedan : null;
       x.ritmo = x.diasPas > 0 ? x.vn / x.diasPas : 0;
       x.proy = em === 'actual' && x.diasPas > 0 ? Math.max(x.vn, x.ritmo * x.diasMes) : x.vn;
     }
     var tiendas = TIENDAS.map(function (t) {
       var v = st.ventas[t.cod] || { venta: 0, costo: 0 };
-      var vn = itbis ? v.venta / 1.18 : v.venta, c = v.costo;
+      var vn = v.venta / (1 + 0.18 * g18), c = v.costo;
       var mb = vn > 0 ? (vn - c) / vn : 0, mc = mb - pctVariables(t.cod);
       return { t: t, venta: v.venta, vn: vn, costo: c, mb: mb, mc: mc, gf: totalFijos(t.cod), faltan: faltanMontos(t.cod),
-        diasMes: num(fila(t.cod).dias_habiles) || contarDias(st.mes, t.domingo, false), diasPas: contarDias(st.mes, t.domingo, true) };
+        diasMes: num(fila(t.cod).dias_habiles) || contarDias(st.mes, t.domingo, false), diasPas: contarDias(st.mes, t.domingo, true),
+        diasAyer: diasHastaAyer(st.mes, t.domingo), ventaAnt: (st.ventasAnt[t.cod] || { venta: 0 }).venta / (1 + 0.18 * g18) };
     });
     var sumVN = tiendas.reduce(function (s, x) { return s + x.vn; }, 0);
+    var sumAnt = tiendas.reduce(function (s, x) { return s + x.ventaAnt; }, 0);
     tiendas.forEach(function (x) {
       var parte;
-      if (com.reparto === 'iguales' || (com.reparto === 'venta' && sumVN <= 0)) parte = 1 / TIENDAS.length;
-      else if (com.reparto === 'manual') parte = num((com.reparto_pct || {})[x.t.cod]) / 100;
-      else parte = x.vn / sumVN;
+      if (com.reparto === 'manual') parte = num((com.reparto_pct || {})[x.t.cod]) / 100;
+      else if (com.reparto === 'venta' && base === 'anterior' && sumAnt > 0) parte = x.ventaAnt / sumAnt;
+      else if (com.reparto === 'venta' && base !== 'anterior' && sumVN > 0) parte = x.vn / sumVN;
+      else parte = 1 / TIENDAS.length;
       x.partePct = parte; x.gc = GC * parte; x.ft = x.gf + x.gc;
       x.pe = (x.mc > 0 && x.ft > 0) ? x.ft / x.mc : null;
       x.peDia = x.pe != null && x.diasMes > 0 ? x.pe / x.diasMes : null;
       x.falta = x.pe != null ? Math.max(0, x.pe - x.vn) : null;
       proyectar(x);
       x.alcanzado = x.pe != null && x.pe > 0 ? x.vn / x.pe : null;
-      x.resultado = em === 'futuro' ? null : x.vn * x.mc - x.ft;
+      // Aporte de la tienda: lo que deja sin cargarle los gastos comunes (para decidir sobre una tienda).
+      x.aporte = em === 'futuro' ? null : x.vn * x.mc - x.gf * fraccion(x);
+      // Resultado: en el mes en curso se comparan los gastos de los días ya transcurridos, no los del mes entero.
+      x.resultado = em === 'futuro' ? null : x.vn * x.mc - x.ft * fraccion(x);
       x.resultadoProy = x.proy * x.mc - x.ft;
+      x.seguridad = x.pe != null && x.vn > 0 ? (x.vn - x.pe) / x.vn : null;
     });
     var contrib = tiendas.reduce(function (s, x) { return s + x.vn * x.mc; }, 0);
     var sumGF = tiendas.reduce(function (s, x) { return s + x.gf; }, 0);
@@ -116,20 +147,26 @@
     // General: los días son los de la tienda que más días abre (Navarrete abre domingos).
     var diasMesG = Math.max.apply(null, tiendas.map(function (x) { return x.diasMes; }));
     var diasPasG = Math.max.apply(null, tiendas.map(function (x) { return x.diasPas; }));
+    var diasAyerG = Math.max.apply(null, tiendas.map(function (x) { return x.diasAyer; }));
+    var fracG = em === 'actual' && diasMesG > 0 ? Math.min(1, diasPasG / diasMesG) : 1;
+    var diasLS = contarDias(st.mes, false, false);
     var peG = (mcComb > 0 && fijosTot > 0) ? fijosTot / mcComb : null;
     var g = {
       vn: sumVN, mb: sumVN > 0 ? (sumVN - sumCosto) / sumVN : 0, mc: mcComb, gf: sumGF, gc: GC, ft: fijosTot, partePct: 1,
-      pe: peG, peDia: peG != null && diasMesG > 0 ? peG / diasMesG : null,
+      pe: peG, peDia: peG != null && diasLS > 0 ? peG / diasLS : null, peDiaTxt: 'por día de lunes a sábado',
       falta: peG != null ? Math.max(0, peG - sumVN) : null, alcanzado: peG != null && peG > 0 ? sumVN / peG : null,
-      proy: sumProy, resultado: em === 'futuro' ? null : contrib - fijosTot, resultadoProy: contribProy - fijosTot,
+      proy: sumProy, resultado: em === 'futuro' ? null : contrib - fijosTot * fracG, resultadoProy: contribProy - fijosTot,
+      seguridad: peG != null && sumVN > 0 ? (sumVN - peG) / sumVN : null, capital: capital,
+      peCaja: (mcComb > 0 && fijosTot + capital > 0) ? (fijosTot + capital) / mcComb : null,
       faltan: faltanMontos(0) + tiendas.reduce(function (s, x) { return s + x.faltan; }, 0), diasMes: diasMesG, diasPas: diasPasG
     };
-    var quedanG = em === 'actual' ? Math.max(1, diasMesG - diasPasG + 1) : 0;
+    var quedanG = em === 'actual' ? Math.max(1, diasMesG - diasAyerG) : 0;
     g.diaNecesario = g.falta != null && g.falta > 0 && quedanG > 0 ? g.falta / quedanG : null;
     var repSuma = TIENDAS.reduce(function (a, t) { return a + num((com.reparto_pct || {})[t.cod]); }, 0);
     var repMal = com.reparto === 'manual' && Math.abs(repSuma - 100) > 0.01;
     var errVentas = TIENDAS.some(function (t) { return st.ventas[t.cod] && st.ventas[t.cod].error; });
-    return { tiendas: tiendas, g: g, itbis: itbis, em: em, repMal: repMal, repSuma: repSuma, errVentas: errVentas };
+    return { tiendas: tiendas, g: g, itbis: itbis, g18: g18, em: em, repMal: repMal, repSuma: repSuma, errVentas: errVentas,
+      base: base, sinAnt: com.reparto === 'venta' && base === 'anterior' && sumAnt <= 0, cn: st.cn || {} };
   }
 
   // ---------- datos ----------
@@ -148,17 +185,35 @@
       if (typeof logError === 'function') logError('equilibrio cargar', e);
       st.errorTabla = true;
     }
-    var ventas = {};
+    var ventas = {}, ventasAnt = {}, cn = {}, pa = periodo(mesAnterior(st.mes));
+    async function leer(per, cod) {
+      var rv = await cli.rpc('estado_mensual_cat', { p_ini: per.ini, p_fin: per.fin, p_localidad: cod });
+      if (rv.error) throw rv.error;
+      var v = 0, c = 0; (rv.data || []).forEach(function (x) { v += Number(x.venta) || 0; c += Number(x.costo) || 0; });
+      return { venta: v, costo: c };
+    }
     await Promise.all(TIENDAS.map(async function (t) {
-      try {
-        var rv = await cli.rpc('estado_mensual_cat', { p_ini: p.ini, p_fin: p.fin, p_localidad: t.cod });
-        if (rv.error) throw rv.error;
-        var v = 0, c = 0; (rv.data || []).forEach(function (x) { v += Number(x.venta) || 0; c += Number(x.costo) || 0; });
-        ventas[t.cod] = { venta: v, costo: c };
-      } catch (e) { ventas[t.cod] = { venta: 0, costo: 0, error: true }; if (typeof logError === 'function') logError('equilibrio ventas', e); }
+      try { ventas[t.cod] = await leer(p, t.cod); }
+      catch (e) { ventas[t.cod] = { venta: 0, costo: 0, error: true }; if (typeof logError === 'function') logError('equilibrio ventas', e); }
+      try { ventasAnt[t.cod] = await leer(pa, t.cod); } catch (e) { ventasAnt[t.cod] = { venta: 0, costo: 0 }; }
     }));
+    // Notas de crédito (CN): Info Plus las manda en positivo y se suman como venta. Son devoluciones:
+    // se quitan de la venta y del costo y además se restan (venta − 2 × CN). Dueño, 6-nov.
+    try {
+      var rc = await cli.from('infoplus_ventas').select('monto_venta,monto_costo,codlocalidad,factura_id')
+        .like('factura_id', 'CN%').gte('fecha', p.ini).lt('fecha', p.fin);
+      if (rc.error) throw rc.error;
+      (rc.data || []).forEach(function (x) {
+        var k = x.codlocalidad; if (!cn[k]) cn[k] = { venta: 0, costo: 0, n: 0, facturas: {} };
+        cn[k].venta += Number(x.monto_venta) || 0; cn[k].costo += Number(x.monto_costo) || 0; cn[k].facturas[x.factura_id] = 1;
+      });
+      Object.keys(cn).forEach(function (k) {
+        cn[k].n = Object.keys(cn[k].facturas).length;
+        if (ventas[k]) { ventas[k].venta = Math.max(0, ventas[k].venta - 2 * cn[k].venta); ventas[k].costo = Math.max(0, ventas[k].costo - 2 * cn[k].costo); }
+      });
+    } catch (e) { if (typeof logError === 'function') logError('equilibrio notas de crédito', e); }
     if (token !== st.token) return;
-    st.ventas = ventas; st.cargando = false; st.sucio = false;
+    st.ventas = ventas; st.ventasAnt = ventasAnt; st.cn = cn; st.cargando = false; st.sucio = false;
     pintar();
   }
 
@@ -169,7 +224,7 @@
     var filas = lista.map(function (c) {
       var f = fila(c);
       return { mes: st.mes + '-01', codlocalidad: c, gastos: f.gastos, variables: f.variables || {}, dias_habiles: f.dias_habiles == null || f.dias_habiles === '' ? null : num(f.dias_habiles),
-        incluye_itbis: !!f.incluye_itbis, reparto: f.reparto || 'venta', reparto_pct: f.reparto_pct || {}, notas: f.notas || '', actualizado_por: quien };
+        incluye_itbis: c === 0 ? num((f.variables || {}).itbis_pct) > 0 : false, reparto: f.reparto || 'venta', reparto_pct: f.reparto_pct || {}, notas: f.notas || '', actualizado_por: quien };
     });
     var com = fila(0);
     if (com.reparto === 'manual') {
@@ -219,7 +274,14 @@
   function quitarConcepto(cod, i) { fila(cod).gastos.splice(i, 1); st.sucio = true; pintar(); }
   function editVar(cod, k, v) { fila(cod).variables = fila(cod).variables || {}; fila(cod).variables[k] = num(v); st.sucio = true; refrescarCalculo(); }
   function editDias(cod, v) { fila(cod).dias_habiles = v === '' ? null : Math.min(31, Math.round(num(v))); st.sucio = true; refrescarCalculo(); }
-  function editComun(k, v) { var c = fila(0); if (k === 'itbis') c.incluye_itbis = !!v; else if (k === 'reparto') c.reparto = v; st.sucio = true; pintar(); }
+  function editComun(k, v) {
+    var c = fila(0); c.variables = c.variables || {};
+    if (k === 'reparto') {
+      if (v === 'anterior' || v === 'actual') { c.reparto = 'venta'; c.variables.base = v; } else c.reparto = v;
+    } else if (k === 'itbis_pct') { c.variables.itbis_pct = Math.min(100, num(v)); st.sucio = true; refrescarCalculo(); return; }
+    else if (k === 'capital') { c.variables.capital = num(v); st.sucio = true; refrescarCalculo(); return; }
+    st.sucio = true; pintar();
+  }
   function editRepartoPct(cod, v) { var c = fila(0); c.reparto_pct = c.reparto_pct || {}; c.reparto_pct[cod] = num(v); st.sucio = true; refrescarCalculo(); }
   function sugerirNomina(cod) {
     var f = fila(cod), nom = 0;
@@ -250,19 +312,27 @@
     if (x.faltan > 0) avisos.push('Hay ' + x.faltan + ' concepto(s) de gastos fijos sin monto. El punto de equilibrio puede salir más bajo de lo real.');
     if (x.pe != null && x.vn >= x.pe && x.vn > 0) avisos.push('Ya ' + (esGeneral ? 'se cubrieron' : 'cubrió') + ' los gastos del mes. Lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
     else if (c.em === 'actual' && x.pe != null && x.proy < x.pe && x.diaNecesario != null) avisos.push('Al ritmo actual cerraría el mes por debajo del punto de equilibrio. Necesita vender ' + plata(x.diaNecesario) + ' por día hábil.');
-    if (itbis) avisos.push('Las ventas se están tomando sin ITBIS (venta ÷ 1.18).');
+    if (itbis) avisos.push('Se quita el ITBIS al ' + Math.round(c.g18 * 100) + ' % de las ventas.');
+    if (c.sinAnt) avisos.push('El mes anterior no tiene ventas: los gastos comunes se reparten en partes iguales.');
+    var cnx = esGeneral ? Object.keys(c.cn).reduce(function (a, k) { a.n += c.cn[k].n; a.v += c.cn[k].venta; return a; }, { n: 0, v: 0 }) : (c.cn[x.t && x.t.cod] ? { n: c.cn[x.t.cod].n, v: c.cn[x.t.cod].venta } : null);
+    if (cnx && cnx.n) avisos.push('Se restaron ' + cnx.n + ' nota(s) de crédito por ' + plata(cnx.v) + '.');
     return '<div class="pe-res">' +
       '<div class="pe-res-h"><b>' + esc(nombre) + '</b><span>' + (x.alcanzado != null ? pct(x.alcanzado) + ' del punto de equilibrio' : 'Sin punto de equilibrio') + '</span></div>' +
       barra(x.alcanzado) +
       '<div class="pe-kpis">' +
-        kpi('Debe vender en el mes', x.pe != null ? plata(x.pe) : '—', '#0f172a', x.peDia != null ? plata(x.peDia) + ' por día' : '') +
+        kpi('Debe vender en el mes', x.pe != null ? plata(x.pe) : '—', '#0f172a', x.peDia != null ? plata(x.peDia) + ' ' + (x.peDiaTxt || 'por día') : '') +
         kpi('Lleva vendido', plata(x.vn), null, 'Margen ' + pct(x.mb) + ' · contribución ' + pct(x.mc)) +
         kpi('Le falta', x.falta != null ? plata(x.falta) : '—', x.falta ? '#b45309' : '#15803d', x.diaNecesario != null ? plata(x.diaNecesario) + ' por día que queda' : '') +
         kpi('Gastos fijos', plata(x.ft), null, esGeneral ? 'Propios de las tiendas ' + plata(x.gf) + ' · comunes ' + plata(x.gc) : 'Propios ' + plata(x.gf) + ' · comunes ' + plata(x.gc) + ' (' + pct(x.partePct) + ')') +
-        kpi(c.em === 'pasado' ? 'Resultado del mes' : 'Resultado hoy', x.resultado == null ? '—' : plata(x.resultado), x.resultado == null ? null : colorRes(x.resultado), x.resultado == null ? '' : (x.resultado >= 0 ? 'Ganancia' : 'Pérdida')) +
+        kpi(c.em === 'pasado' ? 'Resultado del mes' : 'Resultado a la fecha', x.resultado == null ? '—' : plata(x.resultado), x.resultado == null ? null : colorRes(x.resultado),
+          x.resultado == null ? '' : (x.resultado >= 0 ? 'Ganancia' : 'Pérdida') + (c.em === 'actual' ? ' · con los gastos de los días transcurridos' : '')) +
+        (!esGeneral ? kpi('Aporte de la tienda', x.aporte == null ? '—' : plata(x.aporte), x.aporte == null ? null : colorRes(x.aporte), 'Sin gastos comunes. Sirve para decidir sobre la tienda.') : '') +
+        kpi('Margen de seguridad', x.seguridad == null ? '—' : pct(x.seguridad), x.seguridad == null ? null : colorRes(x.seguridad), x.seguridad == null ? '' : (x.seguridad >= 0 ? 'Lo que puede bajar la venta sin perder' : 'Por debajo del punto de equilibrio')) +
+        (esGeneral && x.capital > 0 && x.peCaja != null ? kpi('Para cubrir también el capital de préstamos', plata(x.peCaja), null, 'Abono a capital ' + plata(x.capital) + ' (no es gasto)') : '') +
         (c.em === 'actual' ? kpi('Proyección a fin de mes', plata(x.proy), null, 'Resultado ' + '<b style="color:' + colorRes(x.resultadoProy) + '">' + plata(x.resultadoProy) + '</b>') : '') +
       '</div>' +
       (avisos.length ? '<ul class="pe-avisos">' + avisos.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
+      '<p class="pe-nota">Estimado con las ventas y el costo de Info Plus, antes del impuesto sobre la renta. No sustituye el estado de la contadora.</p>' +
     '</div>';
   }
 
@@ -277,40 +347,49 @@
     }).join('');
     var vars = '';
     if (esTienda) {
+      var fv = f.variables || {};
+      var tp = fv.tarjeta_pct == null ? TARJETA_DEF.tarjeta_pct : num(fv.tarjeta_pct), tq = fv.tarjeta_parte == null ? TARJETA_DEF.tarjeta_parte : num(fv.tarjeta_parte);
       vars = '<h4>Gastos variables (% de la venta)</h4><div class="pe-vars">' + VARIABLES.map(function (v) {
-        return '<label><span>' + esc(v.t) + '</span><input inputmode="decimal" value="' + num((f.variables || {})[v.k]) + '" oninput="BayolEquilibrio._v(' + cod + ',\'' + v.k + '\',this.value)"><i>%</i></label>';
-      }).join('') + '</div>' +
+        return '<label><span>' + esc(v.t) + '</span><input inputmode="decimal" value="' + num(fv[v.k]) + '" oninput="BayolEquilibrio._v(' + cod + ',\'' + v.k + '\',this.value)"><i>%</i></label>';
+      }).join('') +
+        '<label><span>Comisión del banco por tarjeta</span><input inputmode="decimal" value="' + tp + '" oninput="BayolEquilibrio._v(' + cod + ',\'tarjeta_pct\',this.value)"><i>%</i></label>' +
+        '<label><span>Parte de la venta cobrada con tarjeta</span><input inputmode="decimal" value="' + tq + '" oninput="BayolEquilibrio._v(' + cod + ',\'tarjeta_parte\',this.value)"><i>%</i></label>' +
+      '</div>' +
+      '<p class="pe-nota">Si las comisiones de los vendedores ya van en la nómina, ponga 0 % en «Comisión de vendedores» para no contarlas dos veces.</p>' +
       '<label class="pe-dias"><span>Días hábiles del mes</span><input inputmode="numeric" maxlength="2" value="' + (f.dias_habiles == null ? '' : f.dias_habiles) + '" oninput="BayolEquilibrio._d(' + cod + ',this.value)"></label>';
     } else {
       var rp = f.reparto_pct || {};
-      vars = '<h4>Cómo repartir los gastos comunes</h4>' +
+      var cvv = f.variables || {}, sel = f.reparto === 'venta' ? (cvv.base === 'actual' ? 'actual' : 'anterior') : f.reparto;
+      vars = '<label class="pe-dias"><span>Abono a capital de préstamos (no es gasto)</span><input inputmode="decimal" value="' + (num(cvv.capital) || '') + '" placeholder="0.00" oninput="BayolEquilibrio._r(\'capital\',this.value)"></label>' +
+        '<h4>Cómo repartir los gastos comunes</h4>' +
         '<div class="pe-rep">' +
-          ['venta', 'iguales', 'manual'].map(function (k) {
-            var t = { venta: 'Según lo que vende cada tienda', iguales: 'Partes iguales', manual: 'Porcentaje manual' }[k];
-            return '<label><input type="radio" name="peRep" ' + (f.reparto === k ? 'checked' : '') + ' onchange="BayolEquilibrio._r(\'reparto\',\'' + k + '\')"> ' + t + '</label>';
+          ['anterior', 'actual', 'iguales', 'manual'].map(function (k) {
+            var t = { anterior: 'Según la venta del mes anterior (recomendado)', actual: 'Según la venta de este mes', iguales: 'Partes iguales', manual: 'Porcentaje manual' }[k];
+            return '<label><input type="radio" name="peRep" ' + (sel === k ? 'checked' : '') + ' onchange="BayolEquilibrio._r(\'reparto\',\'' + k + '\')"> ' + t + '</label>';
           }).join('') +
         '</div>' +
         (f.reparto === 'manual' ? '<div class="pe-vars">' + TIENDAS.map(function (t) {
           return '<label><span>' + t.nombre + '</span><input inputmode="decimal" value="' + num(rp[t.cod]) + '" oninput="BayolEquilibrio._rp(' + t.cod + ',this.value)"><i>%</i></label>';
         }).join('') + '</div>' : '') +
-        '<label class="pe-itbis"><input type="checkbox" ' + (f.incluye_itbis ? 'checked' : '') + ' onchange="BayolEquilibrio._r(\'itbis\',this.checked)"> Las ventas de Info Plus incluyen ITBIS (calcular con venta ÷ 1.18)</label>';
+        '<label class="pe-dias"><span>Parte de las ventas que lleva ITBIS</span><input inputmode="decimal" value="' + num(cvv.itbis_pct) + '" oninput="BayolEquilibrio._r(\'itbis_pct\',this.value)"></label>' +
+        '<p class="pe-nota">Hoy las ventas no llevan ITBIS (0 %). Si empiezan a cobrarlo, escriba qué parte de las ventas lo lleva.</p>';
     }
     return '<div class="pe-card">' +
       '<div class="pe-card-h"><h4>' + (esTienda ? 'Gastos fijos de la tienda' : 'Gastos comunes de la empresa') + '</h4><b id="peTotFijos">' + plata(totalFijos(cod)) + '</b></div>' +
       '<div id="peGastos">' + filas + '</div>' +
       '<div class="pe-acc">' +
         '<button class="btn btn-light" onclick="BayolEquilibrio._a(' + cod + ')"><i class="ti ti-plus"></i> Agregar concepto</button>' +
-        (esTienda ? '<button class="btn btn-light" onclick="BayolEquilibrio._n(' + cod + ')" title="TSS 16.29 % y provisión 13.2 % de la nómina"><i class="ti ti-calculator"></i> Calcular TSS y provisión</button>' : '') +
+        (esTienda ? '<button class="btn btn-light" onclick="BayolEquilibrio._n(' + cod + ')" title="TSS 16.29 % y regalía 8.33 % de la nómina"><i class="ti ti-calculator"></i> Calcular TSS y regalía</button>' : '') +
       '</div>' + vars +
     '</div>';
   }
 
   function htmlTablaGeneral(c) {
-    return '<div class="pe-card"><h4>Por tienda</h4><div class="table-wrap"><table class="pe-tabla"><thead><tr><th>Tienda</th><th>Vendido</th><th>Margen</th><th>Fijos (+ comunes)</th><th>Debe vender</th><th>Avance</th><th>Resultado hoy</th></tr></thead><tbody>' +
+    return '<div class="pe-card"><h4>Por tienda</h4><div class="table-wrap"><table class="pe-tabla"><thead><tr><th>Tienda</th><th>Vendido</th><th>Margen</th><th>Contribución</th><th>Fijos (+ comunes)</th><th>Debe vender</th><th>Avance</th><th>Aporte (sin comunes)</th><th>' + (c.em === 'pasado' ? 'Resultado del mes' : 'Resultado a la fecha') + '</th></tr></thead><tbody>' +
       c.tiendas.map(function (x) {
-        return '<tr tabindex="0" onclick="BayolEquilibrio.tab(' + x.t.cod + ')" onkeydown="if(event.key===\'Enter\')BayolEquilibrio.tab(' + x.t.cod + ')" style="cursor:pointer"><td data-label="Tienda"><b>' + esc(x.t.nombre) + '</b></td><td data-label="Vendido">' + plata(x.vn) + '</td><td data-label="Margen">' + pct(x.mb) + '</td><td data-label="Fijos">' + plata(x.ft) + '</td><td data-label="Debe vender">' + (x.pe != null ? plata(x.pe) : '—') + '</td><td data-label="Avance">' + (x.alcanzado != null ? pct(x.alcanzado) : '—') + '</td><td data-label="Resultado" style="color:' + (x.resultado == null ? 'inherit' : colorRes(x.resultado)) + ';font-weight:700">' + (x.resultado == null ? '—' : plata(x.resultado)) + '</td></tr>';
+        return '<tr tabindex="0" onclick="BayolEquilibrio.tab(' + x.t.cod + ')" onkeydown="if(event.key===\'Enter\')BayolEquilibrio.tab(' + x.t.cod + ')" style="cursor:pointer"><td data-label="Tienda"><b>' + esc(x.t.nombre) + '</b></td><td data-label="Vendido">' + plata(x.vn) + '</td><td data-label="Margen">' + pct(x.mb) + '</td><td data-label="Contribución">' + pct(x.mc) + '</td><td data-label="Fijos">' + plata(x.ft) + '</td><td data-label="Debe vender">' + (x.pe != null ? plata(x.pe) : '—') + '</td><td data-label="Avance">' + (x.alcanzado != null ? pct(x.alcanzado) : '—') + '</td><td data-label="Aporte" style="color:' + (x.aporte == null ? 'inherit' : colorRes(x.aporte)) + ';font-weight:700">' + (x.aporte == null ? '—' : plata(x.aporte)) + '</td><td data-label="Resultado" style="color:' + (x.resultado == null ? 'inherit' : colorRes(x.resultado)) + ';font-weight:700">' + (x.resultado == null ? '—' : plata(x.resultado)) + '</td></tr>';
       }).join('') +
-      '</tbody></table></div></div>';
+      '</tbody></table></div><p class="pe-nota">El punto de equilibrio General usa el margen de todo el negocio junto; por eso no es la suma de las tiendas.</p></div>';
   }
 
   function refrescarCalculo() {
@@ -324,7 +403,7 @@
 
   function pintar() {
     var cont = $('pe_contenido'); if (!cont) return;
-    if (!puede()) { cont.innerHTML = '<p class="pe-vacio">Solo un administrador puede ver el punto de equilibrio.</p>'; return; }
+    if (!puede()) { cont.innerHTML = '<p class="pe-vacio">Necesita permiso de Contabilidad para ver el punto de equilibrio.</p>'; return; }
     if (st.cargando) { cont.innerHTML = '<p class="pe-vacio"><i class="ti ti-loader"></i> Cargando ventas de Info Plus…</p>'; return; }
     if (st.errorTabla) { cont.innerHTML = '<p class="pe-vacio">No se pudieron cargar los gastos guardados. Toque Actualizar.</p>'; return; }
     var tabs = [{ k: 'general', t: 'General' }].concat(TIENDAS.map(function (t) { return { k: t.cod, t: t.nombre }; }), [{ k: 'comunes', t: 'Gastos comunes' }]);
@@ -388,6 +467,7 @@
       '#conta-equilibrio .pe-kpi span{font-size:13px;color:#475569}',
       '#conta-equilibrio .pe-avisos{margin:10px 0 0;padding-left:18px;font-size:13px;color:#7c2d12}',
       '#conta-equilibrio .pe-avisos li{margin:3px 0}',
+      '#conta-equilibrio .pe-nota{margin:8px 0 0;font-size:13px;color:#475569}',
       '#conta-equilibrio .pe-tabla{width:100%;font-size:13px;font-variant-numeric:tabular-nums}',
       '#conta-equilibrio .pe-tabla tbody tr:hover{background:#fff7ed}',
       '#conta-equilibrio .pe-pie{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}',
