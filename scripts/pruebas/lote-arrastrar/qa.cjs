@@ -30,6 +30,12 @@ const t=(c,m)=>{c?ok++:mal++;console.log((c?'✓ ':'✗ ')+m)};
  await p.locator('.bcf-card small').nth(0).click(); t(await p.evaluate(()=>ABIERTOS.length)===1,'PC: tocar la tarjeta (no la casilla) abre el equipo');
  // acciones
  await p.click('#bcLoteBar [data-a=asignar]'); await p.click('#bcLoteBar [data-a=listo]'); await p.click('#bcLoteBar [data-a=despachar]');
+ const dup=async()=>p.evaluate(()=>['#barraArriba > button[onclick^="abrirModalAsignarLote"]','#barraArriba > div','#btnDespacharTel','#reacondSelCount'].map(q=>getComputedStyle(document.querySelector(q)).display));
+ t((await dup()).every(d=>d==='none'),'PC: con la cápsula a la vista, las mismas acciones de arriba se esconden');
+ const caja=await p.locator('#bcLoteBar').boundingBox();
+ t(caja.width<1280*0.8,'PC: la cápsula es del ancho de sus botones ('+Math.round(caja.width)+' px)');
+ t(Math.abs((caja.x+caja.width/2)-640)<40,'PC: la cápsula está centrada');
+ t((await p.textContent('#bcLoteBar')).includes('Asignar a técnico') && (await p.textContent('#bcLoteBar')).includes('Despachar teléfonos'),'PC: mismos nombres que arriba');
  await p.click('#bcLoteBar [data-a=pasar]'); t(await p.locator('.bclb-menu:not([hidden])').count()===1,'PC: abre menú Pasar a');
  await p.screenshot({path:require('os').tmpdir()+'/lote-pc.png'});
  await p.click('.bclb-menu [data-d=evaluado]');
@@ -38,6 +44,7 @@ const t=(c,m)=>{c?ok++:mal++;console.log((c?'✓ ':'✗ ')+m)};
  t(sizes.every(([w,h])=>w>=44&&h>=44),'PC: botones ≥44 px '+JSON.stringify(sizes));
  await p.click('#bcLoteBar [data-a=quitar]'); await p.waitForTimeout(300);
  t(await p.evaluate(()=>_reacondSel.size)===0 && await p.locator('#bcLoteBar.bclb-on').count()===0,'PC: Quitar vacía y oculta la barra');
+ t((await dup()).slice(0,3).every(d=>d!=='none'),'PC: sin selección, las acciones de arriba vuelven a verse');
  // iPhone (touch real con CDP)
  const ctx=await b.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:2}); p=await ctx.newPage(); await p.goto(H);
  const cdp=await ctx.newCDPSession(p);

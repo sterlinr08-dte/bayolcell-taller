@@ -1,17 +1,17 @@
 /* BAYOL CELL · Selección en lote arrastrando (06-nov-2026). Ver bc-lote-arrastrar.js. */
 :root {
-  --bclb-bg: rgba(15, 23, 42, .94);
-  --bclb-fg: #f8fafc;
-  --bclb-btn: rgba(255, 255, 255, .10);
-  --bclb-btn-hover: rgba(255, 255, 255, .18);
-  --bclb-borde: rgba(255, 255, 255, .14);
-  --bclb-acento: #f59e0b;
+  --bclb-bg: rgba(255, 255, 255, .84);
+  --bclb-solido: #ffffff;
+  --bclb-fg: #0f172a;
+  --bclb-sub: #475569;
+  --bclb-btn: rgba(15, 23, 42, .05);
+  --bclb-btn-hover: rgba(15, 23, 42, .07);
+  --bclb-borde: rgba(15, 23, 42, .10);
+  --bclb-acento: #c2410c;
+  --bclb-acento-hover: #9a3412;
   --bclb-menu-bg: #ffffff;
   --bclb-menu-fg: #0f172a;
   --bclb-menu-hover: #f1f5f9;
-}
-@media (prefers-color-scheme: dark) {
-  :root { --bclb-menu-bg: #1e293b; --bclb-menu-fg: #f1f5f9; --bclb-menu-hover: #334155; }
 }
 
 /* Casilla: el dedo arrastra sin mover la página; el resto de la tarjeta se desplaza normal. */
@@ -19,53 +19,74 @@
 html.bc-lote-arrastrando, html.bc-lote-arrastrando * { -webkit-user-select: none !important; user-select: none !important; }
 html.bc-lote-arrastrando #reacondEquiposLista .bcf-card { cursor: crosshair; }
 #reacondEquiposLista .bcf-card { transition: box-shadow 160ms ease-out, transform 160ms ease-out; }
-#reacondEquiposLista .bcf-card.bcf-sel { box-shadow: 0 0 0 2px var(--bclb-acento), 0 6px 18px rgba(245, 158, 11, .18); }
+#reacondEquiposLista .bcf-card.bcf-sel { box-shadow: 0 0 0 2px #f59e0b, 0 6px 18px rgba(245, 158, 11, .18); }
 
+/* Barra de abajo = cápsula flotante (07-nov-2026, opción A del dueño): del ancho de sus botones, centrada, vidrio claro
+   como el resto del taller. Mientras está a la vista, las mismas acciones de arriba se esconden (una sola entrada por acción). */
 #bcLoteBar {
-  position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 40;
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-  margin: 12px 0 0; padding: 8px 10px;
+  position: sticky; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 40;
+  display: flex; align-items: center; flex-wrap: nowrap; gap: 4px;
+  width: -moz-fit-content; width: fit-content; max-width: calc(100% - 24px);
+  margin: 14px auto 0; padding: 6px;
   background: var(--bclb-bg); color: var(--bclb-fg);
-  border: 1px solid var(--bclb-borde); border-radius: 16px;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, .32);
-  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
-  opacity: 0; transform: translateY(14px); pointer-events: none; visibility: hidden;
-  transition: opacity 200ms cubic-bezier(.23, 1, .32, 1), transform 200ms cubic-bezier(.23, 1, .32, 1), visibility 0s linear 200ms;
+  border: 1px solid var(--bclb-borde); border-radius: 26px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 1px 2px rgba(15, 23, 42, .06), 0 12px 32px rgba(15, 23, 42, .16);
+  -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%);
+  opacity: 0; transform: translateY(16px) scale(.98); pointer-events: none; visibility: hidden;
+  transition: opacity 220ms ease-out, transform 320ms cubic-bezier(.32, .72, 0, 1), visibility 0s linear 320ms;
 }
 #bcLoteBar.bclb-on { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition-delay: 0s; }
-#bcLoteBar .bclb-n { font-size: 14px; padding: 0 6px; white-space: nowrap; }
-#bcLoteBar .bclb-n b { color: var(--bclb-acento); font-size: 16px; font-variant-numeric: tabular-nums; }
-#bcLoteBar .bclb-sp { flex: 1 1 auto; }
+#bcLoteBar .bclb-n { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px 0 6px; font-size: 13px; font-weight: 600; white-space: nowrap; color: var(--bclb-sub); }
+#bcLoteBar .bclb-n b {
+  display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 8px; border-radius: 15px;
+  background: var(--bclb-acento); color: #fff; font-size: 14px; font-variant-numeric: tabular-nums;
+}
+#bcLoteBar .bclb-sp { width: 1px; height: 26px; margin: 0 4px; background: var(--bclb-borde); flex: none; }
 #bcLoteBar button {
   display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 14px;
   font: 600 13px/1 inherit; font-family: inherit; color: inherit; white-space: nowrap;
-  background: var(--bclb-btn); border: 1px solid var(--bclb-borde); border-radius: 12px; cursor: pointer;
-  transition: background 150ms ease, transform 120ms ease-out;
+  background: transparent; border: 0; border-radius: 22px; cursor: pointer;
+  transition: background 150ms ease, transform 100ms ease-out;
 }
+#bcLoteBar button i { font-size: 17px; }
 #bcLoteBar button:hover { background: var(--bclb-btn-hover); }
-#bcLoteBar button:active { transform: scale(.97); }
+#bcLoteBar button:active { transform: scale(.96); }
 #bcLoteBar button:focus-visible { outline: 2px solid var(--bclb-acento); outline-offset: 2px; }
 #bcLoteBar button[hidden] { display: none; }
-#bcLoteBar .bclb-q { background: transparent; }
-#bcLoteBar .bclb-p { background: var(--bclb-acento); border-color: transparent; color: #1c1206; }
+#bcLoteBar .bclb-q { color: var(--bclb-sub); padding: 0 12px; }
+#bcLoteBar .bclb-p { background: var(--bclb-acento); color: #fff; margin-left: 2px; box-shadow: 0 2px 8px rgba(194, 65, 12, .28); }
+#bcLoteBar .bclb-p:hover { background: var(--bclb-acento-hover); }
 #bcLoteBar .bclb-pw { position: relative; display: inline-flex; }
 #bcLoteBar .bclb-menu {
-  position: absolute; bottom: calc(100% + 8px); right: 0; min-width: 220px; padding: 6px;
-  background: var(--bclb-menu-bg); color: var(--bclb-menu-fg);
-  border-radius: 14px; box-shadow: 0 16px 36px rgba(15, 23, 42, .28); transform-origin: bottom right;
+  position: absolute; bottom: calc(100% + 10px); right: 0; min-width: 220px; padding: 6px;
+  background: var(--bclb-menu-bg); color: var(--bclb-menu-fg); border: 1px solid var(--bclb-borde);
+  border-radius: 16px; box-shadow: 0 16px 36px rgba(15, 23, 42, .22); transform-origin: bottom right;
 }
 #bcLoteBar .bclb-menu[hidden] { display: none; }
-#bcLoteBar .bclb-menu button { width: 100%; justify-content: flex-start; background: transparent; border: 0; color: inherit; font-weight: 500; }
+#bcLoteBar .bclb-menu button { width: 100%; justify-content: flex-start; border-radius: 10px; font-weight: 500; }
 #bcLoteBar .bclb-menu button:hover { background: var(--bclb-menu-hover); }
 
+/* Una sola entrada por acción: con la cápsula a la vista se esconden sus gemelos de la barra de arriba. */
+html.bclb-activa #reacondDetalleLote button[onclick^="abrirModalAsignarLote"],
+html.bclb-activa #reacondDetalleLote div:has(> #reacondPasarMenu),
+html.bclb-activa #reacondDetalleLote #btnDespacharTel,
+html.bclb-activa #reacondDetalleLote #reacondSelCount { display: none !important; }
+
 @media (max-width: 700px) {
-  #bcLoteBar { gap: 6px; padding: 8px; }
-  #bcLoteBar .bclb-sp { flex-basis: 100%; height: 0; }
-  #bcLoteBar > button:not(.bclb-q), #bcLoteBar .bclb-pw { flex: 1 1 calc(50% - 6px); }
-  #bcLoteBar .bclb-pw > button { flex: 1; justify-content: center; }
-  #bcLoteBar > button { justify-content: center; }
+  #bcLoteBar { flex-wrap: wrap; width: auto; max-width: none; margin: 12px 8px 0; padding: 6px; border-radius: 22px; gap: 4px; }
+  #bcLoteBar .bclb-n { flex: 1 1 auto; }
+  #bcLoteBar .bclb-sp { flex-basis: 100%; width: auto; height: 0; margin: 0; background: none; }
+  #bcLoteBar > button:not(.bclb-q), #bcLoteBar .bclb-pw { flex: 1 1 calc(50% - 4px); }
+  #bcLoteBar .bclb-pw > button, #bcLoteBar > button { justify-content: center; }
+  #bcLoteBar > button:not(.bclb-q):not(.bclb-p), #bcLoteBar .bclb-pw > button { background: var(--bclb-btn); }
+  #bcLoteBar .bclb-pw > button { flex: 1; }
+  #bcLoteBar > button, #bcLoteBar .bclb-pw, #bcLoteBar .bclb-pw > button { min-width: 0; }
   #bcLoteBar .bclb-menu { left: 0; right: auto; }
 }
+@media (prefers-reduced-transparency: reduce) {
+  #bcLoteBar { background: var(--bclb-solido); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
 @media (prefers-reduced-motion: reduce) {
-  #bcLoteBar, #reacondEquiposLista .bcf-card { transition: opacity 150ms ease; transform: none !important; }
+  #bcLoteBar, #reacondEquiposLista .bcf-card { transition: opacity 150ms ease, visibility 0s linear 150ms; transform: none !important; }
+  #bcLoteBar.bclb-on { transition: opacity 150ms ease; }
 }

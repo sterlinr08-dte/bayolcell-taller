@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="../../../bc-lote-arrastrar.css">
 <style>body{font-family:system-ui;margin:0;padding:16px;background:#f1f5f9}#reacondEquiposLista{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
 .bcf-card{background:#fff;border-radius:14px;padding:10px;height:150px;cursor:pointer}.bcf-h{display:flex;align-items:center;gap:6px}.bcf-chk-wrap{min-width:48px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;margin:-10px}.bcf-chk{width:22px;height:22px}</style></head><body>
-<div id="reacondDetalleLote" style="display:block"><h4>Equipos del Lote</h4><span id="reacondSelCount"></span>
+<div id="reacondDetalleLote" style="display:block"><h4>Equipos del Lote</h4><div id="barraArriba"><span id="reacondSelCount"></span><button onclick="abrirModalAsignarLote()">Asignar a técnico</button><div style="display:inline-block"><button onclick="_reacondTogglePasarMenu(event)">Pasar a ▾</button><div id="reacondPasarMenu" style="display:none"></div></div><button id="btnDespacharTel" style="display:inline-block" onclick="despacharTelefonosSeleccionados()">Despachar teléfonos</button></div>
 <div id="reacondEquiposLista"></div><div id="reacondEquiposPagination">pág 1</div></div>
 <script>
 let _reacondSel = new Set(); window.LOG=[]; window.ABIERTOS=[];

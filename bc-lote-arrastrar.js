@@ -2,7 +2,8 @@
    En Reacondicionados › lote abierto › «Equipos del Lote»: se pone el dedo (o el mouse) en la casilla de un equipo y se arrastra
    sobre las demás. Si la primera casilla estaba vacía, marca todo lo que toca; si estaba marcada, lo desmarca. Si el dedo salta
    tarjetas, se rellenan las del medio. Con algo marcado aparece abajo una barra con el conteo y las acciones que YA existían
-   (Asignar a técnico, Pasar a, Listo para venta, Despachar): mismas reglas, mismos bloqueos y mismas confirmaciones.
+   (Asignar a técnico, Pasar a, Listo para venta, Despachar teléfonos): mismas reglas, mismos bloqueos y mismas confirmaciones.
+   Desde el 07-nov-2026 es una cápsula flotante y, mientras se ve, esas acciones se esconden de la barra de arriba.
    El arrastre solo empieza sobre la casilla; tocar el resto de la tarjeta sigue abriendo el equipo.
    No toca datos por sí sola. Apagar en un equipo: localStorage.bc_lote_arrastrar_off = '1'. */
 (function () {
@@ -96,11 +97,11 @@
     b.innerHTML = '<span class="bclb-n" aria-live="polite"><b id="bclbN">0</b> <span id="bclbTxt">seleccionados</span></span>'
       + '<button type="button" class="bclb-q" data-a="quitar"><i class="ti ti-x"></i>Quitar</button>'
       + '<span class="bclb-sp"></span>'
-      + '<button type="button" data-a="asignar"><i class="ti ti-users"></i>Asignar técnico</button>'
+      + '<button type="button" data-a="asignar"><i class="ti ti-users"></i>Asignar a técnico</button>'
       + '<span class="bclb-pw"><button type="button" data-a="pasar" aria-haspopup="menu" aria-expanded="false"><i class="ti ti-arrows-exchange"></i>Pasar a ▾</button>'
       + '<div class="bclb-menu" role="menu" hidden>' + PASOS.map(function (p) { return '<button type="button" role="menuitem" data-d="' + p[0] + '"><i class="ti ' + p[1] + '"></i>' + p[2] + '</button>'; }).join('') + '</div></span>'
       + '<button type="button" data-a="listo"><i class="ti ti-shopping-cart"></i>Listo para venta</button>'
-      + '<button type="button" class="bclb-p" data-a="despachar" data-admin><i class="ti ti-truck-delivery"></i>Despachar</button>';
+      + '<button type="button" class="bclb-p" data-a="despachar" data-admin><i class="ti ti-truck-delivery"></i>Despachar teléfonos</button>';
     var pag = document.getElementById('reacondEquiposPagination');
     (pag && pag.parentNode ? pag.parentNode : det).appendChild(b);
     b.addEventListener('click', function (e) {
@@ -125,6 +126,7 @@
     var det = document.getElementById('reacondDetalleLote');
     var visible = n > 0 && det && det.style.display !== 'none';
     b.classList.toggle('bclb-on', !!visible);
+    document.documentElement.classList.toggle('bclb-activa', !!visible); // esconde arriba las mismas acciones (una sola entrada)
     b.setAttribute('aria-hidden', visible ? 'false' : 'true');
     document.getElementById('bclbN').textContent = n;
     document.getElementById('bclbTxt').textContent = n === 1 ? 'seleccionado' : 'seleccionados';
