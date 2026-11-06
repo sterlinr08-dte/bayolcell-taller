@@ -197,8 +197,7 @@
       catch (e) { ventas[t.cod] = { venta: 0, costo: 0, error: true }; if (typeof logError === 'function') logError('equilibrio ventas', e); }
       try { ventasAnt[t.cod] = await leer(pa, t.cod); } catch (e) { ventasAnt[t.cod] = { venta: 0, costo: 0 }; }
     }));
-    // Notas de crédito (CN): Info Plus las manda en positivo y se suman como venta. Son devoluciones:
-    // se quitan de la venta y del costo y además se restan (venta − 2 × CN). Dueño, 6-nov.
+    // Notas de crédito (CN): desde el 6-nov la función estado_mensual_cat ya las resta. Aquí solo se leen para avisarlo.
     try {
       var rc = await cli.from('infoplus_ventas').select('monto_venta,monto_costo,codlocalidad,factura_id')
         .like('factura_id', 'CN%').gte('fecha', p.ini).lt('fecha', p.fin);
@@ -209,7 +208,6 @@
       });
       Object.keys(cn).forEach(function (k) {
         cn[k].n = Object.keys(cn[k].facturas).length;
-        if (ventas[k]) { ventas[k].venta = Math.max(0, ventas[k].venta - 2 * cn[k].venta); ventas[k].costo = Math.max(0, ventas[k].costo - 2 * cn[k].costo); }
       });
     } catch (e) { if (typeof logError === 'function') logError('equilibrio notas de crédito', e); }
     if (token !== st.token) return;

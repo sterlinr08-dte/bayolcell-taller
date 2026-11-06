@@ -2174,7 +2174,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
                     <div class="card">
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <input type="month" id="em_mes" onchange="renderEstadoMensual()">
-                            <select id="em_sucursal" onchange="renderEstadoMensual()"><option value="">Combinado (Santiago + Moca)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
+                            <select id="em_sucursal" onchange="renderEstadoMensual()"><option value="">Todas las tiendas</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option><option value="Navarrete">Navarrete</option></select>
                             <button class="btn btn-light" style="font-size:12px;" onclick="renderEstadoMensual()"><i class="ti ti-refresh"></i> Actualizar</button>
                             <button class="btn btn-light" style="font-size:12px;" onclick="imprimirEstadoMensual()"><i class="ti ti-printer"></i> Imprimir</button>
                             <button class="btn btn-light" style="font-size:12px; color:#15803d; border-color:#86efac;" onclick="exportarEstadoMensualExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
@@ -4658,7 +4658,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
         <div class="modal-body">
             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
                 <div><label>Fecha *</label><input type="date" id="as_fecha"></div>
-                <div><label>Sucursal</label><select id="as_sucursal"><option value="Santiago">Santiago</option><option value="Moca">Moca</option><option value="General">General</option></select></div>
+                <div><label>Sucursal</label><select id="as_sucursal"><option value="Santiago">Santiago</option><option value="Moca">Moca</option><option value="Navarrete">Navarrete</option><option value="General">General</option></select></div>
                 <div><label>Referencia</label><input id="as_referencia" placeholder="N° factura, recibo..."></div>
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto *</label><input id="as_descripcion" placeholder="Ej. Pago de alquiler de abril"></div>
@@ -4831,7 +4831,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
             <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">Seleccione la <b>categoría</b> e indique el <b>monto</b>. No necesita conocimientos de contabilidad.</p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="form-row"><label>Fecha *</label><input type="date" id="gs_fecha"></div>
-                <div class="form-row"><label>Tienda *</label><select id="gs_sucursal"><option value="General">General (ambas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
+                <div class="form-row"><label>Tienda *</label><select id="gs_sucursal"><option value="General">General (todas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option><option value="Navarrete">Navarrete</option></select></div>
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Categoría del gasto *</label><select id="gs_categoria"></select></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
@@ -5748,9 +5748,9 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
 <script defer src="crm-ortografia.js?v=20261102-or1"></script>
-<script defer src="taller-app.min.js?v=20261103-qr1"></script>
+<script defer src="taller-app.min.js?v=20261106-em1"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
-<script defer src="conta-equilibrio.js?v=20261106-pe4"></script>
+<script defer src="conta-equilibrio.js?v=20261106-pe5"></script>
 <script defer src="taller-recepcion.js?v=20261031-g16"></script>
 <script defer src="taller-prefactura.js?v=20261102-pm2"></script>
 <script defer src="bc-prefactura-pro.js?v=20261031-p2"></script>

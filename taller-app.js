@@ -3698,7 +3698,7 @@ async function _datosEstadoMensual() {
     const suc = document.getElementById('em_sucursal').value || '';
     const { ini, fin } = _periodoMes(mes);
     // Ventas + costo (Info Plus) — ya se separan por tienda (Santiago=1, Moca=4)
-    const localidad = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : null);
+    const localidad = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : (suc === 'Navarrete' ? 7 : null));
     let ventasCat = [];
     try { const { data } = await supabaseClient.rpc('estado_mensual_cat', { p_ini: ini, p_fin: fin, p_localidad: localidad }); ventasCat = data || []; }
     catch(e) { logError('Estado mensual ventas', e); }
@@ -3805,7 +3805,7 @@ async function abrirReporteCelularesModelo() {
     const mes = document.getElementById('em_mes')?.value || new Date().toISOString().slice(0, 7);
     const suc = document.getElementById('em_sucursal')?.value || '';
     const { ini, fin } = _periodoMes(mes);
-    const loc = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : null);
+    const loc = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : (suc === 'Navarrete' ? 7 : null));
     let modal = document.getElementById('modalCelModelo');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalCelModelo'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
     modal.style.zIndex = '700'; modal.classList.add('active');
@@ -3869,7 +3869,7 @@ function _celModeloImprimir() {
     const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Celulares por modelo ${escapeHtml(mes)}</title><style>*{font-family:Arial,sans-serif;}body{margin:22px;color:#0f172a;}h2{margin:0;font-size:17px;}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}th,td{border:1px solid #cbd5e1;padding:5px 7px;}th{background:#0f172a;color:#fff;}td.n{text-align:right;}td.c{text-align:center;}tfoot td{font-weight:800;background:#eef2ff;}</style></head><body>
       <h2>${escapeHtml(cfg.nombre || 'BAYOL CELL')} — Celulares vendidos por modelo</h2>
-      <div style="color:#475569;font-size:12px;">${escapeHtml(mes)} · ${suc ? escapeHtml(suc) : 'Combinado (Santiago + Moca)'} · RD$</div>
+      <div style="color:#475569;font-size:12px;">${escapeHtml(mes)} · ${suc ? escapeHtml(suc) : 'Todas las tiendas'} · RD$</div>
       <table><thead><tr><th style="text-align:left;">Modelo</th><th>Cant.</th><th>Costo</th><th>Venta</th><th>Ganancia</th><th>Margen</th></tr></thead>
       <tbody>${filas}</tbody>
       <tfoot><tr><td class=c>${Math.round(tCant)}</td><td></td><td class=n>${money(tCosto)}</td><td class=n>${money(tVenta)}</td><td class=n>${money(tGan)}</td><td class=c>${tVenta > 0 ? (tGan / tVenta * 100).toFixed(1) : '0'}%</td></tr></tfoot>
@@ -3898,7 +3898,7 @@ async function renderEstadoMensual() {
     cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">Calculando…</p>';
     try {
         const d = await _datosEstadoMensual(); _emData = d;
-        const tiendaLbl = d.suc ? d.suc : 'Combinado (Santiago + Moca)';
+        const tiendaLbl = d.suc ? d.suc : 'Todas las tiendas';
         const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
         const filasGastos = catsG.length ? catsG.map(c => `<tr><td style="padding-left:20px;">${escapeHtml(c)}</td><td style="text-align:right;">${money(d.gastosPorCat[c])}</td></tr>`).join('') : `<tr><td colspan="2" style="padding-left:20px; color:#475569;">Sin gastos registrados este mes.</td></tr>`;
         const avisoSuc = d.suc ? `<div style="background:#ecfdf5; color:#065f46; font-size:11.5px; padding:7px 10px; border-radius:6px; margin:6px 0 10px;">✅ Mostrando ventas, costo y gastos <b>solo de ${escapeHtml(d.suc)}</b>.</div>` : '';
@@ -3939,7 +3939,7 @@ function imprimirEstadoMensual() {
     if(!_emData) return toast('Genere primero el estado.', 'error');
     const d = _emData; const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL, S.R.L.';
-    const tiendaLbl = d.suc ? d.suc : 'Combinado (Santiago + Moca)';
+    const tiendaLbl = d.suc ? d.suc : 'Todas las tiendas';
     const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
     const filasG = catsG.length ? catsG.map(c => `<tr><td style="padding-left:18px;">${escapeHtml(c)}</td><td class="num">${money(d.gastosPorCat[c])}</td></tr>`).join('') : `<tr><td colspan="2" style="padding-left:18px; color:#475569;">Sin gastos.</td></tr>`;
     const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes.', 'error');
@@ -4014,7 +4014,7 @@ async function _erCpaDatos() {
     const mes = document.getElementById('ef_mes')?.value || new Date().toISOString().slice(0, 7);
     const suc = document.getElementById('ef_sucursal')?.value || '';
     const { ini, fin } = _periodoMes(mes);
-    const localidad = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : null);
+    const localidad = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : (suc === 'Navarrete' ? 7 : null));
     // 1) Ventas de Info Plus: contado (CO) / crédito (CR) y costo perpetuo de referencia
     let vRows = [];
     try {
@@ -4265,7 +4265,7 @@ async function _datosEstados(){
     if(suc) libro = libro.filter(x => x.a.sucursal === suc);
     return { info, libro };
 }
-function _tituloPeriodo(){ const mes=document.getElementById('ef_mes')?.value; const suc=document.getElementById('ef_sucursal')?.value||'Combinado (Santiago + Moca)'; return (mes?('Mes '+mes):'Todo')+' · '+suc; }
+function _tituloPeriodo(){ const mes=document.getElementById('ef_mes')?.value; const suc=document.getElementById('ef_sucursal')?.value||'Todas las tiendas'; return (mes?('Mes '+mes):'Todo')+' · '+suc; }
 async function renderEstadoResultados(){
     const cont = document.getElementById('ef_contenido'); if(!cont) return;
     cont.innerHTML = 'Calculando...';
