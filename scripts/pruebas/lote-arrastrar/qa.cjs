@@ -29,15 +29,40 @@ const t=(c,m)=>{c?ok++:mal++;console.log((c?'✓ ':'✗ ')+m)};
  // clic en tarjeta abre
  await p.locator('.bcf-card small').nth(0).click(); t(await p.evaluate(()=>ABIERTOS.length)===1,'PC: tocar la tarjeta (no la casilla) abre el equipo');
  // acciones
- await p.click('#bcLoteBar [data-a=asignar]'); await p.click('#bcLoteBar [data-a=listo]'); await p.click('#bcLoteBar [data-a=despachar]');
+ await p.click('#bcLoteBar [data-a=asignar]'); await p.click('#bcLoteBar [data-a=despachar]'); await p.click('#bcLoteBar [data-a=listo]'); await p.waitForTimeout(200); await p.evaluate(()=>{ for(let i=1;i<=7;i++) _reacondSel.add('eq'+[1,4,6,7,8,9,10][i-1]); renderDetalleLoteReacond(); });
  await p.click('#bcLoteBar [data-a=pasar]'); t(await p.locator('.bclb-menu:not([hidden])').count()===1,'PC: abre menú Pasar a');
  await p.screenshot({path:require('os').tmpdir()+'/lote-pc.png'});
  await p.click('.bclb-menu [data-d=evaluado]');
- const log=await p.evaluate(()=>LOG); t(log.length===4&&log[3]==='pasar:evaluado:7','PC: botones llaman a las funciones existentes '+JSON.stringify(log));
+ const log=await p.evaluate(()=>LOG); t(log.length===4&&log[1]==='desp:7'&&log[2]==='listo:7'&&/^pasar:evaluado:/.test(log[3])&&log[3].split(':')[2].split(',').length===7,'PC: botones llaman a las funciones existentes '+JSON.stringify(log));
  const sizes=await p.$$eval('#bcLoteBar > button:not([hidden]), #bcLoteBar .bclb-pw > button',bs=>bs.map(b=>[b.offsetWidth,b.offsetHeight]));
  t(sizes.every(([w,h])=>w>=44&&h>=44),'PC: botones ≥44 px '+JSON.stringify(sizes));
  await p.click('#bcLoteBar [data-a=quitar]'); await p.waitForTimeout(300);
  t(await p.evaluate(()=>_reacondSel.size)===0 && await p.locator('#bcLoteBar.bclb-on').count()===0,'PC: Quitar vacía y oculta la barra');
+ // Varios lotes (mejora 5)
+ await p.evaluate(()=>{ _reacondSel=new Set(); LOG.length=0; renderDetalleLoteReacond(); });
+ await p.locator('.bcf-chk').nth(0).click(); await p.locator('.bcf-chk').nth(1).click(); await p.waitForTimeout(400);
+ await p.evaluate(()=>abrirLoteReacond('B')); await p.waitForTimeout(300);
+ t(await p.evaluate(()=>_reacondSel.size)===2,'Lotes: al abrir otro lote se conservan los 2 marcados');
+ for(const i of [0,1,2]) await p.locator('.bcf-chk').nth(i).click(); await p.waitForTimeout(400);
+ t((await p.textContent('#bclbN'))==='5','Lotes: barra dice 5 en total');
+ t(/3 de este lote · 2 de otros lotes/.test(await p.textContent('#bclbOtros')),'Lotes: barra dice «3 de este lote · 2 de otros lotes» → '+await p.textContent('#bclbOtros'));
+ await p.click('#bcLoteBar [data-a=pasar]'); await p.click('.bclb-menu [data-d=evaluado]'); await p.waitForTimeout(400);
+ let lg=await p.evaluate(()=>LOG.slice()); t(lg[0]==='pasar:evaluado:eq13,eq14,eq15','Lotes: «Pasar a» solo toca los 3 de este lote → '+lg[0]);
+ t(await p.evaluate(()=>[..._reacondSel].sort().join(','))==='eq1,eq2','Lotes: los 2 de otro lote siguen marcados');
+ for(const i of [0,1]) await p.locator('.bcf-chk').nth(i).click(); await p.waitForTimeout(300);
+ await p.click('#bcLoteBar [data-a=despachar]'); lg=await p.evaluate(()=>LOG.slice());
+ t(lg[lg.length-1]==='desp:4','Lotes: «Despachar» toma los 4 de los dos lotes');
+ const r=await p.evaluate(async()=>{ const x=await _despTelConfirmar(); return [x.ids.length,_reacondSel.size]; });
+ t(r[0]===2&&r[1]===2,'Lotes: tras despachar, los despachados dejan de estar marcados');
+ await p.evaluate(()=>{ _reacondSel=new Set([...cache.refurb.filter(x=>x.lote_id==='A').map(x=>x.id).slice(0,2)]); renderDetalleLoteReacond(); });
+ await p.click('#bcLoteBar [data-a=listo]'); await p.waitForTimeout(300);
+ const antesLog=await p.evaluate(()=>LOG.length);
+ await p.evaluate(()=>abrirLoteReacond('B')); await p.waitForTimeout(200);
+ await p.click('#bcLoteBar [data-a=listo]'); await p.waitForTimeout(300);
+ t(await p.evaluate(()=>_reacondSel.size)===2 && await p.evaluate(()=>LOG.length)===antesLog,'Lotes: en un lote sin marcados propios, «Listo para venta» no hace nada y conserva los otros');
+ await p.click('#bcLoteBar [data-a=quitar]'); await p.waitForTimeout(300);
+ t(await p.evaluate(()=>_reacondSel.size)===0,'Lotes: «Quitar» limpia todo, también otros lotes');
+ await p.evaluate(()=>abrirLoteReacond('A'));
  // iPhone (touch real con CDP)
  const ctx=await b.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:2}); p=await ctx.newPage(); await p.goto(H);
  const cdp=await ctx.newCDPSession(p);
