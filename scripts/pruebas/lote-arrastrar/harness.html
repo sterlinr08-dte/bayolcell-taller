@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../../../bc-lote-arrastrar.css">
+<style>body{font-family:system-ui;margin:0;padding:16px;background:#f1f5f9}#reacondEquiposLista{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.bcf-card{background:#fff;border-radius:14px;padding:10px;height:150px;cursor:pointer}.bcf-h{display:flex;align-items:center;gap:6px}.bcf-chk-wrap{min-width:48px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;margin:-10px}.bcf-chk{width:22px;height:22px}</style></head><body>
+<div id="reacondDetalleLote" style="display:block"><h4>Equipos del Lote</h4><span id="reacondSelCount"></span>
+<div id="reacondEquiposLista"></div><div id="reacondEquiposPagination">pág 1</div></div>
+<script>
+let _reacondSel = new Set(); window.LOG=[]; window.ABIERTOS=[];
+function isAdminUser(){return true}
+function _reacondToggleSel(id,c){ if(c)_reacondSel.add(id); else _reacondSel.delete(id); _reacondActualizarSelUI(); }
+function _reacondActualizarSelUI(){ document.getElementById('reacondSelCount').textContent=_reacondSel.size?_reacondSel.size+' seleccionado(s)':''; }
+function renderDetalleLoteReacond(){ let h=''; for(let i=1;i<=12;i++){const id='eq'+i,s=_reacondSel.has(id);
+ h+=`<article class="bcf-card${s?' bcf-sel':''}" onclick="ABIERTOS.push('${id}')"><header class="bcf-h"><label class="bcf-chk-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="bcf-chk" onclick="event.stopPropagation(); _reacondToggleSel('${id}', this.checked); this.closest('.bcf-card').classList.toggle('bcf-sel', this.checked)" ${s?'checked':''}></label><b>iPhone ${i}</b></header><small>IMEI 35000000000${i}</small></article>`;}
+ document.getElementById('reacondEquiposLista').innerHTML=h; _reacondActualizarSelUI(); }
+function abrirModalAsignarLote(){LOG.push('asignar:'+[..._reacondSel])}
+function pasarSeleccionListoVenta(){LOG.push('listo:'+_reacondSel.size)}
+function despacharTelefonosSeleccionados(){LOG.push('desp:'+_reacondSel.size)}
+function _reacondPasarA(d){LOG.push('pasar:'+d+':'+_reacondSel.size)}
+renderDetalleLoteReacond();
+</script>
+<script src="../../../bc-lote-arrastrar.js"></script>
+</body></html>
