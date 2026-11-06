@@ -7,16 +7,22 @@
 <div id="reacondEquiposLista"></div><div id="reacondEquiposPagination">pág 1</div></div>
 <script>
 let _reacondSel = new Set(); window.LOG=[]; window.ABIERTOS=[];
+let reacondLoteAbiertoId = 'A';
+var cache = { refurb: [] };
+for (let i=1;i<=12;i++) cache.refurb.push({ id:'eq'+i, lote_id:'A' });
+for (let i=13;i<=20;i++) cache.refurb.push({ id:'eq'+i, lote_id:'B' });
 function isAdminUser(){return true}
 function _reacondToggleSel(id,c){ if(c)_reacondSel.add(id); else _reacondSel.delete(id); _reacondActualizarSelUI(); }
 function _reacondActualizarSelUI(){ document.getElementById('reacondSelCount').textContent=_reacondSel.size?_reacondSel.size+' seleccionado(s)':''; }
-function renderDetalleLoteReacond(){ let h=''; for(let i=1;i<=12;i++){const id='eq'+i,s=_reacondSel.has(id);
- h+=`<article class="bcf-card${s?' bcf-sel':''}" onclick="ABIERTOS.push('${id}')"><header class="bcf-h"><label class="bcf-chk-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="bcf-chk" onclick="event.stopPropagation(); _reacondToggleSel('${id}', this.checked); this.closest('.bcf-card').classList.toggle('bcf-sel', this.checked)" ${s?'checked':''}></label><b>iPhone ${i}</b></header><small>IMEI 35000000000${i}</small></article>`;}
+function abrirLoteReacond(l){ reacondLoteAbiertoId=l; _reacondSel=new Set(); renderDetalleLoteReacond(); }
+function renderDetalleLoteReacond(){ let h=''; cache.refurb.filter(r=>r.lote_id===reacondLoteAbiertoId).forEach((r,k)=>{const id=r.id,s=_reacondSel.has(id);
+ h+=`<article class="bcf-card${s?' bcf-sel':''}" onclick="ABIERTOS.push('${id}')"><header class="bcf-h"><label class="bcf-chk-wrap" onclick="event.stopPropagation()"><input type="checkbox" class="bcf-chk" onclick="event.stopPropagation(); _reacondToggleSel('${id}', this.checked); this.closest('.bcf-card').classList.toggle('bcf-sel', this.checked)" ${s?'checked':''}></label><b>iPhone ${id.slice(2)}</b></header><small>IMEI 35000000000${id.slice(2)}</small></article>`;});
  document.getElementById('reacondEquiposLista').innerHTML=h; _reacondActualizarSelUI(); }
 function abrirModalAsignarLote(){LOG.push('asignar:'+[..._reacondSel])}
-function pasarSeleccionListoVenta(){LOG.push('listo:'+_reacondSel.size)}
+async function pasarSeleccionListoVenta(){LOG.push('listo:'+_reacondSel.size); _reacondSel=new Set();}
 function despacharTelefonosSeleccionados(){LOG.push('desp:'+_reacondSel.size)}
-function _reacondPasarA(d){LOG.push('pasar:'+d+':'+_reacondSel.size)}
+async function _reacondPasarA(d){LOG.push('pasar:'+d+':'+[..._reacondSel].sort().join(',')); _reacondSel=new Set();}
+async function _despTelConfirmar(){ return { ok:true, ids:[..._reacondSel].slice(0,2) }; }
 renderDetalleLoteReacond();
 </script>
 <script src="../../../bc-lote-arrastrar.js"></script>

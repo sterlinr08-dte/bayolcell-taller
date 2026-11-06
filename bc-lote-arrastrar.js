@@ -93,7 +93,7 @@
     if (b) return b;
     var det = document.getElementById('reacondDetalleLote'); if (!det) return null;
     b = document.createElement('div'); b.id = 'bcLoteBar'; b.setAttribute('role', 'toolbar'); b.setAttribute('aria-label', 'Acciones para los equipos marcados');
-    b.innerHTML = '<span class="bclb-n" aria-live="polite"><b id="bclbN">0</b> <span id="bclbTxt">seleccionados</span></span>'
+    b.innerHTML = '<span class="bclb-n" aria-live="polite"><b id="bclbN">0</b> <span id="bclbTxt">seleccionados</span><small id="bclbOtros" hidden></small></span>'
       + '<button type="button" class="bclb-q" data-a="quitar"><i class="ti ti-x"></i>Quitar</button>'
       + '<span class="bclb-sp"></span>'
       + '<button type="button" data-a="asignar"><i class="ti ti-users"></i>Asignar técnico</button>'
@@ -128,9 +128,62 @@
     b.setAttribute('aria-hidden', visible ? 'false' : 'true');
     document.getElementById('bclbN').textContent = n;
     document.getElementById('bclbTxt').textContent = n === 1 ? 'seleccionado' : 'seleccionados';
+    var otros = deOtrosLotes().length, ot = document.getElementById('bclbOtros');
+    ot.hidden = !otros;
+    ot.textContent = otros ? (n - otros) + ' de este lote · ' + otros + ' de otro' + (otros === 1 ? '' : 's') + ' lote' + (otros === 1 ? '' : 's') : '';
     var adm = esAdmin();
     Array.prototype.forEach.call(b.querySelectorAll('[data-admin]'), function (x) { x.hidden = !adm; });
     if (!visible) { var m = b.querySelector('.bclb-menu'); if (m) m.hidden = true; }
+  }
+
+  // ── Varios lotes (dueño, 06-nov-2026, mejora 5: «no borrar lo marcado al cambiar de lote») ──
+  // Lo marcado se conserva al abrir otro lote, para juntar en UN despacho equipos de lotes distintos.
+  // Asignar técnico, «Pasar a» y «Listo para venta» siguen actuando SOLO sobre los del lote abierto (sus reglas son
+  // por lote); los de otros lotes quedan marcados. «Despachar» toma todos. «Quitar» limpia todo.
+  function loteAbierto() { try { return reacondLoteAbiertoId; } catch (e) { return null; } }
+  function loteDe(id) { try { var r = (cache.refurb || []).find(function (x) { return x.id === id; }); return r ? r.lote_id : null; } catch (e) { return null; } }
+  function deOtrosLotes() {
+    var s = sel(), la = loteAbierto(); if (!s || !la) return [];
+    return Array.prototype.filter.call(Array.from(s), function (id) { var l = loteDe(id); return l != null && l !== la; });
+  }
+  function ponerSel(set) { try { _reacondSel = set; } catch (e) {} }
+  // Envuelve una acción por lote: durante la acción solo ve los del lote abierto; al terminar, los de otros lotes vuelven.
+  function soloEsteLote(nombre) {
+    var f = window[nombre]; if (typeof f !== 'function' || f.__bcLoteSolo) return;
+    var w = async function () {
+      var otros = deOtrosLotes();
+      if (!otros.length) return f.apply(this, arguments);
+      var s = sel(), esteLote = new Set(Array.from(s).filter(function (id) { return otros.indexOf(id) < 0; }));
+      if (!esteLote.size) { aviso('Marque equipos de este lote. Los ' + otros.length + ' de otros lotes solo se pueden despachar.', 'error'); return; }
+      ponerSel(esteLote);
+      try { return await f.apply(this, arguments); }
+      finally {
+        var ahora = sel() || new Set(); otros.forEach(function (id) { ahora.add(id); }); ponerSel(ahora);
+        try { renderDetalleLoteReacond(); } catch (e) { pintarBarra(); }
+      }
+    };
+    w.__bcLoteSolo = true; window[nombre] = w;
+  }
+  function aviso(t, k) { try { if (typeof toast === 'function') toast(t, k); } catch (e) {} }
+  function conservarAlAbrir() {
+    var f = window.abrirLoteReacond; if (typeof f !== 'function' || f.__bcLoteKeep) return;
+    var w = function () {
+      var antes = sel(); var guardar = antes && antes.size ? new Set(antes) : null;
+      var r = f.apply(this, arguments);
+      if (guardar) { ponerSel(guardar); try { renderDetalleLoteReacond(); } catch (e) {} }
+      return r;
+    };
+    w.__bcLoteKeep = true; window.abrirLoteReacond = w;
+  }
+  // Tras despachar, los que salieron dejan de estar marcados.
+  function limpiarDespachados() {
+    var f = window._despTelConfirmar; if (typeof f !== 'function' || f.__bcLoteDesp) return;
+    var w = async function () {
+      var r = await f.apply(this, arguments);
+      try { if (r && r.ok && Array.isArray(r.ids)) { var s = sel(); if (s) r.ids.forEach(function (id) { s.delete(id); }); pintarBarra(); } } catch (e) {}
+      return r;
+    };
+    w.__bcLoteDesp = true; window._despTelConfirmar = w;
   }
 
   // Se engancha a las funciones de la selección que ya existen (no cambia lo que hacen).
@@ -142,6 +195,7 @@
   function enganchar() {
     var ok = envolver('_reacondActualizarSelUI');
     envolver('renderDetalleLoteReacond');
+    if (ok) { conservarAlAbrir(); soloEsteLote('_reacondPasarA'); soloEsteLote('confirmarAsignarLote'); soloEsteLote('pasarSeleccionListoVenta'); limpiarDespachados(); }
     return ok;
   }
   if (!enganchar()) {

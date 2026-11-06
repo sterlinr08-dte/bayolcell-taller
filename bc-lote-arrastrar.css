@@ -34,6 +34,7 @@ html.bc-lote-arrastrando #reacondEquiposLista .bcf-card { cursor: crosshair; }
 }
 #bcLoteBar.bclb-on { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition-delay: 0s; }
 #bcLoteBar .bclb-n { font-size: 14px; padding: 0 6px; white-space: nowrap; }
+#bcLoteBar .bclb-n small { display: block; font-size: 13px; opacity: .8; margin-top: 2px; }
 #bcLoteBar .bclb-n b { color: var(--bclb-acento); font-size: 16px; font-variant-numeric: tabular-nums; }
 #bcLoteBar .bclb-sp { flex: 1 1 auto; }
 #bcLoteBar button {
