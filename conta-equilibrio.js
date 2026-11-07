@@ -530,10 +530,11 @@
     if (!puede()) { cont.innerHTML = '<p class="pe-vacio">Necesita permiso de Contabilidad para ver el punto de equilibrio.</p>'; return; }
     if (st.cargando) { cont.innerHTML = '<p class="pe-vacio"><i class="ti ti-loader"></i> Cargando ventas de Info Plus…</p>'; return; }
     if (st.errorTabla) { cont.innerHTML = '<p class="pe-vacio">No se pudieron cargar los gastos guardados. Toque Actualizar.</p>'; return; }
-    var tabs = [{ k: 'general', t: 'General' }].concat(TIENDAS.map(function (t) { return { k: t.cod, t: t.nombre }; }), [{ k: 'comunes', t: 'Gastos comunes' }]);
+    var tabs = [{ k: 'general', t: 'General' }].concat(TIENDAS.map(function (t) { return { k: t.cod, t: t.nombre }; }), window.BayolVentas ? [{ k: 'ventas', t: 'Ventas' }] : [], [{ k: 'comunes', t: 'Gastos comunes' }]);
     var c = calcular();
     var cuerpo;
     if (st.tab === 'general') cuerpo = '<div id="peResumen">' + htmlResumen(c.g, 'Todas las tiendas', true, c) + '</div>' + htmlTablaGeneral(c);
+    else if (st.tab === 'ventas') cuerpo = '<div class="rv-wrap" id="rv_contenido"></div>';
     else if (st.tab === 'comunes') cuerpo = '<div class="pe-grid"><div>' + htmlGastos(0) + '</div><div id="peResumen">' + htmlResumen(c.g, 'Todas las tiendas', true, c) + '</div></div>';
     else {
       var x = c.tiendas.filter(function (y) { return y.t.cod === st.tab; })[0];
@@ -543,10 +544,160 @@
       '<div class="pe-tabs" role="tablist">' + tabs.map(function (t) {
         return '<button role="tab" aria-selected="' + (st.tab === t.k) + '" class="pe-tab' + (st.tab === t.k ? ' on' : '') + '" onclick="BayolEquilibrio.tab(' + (typeof t.k === 'number' ? t.k : '\'' + t.k + '\'') + ')">' + esc(t.t) + '</button>';
       }).join('') + '</div>' + cuerpo +
-      '<div class="pe-pie"><span id="peEstado">' + (st.sucio ? 'Cambios sin guardar' : '') + '</span>' +
+      (st.tab === 'ventas' ? '' : '<div class="pe-pie"><span id="peEstado">' + (st.sucio ? 'Cambios sin guardar' : '') + '</span>' +
         '<button class="btn btn-light" onclick="BayolEquilibrio.copiar()"><i class="ti ti-copy"></i> Copiar del mes anterior</button>' +
         '<button id="peBtnGuardar" class="btn btn-blue" onclick="BayolEquilibrio.guardar()"><i class="ti ti-device-floppy"></i> Guardar gastos del mes</button>' +
-      '</div>';
+      '</div>');
+    if (st.tab === 'ventas' && window.BayolVentas) window.BayolVentas.montar($('rv_contenido'), st.mes, metasMes());
+  }
+  function metasMes() { var m = {}; TIENDAS.forEach(function (t) { m[t.cod] = num((fila(t.cod).variables || {}).meta); }); return m; }
+
+  // ---------- reporte del mes (imprimir / PDF) y Excel (dueño, 07-nov-2026, opción C) ----------
+  function nombreMes(mes) { var d = new Date(mes + '-01T00:00:00'); var t = d.toLocaleDateString('es-DO', { month: 'long', year: 'numeric' }); return t.charAt(0).toUpperCase() + t.slice(1); }
+  function entero(n) { return Number(n || 0).toLocaleString('es-DO', { maximumFractionDigits: 0 }); }
+  // Junta todo lo que va en el reporte: cálculo, metas, gastos, préstamos y ventas.
+  async function datosReporte() {
+    var c = calcular(), ventas = null, errV = '';
+    if (window.BayolVentas) { try { ventas = await window.BayolVentas.cargarMes(st.mes); } catch (e) { errV = 'No se pudieron leer las ventas detalladas.'; } }
+    var g = c.g, quedan = c.em === 'actual' ? Math.max(1, g.diasMes - Math.max.apply(null, c.tiendas.map(function (x) { return x.diasAyer; }))) : 0;
+    var V = function (cod) { return ventas ? window.BayolVentas.datos(cod, ventas, metasMes()) : null; };
+    // Resumen en frases.
+    var res = [];
+    var corte = c.em === 'actual' ? 'al ' + new Date().toLocaleDateString('es-DO', { day: 'numeric', month: 'long' }) : (c.em === 'pasado' ? 'del mes completo' : '');
+    if (g.pe != null) {
+      res.push('En ' + nombreMes(st.mes).toLowerCase() + ' (' + corte + ') las tres tiendas llevan vendido ' + plata(g.vn) + ', el ' + pct(g.alcanzado) + ' de lo que necesitan para cubrir los gastos del mes (' + plata(g.pe) + ').');
+      if (g.falta > 0) res.push('Para cubrir los gastos falta vender ' + plata(g.falta) + (g.diaNecesario ? ': ' + plata(g.diaNecesario) + ' por día en los ' + quedan + ' días que quedan.' : '.'));
+      else res.push('Los gastos del mes ya están cubiertos: lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
+    } else res.push('Todavía no se puede calcular el punto de equilibrio: faltan gastos o ventas del mes.');
+    if (g.capital > 0 && g.peCaja != null) res.push('Para pagar también la cuota completa de los préstamos (capital ' + plata(g.capital) + ', que no es gasto pero sale de la caja) hay que vender ' + plata(g.peCaja) + (g.faltaCaja > 0 ? '; faltan ' + plata(g.faltaCaja) + (g.diaCaja ? ' (' + plata(g.diaCaja) + ' por día)' : '') + '.' : '; ya se alcanzó.'));
+    if (g.meta > 0) res.push('La meta de venta del mes suma ' + plata(g.meta) + ' y va al ' + pct(g.metaAvance) + (g.metasFaltan ? ' (falta fijar la meta en ' + g.metasFaltan + ' tienda(s)).' : '.'));
+    if (g.resultado != null) res.push((g.resultado >= 0 ? 'Ganancia' : 'Pérdida') + ' a la fecha: ' + plata(Math.abs(g.resultado)) + (c.em === 'actual' ? ', comparando con los gastos de los días transcurridos. Al ritmo actual cerraría el mes en ' + plata(g.proy) + ' de venta y un resultado de ' + plata(g.resultadoProy) + '.' : '.'));
+    // Conclusiones.
+    var con = [];
+    var conMeta = c.tiendas.filter(function (x) { return x.meta > 0; });
+    if (conMeta.length) {
+      var peor = conMeta.slice().sort(function (a, b) { return a.metaAvance - b.metaAvance; })[0];
+      if (peor.metaFalta > 0) con.push(peor.t.nombre + ' es la tienda más atrasada frente a su meta (' + pct(peor.metaAvance) + '). Necesita ' + plata(peor.metaFalta) + (peor.metaDia ? ', unos ' + plata(peor.metaDia) + ' por día.' : '.'));
+    } else {
+      var atr = c.tiendas.filter(function (x) { return x.alcanzado != null; }).sort(function (a, b) { return a.alcanzado - b.alcanzado; })[0];
+      if (atr && atr.falta > 0) con.push(atr.t.nombre + ' es la tienda más lejos de su punto de equilibrio (' + pct(atr.alcanzado) + '). Le faltan ' + plata(atr.falta) + (atr.diaNecesario ? ', ' + plata(atr.diaNecesario) + ' por día.' : '.'));
+    }
+    c.tiendas.forEach(function (x) { if (x.aporte != null && x.aporte < 0) con.push(x.t.nombre + ' no cubre ni sus propios gastos (aporte ' + plata(x.aporte) + '). Revise precios, costos o gastos de esa tienda.'); });
+    c.tiendas.forEach(function (x) { if (x.alcanzado != null && x.alcanzado >= 1) con.push(x.t.nombre + ' ya cubrió sus gastos del mes.'); });
+    if (ventas) {
+      var tv = V('todas'), dm = tv.detalle_venta + tv.mayor_venta;
+      if (dm > 0) con.push('El ' + pct(tv.mayor_venta / dm) + ' de la venta de productos fue al por mayor y el ' + pct(tv.detalle_venta / dm) + ' al detalle. Se vendieron ' + entero(tv.cel_unid) + ' celulares y se cobraron ' + entero(tv.rep_n) + ' reparaciones.');
+      window.BayolVentas.TIENDAS.forEach(function (t) { var d = V(t.cod); if (d.venta_total > 0 && d.rep_n < 3) con.push(t.nombre + ' tiene muy pocas reparaciones registradas (' + entero(d.rep_n) + '). Confirme que las facturas de reparación lleven «Servicio técnico».'); });
+    }
+    if (g.metasFaltan === TIENDAS.length) con.push('Fije la meta de venta en cada tienda para poder medir el avance.');
+    if (g.faltan > 0) con.push('Hay ' + g.faltan + ' gasto(s) sin monto: el punto de equilibrio puede salir más bajo de lo real.');
+    var comunes = (fila(0).gastos || []).filter(function (x) { return num(x.monto) > 0; }).map(function (x) { return { c: x.concepto, m: num(x.monto) }; });
+    var prest = (prestamos() || []).map(function (p) { return { b: p.banco || 'Préstamo', i: num(p.interes), k: num(p.capital) }; });
+    return { c: c, g: g, V: V, ventas: ventas, errV: errV, res: res, con: con, comunes: comunes, prest: prest, corte: corte, quedan: quedan };
+  }
+
+  function htmlReporte(R) {
+    var c = R.c, g = R.g, e = esc;
+    var th = function (a) { return '<tr>' + a.map(function (x, i) { return '<th' + (i ? ' class="n"' : '') + '>' + x + '</th>'; }).join('') + '</tr>'; };
+    var td = function (a, cls) { return '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' + a.map(function (x, i) { return '<td' + (i ? ' class="n"' : '') + '>' + x + '</td>'; }).join('') + '</tr>'; };
+    var color = function (v) { return v == null ? '—' : '<span style="color:' + (v >= 0 ? '#15803d' : '#b91c1c') + '">' + plata(v) + '</span>'; };
+    var tiendas = c.tiendas.map(function (x) {
+      return td([e(x.t.nombre), x.meta ? plata(x.meta) : '—', plata(x.vn), x.meta ? pct(x.metaAvance) : '—', x.pe != null ? plata(x.pe) : '—', x.falta != null ? plata(x.falta) : '—', x.diaNecesario ? plata(x.diaNecesario) : '—', pct(x.mb), color(x.resultado), color(x.aporte)]);
+    }).join('') + td(['<b>Todas</b>', g.meta ? plata(g.meta) : '—', '<b>' + plata(g.vn) + '</b>', g.meta ? pct(g.metaAvance) : '—', g.pe != null ? plata(g.pe) : '—', g.falta != null ? plata(g.falta) : '—', g.diaNecesario ? plata(g.diaNecesario) : '—', pct(g.mb), color(g.resultado), '—'], 'tot');
+    var gastos = c.tiendas.map(function (x) { return td([e(x.t.nombre), plata(x.gf), plata(x.gc) + ' (' + pct(x.partePct) + ')', plata(x.capital || 0), '<b>' + plata(x.ft + (x.capital || 0)) + '</b>']); }).join('') +
+      td(['<b>Todas</b>', plata(g.gf), plata(g.gc), plata(g.capital || 0), '<b>' + plata(g.ft + (g.capital || 0)) + '</b>'], 'tot');
+    var comunes = R.comunes.length ? '<table>' + th(['Gasto común', 'Monto']) + R.comunes.map(function (x) { return td([e(x.c), plata(x.m)]); }).join('') + td(['<b>Total</b>', '<b>' + plata(g.gc) + '</b>'], 'tot') + '</table>' : '';
+    var prest = R.prest.length ? '<h3>Préstamos (cuota del mes)</h3><table>' + th(['Banco', 'Intereses (gasto)', 'Capital (sale de la caja)', 'Cuota']) +
+      R.prest.map(function (p) { return td([e(p.b), plata(p.i), plata(p.k), plata(p.i + p.k)]); }).join('') +
+      td(['<b>Total</b>', plata(R.prest.reduce(function (s, p) { return s + p.i; }, 0)), plata(R.prest.reduce(function (s, p) { return s + p.k; }, 0)), '<b>' + plata(R.prest.reduce(function (s, p) { return s + p.i + p.k; }, 0)) + '</b>'], 'tot') + '</table>' : '';
+    var ventas = '';
+    if (R.ventas) {
+      var fv = function (nom, d) { return td([nom, plata(d.venta_total), entero(d.cel_unid) + ' <small>(' + entero(d.cel_detalle) + ' det. · ' + entero(d.cel_mayor) + ' may.)</small>', plata(d.detalle_venta), plata(d.mayor_venta), plata(d.taller_venta), entero(d.rep_n) + ' <small>(' + plata(d.rep_mano_obra) + ')</small>']); };
+      ventas = '<h2>4. Ventas del mes</h2><table>' + th(['Tienda', 'Venta total', 'Celulares', 'Detalle (nivel 1)', 'Por mayor (niv. 2 y 3)', 'Taller y servicios', 'Reparaciones (mano de obra)']) +
+        window.BayolVentas.TIENDAS.map(function (t) { return fv(e(t.nombre), R.V(t.cod)); }).join('') + fv('<b>Todas</b>', R.V('todas')).replace('<tr>', '<tr class="tot">') + '</table>' +
+        '<p class="nota">Venta total = detalle + por mayor + taller y servicios, ya restadas las devoluciones. El nivel se toma del precio cobrado; si fue negociado, del cliente («Contado» = detalle). Celulares: artículos que empiezan con «CELULAR». Reparación: factura con «Servicio técnico».</p>';
+    } else if (R.errV) ventas = '<h2>4. Ventas del mes</h2><p class="nota">' + e(R.errV) + '</p>';
+    var logo = location.origin + location.pathname.replace(/[^/]*$/, '') + 'assets/logo-carga.webp';
+    return ('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Punto de equilibrio · ' + e(nombreMes(st.mes)) + '</title><style>' +
+      '*{box-sizing:border-box}body{font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;color:#0f172a;margin:0;background:#f1f5f9}' +
+      '.hoja{max-width:900px;margin:0 auto;background:#fff;padding:28px 28px 40px}' +
+      '.cab{display:flex;align-items:center;gap:14px;border-bottom:3px solid #e4572e;padding-bottom:12px;margin-bottom:18px}.cab img{width:52px;height:52px;object-fit:contain}' +
+      '.cab h1{font-size:22px;margin:0}.cab p{margin:2px 0 0;color:#475569;font-size:14px}' +
+      'h2{font-size:17px;margin:26px 0 10px;color:#e4572e}h3{font-size:15px;margin:18px 0 8px}' +
+      '.res{background:#fff8f4;border:1px solid #fde4d8;border-radius:12px;padding:12px 16px}.res p{margin:6px 0;font-size:15px;line-height:1.5}' +
+      'table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;margin:6px 0}th{background:#f8fafc;text-align:left;font-weight:700;color:#334155}th,td{padding:8px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}' +
+      '.n{text-align:right;white-space:nowrap}.tw table{min-width:560px}tr.tot td{background:#f8fafc;font-weight:600}small{color:#64748b}' +
+      'ul{padding-left:20px}li{margin:6px 0;font-size:15px;line-height:1.5}.nota{font-size:12px;color:#64748b;line-height:1.5}' +
+      '.acc{position:sticky;top:0;display:flex;gap:8px;justify-content:flex-end;padding:10px;background:#f1f5f9}.acc button{min-height:44px;padding:0 16px;font-size:15px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;cursor:pointer}.acc .p{background:#e4572e;color:#fff;border-color:#e4572e}' +
+      '.tw{overflow-x:auto}@media(max-width:640px){.hoja{padding:16px}table{font-size:12px}}' +
+      '@media print{body{background:#fff}.acc{display:none}.tw{overflow:visible}.tw table{min-width:0}table{font-size:9.5px}th,td{padding:5px 3px}.n{white-space:normal}.hoja{padding:0;max-width:none}h2{break-after:avoid}table,tr{break-inside:avoid}@page{size:letter;margin:14mm}}' +
+      '</style></head><body><div class="acc"><button onclick="window.close()">Cerrar</button><button class="p" onclick="window.print()">Imprimir o guardar PDF</button></div><div class="hoja">' +
+      '<div class="cab"><img src="' + e(logo) + '" alt="" onerror="this.style.display=\'none\'"><div><h1>Punto de equilibrio · ' + e(nombreMes(st.mes)) + '</h1><p>Bayol Cell · Santiago, Moca y Navarrete · ' + e(c.em === 'actual' ? 'Datos ' + R.corte + ' (mes en curso)' : c.em === 'pasado' ? 'Mes cerrado' : 'Mes futuro') + '</p></div></div>' +
+      '<h2>1. Resumen</h2><div class="res">' + R.res.map(function (x) { return '<p>' + e(x) + '</p>'; }).join('') + '</div>' +
+      '<h2>2. Cada tienda</h2><table>' + th(['Tienda', 'Meta', 'Vendido', '% meta', 'Debe vender (equilibrio)', 'Le falta', 'Por día que queda', 'Margen', 'Resultado a la fecha', 'Aporte (sin comunes)']) + tiendas + '</table>' +
+      '<p class="nota">«Debe vender» es la venta que cubre los gastos fijos propios y la parte de los comunes. «Aporte» es lo que deja la tienda sin cargarle los gastos comunes.</p>' +
+      '<h2>3. Gastos del mes</h2><table>' + th(['Tienda', 'Gastos propios', 'Parte de comunes', 'Parte del capital', 'Total a cubrir']) + gastos + '</table>' + comunes + prest +
+      ventas +
+      '<h2>' + (R.ventas || R.errV ? '5' : '4') + '. Conclusiones</h2><ul>' + (R.con.length ? R.con : ['Sin observaciones para este mes.']).map(function (x) { return '<li>' + e(x) + '</li>'; }).join('') + '</ul>' +
+      '<p class="nota">Estimado con las ventas y el costo de Info Plus, antes del impuesto sobre la renta. No sustituye el estado de la contadora. Generado el ' + e(new Date().toLocaleString('es-DO')) + '</p>' +
+      '</div></body></html>').replace(/<table>/g, '<div class="tw"><table>').replace(/<\/table>/g, '</table></div>');
+  }
+
+  async function reporteMes() {
+    if (!st.mes) return;
+    // La ventana se abre en el mismo toque (si no, el navegador la bloquea) y se llena después.
+    var w = window.open('', '_blank');
+    if (w) w.document.write('<p style="font-family:system-ui;padding:24px">Preparando el reporte…</p>');
+    try {
+      var html = htmlReporte(await datosReporte());
+      if (!w || w.closed) { aviso('El navegador bloqueó la ventana del reporte. Permita ventanas emergentes e intente de nuevo.', 'error'); return; }
+      w.document.open(); w.document.write(html); w.document.close();
+    } catch (e) { if (w) w.close(); aviso('No se pudo preparar el reporte.', 'error'); if (typeof logError === 'function') logError('equilibrio reporte', e); }
+  }
+
+  function cargarXlsx() {
+    return new Promise(function (ok, mal) {
+      if (window.XLSX && window.XLSX.utils && window.XLSX.writeFile) return ok();
+      var s = document.createElement('script'); s.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+      s.onload = function () { ok(); }; s.onerror = function () { mal(new Error('No cargó el lector de Excel')); };
+      document.head.appendChild(s);
+    });
+  }
+  async function excelMes() {
+    if (!st.mes) return;
+    try {
+      var R = await datosReporte(); await cargarXlsx();
+      var X = window.XLSX, wb = X.utils.book_new(), c = R.c, g = R.g, r2 = function (v) { return v == null ? '' : Math.round(v * 100) / 100; }, p1 = function (v) { return v == null ? '' : Math.round(v * 1000) / 1000; };
+      var hoja = function (nombre, filas, anchos, fmt) {
+        var ws = X.utils.aoa_to_sheet(filas); ws['!cols'] = anchos.map(function (w) { return { wch: w }; });
+        // Formato: pesos con 2 decimales y porcentajes (columnas indicadas en fmt).
+        Object.keys(ws).forEach(function (k) { if (k[0] === '!') return; var cel = ws[k], col = k.replace(/[0-9]/g, ''); if (typeof cel.v === 'number' && fmt[col]) cel.z = fmt[col]; });
+        X.utils.book_append_sheet(wb, ws, nombre);
+      };
+      var RD = '#,##0.00', PC = '0.0%';
+      hoja('Resumen', [['Punto de equilibrio · ' + nombreMes(st.mes)], ['Bayol Cell · ' + (c.em === 'actual' ? 'Datos ' + R.corte : c.em === 'pasado' ? 'Mes cerrado' : 'Mes futuro')], []]
+        .concat(R.res.map(function (x) { return [x]; })).concat([[], ['Conclusiones']]).concat(R.con.map(function (x) { return ['• ' + x]; })), [120], {});
+      hoja('Tiendas', [['Tienda', 'Meta', 'Vendido', '% de la meta', 'Debe vender (equilibrio)', '% del equilibrio', 'Le falta', 'Por día que queda', 'Para pagar también la cuota', 'Margen', 'Contribución', 'Resultado a la fecha', 'Aporte (sin comunes)', 'Proyección de venta']]
+        .concat(c.tiendas.map(function (x) { return [x.t.nombre, r2(x.meta || null), r2(x.vn), p1(x.metaAvance), r2(x.pe), p1(x.alcanzado), r2(x.falta), r2(x.diaNecesario), r2(x.peCaja), p1(x.mb), p1(x.mc), r2(x.resultado), r2(x.aporte), r2(x.proy)]; }))
+        .concat([['Todas', r2(g.meta || null), r2(g.vn), p1(g.metaAvance), r2(g.pe), p1(g.alcanzado), r2(g.falta), r2(g.diaNecesario), r2(g.peCaja), p1(g.mb), p1(g.mc), r2(g.resultado), '', r2(g.proy)]]),
+        [12, 14, 14, 11, 18, 12, 14, 14, 18, 9, 11, 16, 16, 16], { B: RD, C: RD, D: PC, E: RD, F: PC, G: RD, H: RD, I: RD, J: PC, K: PC, L: RD, M: RD, N: RD });
+      var gfil = [['Tienda / concepto', 'Monto']];
+      [0].concat(TIENDAS.map(function (t) { return t.cod; })).forEach(function (cod) {
+        var nom = cod === 0 ? 'Gastos comunes' : TIENDAS.filter(function (t) { return t.cod === cod; })[0].nombre;
+        gfil.push([nom.toUpperCase(), '']);
+        (fila(cod).gastos || []).forEach(function (x) { gfil.push(['   ' + x.concepto, num(x.monto)]); });
+        gfil.push(['   Total ' + nom, r2(totalFijos(cod))], []);
+      });
+      hoja('Gastos', gfil, [44, 16], { B: RD });
+      if (R.prest.length) hoja('Préstamos', [['Banco', 'Intereses (gasto)', 'Capital (sale de la caja)', 'Cuota']].concat(R.prest.map(function (p) { return [p.b, p.i, p.k, r2(p.i + p.k)]; })), [30, 18, 22, 16], { B: RD, C: RD, D: RD });
+      if (R.ventas) {
+        var vf = function (nom, d) { return [nom, r2(d.venta_total), d.cel_unid, d.cel_detalle, d.cel_mayor, r2(d.cel_venta), r2(d.detalle_venta), d.detalle_fact, r2(d.mayor_venta), d.mayor_fact, r2(d.taller_venta), d.rep_n, r2(d.rep_mano_obra), r2(d.rep_piezas)]; };
+        hoja('Ventas', [['Tienda', 'Venta total', 'Celulares', 'Cel. detalle', 'Cel. por mayor', 'Venta de celulares', 'Detalle (nivel 1)', 'Facturas detalle', 'Por mayor (niveles 2 y 3)', 'Facturas por mayor', 'Taller y servicios', 'Reparaciones', 'Mano de obra', 'Piezas en reparaciones']]
+          .concat(window.BayolVentas.TIENDAS.map(function (t) { return vf(t.nombre, R.V(t.cod)); })).concat([vf('Todas', R.V('todas'))]),
+          [12, 14, 10, 10, 12, 16, 16, 12, 18, 12, 14, 12, 14, 16], { B: RD, F: RD, G: RD, I: RD, K: RD, M: RD, N: RD });
+      }
+      X.writeFile(wb, 'Punto_de_equilibrio_' + st.mes + '_BayolCell.xlsx');
+    } catch (e) { aviso('No se pudo preparar el Excel. Intente de nuevo.', 'error'); if (typeof logError === 'function') logError('equilibrio excel', e); }
   }
 
   // ---------- estilos ----------
@@ -635,7 +786,9 @@
         '<h3 style="margin:0;"><i class="ti ti-scale" style="color:#e4572e;"></i> Punto de equilibrio por tienda ' +
         '<button onclick="BayolEquilibrio.ayuda()" title="Ayuda" aria-label="Ayuda" style="background:none;border:none;cursor:pointer;color:#475569;font-size:15px;vertical-align:middle;padding:0 3px;min-width:44px;min-height:44px;"><i class="ti ti-info-circle"></i></button></h3>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input type="month" id="pe_mes" style="height:48px;font-size:16px;" onchange="BayolEquilibrio.mes(this.value)">' +
-        '<button class="btn btn-light" style="min-height:44px;font-size:14px;" onclick="BayolEquilibrio.recargar()"><i class="ti ti-refresh"></i> Actualizar</button></div>' +
+        '<button class="btn btn-light" style="min-height:44px;font-size:14px;" onclick="BayolEquilibrio.recargar()"><i class="ti ti-refresh"></i> Actualizar</button>' +
+        '<button class="btn btn-light" style="min-height:44px;font-size:14px;" onclick="BayolEquilibrio.reporte()"><i class="ti ti-file-text"></i> Reporte del mes</button>' +
+        '<button class="btn btn-light" style="min-height:44px;font-size:14px;" onclick="BayolEquilibrio.excel()"><i class="ti ti-file-spreadsheet"></i> Excel</button></div>' +
       '</div>' +
       '<div id="pe_contenido"></div>';
     if (mensual && mensual.parentNode) mensual.parentNode.insertBefore(div, mensual.nextSibling);
@@ -656,6 +809,7 @@
     var orig = window.contaTab;
     var nuevo = function (name) {
       asegurarPestana(); mostrarBoton();
+      if (name === 'ventas') { name = 'equilibrio'; st.tab = 'ventas'; }
       if (name === 'equilibrio') {
         if (!puede()) { name = 'mensual'; }
         else {
@@ -683,7 +837,7 @@
   }
 
   window.BayolEquilibrio = {
-    tab: function (k) { if (k !== 'general' && k !== 'comunes' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tab = k; pintar(); },
+    tab: function (k) { if (k === 'ventas' && !window.BayolVentas) k = 'general'; if (k !== 'general' && k !== 'comunes' && k !== 'ventas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tab = k; pintar(); },
     mes: function (v) {
       if (!v) return;
       var seguir = function () { st.mes = v; st.filas = {}; var m = $('pe_mes'); if (m) m.value = v; cargar(); };
@@ -691,11 +845,14 @@
       else seguir();
     },
     recargar: function () {
+      if (window.BayolVentas) window.BayolVentas._estado().cache = {};
       if (st.sucio && typeof confirmar === 'function') { confirmar('Hay cambios sin guardar. ¿Actualizar y perderlos?').then(function (ok) { if (ok) cargar(); }); return; }
       cargar();
     },
     guardar: function () { guardar(null); },
     copiar: copiarMesAnterior,
+    reporte: function () { reporteMes(); },
+    excel: function () { excelMes(); },
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
