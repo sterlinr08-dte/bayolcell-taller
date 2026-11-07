@@ -197,8 +197,7 @@
       catch (e) { ventas[t.cod] = { venta: 0, costo: 0, error: true }; if (typeof logError === 'function') logError('equilibrio ventas', e); }
       try { ventasAnt[t.cod] = await leer(pa, t.cod); } catch (e) { ventasAnt[t.cod] = { venta: 0, costo: 0 }; }
     }));
-    // Notas de crédito (CN): Info Plus las manda en positivo y se suman como venta. Son devoluciones:
-    // se quitan de la venta y del costo y además se restan (venta − 2 × CN). Dueño, 6-nov.
+    // Notas de crédito (CN): solo se cuentan para el aviso. La resta la hace estado_mensual_cat (07-nov, auditoría).
     try {
       var rc = await cli.from('infoplus_ventas').select('monto_venta,monto_costo,codlocalidad,factura_id')
         .like('factura_id', 'CN%').gte('fecha', p.ini).lt('fecha', p.fin);
@@ -209,7 +208,8 @@
       });
       Object.keys(cn).forEach(function (k) {
         cn[k].n = Object.keys(cn[k].facturas).length;
-        if (ventas[k]) { ventas[k].venta = Math.max(0, ventas[k].venta - 2 * cn[k].venta); ventas[k].costo = Math.max(0, ventas[k].costo - 2 * cn[k].costo); }
+        // 07-nov-2026 (auditoría): ya NO se restan aquí. estado_mensual_cat las resta desde la migración
+        // 20261106201708 (CN en negativo); restarlas también aquí las quitaba dos veces (Navarrete oct −RD$102,000).
       });
     } catch (e) { if (typeof logError === 'function') logError('equilibrio notas de crédito', e); }
     if (token !== st.token) return;
@@ -315,7 +315,7 @@
     if (itbis) avisos.push('Se quita el ITBIS al ' + Math.round(c.g18 * 100) + ' % de las ventas.');
     if (c.sinAnt) avisos.push('El mes anterior no tiene ventas: los gastos comunes se reparten en partes iguales.');
     var cnx = esGeneral ? Object.keys(c.cn).reduce(function (a, k) { a.n += c.cn[k].n; a.v += c.cn[k].venta; return a; }, { n: 0, v: 0 }) : (c.cn[x.t && x.t.cod] ? { n: c.cn[x.t.cod].n, v: c.cn[x.t.cod].venta } : null);
-    if (cnx && cnx.n) avisos.push('Se restaron ' + cnx.n + ' nota(s) de crédito por ' + plata(cnx.v) + '.');
+    if (cnx && cnx.n) avisos.push('Incluye ' + cnx.n + ' nota(s) de crédito (devoluciones) por ' + plata(cnx.v) + ', ya restadas de la venta.');
     return '<div class="pe-res">' +
       '<div class="pe-res-h"><b>' + esc(nombre) + '</b><span>' + (x.alcanzado != null ? pct(x.alcanzado) + ' del punto de equilibrio' : 'Sin punto de equilibrio') + '</span></div>' +
       barra(x.alcanzado) +
