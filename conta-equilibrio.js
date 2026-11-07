@@ -890,7 +890,7 @@
       '#conta-equilibrio .pe-tab.on{background:#e4572e;border-color:#e4572e;color:#fff}',
       '#conta-equilibrio .pe-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}',
       '@media (max-width:900px){#conta-equilibrio .pe-grid{grid-template-columns:1fr}}',
-      '@media (max-width:480px){#conta-equilibrio .pe-g{grid-template-columns:minmax(0,1fr) 44px;}#conta-equilibrio .pe-g-c{grid-column:1 / -1}#conta-equilibrio .pe-g-m{grid-column:1}}',
+      '@media (max-width:480px){#conta-equilibrio .pe-g{grid-template-columns:minmax(0,1fr) 44px;}#conta-equilibrio .pe-g-c{grid-column:1 / -1}#conta-equilibrio .pe-g-m{grid-column:1;width:100%}}',
       '#conta-equilibrio .pe-card,#conta-equilibrio .pe-res{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 6px 18px -14px rgba(15,23,42,.35)}',
       '#conta-equilibrio .pe-card h4{margin:12px 0 8px;font-size:14px;color:#0f172a}',
       '#conta-equilibrio .pe-card-h{display:flex;justify-content:space-between;align-items:center;gap:8px}',
@@ -909,6 +909,26 @@
       '#conta-equilibrio .pe-meta-f{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}',
       '#conta-equilibrio .pe-meta-f input{flex:1 1 160px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;background:#fff;min-width:0}',
       '#conta-equilibrio .pe-meta-f .btn{min-height:48px;font-size:14px}',
+      /* Estilo Apple (07-nov-2026): etiquetas normales, barra de acciones segmentada, pestañas en una fila, toque que hunde. */
+      '#conta-equilibrio label span,#conta-equilibrio label,#conta-equilibrio .pe-v-p span{text-transform:none!important;letter-spacing:0!important}',
+      '#conta-equilibrio .pe-vars label span,#conta-equilibrio .pe-dias span{font-weight:500;color:#334155;font-size:14px;line-height:1.3}',
+      '#conta-equilibrio .pe-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
+      '#conta-equilibrio .pe-bar input[type=month]{height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:12px;padding:0 12px;background:#fff;color:#0f172a;min-width:0}',
+      '#conta-equilibrio .pe-seg{display:flex;padding:3px;gap:3px;border-radius:14px;background:rgba(15,23,42,.06)}',
+      '#conta-equilibrio .pe-seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 14px;border:0;border-radius:11px;background:transparent;color:#0f172a;font:600 14px/1 inherit;font-family:inherit;cursor:pointer;transition:background 160ms ease,transform 100ms ease-out}',
+      '#conta-equilibrio .pe-seg button:hover{background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(15,23,42,.08)}',
+      '#conta-equilibrio .pe-seg button i{font-size:18px;color:#e4572e}',
+      '@media (max-width:700px){#conta-equilibrio .pe-bar{width:100%}#conta-equilibrio .pe-bar input[type=month]{flex:1 1 100%}#conta-equilibrio .pe-seg{flex:1 1 100%}#conta-equilibrio .pe-seg button{flex:1;padding:0 6px}}',
+      '#conta-equilibrio .pe-tabs{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 2px 4px;margin-left:-2px;margin-right:-2px}',
+      '#conta-equilibrio .pe-tabs::-webkit-scrollbar{display:none}',
+      '#conta-equilibrio .pe-tab{flex:none;scroll-snap-align:start;transition:background 160ms ease,color 160ms ease,transform 100ms ease-out}',
+      '#conta-equilibrio button:active,#conta-equilibrio .btn:active{transform:scale(.97)}',
+      '#conta-equilibrio .pe-pie .btn.btn-blue{min-height:54px!important;height:auto;padding:0 22px;font-size:15px;border-radius:14px}',
+      '@media (max-width:700px){#conta-equilibrio .pe-pie .btn{flex:1 1 100%;justify-content:center}}',
+      '@media (prefers-reduced-motion:reduce){#conta-equilibrio button:active,#conta-equilibrio .btn:active{transform:none}}',
+      '#conta-equilibrio .pe-v-m input{width:150px!important;padding:0 10px!important}',
+      '@media (max-width:480px){#conta-equilibrio .pe-g{grid-template-columns:minmax(0,1fr) 44px}#conta-equilibrio .pe-g-c{grid-column:1 / -1}#conta-equilibrio .pe-g .pe-g-m{grid-column:1;width:100%!important;max-width:none!important}}',
+      '@media (max-width:700px){#conta-equilibrio .pe-v-m input{width:auto!important}}',
       '#conta-equilibrio .pe-per{border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0;background:#fff;box-shadow:0 6px 18px -14px rgba(15,23,42,.35)}',
       '#conta-equilibrio .pe-per>header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}',
       '#conta-equilibrio .pe-per h5{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;color:#0f172a}',
@@ -935,7 +955,6 @@
       '#conta-equilibrio .pe-av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff;background:linear-gradient(135deg,#f97316,#e4572e)}#conta-equilibrio .pe-av.sin{background:#e2e8f0;color:#475569;font-size:13px}',
       '#conta-equilibrio .pe-v-n{display:flex;flex-direction:column;min-width:0;flex:1}#conta-equilibrio .pe-v-n b{font-size:15px;color:#0f172a}#conta-equilibrio .pe-v-n small{font-size:13px;color:#64748b}',
       '#conta-equilibrio .pe-v-in{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex:none}',
-      '#conta-equilibrio .pe-v-m input{width:120px}',
       '@media (max-width:700px){#conta-equilibrio .pe-v-h{flex-wrap:wrap}#conta-equilibrio .pe-v-in{width:100%;flex-wrap:nowrap;justify-content:flex-start}#conta-equilibrio .pe-v-m{flex:1;min-width:0}#conta-equilibrio .pe-v-m input{flex:1;width:auto;min-width:0}#conta-equilibrio .pe-v-m span:last-child{display:none}}',
       '#conta-equilibrio .pe-v-p{display:flex;align-items:center;gap:4px;flex:none}#conta-equilibrio .pe-v-p span{color:#64748b;font-size:14px}',
       '#conta-equilibrio .pe-v-p input{width:76px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:12px;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;background:#fff}',
@@ -956,8 +975,8 @@
       '#conta-equilibrio .pe-x{width:44px;height:48px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer}',
       '#conta-equilibrio .pe-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}',
       '#conta-equilibrio .pe-acc .btn,#conta-equilibrio .pe-pie .btn{min-height:44px;font-size:14px}',
-      '#conta-equilibrio .pe-vars{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}',
-      '#conta-equilibrio .pe-vars label,#conta-equilibrio .pe-dias{display:grid;grid-template-columns:minmax(0,1fr) 80px 18px;align-items:center;gap:6px;font-size:13px;color:#334155}',
+      '#conta-equilibrio .pe-vars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));column-gap:16px;row-gap:0}',
+      '#conta-equilibrio .pe-vars label,#conta-equilibrio .pe-dias{display:grid;grid-template-columns:minmax(0,1fr) 84px 18px;align-items:center;gap:8px;font-size:14px;color:#334155;min-height:56px;border-bottom:1px solid #f1f5f9}',
       '#conta-equilibrio .pe-dias{grid-template-columns:minmax(0,1fr) 80px;margin-top:10px}',
       '#conta-equilibrio .pe-vars input,#conta-equilibrio .pe-dias input{text-align:right}',
       '#conta-equilibrio .pe-rep{display:flex;flex-direction:column;gap:2px}',
@@ -1000,10 +1019,12 @@
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px;">' +
         '<h3 style="margin:0;"><i class="ti ti-scale" style="color:#e4572e;"></i> Punto de equilibrio por tienda ' +
         '<button onclick="BayolEquilibrio.ayuda()" title="Ayuda" aria-label="Ayuda" style="background:none;border:none;cursor:pointer;color:#475569;font-size:15px;vertical-align:middle;padding:0 3px;min-width:44px;min-height:44px;"><i class="ti ti-info-circle"></i></button></h3>' +
-        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input type="month" id="pe_mes" style="height:48px;font-size:16px;" onchange="BayolEquilibrio.mes(this.value)">' +
-        '<button class="btn btn-light" style="min-height:44px;font-size:14px;" onclick="BayolEquilibrio.recargar()"><i class="ti ti-refresh"></i> Actualizar</button>' +
-        '<button class="btn btn-light" style="min-height:44px;font-size:14px;" onclick="BayolEquilibrio.reporte()"><i class="ti ti-file-text"></i> Reporte del mes</button>' +
-        '<button class="btn btn-light" style="min-height:44px;font-size:14px;" onclick="BayolEquilibrio.excel()"><i class="ti ti-file-spreadsheet"></i> Excel</button></div>' +
+        '<div class="pe-bar"><input type="month" id="pe_mes" aria-label="Mes" onchange="BayolEquilibrio.mes(this.value)">' +
+        '<div class="pe-seg" role="group" aria-label="Acciones del mes">' +
+          '<button type="button" onclick="BayolEquilibrio.recargar()"><i class="ti ti-refresh"></i><span>Actualizar</span></button>' +
+          '<button type="button" onclick="BayolEquilibrio.reporte()"><i class="ti ti-file-text"></i><span>Reporte</span></button>' +
+          '<button type="button" onclick="BayolEquilibrio.excel()"><i class="ti ti-file-spreadsheet"></i><span>Excel</span></button>' +
+        '</div></div>' +
       '</div>' +
       '<div id="pe_contenido"></div>';
     if (mensual && mensual.parentNode) mensual.parentNode.insertBefore(div, mensual.nextSibling);
