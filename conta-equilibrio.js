@@ -266,7 +266,7 @@
     } catch (e) { if (typeof logError === 'function') logError('equilibrio ventas diarias', e); }
     if (token !== st.token) return;
     st.diario = diario;
-    st.ventas = ventas; st.ventasAnt = ventasAnt; st.cn = cn; st.cargando = false; st.sucio = false;
+    st.ventas = ventas; st.ventasAnt = ventasAnt; st.cn = cn; st.cargando = false; st.sucio = false; st.animar = true;
     pintar();
   }
 
@@ -777,6 +777,26 @@
     document.addEventListener('pointerdown', fueraMeses, true); document.addEventListener('keydown', escMeses, true);
   }
 
+  // ---------- animaciones suaves (dueño, 07-nov-2026) ----------
+  // Solo al cambiar de pestaña, de mes o de quincena (no al escribir): las tarjetas entran en cascada (opacidad y 8 px),
+  // y los anillos y las barras crecen desde cero hasta su valor. Con «reducir movimiento» no se anima nada.
+  function animarEntrada(cont) {
+    try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+    var piezas = cont.querySelectorAll('.pe-res-h, .pe-kpi, .pe-meta, .pe-per, .pe-pt, .pe-rk, .pe-card, .rv-card, .rv-box');
+    Array.prototype.forEach.call(piezas, function (el, i) { el.style.setProperty('--pe-d', Math.min(i, 14) * 28 + 'ms'); el.classList.add('pe-in'); });
+    // Anillos: dibujar desde 0. Barras: crecer desde 0.
+    var arcos = cont.querySelectorAll('.pe-ring circle:last-child'), barras = cont.querySelectorAll('.pe-barra i, .pe-trk > i, .pe-vq-b i, .rv-barra i');
+    var finA = [], finB = [];
+    Array.prototype.forEach.call(arcos, function (c) { finA.push(c.getAttribute('stroke-dasharray')); var t = (finA[finA.length - 1] || '0 0').split(' ')[1]; c.setAttribute('stroke-dasharray', '0 ' + t); });
+    Array.prototype.forEach.call(barras, function (b) { finB.push(b.style.width); b.style.width = '0%'; });
+    void cont.offsetWidth;
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      Array.prototype.forEach.call(arcos, function (c, i) { c.setAttribute('stroke-dasharray', finA[i]); });
+      Array.prototype.forEach.call(barras, function (b, i) { b.style.width = finB[i]; });
+    }); });
+    setTimeout(function () { Array.prototype.forEach.call(piezas, function (el) { el.classList.remove('pe-in'); }); }, 1200);
+  }
+
   function pintar() {
     var mt = $('peMesTxt'); if (mt) mt.textContent = etiquetaMes(st.mes);
     var cont = $('pe_contenido'); if (!cont) return;
@@ -803,6 +823,7 @@
       '</div>');
     if (st.tab === 'ventas' && window.BayolVentas) window.BayolVentas.montar($('rv_contenido'), st.mes, metasMes());
     if (st.vendSheet && $('peVendSheet')) hojaVend(st.vendSheet);
+    if (st.animar) { st.animar = false; animarEntrada(cont); }
   }
   function metasMes() { var m = {}; TIENDAS.forEach(function (t) { m[t.cod] = num((fila(t.cod).variables || {}).meta); }); return m; }
 
@@ -1143,7 +1164,13 @@
       '#conta-equilibrio .pe-res-h b{font-size:17px}',
       '#conta-equilibrio .pe-res-h span{font-size:13px;color:#475569}',
       '#conta-equilibrio .pe-barra{height:10px;border-radius:999px;background:#f1f5f9;overflow:hidden;margin:8px 0 12px}',
-      '#conta-equilibrio .pe-barra i{display:block;height:100%;border-radius:999px;transition:width .25s}',
+      '#conta-equilibrio .pe-barra i{display:block;height:100%;border-radius:999px;transition:width 600ms cubic-bezier(.22,1,.36,1)}',
+      '@keyframes peEntra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}',
+      '#conta-equilibrio .pe-in{animation:peEntra 420ms cubic-bezier(.22,1,.36,1) both;animation-delay:var(--pe-d,0ms)}',
+      '#conta-equilibrio .pe-ring circle:last-child{transition:stroke-dasharray 700ms cubic-bezier(.22,1,.36,1)}',
+      '#conta-equilibrio .pe-trk>i,#conta-equilibrio .pe-vq-b i{transition:width 650ms cubic-bezier(.22,1,.36,1)!important}',
+      '#conta-equilibrio .pe-tab,#conta-equilibrio .pe-qseg button{transition:background 220ms ease,color 220ms ease,box-shadow 220ms ease,transform 100ms ease-out}',
+      '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-in{animation:none}#conta-equilibrio .pe-ring circle:last-child,#conta-equilibrio .pe-barra i,#conta-equilibrio .pe-trk>i{transition:none!important}}',
       '#conta-equilibrio .pe-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}',
       '#conta-equilibrio .pe-kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:2px}',
       '#conta-equilibrio .pe-kpi small{font-size:13px;color:#475569}',
@@ -1234,7 +1261,7 @@
   }
 
   window.BayolEquilibrio = {
-    tab: function (k) { if (k === 'ventas' && !window.BayolVentas) k = 'general'; if (k !== 'general' && k !== 'comunes' && k !== 'ventas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tab = k; pintar(); },
+    tab: function (k) { if (k === 'ventas' && !window.BayolVentas) k = 'general'; if (k !== 'general' && k !== 'comunes' && k !== 'ventas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tab = k; st.animar = true; pintar(); },
     mes: function (v) {
       if (!v) return;
       var seguir = function () { st.mes = v; st.filas = {}; var m = $('pe_mes'); if (m) m.value = v; cargar(); };
@@ -1253,7 +1280,7 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _vm: editVendMonto, _vr: repartirVend
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
   };
 
   function iniciar() {
