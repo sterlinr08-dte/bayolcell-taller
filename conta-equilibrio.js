@@ -671,7 +671,45 @@
     var est = $('peEstado'); if (est) est.textContent = st.sucio ? 'Cambios sin guardar' : '';
   }
 
+  // ---------- selector de mes estilo iPhone (07-nov-2026): ‹ Noviembre 2026 › y tarjeta con los 12 meses ----------
+  var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  function etiquetaMes(mes) { var p = (mes || mesHoy()).split('-'); return MESES[+p[1] - 1] + ' ' + p[0]; }
+  function sumarMes(mes, d) { var p = mes.split('-'), dt = new Date(+p[0], +p[1] - 1 + d, 1); return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); }
+  function mesPaso(d) { cerrarMeses(); window.BayolEquilibrio.mes(sumarMes(st.mes || mesHoy(), d)); }
+  function cerrarMeses() {
+    var pop = $('peMesPop'); if (!pop) return;
+    var b = $('peMesTxt'); if (b) b.setAttribute('aria-expanded', 'false');
+    pop.classList.remove('on'); setTimeout(function () { if (pop.parentNode) pop.parentNode.removeChild(pop); }, 160);
+    document.removeEventListener('pointerdown', fueraMeses, true); document.removeEventListener('keydown', escMeses, true);
+  }
+  function fueraMeses(e) { var w = $('peMes'); if (w && !w.contains(e.target)) cerrarMeses(); }
+  function escMeses(e) { if (e.key === 'Escape') { cerrarMeses(); var b = $('peMesTxt'); if (b) b.focus(); } }
+  function pintarMeses(pop, anio) {
+    var sel = st.mes || mesHoy(), hoy = mesHoy();
+    pop.innerHTML = '<div class="pe-mp-h"><button type="button" aria-label="Año anterior" data-y="-1"><i class="ti ti-chevron-left"></i></button><b>' + anio + '</b>' +
+      '<button type="button" aria-label="Año siguiente" data-y="1"><i class="ti ti-chevron-right"></i></button></div><div class="pe-mp-g">' +
+      MESES.map(function (n, i) {
+        var v = anio + '-' + String(i + 1).padStart(2, '0');
+        return '<button type="button" data-m="' + v + '" class="' + (v === sel ? 'on' : '') + (v === hoy ? ' hoy' : '') + '"' + (v === sel ? ' aria-current="true"' : '') + '>' + n.slice(0, 3) + '</button>';
+      }).join('') + '</div><button type="button" class="pe-mp-hoy" data-m="' + hoy + '">Este mes</button>';
+    pop.onclick = function (e) {
+      var t = e.target.closest('button'); if (!t) return;
+      if (t.getAttribute('data-y')) { pintarMeses(pop, anio + Number(t.getAttribute('data-y'))); return; }
+      var v = t.getAttribute('data-m'); if (v) { cerrarMeses(); window.BayolEquilibrio.mes(v); }
+    };
+  }
+  function abrirMeses() {
+    if ($('peMesPop')) { cerrarMeses(); return; }
+    var w = $('peMes'); if (!w) return;
+    var pop = document.createElement('div'); pop.id = 'peMesPop'; pop.className = 'pe-mp'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Escoger mes');
+    pintarMeses(pop, +(st.mes || mesHoy()).split('-')[0]);
+    w.appendChild(pop); var b = $('peMesTxt'); if (b) b.setAttribute('aria-expanded', 'true');
+    requestAnimationFrame(function () { pop.classList.add('on'); var f = pop.querySelector('.pe-mp-g .on') || pop.querySelector('.pe-mp-g button'); if (f) f.focus(); });
+    document.addEventListener('pointerdown', fueraMeses, true); document.addEventListener('keydown', escMeses, true);
+  }
+
   function pintar() {
+    var mt = $('peMesTxt'); if (mt) mt.textContent = etiquetaMes(st.mes);
     var cont = $('pe_contenido'); if (!cont) return;
     if (!puede()) { cont.innerHTML = '<p class="pe-vacio">Necesita permiso de Contabilidad para ver el punto de equilibrio.</p>'; return; }
     if (st.cargando) { cont.innerHTML = '<p class="pe-vacio"><i class="ti ti-loader"></i> Cargando ventas de Info Plus…</p>'; return; }
@@ -913,12 +951,26 @@
       '#conta-equilibrio label span,#conta-equilibrio label,#conta-equilibrio .pe-v-p span{text-transform:none!important;letter-spacing:0!important}',
       '#conta-equilibrio .pe-vars label span,#conta-equilibrio .pe-dias span{font-weight:500;color:#334155;font-size:14px;line-height:1.3}',
       '#conta-equilibrio .pe-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
-      '#conta-equilibrio .pe-bar input[type=month]{height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:12px;padding:0 12px;background:#fff;color:#0f172a;min-width:0}',
+      '#conta-equilibrio .pe-mes{position:relative;display:flex;align-items:center;gap:2px;padding:3px;border-radius:14px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 1px 2px rgba(15,23,42,.05)}',
+      '#conta-equilibrio .pe-mes button{min-height:44px;border:0;background:transparent;border-radius:11px;cursor:pointer;color:#0f172a;font-family:inherit;transition:background 160ms ease,transform 100ms ease-out}',
+      '#conta-equilibrio .pe-mes button:hover{background:#f1f5f9}',
+      '#conta-equilibrio .pe-mes-a{width:44px;display:grid;place-items:center;font-size:20px;color:#e4572e!important}',
+      '#conta-equilibrio .pe-mes-l{flex:1;min-width:150px;padding:0 10px;font-size:16px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}',
+      '#conta-equilibrio .pe-mp{position:absolute;top:calc(100% + 8px);left:0;right:0;min-width:280px;z-index:30;padding:12px;border-radius:18px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(15,23,42,.08);box-shadow:0 18px 44px -12px rgba(15,23,42,.35);opacity:0;transform:translateY(-4px) scale(.97);transform-origin:top center;transition:opacity 180ms cubic-bezier(.23,1,.32,1),transform 180ms cubic-bezier(.23,1,.32,1)}',
+      '#conta-equilibrio .pe-mp.on{opacity:1;transform:none}',
+      '#conta-equilibrio .pe-mp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}#conta-equilibrio .pe-mp-h b{font-size:17px;letter-spacing:-.01em}',
+      '#conta-equilibrio .pe-mp-h button{width:44px;height:44px;display:grid;place-items:center;font-size:20px;color:#e4572e}',
+      '#conta-equilibrio .pe-mp-g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}',
+      '#conta-equilibrio .pe-mp-g button{min-height:48px;font-size:15px;font-weight:600;color:#334155}',
+      '#conta-equilibrio .pe-mp-g button.hoy{box-shadow:inset 0 0 0 1.5px #fbd5c4}',
+      '#conta-equilibrio .pe-mp-g button.on{background:#e4572e!important;color:#fff}',
+      '#conta-equilibrio .pe-mp-hoy{width:100%;margin-top:8px;font-size:14px;font-weight:600;color:#e4572e!important}',
+      '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-mp{transition:opacity 120ms ease;transform:none}}',
       '#conta-equilibrio .pe-seg{display:flex;padding:3px;gap:3px;border-radius:14px;background:rgba(15,23,42,.06)}',
       '#conta-equilibrio .pe-seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 14px;border:0;border-radius:11px;background:transparent;color:#0f172a;font:600 14px/1 inherit;font-family:inherit;cursor:pointer;transition:background 160ms ease,transform 100ms ease-out}',
       '#conta-equilibrio .pe-seg button:hover{background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(15,23,42,.08)}',
       '#conta-equilibrio .pe-seg button i{font-size:18px;color:#e4572e}',
-      '@media (max-width:700px){#conta-equilibrio .pe-bar{width:100%}#conta-equilibrio .pe-bar input[type=month]{flex:1 1 100%}#conta-equilibrio .pe-seg{flex:1 1 100%}#conta-equilibrio .pe-seg button{flex:1;padding:0 6px}}',
+      '@media (max-width:700px){#conta-equilibrio .pe-bar{width:100%}#conta-equilibrio .pe-mes{flex:1 1 100%}#conta-equilibrio .pe-seg{flex:1 1 100%}#conta-equilibrio .pe-seg button{flex:1;padding:0 6px}}',
       '#conta-equilibrio .pe-tabs{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 2px 4px;margin-left:-2px;margin-right:-2px}',
       '#conta-equilibrio .pe-tabs::-webkit-scrollbar{display:none}',
       '#conta-equilibrio .pe-tab{flex:none;scroll-snap-align:start;transition:background 160ms ease,color 160ms ease,transform 100ms ease-out}',
@@ -1019,7 +1071,11 @@
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px;">' +
         '<h3 style="margin:0;"><i class="ti ti-scale" style="color:#e4572e;"></i> Punto de equilibrio por tienda ' +
         '<button onclick="BayolEquilibrio.ayuda()" title="Ayuda" aria-label="Ayuda" style="background:none;border:none;cursor:pointer;color:#475569;font-size:15px;vertical-align:middle;padding:0 3px;min-width:44px;min-height:44px;"><i class="ti ti-info-circle"></i></button></h3>' +
-        '<div class="pe-bar"><input type="month" id="pe_mes" aria-label="Mes" onchange="BayolEquilibrio.mes(this.value)">' +
+        '<div class="pe-bar"><div class="pe-mes" id="peMes"><input type="hidden" id="pe_mes">' +
+          '<button type="button" class="pe-mes-a" aria-label="Mes anterior" onclick="BayolEquilibrio._mp(-1)"><i class="ti ti-chevron-left"></i></button>' +
+          '<button type="button" class="pe-mes-l" id="peMesTxt" aria-haspopup="dialog" aria-expanded="false" onclick="BayolEquilibrio._ma()"></button>' +
+          '<button type="button" class="pe-mes-a" aria-label="Mes siguiente" onclick="BayolEquilibrio._mp(1)"><i class="ti ti-chevron-right"></i></button>' +
+        '</div>' +
         '<div class="pe-seg" role="group" aria-label="Acciones del mes">' +
           '<button type="button" onclick="BayolEquilibrio.recargar()"><i class="ti ti-refresh"></i><span>Actualizar</span></button>' +
           '<button type="button" onclick="BayolEquilibrio.reporte()"><i class="ti ti-file-text"></i><span>Reporte</span></button>' +
@@ -1092,7 +1148,7 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _vp: editVendPct, _vm: editVendMonto, _vr: repartirVend
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vm: editVendMonto, _vr: repartirVend
   };
 
   function iniciar() {
