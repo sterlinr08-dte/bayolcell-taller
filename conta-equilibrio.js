@@ -490,18 +490,38 @@
     out.push(fila('Mes completo', 1, ult));
     return out;
   }
+  // Anillo de progreso (SVG): el arco crece hasta el % logrado; verde al cumplir.
+  function anillo(a, tam) {
+    var r = (tam - 8) / 2, c = 2 * Math.PI * r, p = a == null ? 0 : Math.max(0, Math.min(1, a));
+    var col = a == null ? '#cbd5e1' : (a >= 1 ? '#16a34a' : '#e4572e');
+    return '<svg class="pe-ring" width="' + tam + '" height="' + tam + '" viewBox="0 0 ' + tam + ' ' + tam + '" aria-hidden="true">' +
+      '<circle cx="' + tam / 2 + '" cy="' + tam / 2 + '" r="' + r + '" fill="none" stroke="#eef2f7" stroke-width="7"/>' +
+      '<circle cx="' + tam / 2 + '" cy="' + tam / 2 + '" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="7" stroke-linecap="round" ' +
+      'stroke-dasharray="' + (c * p).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + tam / 2 + ' ' + tam / 2 + ')"/></svg>';
+  }
+  function pctC(a) { return a == null ? '—' : (a >= 1 ? Math.round(a * 100) : Math.round(a * 1000) / 10).toLocaleString('es-DO') + ' %'; }
+  function corto(n) { n = Number(n) || 0; var a = Math.abs(n); return 'RD$ ' + (a >= 1e6 ? (n / 1e6).toLocaleString('es-DO', { maximumFractionDigits: 2 }) + ' M' : a >= 1e4 ? Math.round(n / 1000).toLocaleString('es-DO') + ' mil' : Math.round(n).toLocaleString('es-DO')); }
   function htmlPeriodos(tiendas, esGeneral) {
-    var hay = tiendas.some(function (x) { return x.meta > 0; });
-    if (!hay) return '';
-    var filas = periodosMeta(tiendas).map(function (r) {
-      var falta = r.vendido != null && r.meta > 0 ? Math.max(0, r.meta - r.vendido) : null;
-      return '<tr' + (r.actual ? ' class="on"' : '') + '><td data-label="Periodo">' + esc(r.nombre) + '</td><td data-label="Meta">' + plata(r.meta) + '</td>' +
-        '<td data-label="Vendido">' + (r.vendido == null ? '—' : plata(r.vendido)) + '</td>' +
-        '<td data-label="Logrado">' + (r.avance == null ? '—' : '<b style="color:' + (r.avance >= 1 ? '#15803d' : '#b45309') + '">' + pct(r.avance) + '</b>') + '</td>' +
-        '<td data-label="Falta">' + (falta == null ? '—' : (falta > 0 ? plata(falta) : '<b style="color:#15803d">Cumplida</b>')) + '</td></tr>';
+    if (!tiendas.some(function (x) { return x.meta > 0; })) return '';
+    var per = periodosMeta(tiendas), em = estadoMes(st.mes);
+    // Cuatro tarjetas: Hoy · Semana · Quincena (la en curso; la otra debajo) · Mes. En mes pasado/futuro: día hábil · 1ª · 2ª · mes.
+    var q1 = per.filter(function (r) { return r.d1 === 1 && r.d2 === 15; })[0], q2 = per.filter(function (r) { return r.d1 === 16; })[0];
+    var tarjetas = em === 'actual' ? [per[0], per[1], q1.actual ? q1 : q2, per[per.length - 1]] : [per[0], q1, q2, per[per.length - 1]];
+    var etiqueta = function (r) { return r.nombre.replace(/\s*\(.*\)$/, ''); }, detalle = function (r) { var m = r.nombre.match(/\((.*)\)$/); return m ? m[1] : ''; };
+    var html = tarjetas.map(function (r) {
+      var falta = r.vendido != null && r.meta > 0 ? r.meta - r.vendido : null;
+      return '<div class="pe-pt' + (r.actual ? ' on' : '') + '">' +
+        '<div class="pe-pt-h"><span>' + esc(etiqueta(r)) + '</span><small>' + esc(detalle(r)) + '</small></div>' +
+        '<div class="pe-pt-c">' + anillo(r.avance, 48) + '<b>' + pctC(r.avance) + '</b></div>' +
+        '<div class="pe-pt-m">' + (r.vendido == null ? '<span>Meta</span><b>' + corto(r.meta) + '</b>' : '<span>Vendido</span><b>' + corto(r.vendido) + '</b><span>Meta</span><b>' + corto(r.meta) + '</b>') + '</div>' +
+        '<div class="pe-pt-f">' + (falta == null ? (r.vendido == null && em === 'actual' ? 'Todavía no empieza' : '&nbsp;') : falta > 0 ? 'Faltan <b>' + corto(falta) + '</b>' : '<b class="ok">✓ Cumplida</b>') + '</div>' +
+      '</div>';
     }).join('');
-    return '<div class="pe-per"><b>Meta por periodo' + (esGeneral ? ' · todas las tiendas' : '') + '</b><table class="pe-per-t"><thead><tr><th>Periodo</th><th>Meta</th><th>Vendido</th><th>Logrado</th><th>Falta</th></tr></thead><tbody>' + filas + '</tbody></table>' +
-      '<p class="pe-nota">La meta del mes se reparte por días hábiles' + (esGeneral ? ' de cada tienda' : (tiendas[0].t.domingo ? ' (esta tienda abre domingos)' : ' de lunes a sábado')) + '. Ventas de Info Plus, ya restadas las devoluciones.</p></div>';
+    var otra = em === 'actual' ? (q1.actual ? q2 : q1) : null;
+    return '<section class="pe-per" aria-label="Meta por periodo"><header><h5>Meta por periodo</h5><span>' + (esGeneral ? 'Todas las tiendas' : esc(tiendas[0].t.nombre)) + '</span></header>' +
+      '<div class="pe-pt-g">' + html + '</div>' +
+      (otra ? '<p class="pe-pt-o">' + esc(otra.nombre) + ': meta ' + plata(otra.meta) + (otra.vendido != null ? ' · vendido ' + plata(otra.vendido) + ' (' + pct(otra.avance) + ')' : '') + '</p>' : '') +
+      '<p class="pe-nota">Se reparte por días hábiles' + (esGeneral ? ' de cada tienda' : (tiendas[0].t.domingo ? ', con domingos' : ', de lunes a sábado')) + '. Ventas de Info Plus, ya restadas las devoluciones.</p></section>';
   }
   // Vendedores de una tienda con su % (guardado o según el mes anterior).
   function vendedoresTienda(cod) {
@@ -528,23 +548,26 @@
     if (!(x.meta > 0)) return '';
     var lista = vendedoresTienda(x.t.cod); if (!lista.length) return '';
     var per = periodosMeta([x]), q1 = per.filter(function (r) { return r.d1 === 1 && r.d2 === 15; })[0], q2 = per.filter(function (r) { return r.d1 === 16; })[0];
-    var suma = lista.reduce(function (s, e) { return s + e.pct; }, 0), em = estadoMes(st.mes);
-    var celda = function (q, e) {
+    var suma = lista.reduce(function (s, e) { return s + e.pct; }, 0);
+    var barraQ = function (q, e, nom) {
       var mt = q.meta * e.pct / 100, v = q.vendido == null ? null : vendido([x.t.cod], st.mes + '-' + f2(q.d1), st.mes + '-' + f2(q.d2), e.cod);
-      return plata(mt) + (v == null ? '' : '<small>Lleva ' + plata(v) + (mt > 0 ? ' · <b style="color:' + (v >= mt ? '#15803d' : '#b45309') + '">' + pct(v / mt) + '</b>' : '') + '</small>');
+      var a = v != null && mt > 0 ? v / mt : null, w = a == null ? 0 : Math.max(0, Math.min(1, a)) * 100;
+      return '<div class="pe-vq' + (q.actual ? ' on' : '') + '"><span class="pe-vq-l">' + nom + '</span><b class="pe-vq-v">' + (a == null ? corto(mt) : pctC(a)) + '</b>' +
+        '<div class="pe-vq-b"><i style="width:' + w.toFixed(1) + '%;background:' + (a != null && a >= 1 ? '#16a34a' : '#e4572e') + '"></i></div>' +
+        '<small>' + (v == null ? 'Meta' : corto(v) + ' de ' + corto(mt)) + '</small></div>';
     };
     var filas = lista.map(function (e) {
-      return '<tr><td data-label="Vendedor"><b>' + esc(e.nombre || ('Vendedor ' + e.cod)) + '</b><small>Código ' + esc(e.cod) + ' · mes anterior ' + pct(e.sug / 100) + '</small></td>' +
-        '<td data-label="% de la meta"><input inputmode="decimal" aria-label="Porcentaje de ' + esc(e.nombre || e.cod) + '" value="' + e.pct + '" onchange="BayolEquilibrio._vp(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><i>%</i></td>' +
-        '<td data-label="1ª quincena"' + (q1.actual ? ' class="on"' : '') + '>' + celda(q1, e) + '</td>' +
-        '<td data-label="2ª quincena"' + (q2.actual ? ' class="on"' : '') + '>' + celda(q2, e) + '</td></tr>';
+      var nom = e.nombre ? e.nombre.charAt(0).toUpperCase() + e.nombre.slice(1).toLowerCase() : 'Código ' + e.cod, ini = e.nombre ? nom.charAt(0) : String(e.cod).slice(0, 3);
+      return '<li class="pe-v"><div class="pe-v-h"><span class="pe-av' + (e.nombre ? '' : ' sin') + '" aria-hidden="true">' + esc(ini) + '</span>' +
+        '<div class="pe-v-n"><b>' + esc(nom) + '</b><small>' + (e.nombre ? 'Código ' + esc(e.cod) : 'Sin nombre') + ' · mes ant. ' + pctC(e.sug / 100) + '</small></div>' +
+        '<label class="pe-v-p"><input inputmode="decimal" aria-label="Porcentaje de la meta de ' + esc(nom) + '" value="' + e.pct + '" onchange="BayolEquilibrio._vp(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><span>%</span></label></div>' +
+        '<div class="pe-v-q">' + barraQ(q1, e, '1ª quincena') + barraQ(q2, e, '2ª quincena') + '</div></li>';
     }).join('');
-    return '<div class="pe-per"><b>Meta quincenal por vendedor</b>' +
-      (Math.abs(suma - 100) > 0.5 ? '<p class="pe-alerta">Los porcentajes suman ' + (Math.round(suma * 10) / 10) + ' %. Deben sumar 100 %.</p>' : '') +
-      '<table class="pe-per-t pe-vend"><thead><tr><th>Vendedor</th><th>% de la meta</th><th>1ª quincena</th><th>2ª quincena</th></tr></thead><tbody>' + filas + '</tbody></table>' +
+    var ok = Math.abs(suma - 100) <= 0.5;
+    return '<section class="pe-per" aria-label="Meta quincenal por vendedor"><header><h5>Meta quincenal por vendedor</h5><span class="pe-suma' + (ok ? '' : ' mal') + '">' + (ok ? 'Suma 100 %' : 'Suma ' + (Math.round(suma * 10) / 10) + ' % · debe ser 100 %') + '</span></header>' +
+      '<ul class="pe-vl">' + filas + '</ul>' +
       '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._vr(' + x.t.cod + ')"><i class="ti ti-refresh"></i> Repartir según el mes anterior</button></div>' +
-      '<p class="pe-nota">El % sale de lo que vendió cada uno el mes anterior en esta tienda; puede cambiarlo. Se guarda con «Guardar gastos del mes». ' +
-      (em === 'actual' ? 'La quincena en curso va resaltada.' : '') + '</p></div>';
+      '<p class="pe-nota">El % sale de lo que vendió cada uno el mes anterior en esta tienda; puede cambiarlo. Se guarda con «Guardar gastos del mes».</p></section>';
   }
   function editVendPct(cod, emp, v) {
     var f = fila(cod); f.variables = f.variables || {};
@@ -879,19 +902,39 @@
       '#conta-equilibrio .pe-meta-f{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}',
       '#conta-equilibrio .pe-meta-f input{flex:1 1 160px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;background:#fff;min-width:0}',
       '#conta-equilibrio .pe-meta-f .btn{min-height:48px;font-size:14px}',
-      '#conta-equilibrio .pe-per{border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin:10px 0;background:#fff}',
-      '#conta-equilibrio .pe-per>b{font-size:14px;color:#0f172a}',
-      '#conta-equilibrio .pe-per-t{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;margin-top:6px}',
-      '#conta-equilibrio .pe-per-t th,#conta-equilibrio .pe-per-t td{padding:10px 6px;border-bottom:1px solid #eef2f7;text-align:right;vertical-align:top}',
-      '#conta-equilibrio .pe-per-t th:first-child,#conta-equilibrio .pe-per-t td:first-child{text-align:left}',
-      '#conta-equilibrio .pe-per-t th{font-size:13px;color:#64748b;font-weight:600}',
-      '#conta-equilibrio .pe-per-t tr.on td,#conta-equilibrio .pe-per-t td.on{background:#fff8f4}',
-      '#conta-equilibrio .pe-per-t small{display:block;font-size:13px;color:#64748b;margin-top:2px}',
-      '#conta-equilibrio .pe-vend td:nth-child(2){white-space:nowrap}',
-      '#conta-equilibrio .pe-vend input{width:72px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 8px;text-align:right}',
-      '#conta-equilibrio .pe-vend i{font-style:normal;margin-left:4px;color:#64748b}',
-      '#conta-equilibrio .pe-alerta{color:#b91c1c;font-size:13px;font-weight:600;margin:6px 0}',
-      '@media (max-width:700px){#conta-equilibrio .pe-per-t thead{display:none}#conta-equilibrio .pe-per-t,#conta-equilibrio .pe-per-t tbody{display:block}#conta-equilibrio .pe-per-t tr{display:block;border:1px solid #e2e8f0;border-radius:10px;margin:8px 0;padding:2px 10px}#conta-equilibrio .pe-per-t td{display:flex;justify-content:space-between;align-items:center;gap:10px;border:0;padding:8px 0;text-align:right}#conta-equilibrio .pe-per-t td::before{content:attr(data-label);color:#64748b;font-size:13px;text-align:left}#conta-equilibrio .pe-per-t td:first-child{display:block}#conta-equilibrio .pe-per-t td:first-child::before{content:none}}',
+      '#conta-equilibrio .pe-per{border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0;background:#fff;box-shadow:0 6px 18px -14px rgba(15,23,42,.35)}',
+      '#conta-equilibrio .pe-per>header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}',
+      '#conta-equilibrio .pe-per h5{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;color:#0f172a}',
+      '#conta-equilibrio .pe-per>header>span{font-size:13px;color:#64748b}',
+      '#conta-equilibrio .pe-pt-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}',
+      '@media (max-width:1100px){#conta-equilibrio .pe-pt-g{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+      '#conta-equilibrio .pe-pt{border:1px solid #eef2f7;border-radius:14px;padding:12px;background:#f8fafc;display:flex;flex-direction:column;gap:8px;min-width:0}',
+      '#conta-equilibrio .pe-pt.on{background:#fff8f4;border-color:#fbd5c4}',
+      '#conta-equilibrio .pe-pt-h{display:flex;flex-direction:column;gap:1px}',
+      '#conta-equilibrio .pe-pt-h span{font-size:13px;font-weight:700;color:#334155;text-transform:none}',
+      '#conta-equilibrio .pe-pt-h small{font-size:13px;color:#94a3b8;min-height:1.2em}',
+      '#conta-equilibrio .pe-pt-c{display:flex;align-items:center;gap:10px;min-width:0}',
+      '#conta-equilibrio .pe-pt-c b{font-size:24px;line-height:1;letter-spacing:-.025em;color:#0f172a;font-variant-numeric:tabular-nums;white-space:nowrap}',
+      '#conta-equilibrio .pe-pt-m{display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:2px;font-size:13px;font-variant-numeric:tabular-nums}',
+      '#conta-equilibrio .pe-pt-m span{color:#64748b}#conta-equilibrio .pe-pt-m b{color:#0f172a;text-align:right;white-space:nowrap;font-weight:600}',
+      '#conta-equilibrio .pe-ring{flex:none}#conta-equilibrio .pe-ring circle:last-child{transition:stroke-dasharray 500ms cubic-bezier(.23,1,.32,1)}',
+      '#conta-equilibrio .pe-pt-f{font-size:13px;color:#64748b}#conta-equilibrio .pe-pt-f b{color:#b45309}#conta-equilibrio .pe-pt-f b.ok{color:#15803d}',
+      '#conta-equilibrio .pe-pt-o{font-size:13px;color:#475569;margin:10px 0 0}',
+      '#conta-equilibrio .pe-suma{font-size:13px;font-weight:600;color:#15803d}#conta-equilibrio .pe-suma.mal{color:#b91c1c}',
+      '#conta-equilibrio .pe-vl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}',
+      '#conta-equilibrio .pe-v{border:1px solid #eef2f7;border-radius:14px;padding:12px;display:grid;grid-template-columns:1fr;gap:10px}',
+      '@media (max-width:700px){#conta-equilibrio .pe-v{grid-template-columns:1fr}}',
+      '#conta-equilibrio .pe-v-h{display:flex;align-items:center;gap:10px;min-width:0}',
+      '#conta-equilibrio .pe-av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff;background:linear-gradient(135deg,#f97316,#e4572e)}#conta-equilibrio .pe-av.sin{background:#e2e8f0;color:#475569;font-size:13px}',
+      '#conta-equilibrio .pe-v-n{display:flex;flex-direction:column;min-width:0;flex:1}#conta-equilibrio .pe-v-n b{font-size:15px;color:#0f172a}#conta-equilibrio .pe-v-n small{font-size:13px;color:#64748b}',
+      '#conta-equilibrio .pe-v-p{display:flex;align-items:center;gap:4px;flex:none}#conta-equilibrio .pe-v-p span{color:#64748b;font-size:14px}',
+      '#conta-equilibrio .pe-v-p input{width:76px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:12px;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;background:#fff}',
+      '#conta-equilibrio .pe-v-q{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
+      '#conta-equilibrio .pe-vq{padding:8px 10px;border-radius:10px;background:#f8fafc;min-width:0}#conta-equilibrio .pe-vq.on{background:#fff8f4}',
+      '#conta-equilibrio .pe-vq-l{display:block;font-size:13px;color:#64748b}#conta-equilibrio .pe-vq-v{display:block;font-size:18px;letter-spacing:-.02em;color:#0f172a;font-variant-numeric:tabular-nums;white-space:nowrap}',
+      '#conta-equilibrio .pe-vq-b{height:6px;border-radius:99px;background:#e9eef5;overflow:hidden;margin:6px 0 4px}#conta-equilibrio .pe-vq-b i{display:block;height:100%;border-radius:99px;transition:width 500ms cubic-bezier(.23,1,.32,1)}',
+      '#conta-equilibrio .pe-vq small{font-size:13px;color:#64748b;font-variant-numeric:tabular-nums;display:block}',
+      '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-ring circle,#conta-equilibrio .pe-vq-b i{transition:none}}',
       '#conta-equilibrio .pe-prest{margin-top:14px;padding-top:4px;border-top:1px solid #eef2f7}',
       '#conta-equilibrio .pe-p{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 44px;gap:6px;align-items:end;margin:6px 0}',
       '#conta-equilibrio .pe-p label{display:flex;flex-direction:column;gap:2px;font-size:13px;color:#64748b;min-width:0}',
