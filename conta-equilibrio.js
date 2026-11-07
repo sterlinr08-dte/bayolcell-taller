@@ -93,10 +93,36 @@
     return (VARIABLES.reduce(function (s, x) { return s + num(v[x.k]); }, 0) + tarj) / 100;
   }
 
+  // ---------- préstamos ----------
+  // Lista en fila(0).variables.prestamos = [{ banco, interes, capital }]. Los intereses son gasto (van en la fila
+  // «Intereses de préstamos», que se llena sola); el capital no es gasto pero sale de la caja.
+  function prestamos() { var v = fila(0).variables || {}; return Array.isArray(v.prestamos) ? v.prestamos : null; }
+  function capitalPrestamos() {
+    var l = prestamos(); if (l && l.length) return l.reduce(function (s, p) { return s + num(p.capital); }, 0);
+    return num((fila(0).variables || {}).capital);
+  }
+  function filaIntereses() {
+    var gs = fila(0).gastos; for (var i = 0; i < gs.length; i++) if (/pr[ée]stamo/i.test(gs[i].concepto)) return i;
+    return -1;
+  }
+  function sincronizarIntereses() {
+    var l = prestamos() || [], gs = fila(0).gastos, i = filaIntereses();
+    if (!l.length) return;
+    var tot = Math.round(l.reduce(function (s, p) { return s + num(p.interes); }, 0) * 100) / 100;
+    if (i < 0) { gs.push({ concepto: 'Intereses de préstamos', monto: tot }); return; }
+    gs[i].concepto = 'Intereses de préstamos'; gs[i].monto = tot;
+  }
+  // Venta para que alcance el efectivo: gastos fijos (con intereses) + capital, entre la contribución.
+  function cajaNecesaria(x, quedan) {
+    x.peCaja = (x.capital > 0 && x.mc > 0) ? (x.ft + x.capital) / x.mc : null;
+    x.faltaCaja = x.peCaja != null ? Math.max(0, x.peCaja - x.vn) : null;
+    x.diaCaja = x.faltaCaja != null && x.faltaCaja > 0 && quedan > 0 ? x.faltaCaja / quedan : null;
+  }
+
   // ---------- cálculo ----------
   function calcular() {
     var com = fila(0), g18 = itbisPct(), itbis = g18 > 0, GC = totalFijos(0), em = estadoMes(st.mes);
-    var cv = com.variables || {}, base = cv.base || 'anterior', capital = num(cv.capital);
+    var cv = com.variables || {}, base = cv.base || 'anterior', capital = capitalPrestamos();
     // Días: los transcurridos nunca pasan de los del mes; hoy cuenta como día que queda para vender.
     function fraccion(x) { return em === 'actual' && x.diasMes > 0 ? Math.min(1, x.diasPas / x.diasMes) : 1; }
     function proyectar(x) {
@@ -136,6 +162,9 @@
       x.resultado = em === 'futuro' ? null : x.vn * x.mc - x.ft * fraccion(x);
       x.resultadoProy = x.proy * x.mc - x.ft;
       x.seguridad = x.pe != null && x.vn > 0 ? (x.vn - x.pe) / x.vn : null;
+      // Cuota completa del préstamo: la tienda carga su parte del capital, igual que los gastos comunes.
+      x.capital = capital * parte;
+      cajaNecesaria(x, em === 'actual' ? Math.max(1, x.diasMes - x.diasAyer) : 0);
     });
     var contrib = tiendas.reduce(function (s, x) { return s + x.vn * x.mc; }, 0);
     var sumGF = tiendas.reduce(function (s, x) { return s + x.gf; }, 0);
@@ -157,11 +186,11 @@
       falta: peG != null ? Math.max(0, peG - sumVN) : null, alcanzado: peG != null && peG > 0 ? sumVN / peG : null,
       proy: sumProy, resultado: em === 'futuro' ? null : contrib - fijosTot * fracG, resultadoProy: contribProy - fijosTot,
       seguridad: peG != null && sumVN > 0 ? (sumVN - peG) / sumVN : null, capital: capital,
-      peCaja: (mcComb > 0 && fijosTot + capital > 0) ? (fijosTot + capital) / mcComb : null,
       faltan: faltanMontos(0) + tiendas.reduce(function (s, x) { return s + x.faltan; }, 0), diasMes: diasMesG, diasPas: diasPasG
     };
     var quedanG = em === 'actual' ? Math.max(1, diasMesG - diasAyerG) : 0;
     g.diaNecesario = g.falta != null && g.falta > 0 && quedanG > 0 ? g.falta / quedanG : null;
+    cajaNecesaria(g, quedanG);
     var repSuma = TIENDAS.reduce(function (a, t) { return a + num((com.reparto_pct || {})[t.cod]); }, 0);
     var repMal = com.reparto === 'manual' && Math.abs(repSuma - 100) > 0.01;
     var errVentas = TIENDAS.some(function (t) { return st.ventas[t.cod] && st.ventas[t.cod].error; });
@@ -282,6 +311,30 @@
     else if (k === 'capital') { c.variables.capital = num(v); st.sucio = true; refrescarCalculo(); return; }
     st.sucio = true; pintar();
   }
+  function listaPrestamos() { var c = fila(0); c.variables = c.variables || {}; if (!Array.isArray(c.variables.prestamos)) c.variables.prestamos = []; return c.variables.prestamos; }
+  function editPrestamo(i, k, v) {
+    var l = listaPrestamos(); if (!l[i]) return;
+    l[i][k] = k === 'banco' ? String(v).slice(0, 60) : (v === '' ? '' : num(v));
+    if (k !== 'banco') { sincronizarIntereses(); fila(0).variables.capital = capitalPrestamos(); }
+    st.sucio = true;
+    if (k === 'banco') return;
+    var t = $('pePrestTot'); if (t) t.innerHTML = htmlTotPrestamos();
+    var gi = filaIntereses(), el = gi >= 0 && document.querySelector('#peGastos input[data-i="' + gi + '"]'); if (el) el.value = num(fila(0).gastos[gi].monto) || '';
+    refrescarCalculo();
+  }
+  function agregarPrestamo() {
+    var l = listaPrestamos(), c = fila(0).variables;
+    // El primer renglón se lleva lo que ya estaba escrito (capital suelto e intereses de la lista de gastos).
+    if (!l.length) { var gi = filaIntereses(); l.push({ banco: '', interes: gi >= 0 ? (num(fila(0).gastos[gi].monto) || '') : '', capital: num(c.capital) || '' }); }
+    else l.push({ banco: '', interes: '', capital: '' });
+    sincronizarIntereses(); c.capital = capitalPrestamos(); st.sucio = true; pintar();
+    setTimeout(function () { var el = document.querySelector('#pePrest input[data-p="' + (l.length - 1) + '"]'); if (el) el.focus(); }, 30);
+  }
+  function quitarPrestamo(i) {
+    var l = listaPrestamos(); l.splice(i, 1);
+    if (l.length) sincronizarIntereses(); else { var gi = filaIntereses(); if (gi >= 0) fila(0).gastos[gi].monto = ''; }
+    fila(0).variables.capital = capitalPrestamos(); st.sucio = true; pintar();
+  }
   function editRepartoPct(cod, v) { var c = fila(0); c.reparto_pct = c.reparto_pct || {}; c.reparto_pct[cod] = num(v); st.sucio = true; refrescarCalculo(); }
   function sugerirNomina(cod) {
     var f = fila(cod), nom = 0;
@@ -330,7 +383,10 @@
           x.resultado == null ? '' : (x.resultado >= 0 ? 'Ganancia' : 'Pérdida') + (c.em === 'actual' ? ' · con los gastos de los días transcurridos' : '')) +
         (!esGeneral ? kpi('Aporte de la tienda', x.aporte == null ? '—' : plata(x.aporte), x.aporte == null ? null : colorRes(x.aporte), 'Sin gastos comunes. Sirve para decidir sobre la tienda.') : '') +
         kpi('Margen de seguridad', x.seguridad == null ? '—' : pct(x.seguridad), x.seguridad == null ? null : colorRes(x.seguridad), x.seguridad == null ? '' : (x.seguridad >= 0 ? 'Lo que puede bajar la venta sin perder' : 'Por debajo del punto de equilibrio')) +
-        (esGeneral && x.capital > 0 && x.peCaja != null ? kpi('Para cubrir también el capital de préstamos', plata(x.peCaja), null, 'Abono a capital ' + plata(x.capital) + ' (no es gasto)') : '') +
+        (x.capital > 0 && x.peCaja != null ? kpi('Para pagar también la cuota del préstamo', plata(x.peCaja),
+          x.faltaCaja ? '#b45309' : '#15803d',
+          (x.faltaCaja ? 'Le falta <b>' + plata(x.faltaCaja) + '</b>' + (x.diaCaja != null ? ' · ' + plata(x.diaCaja) + ' por día que queda' : '') : 'Ya alcanza para la cuota completa') +
+          '<br>Capital ' + plata(x.capital) + (esGeneral ? '' : ' (' + pct(x.partePct) + ' de ' + plata(c.g.capital) + ')') + ' · no es gasto, pero sale de la caja') : '') +
         (c.em === 'actual' ? kpi('Proyección a fin de mes', plata(x.proy), null, 'Resultado ' + '<b style="color:' + colorRes(x.resultadoProy) + '">' + plata(x.resultadoProy) + '</b>') : '') +
       '</div>' +
       (avisos.length ? '<ul class="pe-avisos">' + avisos.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
@@ -339,8 +395,10 @@
   }
 
   function htmlGastos(cod) {
-    var f = fila(cod), esTienda = cod !== 0;
+    var f = fila(cod), esTienda = cod !== 0, lp = !esTienda && (prestamos() || []).length, gi = lp ? filaIntereses() : -1;
     var filas = f.gastos.map(function (g, i) {
+      // Con la lista de préstamos, los intereses se llenan solos: no se escriben a mano.
+      if (i === gi) return '<div class="pe-g"><input class="pe-g-c" value="' + esc(g.concepto) + '" readonly aria-label="Concepto"><input class="pe-g-m" data-i="' + i + '" value="' + (num(g.monto) || '') + '" readonly title="Se llena solo con la lista de préstamos" aria-label="Intereses de préstamos, se llena solo"><span class="pe-auto" title="Se llena solo con la lista de préstamos"><i class="ti ti-lock"></i></span></div>';
       return '<div class="pe-g">' +
         '<input class="pe-g-c" value="' + esc(g.concepto) + '" placeholder="Concepto" onchange="BayolEquilibrio._c(' + cod + ',' + i + ',this.value)" aria-label="Concepto">' +
         '<input class="pe-g-m" data-i="' + i + '" inputmode="decimal" value="' + (g.monto === '' || g.monto == null ? '' : num(g.monto)) + '" placeholder="0.00" oninput="BayolEquilibrio._m(' + cod + ',' + i + ',this.value)" aria-label="Monto de ' + esc(g.concepto) + '">' +
@@ -362,7 +420,7 @@
     } else {
       var rp = f.reparto_pct || {};
       var cvv = f.variables || {}, sel = f.reparto === 'venta' ? (cvv.base === 'actual' ? 'actual' : 'anterior') : f.reparto;
-      vars = '<label class="pe-dias"><span>Abono a capital de préstamos (no es gasto)</span><input inputmode="decimal" value="' + (num(cvv.capital) || '') + '" placeholder="0.00" oninput="BayolEquilibrio._r(\'capital\',this.value)"></label>' +
+      vars = htmlPrestamos(cvv) +
         '<h4>Cómo repartir los gastos comunes</h4>' +
         '<div class="pe-rep">' +
           ['anterior', 'actual', 'iguales', 'manual'].map(function (k) {
@@ -384,6 +442,27 @@
         (esTienda ? '<button class="btn btn-light" onclick="BayolEquilibrio._n(' + cod + ')" title="TSS 16.29 % y regalía 8.33 % de la nómina"><i class="ti ti-calculator"></i> Calcular TSS y regalía</button>' : '') +
       '</div>' + vars +
     '</div>';
+  }
+
+  function htmlTotPrestamos() {
+    var l = prestamos() || [], i = l.reduce(function (s, p) { return s + num(p.interes); }, 0), k = l.reduce(function (s, p) { return s + num(p.capital); }, 0);
+    return '<span>Intereses <b>' + plata(i) + '</b></span><span>Capital <b>' + plata(k) + '</b></span><span>Cuota del mes <b>' + plata(i + k) + '</b></span>';
+  }
+  function htmlPrestamos(cvv) {
+    var l = prestamos() || [];
+    var filas = l.map(function (p, i) {
+      return '<div class="pe-p">' +
+        '<input class="pe-p-b" data-p="' + i + '" value="' + esc(p.banco || '') + '" placeholder="Banco o prestamista" aria-label="Banco del préstamo ' + (i + 1) + '" oninput="BayolEquilibrio._pb(' + i + ',\'banco\',this.value)">' +
+        '<label><span>Intereses</span><input inputmode="decimal" value="' + (p.interes === '' || p.interes == null ? '' : num(p.interes)) + '" placeholder="0.00" oninput="BayolEquilibrio._pb(' + i + ',\'interes\',this.value)"></label>' +
+        '<label><span>Capital</span><input inputmode="decimal" value="' + (p.capital === '' || p.capital == null ? '' : num(p.capital)) + '" placeholder="0.00" oninput="BayolEquilibrio._pb(' + i + ',\'capital\',this.value)"></label>' +
+        '<button class="pe-x" title="Quitar préstamo" aria-label="Quitar préstamo ' + (i + 1) + '" onclick="BayolEquilibrio._pq(' + i + ')"><i class="ti ti-x"></i></button>' +
+      '</div>';
+    }).join('');
+    var suelto = !l.length && num(cvv.capital) > 0 ? '<p class="pe-nota">Capital anotado antes: ' + plata(num(cvv.capital)) + '. Al agregar el primer préstamo se pasa a la lista.</p>' : '';
+    return '<div class="pe-prest" id="pePrest"><h4>Préstamos (cuota de este mes)</h4>' + filas + suelto +
+      (l.length ? '<div class="pe-p-tot" id="pePrestTot">' + htmlTotPrestamos() + '</div>' : '') +
+      '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._pa()"><i class="ti ti-plus"></i> Agregar préstamo</button></div>' +
+      '<p class="pe-nota">Los intereses son gasto y pasan solos a «Intereses de préstamos». El capital no es gasto, pero sale de la caja: por eso se muestra aparte cuánto vender para pagar la cuota completa.</p></div>';
   }
 
   function htmlTablaGeneral(c) {
@@ -447,6 +526,16 @@
       '#conta-equilibrio .pe-g{display:grid;grid-template-columns:minmax(0,1fr) 150px 44px;gap:6px;margin:6px 0}',
       '#conta-equilibrio .pe-g input,#conta-equilibrio .pe-vars input,#conta-equilibrio .pe-dias input{height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 10px;min-width:0;background:#fff}',
       '#conta-equilibrio .pe-g-m{text-align:right;font-variant-numeric:tabular-nums}',
+      '#conta-equilibrio .pe-g input[readonly]{background:#f8fafc;color:#475569}',
+      '#conta-equilibrio .pe-auto{width:44px;height:48px;display:grid;place-items:center;color:#94a3b8}',
+      '#conta-equilibrio .pe-prest{margin-top:14px;padding-top:4px;border-top:1px solid #eef2f7}',
+      '#conta-equilibrio .pe-p{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 44px;gap:6px;align-items:end;margin:6px 0}',
+      '#conta-equilibrio .pe-p label{display:flex;flex-direction:column;gap:2px;font-size:13px;color:#64748b;min-width:0}',
+      '#conta-equilibrio .pe-p input{height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 10px;min-width:0;width:100%;box-sizing:border-box;background:#fff}',
+      '#conta-equilibrio .pe-p label input{text-align:right;font-variant-numeric:tabular-nums}',
+      '@media (max-width:480px){#conta-equilibrio .pe-p{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px}#conta-equilibrio .pe-p-b{grid-column:1 / -1}}',
+      '#conta-equilibrio .pe-p-tot{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:flex-end;font-size:13px;color:#475569;margin:8px 0 0}',
+      '#conta-equilibrio .pe-p-tot b{color:#0f172a;font-variant-numeric:tabular-nums}',
       '#conta-equilibrio .pe-x{width:44px;height:48px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer}',
       '#conta-equilibrio .pe-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}',
       '#conta-equilibrio .pe-acc .btn,#conta-equilibrio .pe-pie .btn{min-height:44px;font-size:14px}',
@@ -559,7 +648,7 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo
   };
 
   function iniciar() {
