@@ -560,19 +560,26 @@
       var nom = e.nombre ? e.nombre.charAt(0).toUpperCase() + e.nombre.slice(1).toLowerCase() : 'Código ' + e.cod, ini = e.nombre ? nom.charAt(0) : String(e.cod).slice(0, 3);
       return '<li class="pe-v"><div class="pe-v-h"><span class="pe-av' + (e.nombre ? '' : ' sin') + '" aria-hidden="true">' + esc(ini) + '</span>' +
         '<div class="pe-v-n"><b>' + esc(nom) + '</b><small>' + (e.nombre ? 'Código ' + esc(e.cod) : 'Sin nombre') + ' · mes ant. ' + pctC(e.sug / 100) + '</small></div>' +
-        '<label class="pe-v-p"><input inputmode="decimal" aria-label="Porcentaje de la meta de ' + esc(nom) + '" value="' + e.pct + '" onchange="BayolEquilibrio._vp(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><span>%</span></label></div>' +
+        '<div class="pe-v-in"><label class="pe-v-p"><input inputmode="decimal" aria-label="Porcentaje de la meta de ' + esc(nom) + '" value="' + e.pct + '" onchange="BayolEquilibrio._vp(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><span>%</span></label>' +
+        '<label class="pe-v-p pe-v-m"><span>RD$</span><input inputmode="decimal" aria-label="Meta del mes en pesos de ' + esc(nom) + '" value="' + Math.round(x.meta * e.pct / 100).toLocaleString('es-DO') + '" onchange="BayolEquilibrio._vm(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><span>al mes</span></label></div></div>' +
         '<div class="pe-v-q">' + barraQ(q1, e, '1ª quincena') + barraQ(q2, e, '2ª quincena') + '</div></li>';
     }).join('');
     var ok = Math.abs(suma - 100) <= 0.5;
     return '<section class="pe-per" aria-label="Meta quincenal por vendedor"><header><h5>Meta quincenal por vendedor</h5><span class="pe-suma' + (ok ? '' : ' mal') + '">' + (ok ? 'Suma 100 %' : 'Suma ' + (Math.round(suma * 10) / 10) + ' % · debe ser 100 %') + '</span></header>' +
       '<ul class="pe-vl">' + filas + '</ul>' +
       '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._vr(' + x.t.cod + ')"><i class="ti ti-refresh"></i> Repartir según el mes anterior</button></div>' +
-      '<p class="pe-nota">El % sale de lo que vendió cada uno el mes anterior en esta tienda; puede cambiarlo. Se guarda con «Guardar gastos del mes».</p></section>';
+      '<p class="pe-nota">El % sale de lo que vendió cada uno el mes anterior en esta tienda. Puede cambiar el % o escribir la meta del mes en pesos: el otro se calcula solo y las quincenas también. Se guarda con «Guardar gastos del mes».</p></section>';
   }
   function editVendPct(cod, emp, v) {
     var f = fila(cod); f.variables = f.variables || {};
     if (!f.variables.vend_pct) { var o = {}; vendedoresTienda(cod).forEach(function (e) { o[e.cod] = e.pct; }); f.variables.vend_pct = o; }
     f.variables.vend_pct[emp] = Math.min(100, num(v)); st.sucio = true; pintar();
+  }
+  // Meta en pesos del vendedor (al mes): se guarda como % de la meta de la tienda.
+  function editVendMonto(cod, emp, v) {
+    var meta = num((fila(cod).variables || {}).meta);
+    if (!meta) { aviso('Fije primero la meta del mes de la tienda.', 'error'); return; }
+    editVendPct(cod, emp, Math.round(num(v) / meta * 10000) / 100);
   }
   function repartirVend(cod) { var f = fila(cod); if (f.variables) delete f.variables.vend_pct; st.sucio = true; pintar(); }
 
@@ -927,6 +934,9 @@
       '#conta-equilibrio .pe-v-h{display:flex;align-items:center;gap:10px;min-width:0}',
       '#conta-equilibrio .pe-av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff;background:linear-gradient(135deg,#f97316,#e4572e)}#conta-equilibrio .pe-av.sin{background:#e2e8f0;color:#475569;font-size:13px}',
       '#conta-equilibrio .pe-v-n{display:flex;flex-direction:column;min-width:0;flex:1}#conta-equilibrio .pe-v-n b{font-size:15px;color:#0f172a}#conta-equilibrio .pe-v-n small{font-size:13px;color:#64748b}',
+      '#conta-equilibrio .pe-v-in{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex:none}',
+      '#conta-equilibrio .pe-v-m input{width:120px}',
+      '@media (max-width:700px){#conta-equilibrio .pe-v-h{flex-wrap:wrap}#conta-equilibrio .pe-v-in{width:100%;flex-wrap:nowrap;justify-content:flex-start}#conta-equilibrio .pe-v-m{flex:1;min-width:0}#conta-equilibrio .pe-v-m input{flex:1;width:auto;min-width:0}#conta-equilibrio .pe-v-m span:last-child{display:none}}',
       '#conta-equilibrio .pe-v-p{display:flex;align-items:center;gap:4px;flex:none}#conta-equilibrio .pe-v-p span{color:#64748b;font-size:14px}',
       '#conta-equilibrio .pe-v-p input{width:76px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:12px;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;background:#fff}',
       '#conta-equilibrio .pe-v-q{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
@@ -1061,7 +1071,7 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _vp: editVendPct, _vr: repartirVend
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _vp: editVendPct, _vm: editVendMonto, _vr: repartirVend
   };
 
   function iniciar() {
