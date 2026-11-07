@@ -491,9 +491,9 @@
     return out;
   }
   // Anillo de progreso (SVG): el arco crece hasta el % logrado; verde al cumplir.
-  function anillo(a, tam) {
+  function anillo(a, tam, color) {
     var r = (tam - 8) / 2, c = 2 * Math.PI * r, p = a == null ? 0 : Math.max(0, Math.min(1, a));
-    var col = a == null ? '#cbd5e1' : (a >= 1 ? '#16a34a' : '#e4572e');
+    var col = color || (a == null ? '#cbd5e1' : (a >= 1 ? '#16a34a' : '#e4572e'));
     return '<svg class="pe-ring" width="' + tam + '" height="' + tam + '" viewBox="0 0 ' + tam + ' ' + tam + '" aria-hidden="true">' +
       '<circle cx="' + tam / 2 + '" cy="' + tam / 2 + '" r="' + r + '" fill="none" stroke="#eef2f7" stroke-width="7"/>' +
       '<circle cx="' + tam / 2 + '" cy="' + tam / 2 + '" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="7" stroke-linecap="round" ' +
@@ -555,31 +555,89 @@
     return lista.filter(function (e) { return guard ? (e.cod in guard || e.act > 0) : (e.ant > 0 || e.act > 0); })
       .sort(function (a, b) { return b.pct - a.pct || b.act - a.act; });
   }
+  // Meta por vendedor: ranking (A) con ritmo (C) — dueño, 07-nov-2026. Se ordena por % logrado; la raya «hoy» marca
+  // dónde debería ir para cumplir la quincena. Las metas (% o pesos) se editan en una hoja aparte (#peVendSheet).
+  function quincenaVista(x) {
+    var per = periodosMeta([x]), q1 = per.filter(function (r) { return r.d1 === 1 && r.d2 === 15; })[0], q2 = per.filter(function (r) { return r.d1 === 16; })[0];
+    var em = estadoMes(st.mes), q = st.vendQ === 2 ? q2 : st.vendQ === 1 ? q1 : (em === 'actual' && q2.actual ? q2 : q1);
+    var ult = q2.d2, hoy = new Date(), dHoy = em === 'actual' ? hoy.getDate() : (em === 'pasado' ? ult + 1 : 0);
+    var tot = diasRango(st.mes, x.t.domingo, q.d1, q.d2);
+    var hechos = dHoy <= q.d1 ? 0 : diasRango(st.mes, x.t.domingo, q.d1, Math.min(q.d2, dHoy - 1));   // hasta ayer
+    var quedan = dHoy > q.d2 ? 0 : diasRango(st.mes, x.t.domingo, Math.max(q.d1, dHoy), q.d2);       // hoy incluido
+    return { q: q, q1: q1, q2: q2, ideal: tot ? hechos / tot : 0, quedan: quedan, futura: dHoy <= q.d1 && em !== 'pasado' && !(em === 'actual' && dHoy === q.d1) };
+  }
   function htmlVendedores(x) {
     if (!(x.meta > 0)) return '';
     var lista = vendedoresTienda(x.t.cod); if (!lista.length) return '';
-    var per = periodosMeta([x]), q1 = per.filter(function (r) { return r.d1 === 1 && r.d2 === 15; })[0], q2 = per.filter(function (r) { return r.d1 === 16; })[0];
-    var suma = lista.reduce(function (s, e) { return s + e.pct; }, 0);
-    var barraQ = function (q, e, nom) {
-      var mt = q.meta * e.pct / 100, v = q.vendido == null ? null : vendido([x.t.cod], st.mes + '-' + f2(q.d1), st.mes + '-' + f2(q.d2), e.cod);
-      var a = v != null && mt > 0 ? v / mt : null, w = a == null ? 0 : Math.max(0, Math.min(1, a)) * 100;
-      return '<div class="pe-vq' + (q.actual ? ' on' : '') + '"><span class="pe-vq-l">' + nom + '</span><b class="pe-vq-v">' + (a == null ? corto(mt) : pctC(a)) + '</b>' +
-        '<div class="pe-vq-b"><i style="width:' + w.toFixed(1) + '%;background:' + (a != null && a >= 1 ? '#16a34a' : '#e4572e') + '"></i></div>' +
-        '<small>' + (v == null ? 'Meta' : corto(v) + ' de ' + corto(mt)) + '</small></div>';
-    };
+    var V = quincenaVista(x), q = V.q, suma = lista.reduce(function (s, e) { return s + e.pct; }, 0), ok = Math.abs(suma - 100) <= 0.5;
     var filas = lista.map(function (e) {
-      var nom = e.nombre ? String(e.nombre).toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); }) : 'Código ' + e.cod, ini = e.nombre ? nom.charAt(0) : String(e.cod).slice(0, 3);
-      return '<li class="pe-v"><div class="pe-v-h"><span class="pe-av' + (e.nombre ? '' : ' sin') + '" aria-hidden="true">' + esc(ini) + '</span>' +
-        '<div class="pe-v-n"><b>' + esc(nom) + '</b><small>' + (e.nombre ? 'Código ' + esc(e.cod) : 'Sin nombre') + ' · mes ant. ' + pctC(e.sug / 100) + '</small></div>' +
-        '<div class="pe-v-in"><label class="pe-v-p"><input inputmode="decimal" aria-label="Porcentaje de la meta de ' + esc(nom) + '" value="' + e.pct + '" onchange="BayolEquilibrio._vp(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><span>%</span></label>' +
-        '<label class="pe-v-p pe-v-m"><span>RD$</span><input inputmode="decimal" aria-label="Meta del mes en pesos de ' + esc(nom) + '" value="' + Math.round(x.meta * e.pct / 100).toLocaleString('es-DO') + '" onchange="BayolEquilibrio._vm(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><span>al mes</span></label></div></div>' +
-        '<div class="pe-v-q">' + barraQ(q1, e, '1ª quincena') + barraQ(q2, e, '2ª quincena') + '</div></li>';
+      var mt = q.meta * e.pct / 100, v = V.futura ? 0 : vendido([x.t.cod], st.mes + '-' + f2(q.d1), st.mes + '-' + f2(q.d2), e.cod);
+      return { e: e, mt: mt, v: v, a: mt > 0 ? v / mt : null };
+    }).sort(function (a, b) { return (b.a || 0) - (a.a || 0); });
+    var html = filas.map(function (f, i) {
+      var e = f.e, nom = e.nombre ? String(e.nombre).toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); }) : 'Código ' + e.cod;
+      var ini = e.nombre ? nom.charAt(0) : String(e.cod).slice(0, 3), a = f.a, w = a == null ? 0 : Math.max(0, Math.min(1, a)) * 100;
+      var esperado = f.mt * V.ideal, dif = f.v - esperado, falta = Math.max(0, f.mt - f.v);
+      var chip = V.futura ? '<span class="pe-chip">Empieza el ' + q.d1 + '</span>'
+        : a != null && a >= 1 ? '<span class="pe-chip ok">✓ Cumplida</span>'
+        : V.quedan === 0 ? '<span class="pe-chip mal">Faltó ' + corto(falta) + '</span>'
+        : dif >= 0 ? '<span class="pe-chip ok">Adelantada ' + corto(dif) + '</span>' : '<span class="pe-chip mal">Atrasada ' + corto(-dif) + '</span>';
+      var pie = V.futura ? 'Meta ' + plata(f.mt)
+        : (a != null && a >= 1) || V.quedan === 0 ? 'Lleva <b>' + corto(f.v) + '</b> de ' + corto(f.mt)
+        : 'Lleva <b>' + corto(f.v) + '</b> · necesita <b>' + corto(falta / V.quedan) + '/día</b>';
+      return '<li class="pe-rk"><span class="pe-rk-n">' + (i + 1) + '</span>' +
+        '<span class="pe-rk-av' + (e.nombre ? '' : ' sin') + '">' + anillo(V.futura ? null : a, 52, V.futura ? null : ((a != null && a >= 1) || (V.quedan > 0 && dif >= 0) ? '#16a34a' : '#e4572e')) + '<i>' + esc(ini) + '</i></span>' +
+        '<div class="pe-rk-c"><div class="pe-rk-h"><b>' + esc(nom) + '</b><span class="pe-rk-p">' + (V.futura ? '—' : pctC(a)) + '</span></div>' +
+          '<div class="pe-trk" aria-hidden="true"><i style="width:' + w.toFixed(1) + '%;background:' + (a != null && a >= 1 ? '#16a34a' : (V.futura || dif >= 0 ? '#16a34a' : '#e4572e')) + '"></i>' +
+            (V.futura || V.quedan === 0 ? '' : '<s style="left:' + (V.ideal * 100).toFixed(1) + '%"></s>') + '</div>' +
+          '<div class="pe-rk-f"><span>' + pie + '</span>' + chip + '</div></div></li>';
     }).join('');
-    var ok = Math.abs(suma - 100) <= 0.5;
-    return '<section class="pe-per" aria-label="Meta quincenal por vendedor"><header><h5>Meta quincenal por vendedor</h5><span class="pe-suma' + (ok ? '' : ' mal') + '">' + (ok ? 'Suma 100 %' : 'Suma ' + (Math.round(suma * 10) / 10) + ' % · debe ser 100 %') + '</span></header>' +
-      '<ul class="pe-vl">' + filas + '</ul>' +
-      '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._vr(' + x.t.cod + ')"><i class="ti ti-refresh"></i> Repartir según el mes anterior</button></div>' +
-      '<p class="pe-nota">El % sale de lo que vendió cada uno el mes anterior en esta tienda. Puede cambiar el % o escribir la meta del mes en pesos: el otro se calcula solo y las quincenas también. Se guarda con «Guardar gastos del mes».</p></section>';
+    var em = estadoMes(st.mes);
+    return '<section class="pe-per" aria-label="Meta por vendedor"><header><h5>Meta por vendedor</h5>' +
+        '<span>' + (V.futura ? 'todavía no empieza' : V.quedan ? 'quedan ' + V.quedan + ' día' + (V.quedan === 1 ? '' : 's') : 'quincena cerrada') + '</span></header>' +
+      '<div class="pe-qseg" role="tablist">' + [V.q1, V.q2].map(function (r, i) {
+        var on = r === q; return '<button type="button" role="tab" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '" onclick="BayolEquilibrio._vq(' + (i + 1) + ')">' + (i ? '2ª quincena · 16 al ' + r.d2 : '1ª quincena · 1 al 15') + '</button>';
+      }).join('') + '</div>' +
+      (V.futura || !V.quedan ? '' : '<p class="pe-leyenda"><s></s> dónde debería ir hoy para cumplir</p>') +
+      (ok ? '' : '<p class="pe-alerta">Las metas suman ' + (Math.round(suma * 10) / 10) + ' % de la tienda. Deben sumar 100 %.</p>') +
+      '<ol class="pe-rkl">' + html + '</ol>' +
+      '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._vs(' + x.t.cod + ')"><i class="ti ti-adjustments"></i> Editar metas</button></div>' +
+      '<p class="pe-nota">La raya negra marca dónde debería ir cada uno hoy para cumplir la quincena' + (x.t.domingo ? ' (cuenta los domingos)' : '') + '. Se ordena solo: el que va mejor, arriba.</p></section>';
+  }
+  // Hoja para editar las metas (% o pesos por mes) de los vendedores de una tienda.
+  function htmlHojaVend(cod) {
+    var x = calcular().tiendas.filter(function (y) { return y.t.cod === cod; })[0]; if (!x) return '';
+    var lista = vendedoresTienda(cod), suma = lista.reduce(function (s, e) { return s + e.pct; }, 0), ok = Math.abs(suma - 100) <= 0.5;
+    return '<div class="pe-sh-h"><b>Metas de ' + esc(x.t.nombre) + '</b><button type="button" aria-label="Cerrar" onclick="BayolEquilibrio._vc()"><i class="ti ti-x"></i></button></div>' +
+      '<p class="pe-sh-s">Meta del mes de la tienda: <b>' + plata(x.meta) + '</b> · <span class="pe-suma' + (ok ? '' : ' mal') + '">' + (ok ? 'Suma 100 %' : 'Suma ' + (Math.round(suma * 10) / 10) + ' %') + '</span></p>' +
+      '<ul class="pe-vl">' + lista.map(function (e) {
+        var nom = e.nombre ? String(e.nombre).toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); }) : 'Código ' + e.cod;
+        return '<li class="pe-v"><div class="pe-v-h"><span class="pe-av' + (e.nombre ? '' : ' sin') + '" aria-hidden="true">' + esc(e.nombre ? nom.charAt(0) : String(e.cod).slice(0, 3)) + '</span>' +
+          '<div class="pe-v-n"><b>' + esc(nom) + '</b><small>Mes anterior ' + pctC(e.sug / 100) + '</small></div>' +
+          '<div class="pe-v-in"><label class="pe-v-p"><input inputmode="decimal" aria-label="Porcentaje de ' + esc(nom) + '" value="' + Math.round(e.pct * 100) / 100 + '" onchange="BayolEquilibrio._vp(' + cod + ',\'' + esc(e.cod) + '\',this.value)"><span>%</span></label>' +
+          '<label class="pe-v-p pe-v-m"><span>RD$</span><input inputmode="decimal" aria-label="Meta del mes en pesos de ' + esc(nom) + '" value="' + Math.round(x.meta * e.pct / 100).toLocaleString('es-DO') + '" onchange="BayolEquilibrio._vm(' + cod + ',\'' + esc(e.cod) + '\',this.value)"><span>al mes</span></label></div></div></li>';
+      }).join('') + '</ul>' +
+      '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._vr(' + cod + ')"><i class="ti ti-refresh"></i> Repartir según el mes anterior</button>' +
+      '<button class="btn btn-blue" onclick="BayolEquilibrio._vc()">Listo</button></div>' +
+      '<p class="pe-nota">Escriba el % o la meta del mes en pesos; el otro se calcula solo. Se guarda con «Guardar gastos del mes».</p>';
+  }
+  function hojaVend(cod) {
+    st.vendSheet = cod;
+    var fondo = $('peVendSheet');
+    if (!fondo) {
+      fondo = document.createElement('div'); fondo.id = 'peVendSheet'; fondo.className = 'pe-sh-f';
+      fondo.innerHTML = '<div class="pe-sh" role="dialog" aria-modal="true" aria-label="Editar metas de vendedores"></div>';
+      fondo.addEventListener('pointerdown', function (e) { if (e.target === fondo) cerrarHoja(); });
+      document.addEventListener('keydown', escHoja, true);
+      ($('conta-equilibrio') || document.body).appendChild(fondo);
+      requestAnimationFrame(function () { fondo.classList.add('on'); });
+    }
+    fondo.firstChild.innerHTML = htmlHojaVend(cod);
+  }
+  function escHoja(e) { if (e.key === 'Escape') cerrarHoja(); }
+  function cerrarHoja() {
+    st.vendSheet = null; var f = $('peVendSheet'); document.removeEventListener('keydown', escHoja, true);
+    if (f) { f.classList.remove('on'); setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 220); }
   }
   function editVendPct(cod, emp, v) {
     var f = fila(cod); f.variables = f.variables || {};
@@ -590,7 +648,7 @@
   function editVendMonto(cod, emp, v) {
     var meta = num((fila(cod).variables || {}).meta);
     if (!meta) { aviso('Fije primero la meta del mes de la tienda.', 'error'); return; }
-    editVendPct(cod, emp, Math.round(num(v) / meta * 10000) / 100);
+    editVendPct(cod, emp, Math.round(num(v) / meta * 1e6) / 1e4);
   }
   function repartirVend(cod) { var f = fila(cod); if (f.variables) delete f.variables.vend_pct; st.sucio = true; pintar(); }
 
@@ -744,6 +802,7 @@
         '<button id="peBtnGuardar" class="btn btn-blue" onclick="BayolEquilibrio.guardar()"><i class="ti ti-device-floppy"></i> Guardar gastos del mes</button>' +
       '</div>');
     if (st.tab === 'ventas' && window.BayolVentas) window.BayolVentas.montar($('rv_contenido'), st.mes, metasMes());
+    if (st.vendSheet && $('peVendSheet')) hojaVend(st.vendSheet);
   }
   function metasMes() { var m = {}; TIENDAS.forEach(function (t) { m[t.cod] = num((fila(t.cod).variables || {}).meta); }); return m; }
 
@@ -1027,6 +1086,41 @@
       '#conta-equilibrio .pe-vq-b{height:6px;border-radius:99px;background:#e9eef5;overflow:hidden;margin:6px 0 4px}#conta-equilibrio .pe-vq-b i{display:block;height:100%;border-radius:99px;transition:width 500ms cubic-bezier(.23,1,.32,1)}',
       '#conta-equilibrio .pe-vq small{font-size:13px;color:#64748b;font-variant-numeric:tabular-nums;display:block}',
       '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-ring circle,#conta-equilibrio .pe-vq-b i{transition:none}}',
+      '#conta-equilibrio .pe-qseg{display:flex;padding:3px;gap:3px;border-radius:12px;background:rgba(15,23,42,.06);margin-bottom:6px}',
+      '#conta-equilibrio .pe-qseg button{flex:1;min-height:44px;border:0;border-radius:10px;background:transparent;font:600 13px/1.2 inherit;font-family:inherit;color:#475569;cursor:pointer;transition:background 160ms ease,color 160ms ease}',
+      '#conta-equilibrio .pe-qseg button.on{background:#fff;color:#0f172a;box-shadow:0 1px 3px rgba(15,23,42,.12)}',
+      '#conta-equilibrio .pe-rkl{list-style:none;margin:0;padding:0}',
+      '#conta-equilibrio .pe-rk{display:flex;align-items:center;gap:12px;padding:14px 2px;border-bottom:1px solid #f1f5f9}#conta-equilibrio .pe-rk:last-child{border-bottom:0}',
+      '#conta-equilibrio .pe-rk-n{width:18px;flex:none;font-size:15px;font-weight:800;color:#94a3b8;text-align:center}',
+      '#conta-equilibrio .pe-rk-av{position:relative;width:52px;height:52px;flex:none}#conta-equilibrio .pe-rk-av svg{position:absolute;inset:0}',
+      '#conta-equilibrio .pe-rk-av i{position:absolute;inset:8px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(135deg,#f97316,#e4572e)}',
+      '#conta-equilibrio .pe-rk-av.sin i{background:#e2e8f0;color:#475569;font-size:12px}',
+      '#conta-equilibrio .pe-rk-c{flex:1;min-width:0}',
+      '#conta-equilibrio .pe-rk-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}#conta-equilibrio .pe-rk-h b{font-size:15px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '#conta-equilibrio .pe-rk-p{font-size:20px;font-weight:800;letter-spacing:-.02em;color:#0f172a;font-variant-numeric:tabular-nums}',
+      '#conta-equilibrio .pe-trk{position:relative;height:10px;border-radius:99px;background:#eef2f7;margin:10px 0 8px}',
+      '#conta-equilibrio .pe-trk>i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;transition:width 500ms cubic-bezier(.23,1,.32,1)}',
+      '#conta-equilibrio .pe-trk>s{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:#0f172a;border-radius:2px;text-decoration:none}',
+      '#conta-equilibrio .pe-trk>s em{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:#475569}',
+      '#conta-equilibrio .pe-rk-f{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#64748b;font-variant-numeric:tabular-nums}#conta-equilibrio .pe-rk-f b{color:#0f172a}',
+      '#conta-equilibrio .pe-alerta{font-size:13px!important;line-height:1.4;font-weight:600;color:#b91c1c;margin:8px 2px 0}',
+      '#conta-equilibrio .pe-leyenda{display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b;margin:8px 2px 0}#conta-equilibrio .pe-leyenda s{display:inline-block;width:2px;height:14px;background:#0f172a;border-radius:2px}',
+      '#conta-equilibrio .pe-sh .pe-v-in{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;width:100%}',
+      '#conta-equilibrio .pe-sh .pe-v-h{flex-wrap:wrap}',
+      '#conta-equilibrio .pe-sh .pe-v-p:first-child input{width:76px!important}',
+      '#conta-equilibrio .pe-sh .pe-v-m{display:flex;min-width:0}#conta-equilibrio .pe-sh .pe-v-m input{flex:1;width:100%!important;min-width:0}#conta-equilibrio .pe-sh .pe-v-m span:last-child{display:none}',
+      '#conta-equilibrio .pe-chip{display:inline-block;font-size:12px;font-weight:700;padding:4px 9px;border-radius:99px;background:#f1f5f9;color:#475569;white-space:nowrap}',
+      '#conta-equilibrio .pe-chip.ok{background:#dcfce7;color:#15803d}#conta-equilibrio .pe-chip.mal{background:#fef3c7;color:#b45309}',
+      '#conta-equilibrio .pe-sh-f{position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity 200ms ease}',
+      '#conta-equilibrio .pe-sh-f.on{opacity:1}',
+      '#conta-equilibrio .pe-sh{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;background:rgba(255,255,255,.96);border-radius:22px;padding:16px;box-shadow:0 24px 60px -16px rgba(15,23,42,.45);transform:translateY(12px) scale(.98);transition:transform 260ms cubic-bezier(.32,.72,0,1)}',
+      '#conta-equilibrio .pe-sh-f.on .pe-sh{transform:none}',
+      '@media (max-width:700px){#conta-equilibrio .pe-sh-f{align-items:flex-end;padding:0}#conta-equilibrio .pe-sh{border-radius:22px 22px 0 0;max-height:88vh;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateY(100%)}}',
+      '#conta-equilibrio .pe-sh-h{display:flex;justify-content:space-between;align-items:center}#conta-equilibrio .pe-sh-h b{font-size:17px;letter-spacing:-.01em}',
+      '#conta-equilibrio .pe-sh-h button{width:44px;height:44px;border:0;border-radius:50%;background:#f1f5f9;font-size:18px;color:#475569;cursor:pointer}',
+      '#conta-equilibrio .pe-sh-s{font-size:13px;color:#64748b;margin:4px 0 12px}',
+      '#conta-equilibrio .pe-sh .pe-acc .btn-blue{margin-left:auto;min-height:44px;padding:0 22px}',
+      '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-sh,#conta-equilibrio .pe-trk>i{transition:none}#conta-equilibrio .pe-sh{transform:none!important}}',
       '#conta-equilibrio .pe-prest{margin-top:14px;padding-top:4px;border-top:1px solid #eef2f7}',
       '#conta-equilibrio .pe-p{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 44px;gap:6px;align-items:end;margin:6px 0}',
       '#conta-equilibrio .pe-p label{display:flex;flex-direction:column;gap:2px;font-size:13px;color:#64748b;min-width:0}',
@@ -1159,7 +1253,7 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vm: editVendMonto, _vr: repartirVend
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _vm: editVendMonto, _vr: repartirVend
   };
 
   function iniciar() {
