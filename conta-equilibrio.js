@@ -524,17 +524,28 @@
       '<p class="pe-nota">Se reparte por días hábiles' + (esGeneral ? ' de cada tienda' : (tiendas[0].t.domingo ? ', con domingos' : ', de lunes a sábado')) + '. Ventas de Info Plus, ya restadas las devoluciones.</p></section>';
   }
   // Vendedores de una tienda con su % (guardado o según el mes anterior).
+  // Códigos de Info Plus aclarados por el dueño (07-nov-2026). vende:false = no lleva meta de vendedor
+  // (sus ventas siguen contando en el total de la tienda). Loribel tiene dos códigos: 249 y 750.
+  var CODIGOS_IP = {
+    '697': { nombre: 'Esther Reyes', vende: true },
+    '750': { nombre: 'Loribel Ventura', vende: false },
+    '249': { nombre: 'Loribel Ventura', vende: false },
+    '6': { nombre: 'Yves', vende: false }
+  };
   function vendedoresTienda(cod) {
     var mes = st.mes, ant = mesAnterior(mes), emps = {}, nombres = {};
     (st.diario || []).forEach(function (r) {
       if (Number(r.codlocalidad) !== cod) return;
+      var info = CODIGOS_IP[String(r.codempleado)];
+      if (info && !info.vende) return;
+      if (info) r = Object.assign({}, r, { nombre: info.nombre });
       var k = String(r.codempleado); nombres[k] = nombres[k] || r.nombre;
       if (!emps[k]) emps[k] = { ant: 0, act: 0 };
       if (r.fecha.slice(0, 7) === ant) emps[k].ant += Number(r.venta) || 0; else emps[k].act += Number(r.venta) || 0;
     });
     var guard = (fila(cod).variables || {}).vend_pct || null;
-    if (guard) Object.keys(guard).forEach(function (k) { if (!emps[k]) emps[k] = { ant: 0, act: 0 }; });
-    var lista = Object.keys(emps).map(function (k) { return { cod: k, nombre: nombres[k] ? String(nombres[k]).split(' ')[0] : null, ant: Math.max(0, emps[k].ant), act: Math.max(0, emps[k].act) }; });
+    if (guard) Object.keys(guard).forEach(function (k) { if (!emps[k] && !(CODIGOS_IP[k] && !CODIGOS_IP[k].vende)) emps[k] = { ant: 0, act: 0 }; });
+    var lista = Object.keys(emps).map(function (k) { return { cod: k, nombre: nombres[k] ? (CODIGOS_IP[k] ? CODIGOS_IP[k].nombre : String(nombres[k]).split(' ')[0]) : null, ant: Math.max(0, emps[k].ant), act: Math.max(0, emps[k].act) }; });
     var tAnt = lista.reduce(function (s, e) { return s + e.ant; }, 0), tAct = lista.reduce(function (s, e) { return s + e.act; }, 0);
     lista.forEach(function (e) {
       e.sug = tAnt > 0 ? e.ant / tAnt * 100 : (tAct > 0 ? e.act / tAct * 100 : 100 / (lista.length || 1));
@@ -557,7 +568,7 @@
         '<small>' + (v == null ? 'Meta' : corto(v) + ' de ' + corto(mt)) + '</small></div>';
     };
     var filas = lista.map(function (e) {
-      var nom = e.nombre ? e.nombre.charAt(0).toUpperCase() + e.nombre.slice(1).toLowerCase() : 'Código ' + e.cod, ini = e.nombre ? nom.charAt(0) : String(e.cod).slice(0, 3);
+      var nom = e.nombre ? String(e.nombre).toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); }) : 'Código ' + e.cod, ini = e.nombre ? nom.charAt(0) : String(e.cod).slice(0, 3);
       return '<li class="pe-v"><div class="pe-v-h"><span class="pe-av' + (e.nombre ? '' : ' sin') + '" aria-hidden="true">' + esc(ini) + '</span>' +
         '<div class="pe-v-n"><b>' + esc(nom) + '</b><small>' + (e.nombre ? 'Código ' + esc(e.cod) : 'Sin nombre') + ' · mes ant. ' + pctC(e.sug / 100) + '</small></div>' +
         '<div class="pe-v-in"><label class="pe-v-p"><input inputmode="decimal" aria-label="Porcentaje de la meta de ' + esc(nom) + '" value="' + e.pct + '" onchange="BayolEquilibrio._vp(' + x.t.cod + ',\'' + esc(e.cod) + '\',this.value)"><span>%</span></label>' +
