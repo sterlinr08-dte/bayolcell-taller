@@ -119,6 +119,17 @@
     x.diaCaja = x.faltaCaja != null && x.faltaCaja > 0 && quedan > 0 ? x.faltaCaja / quedan : null;
   }
 
+  // Meta del mes (dueño, 07-nov): el sistema sugiere lo que cubre gastos y cuota completa del préstamo
+  // (redondeado a mil hacia arriba); el dueño la acepta o la cambia y queda fija en variables.meta de la tienda.
+  function metaDe(x, meta, quedan) {
+    var base = x.peCaja != null ? x.peCaja : x.pe;
+    x.metaSug = base != null && base > 0 ? Math.ceil(base / 1000) * 1000 : null;
+    x.meta = meta || 0;
+    x.metaAvance = x.meta > 0 ? x.vn / x.meta : null;
+    x.metaFalta = x.meta > 0 ? Math.max(0, x.meta - x.vn) : null;
+    x.metaDia = x.metaFalta && quedan > 0 ? x.metaFalta / quedan : null;
+  }
+
   // ---------- cálculo ----------
   function calcular() {
     var com = fila(0), g18 = itbisPct(), itbis = g18 > 0, GC = totalFijos(0), em = estadoMes(st.mes);
@@ -165,6 +176,7 @@
       // Cuota completa del préstamo: la tienda carga su parte del capital, igual que los gastos comunes.
       x.capital = capital * parte;
       cajaNecesaria(x, em === 'actual' ? Math.max(1, x.diasMes - x.diasAyer) : 0);
+      metaDe(x, num((fila(x.t.cod).variables || {}).meta), em === 'actual' ? Math.max(1, x.diasMes - x.diasAyer) : 0);
     });
     var contrib = tiendas.reduce(function (s, x) { return s + x.vn * x.mc; }, 0);
     var sumGF = tiendas.reduce(function (s, x) { return s + x.gf; }, 0);
@@ -191,6 +203,10 @@
     var quedanG = em === 'actual' ? Math.max(1, diasMesG - diasAyerG) : 0;
     g.diaNecesario = g.falta != null && g.falta > 0 && quedanG > 0 ? g.falta / quedanG : null;
     cajaNecesaria(g, quedanG);
+    // General: la meta es la suma de las metas fijadas en las tiendas.
+    metaDe(g, tiendas.reduce(function (s, x) { return s + x.meta; }, 0), quedanG);
+    g.metaSug = tiendas.reduce(function (s, x) { return s + (x.metaSug || 0); }, 0);
+    g.metasFaltan = tiendas.filter(function (x) { return !x.meta; }).length;
     var repSuma = TIENDAS.reduce(function (a, t) { return a + num((com.reparto_pct || {})[t.cod]); }, 0);
     var repMal = com.reparto === 'manual' && Math.abs(repSuma - 100) > 0.01;
     var errVentas = TIENDAS.some(function (t) { return st.ventas[t.cod] && st.ventas[t.cod].error; });
@@ -311,6 +327,12 @@
     else if (k === 'capital') { c.variables.capital = num(v); st.sucio = true; refrescarCalculo(); return; }
     st.sucio = true; pintar();
   }
+  function editMeta(cod, v) { var f = fila(cod); f.variables = f.variables || {}; f.variables.meta = v === '' ? 0 : num(v); st.sucio = true; refrescarCalculo(); }
+  function usarMetaSugerida(cod) {
+    var x = calcular().tiendas.filter(function (y) { return y.t.cod === cod; })[0];
+    if (!x || !x.metaSug) { aviso('Anote primero los gastos para poder sugerir la meta.', 'error'); return; }
+    var f = fila(cod); f.variables = f.variables || {}; f.variables.meta = x.metaSug; st.sucio = true; pintar();
+  }
   function listaPrestamos() { var c = fila(0); c.variables = c.variables || {}; if (!Array.isArray(c.variables.prestamos)) c.variables.prestamos = []; return c.variables.prestamos; }
   function editPrestamo(i, k, v) {
     var l = listaPrestamos(); if (!l[i]) return;
@@ -372,6 +394,7 @@
     return '<div class="pe-res">' +
       '<div class="pe-res-h"><b>' + esc(nombre) + '</b><span>' + (x.alcanzado != null ? pct(x.alcanzado) + ' del punto de equilibrio' : 'Sin punto de equilibrio') + '</span></div>' +
       barra(x.alcanzado) +
+      htmlMeta(x, esGeneral) +
       '<div class="pe-kpis">' +
         kpi('Debe vender en el mes', x.pe != null ? plata(x.pe) : '—', '#0f172a', x.peDia != null ? plata(x.peDia) + ' ' + (x.peDiaTxt || 'por día') : '') +
         kpi('Lleva vendido', plata(x.vn), null, 'Margen ' + pct(x.mb) + ' · contribución ' + pct(x.mc)) +
@@ -392,6 +415,26 @@
       (avisos.length ? '<ul class="pe-avisos">' + avisos.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
       '<p class="pe-nota">Estimado con las ventas y el costo de Info Plus, antes del impuesto sobre la renta. No sustituye el estado de la contadora.</p>' +
     '</div>';
+  }
+
+  function htmlMeta(x, esGeneral) {
+    var sug = x.metaSug ? plata(x.metaSug) : '—';
+    var cab = '<div class="pe-meta-h"><b>Meta de venta del mes</b>' + (x.meta > 0 ? '<span>' + pct(x.metaAvance) + ' logrado</span>' : '') + '</div>';
+    var cuerpo;
+    if (esGeneral) {
+      cuerpo = x.meta > 0
+        ? '<div class="pe-meta-n">' + plata(x.meta) + '</div>' + barra(x.metaAvance) +
+          '<p class="pe-meta-s">Lleva ' + plata(x.vn) + (x.metaFalta ? ' · le falta <b>' + plata(x.metaFalta) + '</b>' + (x.metaDia ? ' · ' + plata(x.metaDia) + ' por día' : '') : ' · <b>meta cumplida</b>') +
+          (x.metasFaltan ? '<br>Falta fijar la meta en ' + x.metasFaltan + ' tienda(s).' : '') + '</p>'
+        : '<p class="pe-meta-s">Fije la meta en cada tienda. Sugerida para todo el negocio: <b>' + plata(x.metaSug || 0) + '</b>.</p>';
+    } else {
+      var cod = x.t.cod;
+      cuerpo = '<div class="pe-meta-f"><input inputmode="decimal" aria-label="Meta de venta del mes" placeholder="Escriba la meta" value="' + (x.meta || '') + '" onchange="BayolEquilibrio._mt(' + cod + ',this.value)">' +
+        (x.metaSug && x.metaSug !== x.meta ? '<button class="btn btn-light" onclick="BayolEquilibrio._ms(' + cod + ')">Usar sugerida ' + sug + '</button>' : '') + '</div>' +
+        (x.meta > 0 ? barra(x.metaAvance) + '<p class="pe-meta-s">Lleva ' + plata(x.vn) + (x.metaFalta ? ' · le falta <b>' + plata(x.metaFalta) + '</b>' + (x.metaDia ? ' · ' + plata(x.metaDia) + ' por día que queda' : '') : ' · <b>meta cumplida</b>') + '</p>' : '') +
+        '<p class="pe-nota">Sugerida: ' + sug + ', lo que cubre los gastos' + (x.capital > 0 ? ' y su parte de la cuota del préstamo' : '') + '. Se guarda con «Guardar gastos del mes».</p>';
+    }
+    return '<div class="pe-meta">' + cab + cuerpo + '</div>';
   }
 
   function htmlGastos(cod) {
@@ -528,6 +571,14 @@
       '#conta-equilibrio .pe-g-m{text-align:right;font-variant-numeric:tabular-nums}',
       '#conta-equilibrio .pe-g input[readonly]{background:#f8fafc;color:#475569}',
       '#conta-equilibrio .pe-auto{width:44px;height:48px;display:grid;place-items:center;color:#94a3b8}',
+      '#conta-equilibrio .pe-meta{border:1px solid #fde4d8;background:#fff8f4;border-radius:12px;padding:12px;margin:10px 0}',
+      '#conta-equilibrio .pe-meta-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14px;color:#0f172a}',
+      '#conta-equilibrio .pe-meta-h span{font-size:13px;color:#b45309;font-weight:700}',
+      '#conta-equilibrio .pe-meta-n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;margin:4px 0}',
+      '#conta-equilibrio .pe-meta-s{font-size:13px;color:#475569;margin:6px 0 0}',
+      '#conta-equilibrio .pe-meta-f{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}',
+      '#conta-equilibrio .pe-meta-f input{flex:1 1 160px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;background:#fff;min-width:0}',
+      '#conta-equilibrio .pe-meta-f .btn{min-height:48px;font-size:14px}',
       '#conta-equilibrio .pe-prest{margin-top:14px;padding-top:4px;border-top:1px solid #eef2f7}',
       '#conta-equilibrio .pe-p{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 44px;gap:6px;align-items:end;margin:6px 0}',
       '#conta-equilibrio .pe-p label{display:flex;flex-direction:column;gap:2px;font-size:13px;color:#64748b;min-width:0}',
@@ -648,7 +699,7 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida
   };
 
   function iniciar() {

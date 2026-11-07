@@ -15,6 +15,7 @@ function iso(s: string): string { const [y, m, d] = s.split("-").map(Number); re
 // v19 (6-nov-2026, dueño «hazlas todas»): quita de la copia las líneas que Info Plus ya no devuelve en el rango
 // (facturas anuladas o líneas corregidas), con respaldo en infoplus_ventas_borradas. Freno: no borra si Info Plus
 // devolvió 0 líneas o si faltarían más del 10 % de las líneas del rango. body.dias = días hacia atrás (por defecto 7).
+// v20 (07-nov-2026): exige el token de Vault (x-sync-token) y limita el rango a 62 días.
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const json = (obj: unknown, status = 200) =>
@@ -27,6 +28,12 @@ Deno.serve(async (req: Request) => {
     try { await fetch(`${sbUrl}/rest/v1/infoplus_ventas_log`, { method: "POST", headers: { ...headers, Prefer: "return=minimal" }, body: JSON.stringify(row) }); } catch (_e) { /* */ }
   };
 
+  // v20 (07-nov-2026, auditoría): solo las tareas programadas, con el token de Vault en «x-sync-token».
+  // Antes cualquiera con la clave pública podía lanzarla y ver el total vendido.
+  const token = req.headers.get("x-sync-token") || "";
+  const okTok = token.length >= 32 ? await fetch(`${sbUrl}/rest/v1/rpc/app_token_valido`, { method: "POST", headers, body: JSON.stringify({ p_nombre: "ventas_sync_token", p_token: token }) }).then((r) => r.ok ? r.json() : false).catch(() => false) : false;
+  if (okTok !== true) return json({ ok: false, error: "no autorizado" }, 401);
+
   try {
     const body = await req.json().catch(() => ({} as any));
     let desde = body?.desde as string | undefined;
@@ -34,6 +41,8 @@ Deno.serve(async (req: Request) => {
     const dias = Math.min(62, Math.max(1, Number(body?.dias) || 7));
     if (!hasta) hasta = fmt(new Date());
     if (!desde) { const d = new Date(); d.setUTCDate(d.getUTCDate() - dias); desde = fmt(d); }
+    // Rango máximo 62 días (la limpieza compara todo el rango).
+    if ((Date.parse(iso(hasta!)) - Date.parse(iso(desde!))) / 86400000 > 62 || Date.parse(iso(hasta!)) < Date.parse(iso(desde!))) return json({ ok: false, error: "rango invalido (max 62 dias)" }, 400);
 
     const basedatos = (Deno.env.get("INFOPLUS_BASE") || "bayol").trim();
     const clave = (Deno.env.get("INFOPLUS_CLAVE") || "").trim();
