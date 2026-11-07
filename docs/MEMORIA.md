@@ -74,6 +74,7 @@ listas y sincronización.
 - `whatsapp-ia-responder` v32 (Haiku 5.5): usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, sin «mi amor», casi sin emojis. Saludo lee al cliente; formulario solo si el último mensaje lo pide. Aprende de `whatsapp_ia_ejemplos` (42 + correcciones). Seguimientos prendidos hasta el 24-oct (tope 400/día); el 25-oct se apagan (tope 150).
 
 ## 6. Pendientes y esperas
+- **Punto de equilibrio, auditoría de diseño (7-nov, solo lectura):** 8 hallazgos altos. El más urgente: `num()` lee «1500,50» como 150,050 y no avisa. También: dos «le falta», sin veredicto, resumen al fondo en el iPhone, Guardar lejos, la × sin deshacer y el Reporte cortado. Confirmar con el dueño los renglones «ITBIS» y «Préstamos (cuota del mes)» de comunes en octubre. Detalle en la bitácora 2026-11-07-1659. Nada corregido.
 - **iPhone en 3D + AR (4-nov, PUBLICADO PR #226, bayolcell.com/iphone-3d.html):** página aparte `iphone-3d.html` con model-viewer y modelo genérico propio; falta probar el AR en un iPhone real (bit. 2026-11-04-0100).
 - **QR del IMEI en el label (3-nov, PUBLICADO PR #224):** 10.5 mm, corrección Q, se lee a 203 dpi; apagar `bayol_dlbl_qr=0`. Si la pistola es 1D, plan B Code 128 (bit. 2026-11-03-1430).
 - **Pistola IMEI para asignar (3-nov, PUBLICADO PR #222):** capa `bc-pistola-imei.js`, solo IMEI 15 cifras con Luhn; apagar `bc_pistola_off`. Bit. 2026-11-03-1400.
