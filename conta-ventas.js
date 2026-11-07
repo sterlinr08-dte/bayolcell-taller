@@ -45,7 +45,7 @@
       st.error = /permiso/i.test((e && e.message) || '') ? 'Necesita permiso de Contabilidad.' : 'No se pudieron leer las ventas. Toque Actualizar.';
       if (typeof logError === 'function') logError('reportes ventas', e);
     }
-    st.cargando = false; pintar();
+    st.cargando = false; st.animar = true; pintar();
   }
   // Monta la pestaña dentro de un contenedor. metas = { codlocalidad: monto } (las de Punto de equilibrio).
   function montar(el, mes, metas, forzar) {
@@ -116,6 +116,8 @@
       (st.tienda === 'todas' ? htmlTabla() : '') +
       '<p class="rv-nota">' + (d.pct_por_precio != null ? 'El ' + pct(d.pct_por_precio) + ' de lo vendido se clasificó por el nivel de precio cobrado; el resto (precio negociado) por el cliente: «Contado» = detalle, cliente con ficha = por mayor. ' : '') +
       'Celulares: solo artículos que empiezan con «CELULAR» (sin tablets, motos ni cargadores). Reparación: factura con «Servicio técnico».</p>';
+    // Animación suave al llegar los datos o cambiar de tienda (la pone conta-equilibrio.js).
+    if (st.animar && window.BayolEquilibrio && window.BayolEquilibrio._anim) { st.animar = false; window.BayolEquilibrio._anim(c); }
   }
 
   function estilos() {
@@ -133,7 +135,7 @@
       '.rv-wrap .rv-card span{display:block;font-size:13px;color:#475569;line-height:1.5}',
       '.rv-wrap .rv-card span b{display:inline;font-size:13px;margin:0}',
       '.rv-wrap .rv-barra{height:8px;border-radius:99px;background:#f1f5f9;overflow:hidden;margin-top:8px}',
-      '.rv-wrap .rv-barra i{display:block;height:100%;border-radius:99px}',
+      '.rv-wrap .rv-barra i{display:block;height:100%;border-radius:99px;transition:width 650ms cubic-bezier(.22,1,.36,1)}',
       '.rv-wrap .rv-box h4{margin:0 0 8px;font-size:14px}',
       '.rv-wrap .rv-tabla{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}',
       '.rv-wrap .rv-tabla th,.rv-wrap .rv-tabla td{padding:12px 8px;border-bottom:1px solid #eef2f7;text-align:right;white-space:nowrap}',
@@ -149,7 +151,7 @@
   window.BayolVentas = {
     montar: montar, cargarMes: cargarMes, datos: datos, TIENDAS: TIENDAS,
     recargar: function () { st.cache = {}; cargar(true); },
-    tienda: function (k) { if (k !== 'todas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tienda = k; pintar(); },
+    tienda: function (k) { if (k !== 'todas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tienda = k; st.animar = true; pintar(); },
     _estado: function () { return st; }
   };
 })();
