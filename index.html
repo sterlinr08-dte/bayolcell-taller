@@ -968,6 +968,13 @@ html.pd-abierta body{overflow:hidden}
 <script>var BC_FESP=true;try{if(BC_FESP&&localStorage.getItem('bc_fesp_off')!=='1')document.documentElement.classList.add('bc-fesp','bc-pag-inicio');}catch(e){if(BC_FESP)document.documentElement.classList.add('bc-fesp','bc-pag-inicio');}</script>
 <link rel="stylesheet" href="bc-form-espaciado.css?v=20261101-e3">
 <link rel="stylesheet" href="bc-form-espaciado-has.css?v=20261101-e3">
+<!-- Navidad (dueño, 08-nov-2026): se enciende sola del 8 al 22 de noviembre y del 1 de diciembre al 6 de enero.
+     Del 23 al 30 de noviembre queda libre para el Black Friday. Apagar: BC_NAVIDAD=false, ?navidad=0 o localStorage bc_navidad='0'. Probar: ?navidad=1 -->
+<script>var BC_NAVIDAD=true;(function(){try{var q=(location.search.match(/[?&]navidad=([01])/)||[])[1],l=null;try{l=localStorage.getItem('bc_navidad')}catch(e){}
+var d=new Date(),m=d.getMonth()+1,dia=d.getDate(),f=(m===11&&dia>=8&&dia<=22)||m===12||(m===1&&dia<=6),on=BC_NAVIDAD&&(q?q==='1':(l?l==='1':f));
+if(on)document.documentElement.classList.add('bc-navidad')}catch(e){}})();</script>
+<link rel="stylesheet" href="web-navidad.css?v=20261108n1">
+<script src="web-navidad.js?v=20261108n1" defer></script>
 </head>
 <body>
 
