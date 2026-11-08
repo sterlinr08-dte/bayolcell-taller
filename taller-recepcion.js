@@ -176,19 +176,22 @@
       // Cantidad (no para celulares: cada IMEI suma uno, ni para servicios)
       var tope = lib === null ? 99 : lib;
       var cantHTML = (serial || serv) ? '' :
-        '<span class="pk-qty-l">Cantidad</span><div class="pk-qty" role="group" aria-label="Cantidad"><button type="button" data-q="-1" data-i="' + i + '" aria-label="Uno menos"' + (cant <= 1 ? ' disabled' : '') + '>−</button>' +
+        '<div class="pk-qty" role="group" aria-label="Cantidad"><button type="button" data-q="-1" data-i="' + i + '" aria-label="Uno menos"' + (cant <= 1 ? ' disabled' : '') + '>−</button>' +
         '<b aria-live="polite">' + cant + '</b><button type="button" data-q="1" data-i="' + i + '" aria-label="Uno más"' + (cant >= tope ? ' disabled' : '') + '>+</button></div>';
-      var estadoHTML = ya ? '<span class="pk-ya-det"><i class="ti ti-check" aria-hidden="true"></i> En la prefactura: ' + ya + '</span>' : '';
-      var cajas = NIV.map(function (n) {
+      var estadoHTML = ya ? '<span class="pk-ya-det"><i class="ti ti-check" aria-hidden="true"></i> En prefactura ×' + ya + '</span>' : '';
+      // Microcopy compacto (dueño, 08-nov-2026): el anillo ya dice cuál es del cliente; rebaja y ganancia en cifras cortas;
+      // los niveles sin precio no se muestran.
+      var corto = function (n) { return Math.round(n).toLocaleString('es-DO'); };
+      var cajas = NIV.filter(function (n) { return (Number(nv[n[0]]) || 0) > 0 || n[0] === cli; }).map(function (n) {
         var v = Number(nv[n[0]]) || 0, esCli = n[0] === cli, puede = v > 0 && !sinEx && (esCli || admin);
-        var sub = esCli ? 'Del cliente' : (v > 0 && base > 0 && v < base ? '−' + plata(base - v).replace(/\.00$/, '') : '');
-        var gana = admin && costo > 0 && v > 0 ? '<em>Gana ' + plata(v - costo).replace(/\.00$/, '') + ' · ' + Math.round((v - costo) / v * 100) + ' %</em>' : '';
+        var sub = !esCli && v > 0 && base > 0 && v < base ? '−' + corto(base - v) : '';
+        var gana = admin && costo > 0 && v > 0 ? '<em>+' + corto(v - costo) + ' · ' + Math.round((v - costo) / v * 100) + '%</em>' : '';
         return '<button type="button" class="pk-nv pk-nv-' + n[0] + (esCli ? ' act' : '') + (v > 0 ? '' : ' no') + '"' + (puede ? ' data-add="' + n[0] + '" data-i="' + i + '"' : ' disabled') +
           ' aria-label="' + (puede ? 'Agregar ' + cant + ' a ' + n[1] + ' ' + (v > 0 ? plata(v) : '') : n[1] + (v > 0 ? ' (solo el administrador)' : ' sin precio')) + '">' +
           '<small>' + n[1] + (!esCli && v > 0 && !admin ? ' <i class="ti ti-lock" aria-hidden="true"></i>' : '') + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b>' +
           (sub ? '<span class="pk-sub">' + esc(sub) + '</span>' : '') + gana + '</button>';
       }).join('');
-      var costoHTML = admin && costo > 0 ? '<div class="pk-costo"><i class="ti ti-lock" aria-hidden="true"></i> Costo ' + plata(costo) + ' · solo administrador</div>' : '';
+      var costoHTML = admin && costo > 0 ? '<div class="pk-costo" title="Solo lo ve el administrador"><i class="ti ti-lock" aria-hidden="true"></i> Costo ' + plata(costo).replace(/\.00$/, '') + '</div>' : '';
       // Existencia por tienda
       var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
       var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {}, aq = almacen();
@@ -199,17 +202,19 @@
         var otras = Object.keys(alms).filter(function (c) { return c !== aq; }).map(function (c) { var n = Number(ex[c]) || 0; total += Math.max(0, n); return { c: c, n: n }; });
         total += Math.max(0, nAq);
         var con = otras.filter(function (o) { return o.n > 0; }).sort(function (x, y) { return y.n - x.n; }), sin = otras.filter(function (o) { return o.n <= 0; });
-        var aviso = nAq <= 0 ? '<span class="pk-aq-av out">Sin existencia aquí</span>' : (nAq <= 3 ? '<span class="pk-aq-av">Últimas ' + nAq + '</span>' : '');
+        var CORTO = { 'Oficina Santiago': 'Santiago', 'Garantía China': 'Garantía', 'Localidad Moca': 'Moca', 'Localidad Navarrete': 'Navarrete', 'Almacén 2do Nivel': '2do Nivel' };
+        var nomC = function (c) { var n = alms[c] || ''; return CORTO[n] || n; };
+        var aviso = nAq <= 0 ? '<span class="pk-aq-av out">Agotado</span>' : (nAq <= 3 ? '<span class="pk-aq-av">Últimas</span>' : '');
         exHTML = '<div class="pk-exs">' +
-          '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(alms[aq] || 'Aquí') + '</b> <span class="pk-aq-t">Aquí</span>' + aviso +
-            (ya && lib !== null ? '<div class="pk-aq-lib">Quedan ' + lib + ' libres aquí</div>' : '') + '</div><strong>' + nAq + '</strong></div>' +
-          con.map(function (o) { return '<div class="pk-ot"><span>' + esc(alms[o.c]) + '</span><b>' + o.n + '</b></div>'; }).join('') +
-          (sin.length ? '<div class="pk-sin">Sin existencia: ' + sin.map(function (o) { return esc(alms[o.c]); }).join(' · ') + '</div>' : '') +
-          '<div class="pk-tot">' + total + ' en total</div></div>';
+          '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(nomC(aq) || 'Aquí') + '</b> <span class="pk-aq-t">aquí</span>' + aviso +
+            (ya && lib !== null ? '<div class="pk-aq-lib">' + lib + ' libres</div>' : '') + '</div><strong>' + nAq + '</strong></div>' +
+          con.map(function (o) { return '<div class="pk-ot"><span>' + esc(nomC(o.c)) + '</span><b>' + o.n + '</b></div>'; }).join('') +
+          (sin.length ? '<div class="pk-sin">0 en ' + sin.map(function (o) { return esc(nomC(o.c)); }).join(', ') + '</div>' : '') +
+          (con.length ? '<div class="pk-tot">Total ' + total + '</div>' : '') + '</div>';
       }
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
         ((cantHTML || estadoHTML) ? '<div class="pk-top">' + estadoHTML + cantHTML + '</div>' : '') +
-        '<div class="pk-nvs">' + cajas + '</div>' + costoHTML + exHTML + '</div>';
+        '<div class="pk-nvs pk-n' + (cajas.split('class="pk-nv ').length - 1) + '">' + cajas + '</div>' + costoHTML + exHTML + '</div>';
     }
     // Nivel elegido para un artículo (el del cliente si no se tocó otro)
     function nivelFila(a) { var k = estado.nvSel && estado.nvSel[String(a.codigo)]; return (k && a.niveles && Number(a.niveles[k]) > 0) ? k : nivel(); }
