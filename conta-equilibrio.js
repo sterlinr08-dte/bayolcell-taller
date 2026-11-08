@@ -493,24 +493,30 @@
     function meta(d1, d2) {
       return tiendas.reduce(function (s, x) { var tot = diasRango(mes, x.t.domingo, 1, ult); return s + (x.meta > 0 && tot ? x.meta * diasRango(mes, x.t.domingo, d1, d2) / tot : 0); }, 0);
     }
-    function fila(nombre, d1, d2, actual) {
-      var mt = meta(d1, d2), v = (em === 'futuro' || (em === 'actual' && d1 > dHoy)) ? null : vendido(cods, mes + '-' + f2(d1), mes + '-' + f2(d2));
-      return { nombre: nombre, d1: d1, d2: d2, meta: mt, vendido: v, avance: mt > 0 && v != null ? v / mt : null, actual: !!actual };
+    // Cada periodo es un dato con clave, etiqueta y detalle (C6 de untangle, 08-nov-2026). Antes la tarjeta volvía a leer
+    // la etiqueta y el detalle desde el texto del nombre, y las quincenas se buscaban por sus días.
+    // «nombre» queda armado igual que siempre, para el reporte y el Excel.
+    function per(clave, etiqueta, detalle, d1, d2, actual, metaDia) {
+      var mt = metaDia != null ? metaDia : meta(d1, d2);
+      var v = metaDia != null || em === 'futuro' || (em === 'actual' && d1 > dHoy) ? null : vendido(cods, mes + '-' + f2(d1), mes + '-' + f2(d2));
+      return { clave: clave, etiqueta: etiqueta, detalle: detalle, nombre: etiqueta + (detalle ? ' (' + detalle + ')' : ''),
+        d1: d1, d2: d2, meta: mt, vendido: v, avance: mt > 0 && v != null ? v / mt : null, actual: !!actual };
     }
     var out = [];
     if (em === 'actual') {
       var dow = hoy.getDay(), lun = dHoy - ((dow + 6) % 7), dom = lun + 6;
-      out.push(fila('Hoy (' + hoy.toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric' }) + ')', dHoy, dHoy, true));
-      out.push(fila('Esta semana (' + Math.max(1, lun) + ' al ' + Math.min(ult, dom) + ')', Math.max(1, lun), Math.min(ult, dom), true));
+      out.push(per('hoy', 'Hoy', hoy.toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric' }), dHoy, dHoy, true));
+      out.push(per('semana', 'Esta semana', Math.max(1, lun) + ' al ' + Math.min(ult, dom), Math.max(1, lun), Math.min(ult, dom), true));
     } else {
       // Mes pasado o futuro: la meta de un día hábil como referencia.
-      var r = fila('Un día hábil', 1, 1); r.meta = tiendas.reduce(function (s, x) { var tot = diasRango(mes, x.t.domingo, 1, ult); return s + (x.meta > 0 && tot ? x.meta / tot : 0); }, 0); r.vendido = null; r.avance = null; out.push(r);
+      out.push(per('dia', 'Un día hábil', '', 1, 1, false, tiendas.reduce(function (s, x) { var tot = diasRango(mes, x.t.domingo, 1, ult); return s + (x.meta > 0 && tot ? x.meta / tot : 0); }, 0)));
     }
-    out.push(fila('1ª quincena (1 al 15)', 1, 15, dHoy != null && dHoy <= 15));
-    out.push(fila('2ª quincena (16 al ' + ult + ')', 16, ult, dHoy != null && dHoy > 15));
-    out.push(fila('Mes completo', 1, ult));
+    out.push(per('q1', '1ª quincena', '1 al 15', 1, 15, dHoy != null && dHoy <= 15));
+    out.push(per('q2', '2ª quincena', '16 al ' + ult, 16, ult, dHoy != null && dHoy > 15));
+    out.push(per('mes', 'Mes completo', '', 1, ult));
     return out;
   }
+  function periodoDe(lista, clave) { for (var i = 0; i < lista.length; i++) if (lista[i].clave === clave) return lista[i]; return null; }
   // Anillo de progreso (SVG): el arco crece hasta el % logrado; verde al cumplir.
   function anillo(a, tam, color) {
     var r = (tam - 8) / 2, c = 2 * Math.PI * r, p = a == null ? 0 : Math.max(0, Math.min(1, a));
@@ -526,9 +532,9 @@
     if (!tiendas.some(function (x) { return x.meta > 0; })) return '';
     var per = periodosMeta(tiendas), em = estadoMes(st.mes);
     // Cuatro tarjetas: Hoy · Semana · Quincena (la en curso; la otra debajo) · Mes. En mes pasado/futuro: día hábil · 1ª · 2ª · mes.
-    var q1 = per.filter(function (r) { return r.d1 === 1 && r.d2 === 15; })[0], q2 = per.filter(function (r) { return r.d1 === 16; })[0];
-    var tarjetas = em === 'actual' ? [per[0], per[1], q1.actual ? q1 : q2, per[per.length - 1]] : [per[0], q1, q2, per[per.length - 1]];
-    var etiqueta = function (r) { return r.nombre.replace(/\s*\(.*\)$/, ''); }, detalle = function (r) { var m = r.nombre.match(/\((.*)\)$/); return m ? m[1] : ''; };
+    var q1 = periodoDe(per, 'q1'), q2 = periodoDe(per, 'q2');
+    var tarjetas = em === 'actual' ? [periodoDe(per, 'hoy'), periodoDe(per, 'semana'), q1.actual ? q1 : q2, periodoDe(per, 'mes')] : [periodoDe(per, 'dia'), q1, q2, periodoDe(per, 'mes')];
+    var etiqueta = function (r) { return r.etiqueta; }, detalle = function (r) { return r.detalle; };
     var html = tarjetas.map(function (r) {
       var falta = r.vendido != null && r.meta > 0 ? r.meta - r.vendido : null;
       return '<div class="pe-pt' + (r.actual ? ' on' : '') + '">' +
@@ -579,7 +585,7 @@
   // Meta por vendedor: ranking (A) con ritmo (C) — dueño, 07-nov-2026. Se ordena por % logrado; la raya «hoy» marca
   // dónde debería ir para cumplir la quincena. Las metas (% o pesos) se editan en una hoja aparte (#peVendSheet).
   function quincenaVista(x) {
-    var per = periodosMeta([x]), q1 = per.filter(function (r) { return r.d1 === 1 && r.d2 === 15; })[0], q2 = per.filter(function (r) { return r.d1 === 16; })[0];
+    var per = periodosMeta([x]), q1 = periodoDe(per, 'q1'), q2 = periodoDe(per, 'q2');
     var em = estadoMes(st.mes), q = st.vendQ === 2 ? q2 : st.vendQ === 1 ? q1 : (em === 'actual' && q2.actual ? q2 : q1);
     var ult = q2.d2, hoy = new Date(), dHoy = em === 'actual' ? hoy.getDate() : (em === 'pasado' ? ult + 1 : 0);
     var tot = diasRango(st.mes, x.t.domingo, q.d1, q.d2);
@@ -924,7 +930,7 @@
   // Metas por periodo y por vendedor para el reporte y el Excel.
   function datosMetas(c) {
     return c.tiendas.filter(function (x) { return x.meta > 0; }).map(function (x) {
-      var per = periodosMeta([x]), q1 = per.filter(function (r) { return r.d1 === 1 && r.d2 === 15; })[0], q2 = per.filter(function (r) { return r.d1 === 16; })[0];
+      var per = periodosMeta([x]), q1 = periodoDe(per, 'q1'), q2 = periodoDe(per, 'q2');
       var vend = vendedoresTienda(x.t.cod).map(function (e) {
         var v1 = q1.vendido == null ? null : vendido([x.t.cod], st.mes + '-01', st.mes + '-15', e.cod), v2 = q2.vendido == null ? null : vendido([x.t.cod], st.mes + '-16', st.mes + '-' + f2(q2.d2), e.cod);
         return { nombre: e.nombre || ('Vendedor ' + e.cod), cod: e.cod, pct: e.pct, m1: q1.meta * e.pct / 100, v1: v1, m2: q2.meta * e.pct / 100, v2: v2 };
