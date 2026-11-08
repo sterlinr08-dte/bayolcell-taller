@@ -166,7 +166,7 @@
     // - cada precio es un botón que agrega con su nivel, con cantidad − N + en la misma línea (2);
     // - el nivel del cliente dice «Del cliente»; los otros muestran cuánto rebajan y solo el admin los usa (candado) (3);
     // - el margen y el costo solo los ve el admin (3); «Quedan N libres aquí» y no deja pasar de la existencia (3);
-    // - la tienda actual arriba con número grande y aviso «Últimas N»; las demás de más a menos; los ceros juntos (5).
+    // - la tienda actual arriba con número grande (aviso solo si está agotado); las demás de más a menos; los ceros juntos (5).
     function cantDe(a) { var c = estado.cant && estado.cant[String(a.codigo)]; return c > 0 ? c : 1; }
     function libres(a) { var ex = existe(a); return ex === null ? null : Math.max(0, ex - enLista(a)); }
     function detalleHTML(a, i) {
@@ -204,7 +204,7 @@
         var con = otras.filter(function (o) { return o.n > 0; }).sort(function (x, y) { return y.n - x.n; }), sin = otras.filter(function (o) { return o.n <= 0; });
         var CORTO = { 'Oficina Santiago': 'Santiago', 'Garantía China': 'Garantía', 'Localidad Moca': 'Moca', 'Localidad Navarrete': 'Navarrete', 'Almacén 2do Nivel': '2do Nivel' };
         var nomC = function (c) { var n = alms[c] || ''; return CORTO[n] || n; };
-        var aviso = nAq <= 0 ? '<span class="pk-aq-av out">Agotado</span>' : (nAq <= 3 ? '<span class="pk-aq-av">Últimas</span>' : '');
+        var aviso = nAq <= 0 ? '<span class="pk-aq-av out">Agotado</span>' : '';
         exHTML = '<div class="pk-exs">' +
           '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(nomC(aq) || 'Aquí') + '</b> <span class="pk-aq-t">aquí</span>' + aviso +
             (ya && lib !== null ? '<div class="pk-aq-lib">' + lib + ' libres</div>' : '') + '</div><strong>' + nAq + '</strong></div>' +
