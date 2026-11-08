@@ -191,11 +191,11 @@
     var diasPasG = Math.max.apply(null, tiendas.map(function (x) { return x.diasPas; }));
     var diasAyerG = Math.max.apply(null, tiendas.map(function (x) { return x.diasAyer; }));
     var fracG = em === 'actual' && diasMesG > 0 ? Math.min(1, diasPasG / diasMesG) : 1;
-    var diasLS = contarDias(st.mes, false, false);
     var peG = (mcComb > 0 && fijosTot > 0) ? fijosTot / mcComb : null;
     var g = {
       vn: sumVN, mb: sumVN > 0 ? (sumVN - sumCosto) / sumVN : 0, mc: mcComb, gf: sumGF, gc: GC, ft: fijosTot, partePct: 1,
-      pe: peG, peDia: peG != null && diasLS > 0 ? peG / diasLS : null, peDiaTxt: 'por día de lunes a sábado',
+      // Dueño, 08-nov-2026 (opción B): la General cuenta los días con domingos de Navarrete, igual que «le falta por día».
+      pe: peG, peDia: peG != null && diasMesG > 0 ? peG / diasMesG : null, peDiaTxt: 'por día (incluye domingos)',
       falta: peG != null ? Math.max(0, peG - sumVN) : null, alcanzado: peG != null && peG > 0 ? sumVN / peG : null,
       proy: sumProy, resultado: em === 'futuro' ? null : contrib - fijosTot * fracG, resultadoProy: contribProy - fijosTot,
       seguridad: peG != null && sumVN > 0 ? (sumVN - peG) / sumVN : null, capital: capital,
