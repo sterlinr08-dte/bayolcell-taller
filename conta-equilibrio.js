@@ -48,24 +48,25 @@
   function periodo(mes) { var d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); return { ini: mes + '-01', fin: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01' }; }
   // 'pasado' | 'actual' | 'futuro'
   function estadoMes(mes) { var h = mesHoy(); return mes < h ? 'pasado' : (mes > h ? 'futuro' : 'actual'); }
-  function contarDias(mes, domingo, hastaHoy) {
-    var p = mes.split('-'), y = +p[0], m = +p[1] - 1, ult = new Date(y, m + 1, 0).getDate();
-    var hoy = new Date(), tope = ult;
-    if (hastaHoy) {
-      if (hoy.getFullYear() < y || (hoy.getFullYear() === y && hoy.getMonth() < m)) return 0;
-      if (hoy.getFullYear() === y && hoy.getMonth() === m) tope = hoy.getDate();
-    }
-    var n = 0;
-    for (var d = 1; d <= tope; d++) { var dow = new Date(y, m, d).getDay(); if (dow !== 0 || domingo) n++; }
+  // Un solo calendario de días hábiles (paso 2 de untangle, 08-nov-2026). Todo cuenta con diasRango:
+  // un día es hábil si no es domingo, o si la tienda abre domingos.
+  function f2(n) { return String(n).padStart(2, '0'); }
+  function ultimoDia(mes) { var p = mes.split('-'); return new Date(+p[0], +p[1], 0).getDate(); }
+  function diasRango(mes, domingo, d1, d2) {
+    var p = mes.split('-'), y = +p[0], m = +p[1] - 1, n = 0;
+    for (var d = d1; d <= d2; d++) { var dow = new Date(y, m, d).getDay(); if (dow !== 0 || domingo) n++; }
     return n;
   }
-
-  function diasHastaAyer(mes, domingo) {
-    var n = contarDias(mes, domingo, true);
-    if (estadoMes(mes) !== 'actual') return n;
-    var dow = new Date().getDay();
-    return (dow !== 0 || domingo) ? Math.max(0, n - 1) : n;
-  }
+  // Día del mes que va «hoy» para ese mes: 0 si el mes no ha empezado, el último día si ya pasó.
+  function diaDeHoy(mes) { var em = estadoMes(mes); return em === 'futuro' ? 0 : em === 'pasado' ? ultimoDia(mes) : new Date().getDate(); }
+  // Días hábiles del mes completo, o hasta hoy incluido (hastaHoy).
+  function contarDias(mes, domingo, hastaHoy) { return diasRango(mes, domingo, 1, hastaHoy ? diaDeHoy(mes) : ultimoDia(mes)); }
+  // Días hábiles ya terminados: en el mes en curso, hasta ayer.
+  function diasHastaAyer(mes, domingo) { return diasRango(mes, domingo, 1, estadoMes(mes) === 'actual' ? diaDeHoy(mes) - 1 : diaDeHoy(mes)); }
+  // Días hábiles por defecto de una tienda (si nadie los cambió a mano).
+  function diasDefecto(mes, t) { return contarDias(mes, t && t.domingo, false); }
+  // Días que quedan para vender en el mes en curso (hoy cuenta), al menos 1; 0 si el mes no está en curso.
+  function diasQuedan(diasMes, diasAyer) { return estadoMes(st.mes) === 'actual' ? Math.max(1, diasMes - diasAyer) : 0; }
   function mesAnterior(mes) { var d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 
   // ---------- filas ----------
@@ -77,7 +78,7 @@
       gastos: lista.map(function (c) { return { concepto: c, monto: '' }; }),
       // Comunes: base del reparto (mes anterior), % de ventas con ITBIS (hoy 0: el dueño confirmó el 6-nov que no llevan) y abono a capital.
       variables: cod === 0 ? { base: 'anterior', itbis_pct: 0, capital: 0 } : vars,
-      dias_habiles: cod === 0 ? null : contarDias(st.mes, t && t.domingo, false),
+      dias_habiles: cod === 0 ? null : diasDefecto(st.mes, t),
       incluye_itbis: false, reparto: 'venta', reparto_pct: {}, notas: '', _nueva: true
     };
   }
@@ -140,8 +141,8 @@
       if (em === 'pasado') x.diasPas = x.diasMes; else if (em === 'futuro') x.diasPas = 0;
       x.diasPas = Math.min(x.diasPas, x.diasMes);
       // Hoy cuenta como día que queda (no como pasado) para la venta diaria necesaria.
-      var quedan = em === 'actual' ? Math.max(1, x.diasMes - x.diasAyer) : 0;
-      x.diaNecesario = x.falta != null && x.falta > 0 && quedan > 0 ? x.falta / quedan : null;
+      x.quedan = diasQuedan(x.diasMes, x.diasAyer);
+      x.diaNecesario = x.falta != null && x.falta > 0 && x.quedan > 0 ? x.falta / x.quedan : null;
       x.ritmo = x.diasPas > 0 ? x.vn / x.diasPas : 0;
       x.proy = em === 'actual' && x.diasPas > 0 ? Math.max(x.vn, x.ritmo * x.diasMes) : x.vn;
     }
@@ -150,7 +151,7 @@
       var vn = v.venta / (1 + 0.18 * g18), c = v.costo;
       var mb = vn > 0 ? (vn - c) / vn : 0, mc = mb - pctVariables(t.cod);
       return { t: t, venta: v.venta, vn: vn, costo: c, mb: mb, mc: mc, gf: totalFijos(t.cod), faltan: faltanMontos(t.cod),
-        diasMes: num(fila(t.cod).dias_habiles) || contarDias(st.mes, t.domingo, false), diasPas: contarDias(st.mes, t.domingo, true),
+        diasMes: num(fila(t.cod).dias_habiles) || diasDefecto(st.mes, t), diasPas: contarDias(st.mes, t.domingo, true),
         diasAyer: diasHastaAyer(st.mes, t.domingo), ventaAnt: (st.ventasAnt[t.cod] || { venta: 0 }).venta / (1 + 0.18 * g18) };
     });
     var sumVN = tiendas.reduce(function (s, x) { return s + x.vn; }, 0);
@@ -175,8 +176,8 @@
       x.seguridad = x.pe != null && x.vn > 0 ? (x.vn - x.pe) / x.vn : null;
       // Cuota completa del préstamo: la tienda carga su parte del capital, igual que los gastos comunes.
       x.capital = capital * parte;
-      cajaNecesaria(x, em === 'actual' ? Math.max(1, x.diasMes - x.diasAyer) : 0);
-      metaDe(x, num((fila(x.t.cod).variables || {}).meta), em === 'actual' ? Math.max(1, x.diasMes - x.diasAyer) : 0);
+      cajaNecesaria(x, x.quedan);
+      metaDe(x, num((fila(x.t.cod).variables || {}).meta), x.quedan);
     });
     var contrib = tiendas.reduce(function (s, x) { return s + x.vn * x.mc; }, 0);
     var sumGF = tiendas.reduce(function (s, x) { return s + x.gf; }, 0);
@@ -200,7 +201,7 @@
       seguridad: peG != null && sumVN > 0 ? (sumVN - peG) / sumVN : null, capital: capital,
       faltan: faltanMontos(0) + tiendas.reduce(function (s, x) { return s + x.faltan; }, 0), diasMes: diasMesG, diasPas: diasPasG
     };
-    var quedanG = em === 'actual' ? Math.max(1, diasMesG - diasAyerG) : 0;
+    var quedanG = diasQuedan(diasMesG, diasAyerG); g.quedan = quedanG;
     g.diaNecesario = g.falta != null && g.falta > 0 && quedanG > 0 ? g.falta / quedanG : null;
     cajaNecesaria(g, quedanG);
     // General: la meta es la suma de las metas fijadas en las tiendas.
@@ -316,7 +317,7 @@
       r.data.forEach(function (f) {
         var t = TIENDAS.filter(function (x) { return x.cod === f.codlocalidad; })[0];
         st.filas[f.codlocalidad] = { mes: st.mes + '-01', codlocalidad: f.codlocalidad, gastos: f.gastos || [], variables: f.variables || {},
-          dias_habiles: f.codlocalidad === 0 ? null : contarDias(st.mes, t && t.domingo, false), incluye_itbis: !!f.incluye_itbis,
+          dias_habiles: f.codlocalidad === 0 ? null : diasDefecto(st.mes, t), incluye_itbis: !!f.incluye_itbis,
           reparto: f.reparto || 'venta', reparto_pct: f.reparto_pct || {}, notas: f.notas || '' };
       });
       st.sucio = true; aviso('Copiado. Revise los montos y toque Guardar.');
@@ -468,13 +469,6 @@
   // La meta del mes de cada tienda (la fija el dueño) se reparte por días hábiles del calendario: diaria, semanal y
   // quincenal (1–15 y 16–fin). La de cada vendedor = meta de la quincena × su %. El % sale solo de lo que vendió el
   // mes anterior en esa tienda; el dueño lo puede cambiar (variables.vend_pct).
-  function f2(n) { return String(n).padStart(2, '0'); }
-  function fISO(d) { return d.getFullYear() + '-' + f2(d.getMonth() + 1) + '-' + f2(d.getDate()); }
-  function diasRango(mes, domingo, d1, d2) {
-    var p = mes.split('-'), y = +p[0], m = +p[1] - 1, n = 0;
-    for (var d = d1; d <= d2; d++) { var dow = new Date(y, m, d).getDay(); if (dow !== 0 || domingo) n++; }
-    return n;
-  }
   function vendido(cods, desde, hasta, emp) {
     return (st.diario || []).reduce(function (s, r) {
       if (cods.indexOf(Number(r.codlocalidad)) < 0 || r.fecha < desde || r.fecha > hasta) return s;
@@ -852,7 +846,7 @@
   async function datosReporte() {
     var c = calcular(), ventas = null, errV = '';
     if (window.BayolVentas) { try { ventas = await window.BayolVentas.cargarMes(st.mes); } catch (e) { errV = 'No se pudieron leer las ventas detalladas.'; } }
-    var g = c.g, quedan = c.em === 'actual' ? Math.max(1, g.diasMes - Math.max.apply(null, c.tiendas.map(function (x) { return x.diasAyer; }))) : 0;
+    var g = c.g, quedan = g.quedan;
     var V = function (cod) { return ventas ? window.BayolVentas.datos(cod, ventas, metasMes()) : null; };
     // Resumen en frases.
     var res = [];
