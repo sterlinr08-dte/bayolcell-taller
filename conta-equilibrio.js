@@ -210,8 +210,10 @@
     var repSuma = TIENDAS.reduce(function (a, t) { return a + num((com.reparto_pct || {})[t.cod]); }, 0);
     var repMal = com.reparto === 'manual' && Math.abs(repSuma - 100) > 0.01;
     var errVentas = TIENDAS.some(function (t) { return st.ventas[t.cod] && st.ventas[t.cod].error; });
+    var usaAnt = com.reparto === 'venta' && base === 'anterior';
+    var errAnt = usaAnt && TIENDAS.some(function (t) { return st.ventasAnt[t.cod] && st.ventasAnt[t.cod].error; });
     return { tiendas: tiendas, g: g, itbis: itbis, g18: g18, em: em, repMal: repMal, repSuma: repSuma, errVentas: errVentas,
-      base: base, sinAnt: com.reparto === 'venta' && base === 'anterior' && sumAnt <= 0, cn: st.cn || {} };
+      base: base, sinAnt: usaAnt && !errAnt && sumAnt <= 0, errAnt: errAnt, errDiario: !!st.errDiario, errCN: !!st.errCN, cn: st.cn || {} };
   }
 
   // ---------- datos ----------
@@ -230,7 +232,8 @@
       if (typeof logError === 'function') logError('equilibrio cargar', e);
       st.errorTabla = true;
     }
-    var ventas = {}, ventasAnt = {}, cn = {}, pa = periodo(mesAnterior(st.mes));
+    // Paso 1 de la auditoría untangle (dueño, 08-nov-2026): un fallo de lectura se marca y se avisa; nunca queda como 0 en silencio.
+    var ventas = {}, ventasAnt = {}, cn = {}, errCN = false, errDiario = false, pa = periodo(mesAnterior(st.mes));
     async function leer(per, cod) {
       var rv = await cli.rpc('estado_mensual_cat', { p_ini: per.ini, p_fin: per.fin, p_localidad: cod });
       if (rv.error) throw rv.error;
@@ -240,7 +243,8 @@
     await Promise.all(TIENDAS.map(async function (t) {
       try { ventas[t.cod] = await leer(p, t.cod); }
       catch (e) { ventas[t.cod] = { venta: 0, costo: 0, error: true }; if (typeof logError === 'function') logError('equilibrio ventas', e); }
-      try { ventasAnt[t.cod] = await leer(pa, t.cod); } catch (e) { ventasAnt[t.cod] = { venta: 0, costo: 0 }; }
+      try { ventasAnt[t.cod] = await leer(pa, t.cod); }
+      catch (e) { ventasAnt[t.cod] = { venta: 0, costo: 0, error: true }; if (typeof logError === 'function') logError('equilibrio ventas mes anterior', e); }
     }));
     // Notas de crédito (CN): solo se cuentan para el aviso. La resta la hace estado_mensual_cat (07-nov, auditoría).
     try {
@@ -256,16 +260,16 @@
         // 07-nov-2026 (auditoría): ya NO se restan aquí. estado_mensual_cat las resta desde la migración
         // 20261106201708 (CN en negativo); restarlas también aquí las quitaba dos veces (Navarrete oct −RD$102,000).
       });
-    } catch (e) { if (typeof logError === 'function') logError('equilibrio notas de crédito', e); }
+    } catch (e) { errCN = true; if (typeof logError === 'function') logError('equilibrio notas de crédito', e); }
     // Venta por día y vendedor (mes anterior + este mes) para las metas diaria/semanal/quincenal (07-nov-2026).
     var diario = [];
     try {
       var rd = await cli.rpc('ventas_diarias_vendedor', { p_ini: pa.ini, p_fin: p.fin });
       if (rd.error) throw rd.error;
       diario = rd.data || [];
-    } catch (e) { if (typeof logError === 'function') logError('equilibrio ventas diarias', e); }
+    } catch (e) { errDiario = true; if (typeof logError === 'function') logError('equilibrio ventas diarias', e); }
     if (token !== st.token) return;
-    st.diario = diario;
+    st.diario = diario; st.errDiario = errDiario; st.errCN = errCN;
     st.ventas = ventas; st.ventasAnt = ventasAnt; st.cn = cn; st.cargando = false; st.sucio = false; st.animar = true;
     pintar();
   }
@@ -384,9 +388,22 @@
   function colorRes(n) { return n >= 0 ? 'var(--fin-ok, #15803d)' : 'var(--fin-danger, #b91c1c)'; }
   function barra(a) { var p = a == null ? 0 : Math.max(0, Math.min(1, a)); return '<div class="pe-barra"><i style="width:' + (p * 100).toFixed(1) + '%;background:' + (p >= 1 ? '#16a34a' : '#e4572e') + '"></i></div>'; }
 
+  function erroresCarga(c) {
+    var e = [];
+    if (c.errVentas) e.push('No se pudieron leer las ventas de Info Plus de este mes.');
+    if (c.errAnt) e.push('No se pudo leer la venta de ' + nombreMes(mesAnterior(st.mes)).toLowerCase() + ': los gastos comunes se están repartiendo en partes iguales, de forma provisional.');
+    if (c.errDiario) e.push('No se pudo leer la venta por día: las metas por periodo y de vendedores no muestran lo vendido.');
+    if (c.errCN) e.push('No se pudieron leer las notas de crédito: la venta ya viene neta, solo falta el detalle de devoluciones.');
+    return e;
+  }
+  function htmlErrores(c) {
+    var e = erroresCarga(c); if (!e.length) return '';
+    return '<div class="pe-errores" role="alert"><b>Faltan datos</b><ul>' + e.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+      '<button type="button" onclick="BayolEquilibrio.recargar()"><i class="ti ti-refresh"></i> Volver a intentar</button></div>';
+  }
   function htmlResumen(x, nombre, esGeneral, c) {
     var itbis = c.itbis, avisos = [];
-    if (c.errVentas) avisos.push('No se pudieron leer las ventas de Info Plus. Toque Actualizar.');
+    if (c.errVentas) { /* lo dice el recuadro «Faltan datos» */ }
     else if (c.em === 'futuro') avisos.push('Este mes todavía no empieza. Puede ir anotando los gastos.');
     else if (x.vn <= 0) avisos.push('No hay ventas registradas en Info Plus para este mes. Verifique la sincronización o el mes elegido.');
     if (x.ft <= 0) avisos.push('Anote los gastos fijos para calcular el punto de equilibrio.');
@@ -402,6 +419,7 @@
     return '<div class="pe-res">' +
       '<div class="pe-res-h"><b>' + esc(nombre) + '</b><span>' + (x.alcanzado != null ? pct(x.alcanzado) + ' del punto de equilibrio' : 'Sin punto de equilibrio') + '</span></div>' +
       barra(x.alcanzado) +
+      htmlErrores(c) +
       htmlMeta(x, esGeneral) +
       htmlPeriodos(esGeneral ? c.tiendas : [x], esGeneral) + (esGeneral ? '' : htmlVendedores(x)) +
       '<div class="pe-kpis">' +
@@ -848,7 +866,7 @@
     if (g.meta > 0) res.push('La meta de venta del mes suma ' + plata(g.meta) + ' y va al ' + pct(g.metaAvance) + (g.metasFaltan ? ' (falta fijar la meta en ' + g.metasFaltan + ' tienda(s)).' : '.'));
     if (g.resultado != null) res.push((g.resultado >= 0 ? 'Ganancia' : 'Pérdida') + ' a la fecha: ' + plata(Math.abs(g.resultado)) + (c.em === 'actual' ? ', comparando con los gastos de los días transcurridos. Al ritmo actual cerraría el mes en ' + plata(g.proy) + ' de venta y un resultado de ' + plata(g.resultadoProy) + '.' : '.'));
     // Conclusiones.
-    var con = [];
+    var con = erroresCarga(c).map(function (t) { return 'Ojo: ' + t; });
     var conMeta = c.tiendas.filter(function (x) { return x.meta > 0; });
     if (conMeta.length) {
       var peor = conMeta.slice().sort(function (a, b) { return a.metaAvance - b.metaAvance; })[0];
@@ -1177,6 +1195,10 @@
       '#conta-equilibrio .pe-kpi b{font-size:18px;font-variant-numeric:tabular-nums}',
       '#conta-equilibrio .pe-kpi span{font-size:13px;color:#475569}',
       '#conta-equilibrio .pe-avisos{margin:10px 0 0;padding-left:18px;font-size:13px;color:#7c2d12}',
+      '#conta-equilibrio .pe-errores{margin:12px 0;padding:12px 14px;border-radius:14px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:14px}',
+      '#conta-equilibrio .pe-errores ul{margin:6px 0 10px;padding-left:18px}',
+      '#conta-equilibrio .pe-errores li{margin:3px 0}',
+      '#conta-equilibrio .pe-errores button{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid #fca5a5;background:#fff;color:#991b1b;font-weight:600;font-size:14px;cursor:pointer}',
       '#conta-equilibrio .pe-avisos li{margin:3px 0}',
       '#conta-equilibrio .pe-nota{margin:8px 0 0;font-size:13px;color:#475569}',
       '#conta-equilibrio .pe-tabla{width:100%;font-size:13px;font-variant-numeric:tabular-nums}',
