@@ -206,7 +206,7 @@
         var nomC = function (c) { var n = alms[c] || ''; return CORTO[n] || n; };
         var aviso = nAq <= 0 ? '<span class="pk-aq-av out">Agotado</span>' : '';
         exHTML = '<div class="pk-exs">' +
-          '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(nomC(aq) || 'Aquí') + '</b> <span class="pk-aq-t">aquí</span>' + aviso +
+          '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(nomC(aq) || 'Aquí') + '</b>' + aviso +
             (ya && lib !== null ? '<div class="pk-aq-lib">' + lib + ' libres</div>' : '') + '</div><strong>' + nAq + '</strong></div>' +
           con.map(function (o) { return '<div class="pk-ot"><span>' + esc(nomC(o.c)) + '</span><b>' + o.n + '</b></div>'; }).join('') +
           (sin.length ? '<div class="pk-sin">0 en ' + sin.map(function (o) { return esc(nomC(o.c)); }).join(', ') + '</div>' : '') +
