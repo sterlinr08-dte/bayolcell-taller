@@ -8,20 +8,16 @@
   'use strict';
   if (window.BayolVentas) return;
   try { if (localStorage.getItem('bc_rv_off') === '1') return; } catch (e) {}
+  var B = window.BayolConta; if (!B) return;   // conta-base.js (base común, 08-nov-2026)
 
-  var TIENDAS = [{ cod: 1, nombre: 'Santiago' }, { cod: 4, nombre: 'Moca' }, { cod: 7, nombre: 'Navarrete' }];
+  var TIENDAS = B.TIENDAS;
   var st = { mes: null, filas: [], metas: {}, cargando: false, error: '', tienda: 'todas', el: null, cache: {} };
   function $c() { return st.el && document.body.contains(st.el) ? st.el : null; }
 
   function $(id) { return document.getElementById(id); }
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function plata(n) { return (typeof money === 'function') ? money(n) : 'RD$ ' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  var esc = B.esc, plata = B.plata, pct = B.pct, sb = B.sb, puede = B.puede, periodo = B.periodo;
   function ent(n) { return Number(n || 0).toLocaleString('es-DO', { maximumFractionDigits: 0 }); }
-  function pct(n) { return isFinite(n) ? (Math.round(n * 1000) / 10).toLocaleString('es-DO', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %' : '—'; }
   function n(v) { return Number(v) || 0; }
-  function sb() { try { return supabaseClient; } catch (e) { return null; } }
-  function puede() { try { return (typeof isAdminUser === 'function' && isAdminUser()) || (typeof esDueno === 'function' && esDueno()) || (typeof tienePermiso === 'function' && tienePermiso('contabilidad_ver')); } catch (e) { return false; } }
-  function periodo(mes) { var d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); return { ini: mes + '-01', fin: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01' }; }
 
   // Lee el reporte del mes (con caché por mes; forzar = volver a leer).
   async function cargarMes(mes, forzar) {
@@ -117,7 +113,7 @@
       '<p class="rv-nota">' + (d.pct_por_precio != null ? 'El ' + pct(d.pct_por_precio) + ' de lo vendido se clasificó por el nivel de precio cobrado; el resto (precio negociado) por el cliente: «Contado» = detalle, cliente con ficha = por mayor. ' : '') +
       'Celulares: solo artículos que empiezan con «CELULAR» (sin tablets, motos ni cargadores). Reparación: factura con «Servicio técnico».</p>';
     // Animación suave al llegar los datos o cambiar de tienda (la pone conta-equilibrio.js).
-    if (st.animar && window.BayolEquilibrio && window.BayolEquilibrio._anim) { st.animar = false; window.BayolEquilibrio._anim(c); }
+    if (st.animar) { st.animar = false; B.animar(c); }
   }
 
   function estilos() {
@@ -151,6 +147,8 @@
   window.BayolVentas = {
     montar: montar, cargarMes: cargarMes, datos: datos, TIENDAS: TIENDAS,
     recargar: function () { st.cache = {}; cargar(true); },
+    // Olvida lo ya leído, sin volver a leer ahora (lo usa «Actualizar» del Punto de equilibrio).
+    olvidar: function () { st.cache = {}; },
     tienda: function (k) { if (k !== 'todas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tienda = k; st.animar = true; pintar(); },
     _estado: function () { return st; }
   };

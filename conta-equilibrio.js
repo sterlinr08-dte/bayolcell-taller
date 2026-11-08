@@ -8,12 +8,9 @@
   'use strict';
   if (window.BayolEquilibrio) return;
   try { if (localStorage.getItem('bc_pe_off') === '1') return; } catch (e) {}
+  var B = window.BayolConta; if (!B) return;   // conta-base.js (base común, 08-nov-2026)
 
-  var TIENDAS = [
-    { cod: 1, nombre: 'Santiago', domingo: false },
-    { cod: 4, nombre: 'Moca', domingo: false },
-    { cod: 7, nombre: 'Navarrete', domingo: true }
-  ];
+  var TIENDAS = B.TIENDAS;
   // Auditoría 6-nov: regalía 8.33 % (las vacaciones ya van en el sueldo); intereses y capital separados;
   // depreciación y prestaciones; incentivos y piezas de reparación como variables; tarjeta solo sobre lo cobrado con tarjeta.
   var FIJOS_TIENDA = ['Alquiler', 'Luz (Edenorte)', 'Agua', 'Internet y teléfono', 'Nómina de la tienda (sueldos)',
@@ -34,18 +31,12 @@
   var st = { mes: null, tab: 'general', filas: {}, ventas: {}, ventasAnt: {}, cn: {}, cargando: false, sucio: false };
 
   function $(id) { return document.getElementById(id); }
-  function esc(s) { return (typeof escapeHtml === 'function') ? escapeHtml(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function plata(n) { return (typeof money === 'function') ? money(n) : 'RD$ ' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-  function pct(n) { return (isFinite(n) ? (Math.round(n * 1000) / 10).toLocaleString('es-DO', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—') + ' %'; }
+  var esc = B.esc, plata = B.plata, pct = B.pct, sb = B.sb, puede = B.puede, periodo = B.periodo, sumarMes = B.sumarMes, mesAnterior = B.mesAnterior, animarEntrada = B.animar;
   function num(v) { var n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return isFinite(n) && n > 0 ? n : 0; }
   function aviso(msg, tipo) { if (typeof toast === 'function') toast(msg, tipo); }
-  function sb() { try { return supabaseClient; } catch (e) { return null; } }
-  // Mismo criterio que la regla de la base (app_puede_contabilidad): admin, dueño o permiso de Contabilidad.
-  function puede() { try { return (typeof isAdminUser === 'function' && isAdminUser()) || (typeof esDueno === 'function' && esDueno()) || (typeof tienePermiso === 'function' && tienePermiso('contabilidad_ver')); } catch (e) { return false; } }
 
   // ---------- fechas y días hábiles ----------
   function mesHoy() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
-  function periodo(mes) { var d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); return { ini: mes + '-01', fin: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01' }; }
   // 'pasado' | 'actual' | 'futuro'
   function estadoMes(mes) { var h = mesHoy(); return mes < h ? 'pasado' : (mes > h ? 'futuro' : 'actual'); }
   // Un solo calendario de días hábiles (paso 2 de untangle, 08-nov-2026). Todo cuenta con diasRango:
@@ -67,7 +58,6 @@
   function diasDefecto(mes, t) { return contarDias(mes, t && t.domingo, false); }
   // Días que quedan para vender en el mes en curso (hoy cuenta), al menos 1; 0 si el mes no está en curso.
   function diasQuedan(diasMes, diasAyer) { return estadoMes(st.mes) === 'actual' ? Math.max(1, diasMes - diasAyer) : 0; }
-  function mesAnterior(mes) { var d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
 
   // ---------- filas ----------
   function filaVacia(cod) {
@@ -305,8 +295,7 @@
 
   async function copiarMesAnterior() {
     var cli = sb(); if (!cli) return;
-    var d = new Date(st.mes + '-01T00:00:00'); d.setMonth(d.getMonth() - 1);
-    var ant = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
+    var ant = mesAnterior(st.mes) + '-01';
     try {
       var r = await cli.from('conta_equilibrio').select('*').eq('mes', ant);
       if (r.error) throw r.error;
@@ -755,7 +744,6 @@
   // ---------- selector de mes estilo iPhone (07-nov-2026): ‹ Noviembre 2026 › y tarjeta con los 12 meses ----------
   var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   function etiquetaMes(mes) { var p = (mes || mesHoy()).split('-'); return MESES[+p[1] - 1] + ' ' + p[0]; }
-  function sumarMes(mes, d) { var p = mes.split('-'), dt = new Date(+p[0], +p[1] - 1 + d, 1); return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); }
   function mesPaso(d) { cerrarMeses(); window.BayolEquilibrio.mes(sumarMes(st.mes || mesHoy(), d)); }
   function cerrarMeses() {
     var pop = $('peMesPop'); if (!pop) return;
@@ -789,25 +777,7 @@
     document.addEventListener('pointerdown', fueraMeses, true); document.addEventListener('keydown', escMeses, true);
   }
 
-  // ---------- animaciones suaves (dueño, 07-nov-2026) ----------
-  // Solo al cambiar de pestaña, de mes o de quincena (no al escribir): las tarjetas entran en cascada (opacidad y 8 px),
-  // y los anillos y las barras crecen desde cero hasta su valor. Con «reducir movimiento» no se anima nada.
-  function animarEntrada(cont) {
-    try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
-    var piezas = cont.querySelectorAll('.pe-res-h, .pe-kpi, .pe-meta, .pe-per, .pe-pt, .pe-rk, .pe-card, .rv-card, .rv-box');
-    Array.prototype.forEach.call(piezas, function (el, i) { el.style.setProperty('--pe-d', Math.min(i, 14) * 28 + 'ms'); el.classList.add('pe-in'); });
-    // Anillos: dibujar desde 0. Barras: crecer desde 0.
-    var arcos = cont.querySelectorAll('.pe-ring circle:last-child'), barras = cont.querySelectorAll('.pe-barra i, .pe-trk > i, .pe-vq-b i, .rv-barra i');
-    var finA = [], finB = [];
-    Array.prototype.forEach.call(arcos, function (c) { finA.push(c.getAttribute('stroke-dasharray')); var t = (finA[finA.length - 1] || '0 0').split(' ')[1]; c.setAttribute('stroke-dasharray', '0 ' + t); });
-    Array.prototype.forEach.call(barras, function (b) { finB.push(b.style.width); b.style.width = '0%'; });
-    void cont.offsetWidth;
-    requestAnimationFrame(function () { requestAnimationFrame(function () {
-      Array.prototype.forEach.call(arcos, function (c, i) { c.setAttribute('stroke-dasharray', finA[i]); });
-      Array.prototype.forEach.call(barras, function (b, i) { b.style.width = finB[i]; });
-    }); });
-    setTimeout(function () { Array.prototype.forEach.call(piezas, function (el) { el.classList.remove('pe-in'); }); }, 1200);
-  }
+  // Animaciones suaves: viven en conta-base.js (BayolConta.animar).
 
   function pintar() {
     var mt = $('peMesTxt'); if (mt) mt.textContent = etiquetaMes(st.mes);
@@ -852,7 +822,7 @@
     var res = [];
     var corte = c.em === 'actual' ? 'al ' + new Date().toLocaleDateString('es-DO', { day: 'numeric', month: 'long' }) : (c.em === 'pasado' ? 'del mes completo' : '');
     if (g.pe != null) {
-      res.push('En ' + nombreMes(st.mes).toLowerCase() + ' (' + corte + ') las tres tiendas llevan vendido ' + plata(g.vn) + ', el ' + pct(g.alcanzado) + ' de lo que necesitan para cubrir los gastos del mes (' + plata(g.pe) + ').');
+      res.push('En ' + nombreMes(st.mes).toLowerCase() + ' (' + corte + ') ' + B.lasTiendas() + ' llevan vendido ' + plata(g.vn) + ', el ' + pct(g.alcanzado) + ' de lo que necesitan para cubrir los gastos del mes (' + plata(g.pe) + ').');
       if (g.falta > 0) res.push('Para cubrir los gastos falta vender ' + plata(g.falta) + (g.diaNecesario ? ': ' + plata(g.diaNecesario) + ' por día en los ' + quedan + ' días que quedan.' : '.'));
       else res.push('Los gastos del mes ya están cubiertos: lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
     } else res.push('Todavía no se puede calcular el punto de equilibrio: faltan gastos o ventas del mes.');
@@ -919,7 +889,7 @@
       '.tw{overflow-x:auto}@media(max-width:640px){.hoja{padding:16px}table{font-size:12px}}' +
       '@media print{body{background:#fff}.acc{display:none}.tw{overflow:visible}.tw table{min-width:0}table{font-size:9.5px}th,td{padding:5px 3px}.n{white-space:normal}.hoja{padding:0;max-width:none}h2{break-after:avoid}table,tr{break-inside:avoid}@page{size:letter;margin:14mm}}' +
       '</style></head><body><div class="acc"><button onclick="window.close()">Cerrar</button><button class="p" onclick="window.print()">Imprimir o guardar PDF</button></div><div class="hoja">' +
-      '<div class="cab"><img src="' + e(logo) + '" alt="" onerror="this.style.display=\'none\'"><div><h1>Punto de equilibrio · ' + e(nombreMes(st.mes)) + '</h1><p>Bayol Cell · Santiago, Moca y Navarrete · ' + e(c.em === 'actual' ? 'Datos ' + R.corte + ' (mes en curso)' : c.em === 'pasado' ? 'Mes cerrado' : 'Mes futuro') + '</p></div></div>' +
+      '<div class="cab"><img src="' + e(logo) + '" alt="" onerror="this.style.display=\'none\'"><div><h1>Punto de equilibrio · ' + e(nombreMes(st.mes)) + '</h1><p>Bayol Cell · ' + e(B.nombresTiendas()) + ' · ' + e(c.em === 'actual' ? 'Datos ' + R.corte + ' (mes en curso)' : c.em === 'pasado' ? 'Mes cerrado' : 'Mes futuro') + '</p></div></div>' +
       '<h2>1. Resumen</h2><div class="res">' + R.res.map(function (x) { return '<p>' + e(x) + '</p>'; }).join('') + '</div>' +
       '<h2>2. Cada tienda</h2><table>' + th(['Tienda', 'Meta', 'Vendido', '% meta', 'Debe vender (equilibrio)', 'Le falta', 'Por día que queda', 'Margen', 'Resultado a la fecha', 'Aporte (sin comunes)']) + tiendas + '</table>' +
       '<p class="nota">«Debe vender» es la venta que cubre los gastos fijos propios y la parte de los comunes. «Aporte» es lo que deja la tienda sin cargarle los gastos comunes.</p>' +
@@ -1271,7 +1241,7 @@
       '<ul style="padding-left:18px;margin:6px 0;"><li>Usted anota a mano los gastos fijos de cada tienda y los gastos comunes de la empresa.</li>' +
       '<li>Las ventas y el costo salen solos de Info Plus.</li>' +
       '<li>Los gastos comunes se reparten entre las tiendas según lo que vende cada una (o como usted elija).</li>' +
-      '<li>«General» suma las tres tiendas y los gastos comunes.</li></ul>' +
+      '<li>«General» suma ' + B.lasTiendas() + ' y los gastos comunes.</li></ul>' +
       '<p>Los montos son de referencia; la contadora confirma las cifras formales.</p>';
     if (typeof abrirAyuda === 'function') abrirAyuda('Punto de equilibrio', html); else alert(html.replace(/<[^>]+>/g, ' '));
   }
@@ -1285,7 +1255,7 @@
       else seguir();
     },
     recargar: function () {
-      if (window.BayolVentas) window.BayolVentas._estado().cache = {};
+      if (window.BayolVentas && window.BayolVentas.olvidar) window.BayolVentas.olvidar();
       if (st.sucio && typeof confirmar === 'function') { confirmar('Hay cambios sin guardar. ¿Actualizar y perderlos?').then(function (ok) { if (ok) cargar(); }); return; }
       cargar();
     },
