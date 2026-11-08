@@ -10,12 +10,17 @@
   /* Santa «como el real» (dueño, 08-nov-2026): traje rojo con piel blanca, barba, renos cafés con arnés y campana,
      astas de hueso, el de adelante con la nariz roja; trineo rojo con adornos dorados. */
   const C={cafe:'#8a5a32',cafeO:'#5e3b1f',vientre:'#d9b48a',hueso:'#e8dcc0',rojo:'#c81e1e',rojoO:'#8f1212',blanco:'#f8f6f0',oro:'#d6a64a',piel:'#f1c19a',negro:'#1c1410',saco:'#7a5634'};
-  function reno(x,y,s,lider){
+  /* Galope (dueño, 08-nov-2026: «que los renos se muevan»): cada pata gira en su hombro o cadera
+     y el cuerpo sube y baja. Con «reducir movimiento» no se anima. */
+  function reno(x,y,s,lider,fase){
    const st=(d,w,c)=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
-   const pata=(a,b,w1,w2,c,h)=>st(a,w1,c)+st(b,w2,c)+`<circle cx="${h[0]}" cy="${h[1]}" r="1.6" fill="${C.negro}"/>`;
-   return `<g transform="translate(${x} ${y}) scale(${s})">
-   ${pata('M66 46 C71 51 75 54 81 56','M81 56 C83 59 82 61 79 62',3.2,2,C.cafeO,[79,62])}
-   ${pata('M35 47 C29 53 23 57 15 60','M15 60 C12 61 10 63 9 66',3.3,2,C.cafeO,[9,66])}
+   const D=.56, b0=-(fase||0)*D;
+   const gira=(px,py,a1,a2,extra)=>quieto?'':`<animateTransform attributeName="transform" type="rotate" values="${a1} ${px} ${py};${a2} ${px} ${py};${a1} ${px} ${py}" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="${D}s" begin="${(b0-(extra||0)).toFixed(2)}s" repeatCount="indefinite"/>`;
+   const pata=(a,b,w1,w2,c,h,piv)=>`<g>${st(a,w1,c)+st(b,w2,c)}<circle cx="${h[0]}" cy="${h[1]}" r="1.6" fill="${C.negro}"/>${gira(piv[0],piv[1],piv[2],piv[3],piv[4])}</g>`;
+   const sube=quieto?'':`<animateTransform attributeName="transform" type="translate" values="0 0;0 -2.6;0 0" keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" dur="${D}s" begin="${b0.toFixed(2)}s" repeatCount="indefinite"/>`;
+   return `<g transform="translate(${x} ${y}) scale(${s})"><g>${sube}
+   ${pata('M66 46 C71 51 75 54 81 56','M81 56 C83 59 82 61 79 62',3.2,2,C.cafeO,[79,62],[67,45,-22,18,.07])}
+   ${pata('M35 47 C29 53 23 57 15 60','M15 60 C12 61 10 63 9 66',3.3,2,C.cafeO,[9,66],[34,46,18,-20,.07])}
    <path d="M21 37 C16 33 12 33 10 35 C13 37 16 39 21 40Z" fill="${C.blanco}"/>
    <path d="M20 38 C30 31 52 30 64 32 C68 27 71 21 74 16 C75 12 79 10 83 11 L92 15 C95 16 95 19 92 20 L84 20 C81 24 79 30 77 36 C76 44 70 48 60 49 C48 50 36 50 28 48 C20 47 16 43 20 38Z" fill="${C.cafe}"/>
    <path d="M30 47 C42 45 56 45 70 44 C66 48 60 49 52 49.5 C44 50 36 50 30 47Z" fill="${C.vientre}"/>
@@ -25,12 +30,12 @@
    <circle cx="84.5" cy="14" r="1.1" fill="${C.negro}"/>
    ${st('M80 11 C78 4 74 0 67 -2 M75 3 C71 3 69 5 68 8 M78 6 C76 2 77 -1 80 -4',1.8,C.hueso)}
    ${st('M84 11 C86 4 90 0 97 -1 M88 4 C91 4 93 6 94 9 M86 6 C86 2 85 -1 83 -4',1.8,C.hueso)}
-   ${pata('M71 44 C77 47 81 49 87 48','M87 48 C90 51 89 54 86 55',3.4,2.2,C.cafe,[86,55])}
-   ${pata('M30 45 C22 49 14 51 6 51','M6 51 C3 52 1 54 0 57',3.6,2.2,C.cafe,[0,57])}
+   ${pata('M71 44 C77 47 81 49 87 48','M87 48 C90 51 89 54 86 55',3.4,2.2,C.cafe,[86,55],[71,44,-24,20])}
+   ${pata('M30 45 C22 49 14 51 6 51','M6 51 C3 52 1 54 0 57',3.6,2.2,C.cafe,[0,57],[31,45,20,-22])}
    ${st('M70 33 C73 38 75 42 76 44',3,C.rojo)}${st('M44 32 C45 38 46 44 46 49',2.4,C.rojo)}${st('M46 33 L72 34',2.2,C.rojo)}
    <circle cx="75" cy="44" r="2.2" fill="${C.oro}"/>
    ${lider?'<circle cx="93.5" cy="17.5" r="2.6" fill="#ef4444"/><circle cx="93.5" cy="17.5" r="5" fill="#ef4444" opacity=".25"/>':`<circle cx="93.6" cy="17.4" r="1.4" fill="${C.negro}"/>`}
-   </g>`;}
+   </g></g>`;}
   function trineo(){
    const st=(d,w,c)=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
    return `<g>
@@ -58,7 +63,7 @@
    ${st('M24 60 L22 70 M70 60 L72 70',2.2,C.oro)}
    </g>`;}
   const RIENDA=`<path d="M86 19 Q150 42 210 43 M222 38 Q268 37 310 33 M322 28 Q368 26 410 23" fill="none" stroke="#7a4b23" stroke-width="1.1"/>`;
-  var TRINEO=`<svg viewBox="-4 -16 470 92" aria-hidden="true">${RIENDA}${trineo()}${reno(140,10,0.95)}${reno(240,0,0.95)}${reno(340,-10,0.95,true)}</svg>`;
+  var TRINEO=`<svg viewBox="-4 -16 470 92" aria-hidden="true">${RIENDA}${trineo()}${reno(140,10,0.95,false,0)}${reno(240,0,0.95,false,.33)}${reno(340,-10,0.95,true,.66)}</svg>`;
   function caja(c, l) {
     return '<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="14" width="34" height="24" rx="3" fill="' + c + '"/>' +
       '<rect x="1" y="9" width="38" height="8" rx="2" fill="' + c + '" style="filter:brightness(1.15)"/><rect x="17" y="9" width="6" height="29" fill="' + l + '"/>' +
