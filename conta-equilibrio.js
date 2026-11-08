@@ -27,6 +27,21 @@
   ];
   var TARJETA_DEF = { tarjeta_pct: 3, tarjeta_parte: 50 };
   var TSS_PCT = 16.29, PROV_PCT = 8.33;
+  // Claves fijas de los gastos que el sistema llena solo (C4 de untangle, 08-nov-2026). Antes se reconocían por el texto
+  // del concepto: si alguien lo renombraba, el cálculo dejaba de llenarlo sin avisar. La clave se guarda con el gasto;
+  // para lo guardado antes se deduce una vez del texto (mismas reglas de siempre).
+  var CLAVES = [
+    { k: 'nomina', re: /^n[óo]mina/i },
+    { k: 'tss', re: /^tss/i },
+    { k: 'regalia', re: /^provisi[óo]n/i },
+    { k: 'intereses', re: /pr[ée]stamo/i, solo: 0 }
+  ];
+  function claveDe(g, cod) {
+    if (g.clave) return g.clave;
+    for (var i = 0; i < CLAVES.length; i++) if ((CLAVES[i].solo == null || CLAVES[i].solo === cod) && CLAVES[i].re.test(g.concepto || '')) return CLAVES[i].k;
+    return '';
+  }
+  function ponerClaves(cod, gastos) { (gastos || []).forEach(function (g) { var k = claveDe(g, cod); if (k) g.clave = k; }); return gastos; }
 
   var st = { mes: null, tab: 'general', filas: {}, ventas: {}, ventasAnt: {}, cn: {}, cargando: false, sucio: false };
 
@@ -65,7 +80,7 @@
     var vars = { tarjeta_pct: TARJETA_DEF.tarjeta_pct, tarjeta_parte: TARJETA_DEF.tarjeta_parte }; VARIABLES.forEach(function (v) { vars[v.k] = v.def; });
     return {
       mes: st.mes + '-01', codlocalidad: cod,
-      gastos: lista.map(function (c) { return { concepto: c, monto: '' }; }),
+      gastos: ponerClaves(cod, lista.map(function (c) { return { concepto: c, monto: '' }; })),
       // Comunes: base del reparto (mes anterior), % de ventas con ITBIS (hoy 0: el dueño confirmó el 6-nov que no llevan) y abono a capital.
       variables: cod === 0 ? { base: 'anterior', itbis_pct: 0, capital: 0 } : vars,
       dias_habiles: cod === 0 ? null : diasDefecto(st.mes, t),
@@ -95,14 +110,14 @@
     return num((fila(0).variables || {}).capital);
   }
   function filaIntereses() {
-    var gs = fila(0).gastos; for (var i = 0; i < gs.length; i++) if (/pr[ée]stamo/i.test(gs[i].concepto)) return i;
+    var gs = fila(0).gastos; for (var i = 0; i < gs.length; i++) if (claveDe(gs[i], 0) === 'intereses') return i;
     return -1;
   }
   function sincronizarIntereses() {
     var l = prestamos() || [], gs = fila(0).gastos, i = filaIntereses();
     if (!l.length) return;
     var tot = Math.round(l.reduce(function (s, p) { return s + num(p.interes); }, 0) * 100) / 100;
-    if (i < 0) { gs.push({ concepto: 'Intereses de préstamos', monto: tot }); return; }
+    if (i < 0) { gs.push({ concepto: 'Intereses de préstamos', monto: tot, clave: 'intereses' }); return; }
     gs[i].concepto = 'Intereses de préstamos'; gs[i].monto = tot;
   }
   // Venta para que alcance el efectivo: gastos fijos (con intereses) + capital, entre la contribución.
@@ -223,7 +238,7 @@
       if (r.error) throw r.error;
       if (token !== st.token) return;
       st.filas = {};
-      (r.data || []).forEach(function (f) { st.filas[f.codlocalidad] = f; });
+      (r.data || []).forEach(function (f) { ponerClaves(f.codlocalidad, f.gastos); st.filas[f.codlocalidad] = f; });
     } catch (e) {
       if (typeof logError === 'function') logError('equilibrio cargar', e);
       st.errorTabla = true;
@@ -287,7 +302,7 @@
     try {
       var r = await cli.from('conta_equilibrio').upsert(filas, { onConflict: 'mes,codlocalidad' }).select('*');
       if (r.error) throw r.error;
-      (r.data || []).forEach(function (f) { st.filas[f.codlocalidad] = f; });
+      (r.data || []).forEach(function (f) { ponerClaves(f.codlocalidad, f.gastos); st.filas[f.codlocalidad] = f; });
       st.sucio = false;
       aviso('Gastos del mes guardados.');
     } catch (e) {
@@ -309,7 +324,7 @@
       if (!ok) return;
       r.data.forEach(function (f) {
         var t = TIENDAS.filter(function (x) { return x.cod === f.codlocalidad; })[0];
-        st.filas[f.codlocalidad] = { mes: st.mes + '-01', codlocalidad: f.codlocalidad, gastos: f.gastos || [], variables: f.variables || {},
+        st.filas[f.codlocalidad] = { mes: st.mes + '-01', codlocalidad: f.codlocalidad, gastos: ponerClaves(f.codlocalidad, f.gastos || []), variables: f.variables || {},
           dias_habiles: f.codlocalidad === 0 ? null : diasDefecto(st.mes, t), incluye_itbis: !!f.incluye_itbis,
           reparto: f.reparto || 'venta', reparto_pct: f.reparto_pct || {}, notas: f.notas || '' };
       });
@@ -366,11 +381,12 @@
   function editRepartoPct(cod, v) { var c = fila(0); c.reparto_pct = c.reparto_pct || {}; c.reparto_pct[cod] = num(v); st.sucio = true; refrescarCalculo(); }
   function sugerirNomina(cod) {
     var f = fila(cod), nom = 0;
-    f.gastos.forEach(function (g) { if (/^n[óo]mina/i.test(g.concepto)) nom += num(g.monto); });
+    f.gastos.forEach(function (g) { if (claveDe(g, cod) === 'nomina') nom += num(g.monto); });
     if (!nom) { aviso('Escriba primero el monto de la nómina de la tienda.', 'error'); return; }
     f.gastos.forEach(function (g) {
-      if (/^tss/i.test(g.concepto)) g.monto = Math.round(nom * TSS_PCT) / 100;
-      if (/^provisi[óo]n/i.test(g.concepto)) g.monto = Math.round(nom * PROV_PCT) / 100;
+      var k = claveDe(g, cod);
+      if (k === 'tss') g.monto = Math.round(nom * TSS_PCT) / 100;
+      if (k === 'regalia') g.monto = Math.round(nom * PROV_PCT) / 100;
     });
     st.sucio = true; pintar();
   }
