@@ -1705,6 +1705,8 @@ if(on)document.documentElement.classList.add('bc-navidad')}catch(e){}})();</scri
   addEventListener('load', function(){
     try{
       if(sessionStorage.getItem('bc_visit') || !window.supabase) return;
+      // No contar navegadores automáticos ni robots (dueño, 08-nov-2026: las pruebas inflaban «hoy»).
+      if(navigator.webdriver || /HeadlessChrome|Headless|bot\b|bot\/|crawl|spider|slurp|facebookexternalhit|Lighthouse|Playwright|Puppeteer/i.test(navigator.userAgent || '')) return;
       var sb = window.supabase.createClient(SB_URL, SB_KEY);
       var vid = localStorage.getItem('bc_visitor_id');
       if(!vid){ vid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); try{ localStorage.setItem('bc_visitor_id', vid); }catch(e){} }
