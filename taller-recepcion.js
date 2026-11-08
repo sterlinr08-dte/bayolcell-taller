@@ -201,6 +201,17 @@
     }
     function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return false; } }
     // 20-oct-2026 (dueño): la «referencia» de Info Plus (256GB, 64GB, AVISO…) junto al nombre, si no está ya en la descripción
+    // Logo de la marca (dueño, 08-nov-2026: «igual que al consultar un artículo»). Usa los logos de taller-mejoras-ref.js
+    // (Simple Icons, CC0). Si el artículo dice réplica/copia/genérico no se pone logo, para no confundir al cliente.
+    function pkMarca(a) {
+      var R = window.BayolMejorasRef; if (!R || !R.marcaDe) return '';
+      var t = (a.descripcion || '') + ' ' + (a.marca || '');
+      if (/R[EÉ]PLICA|COPIA|GEN[EÉ]RIC|COMPATIBLE|\bTIPO\b/i.test(t)) return '';
+      return R.marcaDe(t) || '';
+    }
+    // La marca escrita debajo sobra si el logo ya la dice (ej. «SAMSUNG» con el logo de Samsung, «IPHONE» con el de Apple).
+    function marcaIgual(k, marca) { var R = window.BayolMejorasRef, m = String(marca || '').toUpperCase(); return !!(R && R.marcaDe && R.marcaDe(m) === k); }
+    function pkLogo(k) { var R = window.BayolMejorasRef; return k && R && R.logo ? '<span class="pk-logo">' + R.logo(k, 12) + '</span>' : ''; }
     function pkRef(a) { var r = String(a.referencia || '').trim(); if (!r || String(a.descripcion || '').toUpperCase().indexOf(r.toUpperCase()) >= 0) return ''; var av = /^AVISO$/i.test(r); return ' <span class="pk-ref' + (av ? ' aviso' : '') + '">' + esc(av ? 'Con aviso' : r) + '</span>'; }
     // 23-oct-2026 (dueño: «ponerlo smart»). Búsqueda tolerante: sinónimos y abreviaturas del mostrador, y errores de una
     // letra («aifon» → iphone, «bateria ifon 13» → BATERIA IPHONE 13). Lo entendido se muestra bajo el buscador.
@@ -287,7 +298,7 @@
         if (buscando || !l.length) { cont.innerHTML = aviso; return; }
       }
       var filas = show.map(function (a, i) {
-        var ex = existe(a), pr = precioFila(a), ya = enLista(a), sinEx = ex !== null && ex <= 0, otras = sinEx ? enOtras(a) : 0;
+        var ex = existe(a), pr = precioFila(a), ya = enLista(a), sinEx = ex !== null && ex <= 0, otras = sinEx ? enOtras(a) : 0, mk = pkMarca(a);
         var chip = esServ(a) ? '<span class="bcrx-stk srv">Servicio</span>' : ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? (otras > 0 ? '<span class="bcrx-stk out otras" title="No hay en ' + esc(almNombre()) + '; sí en otras tiendas">' + esc(almNombre()) + ': 0 · <b>' + otras + ' en otras</b></span>' : '<span class="bcrx-stk out">Sin stock</span>') : '<span class="bcrx-stk">Stock: ' + ex + '</span>';
         // 30-oct-2026 (dueño: «el botón naranja donde está el precio… hazlo smart»): precio y agregar son un solo botón.
         // Muestra el precio del nivel elegido, cuántos ya hay en la prefactura y se apaga si no hay existencia.
@@ -301,7 +312,7 @@
           (sinEx ? '' : '<i class="ti ti-plus" aria-hidden="true"></i>') + '</button>';
         return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (sinEx ? ' sin' : '') + '" role="option" data-fila="' + i + '" aria-expanded="' + (estado.det === i) + '" title="Ver precios y existencia">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
-          '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + pkRef(a) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
+          '<span class="pk-nom"><span class="pk-dtx">' + pkLogo(mk) + esc((a.descripcion || '').trim()) + pkRef(a) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca && !(mk && marcaIgual(mk, a.marca)) ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
           '<span class="pk-stk">' + chip + '</span>' + btn + '</div>' +
           (estado.det === i ? detalleHTML(a, i) : '');
       }).join('');
