@@ -14,3 +14,4 @@
 ## Adición (g23)
 - Pedido: «Quitarlo» (el «−150» debajo de Por mayor y Extremo). Ya no se muestra la diferencia con el precio del cliente final; el admin sigue viendo su ganancia «+X · Y%».
 - `taller.html` carga `taller-recepcion.js?v=20261108-g23`. Arnés a 390 px: ningún botón <44 px.
+- **g24** — Pedido: «Mostrar el mínimo». Debajo de cada precio ahora sale «Mín N», que es el mínimo del nivel (`a.niveles_min`, el que se guarda con «Editar precios»; es el mismo tope de `_rpPrecioMin`). Solo aparece si hay un mínimo menor que el precio. Lo ven el admin y el empleado.
