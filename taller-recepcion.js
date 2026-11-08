@@ -162,26 +162,54 @@
     var NIV = [['1', 'Cliente final'], ['2', 'Por mayor'], ['3', 'Extremo']];
     // 20-oct-2026 (dueño: «como STUDIO exactamente»): un recuadro por cada nivel (— si no tiene precio) y la existencia
     // de cada almacén en fichas, como ppkDetailHTML de STUDIO.
+    // 08-nov-2026 (dueño eligió mezclar las propuestas 2 «Velocidad de caja», 3 «Asistente» y 5 «Existencia por tienda»):
+    // - cada precio es un botón que agrega con su nivel, con cantidad − N + en la misma línea (2);
+    // - el nivel del cliente dice «Del cliente»; los otros muestran cuánto rebajan y solo el admin los usa (candado) (3);
+    // - el margen y el costo solo los ve el admin (3); «Quedan N libres aquí» y no deja pasar de la existencia (3);
+    // - la tienda actual arriba con número grande y aviso «Últimas N»; las demás de más a menos; los ceros juntos (5).
+    function cantDe(a) { var c = estado.cant && estado.cant[String(a.codigo)]; return c > 0 ? c : 1; }
+    function libres(a) { var ex = existe(a); return ex === null ? null : Math.max(0, ex - enLista(a)); }
     function detalleHTML(a, i) {
-      var nv = a.niveles || {}, act = nivelFila(a), admin = esAdminPk();
-      // 30-oct-2026 (dueño): el botón naranja de abajo se quitó; el precio se agrega desde el botón de la fila.
-      // El administrador toca un nivel para cambiar el precio con el que se agrega esa línea.
+      var nv = a.niveles || {}, cli = nivel(), admin = esAdminPk(), serv = esServ(a), serial = esCel(a);
+      var base = Number(nv[cli]) || precioDe(a), lib = libres(a), ya = enLista(a), cant = cantDe(a), costo = Number(a.costo) || 0;
+      var sinEx = lib !== null && lib <= 0;
+      // Cantidad (no para celulares: cada IMEI suma uno, ni para servicios)
+      var tope = lib === null ? 99 : lib;
+      var cantHTML = (serial || serv) ? '' :
+        '<span class="pk-qty-l">Cantidad</span><div class="pk-qty" role="group" aria-label="Cantidad"><button type="button" data-q="-1" data-i="' + i + '" aria-label="Uno menos"' + (cant <= 1 ? ' disabled' : '') + '>−</button>' +
+        '<b aria-live="polite">' + cant + '</b><button type="button" data-q="1" data-i="' + i + '" aria-label="Uno más"' + (cant >= tope ? ' disabled' : '') + '>+</button></div>';
+      var estadoHTML = ya ? '<span class="pk-ya-det"><i class="ti ti-check" aria-hidden="true"></i> En la prefactura: ' + ya + '</span>' : '';
       var cajas = NIV.map(function (n) {
-        var v = Number(nv[n[0]]) || 0, puede = admin && v > 0;
-        return '<' + (puede ? 'button type="button" data-nv="' + n[0] + '" data-i="' + i + '" aria-pressed="' + (n[0] === act) + '"' : 'div') + ' class="pk-nv pk-nv-' + n[0] + (n[0] === act ? ' act' : '') + (v > 0 ? '' : ' no') + (puede ? ' elegible' : '') + '"><small>' + n[1] + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b></' + (puede ? 'button' : 'div') + '>';
+        var v = Number(nv[n[0]]) || 0, esCli = n[0] === cli, puede = v > 0 && !sinEx && (esCli || admin);
+        var sub = esCli ? 'Del cliente' : (v > 0 && base > 0 && v < base ? '−' + plata(base - v).replace(/\.00$/, '') : '');
+        var gana = admin && costo > 0 && v > 0 ? '<em>Gana ' + plata(v - costo).replace(/\.00$/, '') + ' · ' + Math.round((v - costo) / v * 100) + ' %</em>' : '';
+        return '<button type="button" class="pk-nv pk-nv-' + n[0] + (esCli ? ' act' : '') + (v > 0 ? '' : ' no') + '"' + (puede ? ' data-add="' + n[0] + '" data-i="' + i + '"' : ' disabled') +
+          ' aria-label="' + (puede ? 'Agregar ' + cant + ' a ' + n[1] + ' ' + (v > 0 ? plata(v) : '') : n[1] + (v > 0 ? ' (solo el administrador)' : ' sin precio')) + '">' +
+          '<small>' + n[1] + (!esCli && v > 0 && !admin ? ' <i class="ti ti-lock" aria-hidden="true"></i>' : '') + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b>' +
+          (sub ? '<span class="pk-sub">' + esc(sub) + '</span>' : '') + gana + '</button>';
       }).join('');
+      var costoHTML = admin && costo > 0 ? '<div class="pk-costo"><i class="ti ti-lock" aria-hidden="true"></i> Costo ' + plata(costo) + ' · solo administrador</div>' : '';
+      // Existencia por tienda
       var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
-      var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {};
-      // 23-oct-2026 (dueño): «solamente se iban a visualizar los almacenes que tienen disponible». El almacén elegido
-      // sale siempre (en rojo si está en 0); los demás, solo si tienen existencia.
-      var conAlgo = Object.keys(alms).filter(function (c) { return c === almacen() || (Number(ex[c]) || 0) > 0; });
-      var fichas = esServ(a) ? '<span class="pk-ex">Servicio</span>' : conAlgo.map(function (c) {
-        var n = Number(ex[c]) || 0;
-        return '<span class="pk-ex' + (n > 0 ? '' : ' out') + (c === almacen() ? ' aqui' : '') + '">' + esc(alms[c]) + ': <b>' + n + '</b></span>';
-      }).join('') + (!esServ(a) && conAlgo.length === 1 && !(Number(ex[almacen()]) || 0) ? '<span class="pk-ex out">Sin existencia en las demás tiendas</span>' : '');
+      var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {}, aq = almacen();
+      var exHTML;
+      if (serv) exHTML = '<div class="pk-dex"><span class="pk-ex">Servicio</span></div>';
+      else {
+        var nAq = Number(ex[aq]) || 0, total = 0;
+        var otras = Object.keys(alms).filter(function (c) { return c !== aq; }).map(function (c) { var n = Number(ex[c]) || 0; total += Math.max(0, n); return { c: c, n: n }; });
+        total += Math.max(0, nAq);
+        var con = otras.filter(function (o) { return o.n > 0; }).sort(function (x, y) { return y.n - x.n; }), sin = otras.filter(function (o) { return o.n <= 0; });
+        var aviso = nAq <= 0 ? '<span class="pk-aq-av out">Sin existencia aquí</span>' : (nAq <= 3 ? '<span class="pk-aq-av">Últimas ' + nAq + '</span>' : '');
+        exHTML = '<div class="pk-exs">' +
+          '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(alms[aq] || 'Aquí') + '</b> <span class="pk-aq-t">Aquí</span>' + aviso +
+            (ya && lib !== null ? '<div class="pk-aq-lib">Quedan ' + lib + ' libres aquí</div>' : '') + '</div><strong>' + nAq + '</strong></div>' +
+          con.map(function (o) { return '<div class="pk-ot"><span>' + esc(alms[o.c]) + '</span><b>' + o.n + '</b></div>'; }).join('') +
+          (sin.length ? '<div class="pk-sin">Sin existencia: ' + sin.map(function (o) { return esc(alms[o.c]); }).join(' · ') + '</div>' : '') +
+          '<div class="pk-tot">' + total + ' en total</div></div>';
+      }
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
-        '<div class="pk-nvs">' + cajas + '</div>' +
-        '<div class="pk-dex"><span>Existencia</span>' + fichas + '</div></div>';
+        ((cantHTML || estadoHTML) ? '<div class="pk-top">' + estadoHTML + cantHTML + '</div>' : '') +
+        '<div class="pk-nvs">' + cajas + '</div>' + costoHTML + exHTML + '</div>';
     }
     // Nivel elegido para un artículo (el del cliente si no se tocó otro)
     function nivelFila(a) { var k = estado.nvSel && estado.nvSel[String(a.codigo)]; return (k && a.niveles && Number(a.niveles[k]) > 0) ? k : nivel(); }
@@ -330,7 +358,7 @@
           : '<div class="bcrx-ppk-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
     }
     var agregando = false;
-    function agregar(i) {
+    function agregar(i, extra) {
       var a = estado.lista[i]; if (!a || agregando) return;
       agregando = true;
       var imei = estado.imei;
@@ -338,6 +366,9 @@
       Promise.resolve(_rpAgregarArticulo(a)).then(function (ok) {
         agregando = false; if (!ok) return;
         // Nivel distinto elegido por el administrador: la línea nueva toma ese precio (si la línea ya existía, no se toca)
+        // Cantidad elegida en el detalle (08-nov-2026): la línea suma lo que falte, sin pasar de la existencia.
+        if (extra > 0) { try { var its0 = _rpState.items, lj = -1; for (var q3 = its0.length - 1; q3 >= 0; q3--) if (String(its0[q3].cod) === String(a.codigo) && !its0[q3].servicio && !its0[q3].serial) { lj = q3; break; } if (lj >= 0) _rpCant(lj, Number(its0[lj].cant || 0) + extra); } catch (e) {} }
+        if (estado.cant) delete estado.cant[String(a.codigo)];
         if (kNv !== nivel() && !cuantosAntes && esAdminPk()) { try { var its = _rpState.items, li = -1; for (var q2 = its.length - 1; q2 >= 0; q2--) if (String(its[q2].cod) === String(a.codigo) && !its[q2].servicio) { li = q2; break; } if (li >= 0 && prNv > 0) _rpPrecio(li, prNv); } catch (e) {} }
         if (imei) {
           // El IMEI buscado queda en la línea del artículo (si es celular). La cantidad se ajusta sola.
@@ -392,8 +423,12 @@
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
       q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
       q('.bcrx-ppk-list', slot).addEventListener('click', function (e) {
-        var nvb = e.target.closest('.pk-nv[data-nv]');
-        if (nvb) { var ai = estado.lista[Number(nvb.getAttribute('data-i'))]; if (ai) { estado.nvSel = estado.nvSel || {}; var kk = nvb.getAttribute('data-nv'); if (kk === nivel()) delete estado.nvSel[String(ai.codigo)]; else estado.nvSel[String(ai.codigo)] = kk; pintar(); } return; }
+        // Cantidad − / +
+        var qb = e.target.closest('.pk-qty button[data-q]');
+        if (qb) { if (qb.disabled) return; var aq2 = estado.lista[Number(qb.getAttribute('data-i'))]; if (aq2) { estado.cant = estado.cant || {}; var lb = libres(aq2), nn = cantDe(aq2) + Number(qb.getAttribute('data-q')); estado.cant[String(aq2.codigo)] = Math.max(1, lb === null ? nn : Math.min(nn, Math.max(1, lb))); pintar(); } return; }
+        // Precio de un nivel: agrega con ese nivel y la cantidad elegida (el admin puede usar cualquier nivel; los demás, el del cliente)
+        var nvb = e.target.closest('.pk-nv[data-add]');
+        if (nvb) { var ii = Number(nvb.getAttribute('data-i')), ai = estado.lista[ii]; if (ai) { estado.nvSel = estado.nvSel || {}; var kk = nvb.getAttribute('data-add'); if (kk === nivel()) delete estado.nvSel[String(ai.codigo)]; else if (esAdminPk()) estado.nvSel[String(ai.codigo)] = kk; else return; agregar(ii, cantDe(ai) - 1); } return; }
         var b = e.target.closest('.pk-add'); if (b) { if (!b.disabled) agregar(Number(b.getAttribute('data-i'))); return; }
         var f = e.target.closest('[data-fila]'); if (!f) return;
         var i = Number(f.getAttribute('data-fila')); estado.det = estado.det === i ? -1 : i; estado.hl = i; pintar();
