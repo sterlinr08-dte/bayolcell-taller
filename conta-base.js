@@ -39,7 +39,7 @@
     try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
     var piezas = cont.querySelectorAll('.pe-res-h, .pe-kpi, .pe-meta, .pe-per, .pe-pt, .pe-rk, .pe-card, .rv-card, .rv-box');
     Array.prototype.forEach.call(piezas, function (el, i) { el.style.setProperty('--pe-d', Math.min(i, 14) * 28 + 'ms'); el.classList.add('pe-in'); });
-    var arcos = cont.querySelectorAll('.pe-ring circle:last-child'), barras = cont.querySelectorAll('.pe-barra i, .pe-trk > i, .pe-vq-b i, .rv-barra i');
+    var arcos = cont.querySelectorAll('.pe-ring circle:last-child'), barras = cont.querySelectorAll('.pe-barra i, .pe-trk > i, .rv-barra i');
     var finA = [], finB = [];
     Array.prototype.forEach.call(arcos, function (c) { finA.push(c.getAttribute('stroke-dasharray')); var t = (finA[finA.length - 1] || '0 0').split(' ')[1]; c.setAttribute('stroke-dasharray', '0 ' + t); });
     Array.prototype.forEach.call(barras, function (b) { finB.push(b.style.width); b.style.width = '0%'; });

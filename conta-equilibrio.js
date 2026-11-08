@@ -317,7 +317,7 @@
   // ---------- edición ----------
   function editMonto(cod, i, v) { fila(cod).gastos[i].monto = v === '' ? '' : num(v); st.sucio = true; refrescarCalculo(); }
   function editConcepto(cod, i, v) { fila(cod).gastos[i].concepto = v; st.sucio = true; }
-  function agregarConcepto(cod) { fila(cod).gastos.push({ concepto: '', monto: '' }); st.sucio = true; pintar(); setTimeout(function () { var el = document.querySelector('#peGastos input[data-i="' + (fila(cod).gastos.length - 1) + '"]'); if (el) el.focus(); }, 30); }
+  function agregarConcepto(cod) { fila(cod).gastos.push({ concepto: '', monto: '' }); st.sucio = true; pintar(); var el = document.querySelector('#peGastos input[data-i="' + (fila(cod).gastos.length - 1) + '"]'); if (el) el.focus(); }
   function quitarConcepto(cod, i) { fila(cod).gastos.splice(i, 1); st.sucio = true; pintar(); }
   function editVar(cod, k, v) { fila(cod).variables = fila(cod).variables || {}; fila(cod).variables[k] = num(v); st.sucio = true; refrescarCalculo(); }
   function editDias(cod, v) { fila(cod).dias_habiles = v === '' ? null : Math.min(31, Math.round(num(v))); st.sucio = true; refrescarCalculo(); }
@@ -352,7 +352,7 @@
     if (!l.length) { var gi = filaIntereses(); l.push({ banco: '', interes: gi >= 0 ? (num(fila(0).gastos[gi].monto) || '') : '', capital: num(c.capital) || '' }); }
     else l.push({ banco: '', interes: '', capital: '' });
     sincronizarIntereses(); c.capital = capitalPrestamos(); st.sucio = true; pintar();
-    setTimeout(function () { var el = document.querySelector('#pePrest input[data-p="' + (l.length - 1) + '"]'); if (el) el.focus(); }, 30);
+    var el = document.querySelector('#pePrest input[data-p="' + (l.length - 1) + '"]'); if (el) el.focus();
   }
   function quitarPrestamo(i) {
     var l = listaPrestamos(); l.splice(i, 1);
@@ -1083,12 +1083,7 @@
       '@media (max-width:700px){#conta-equilibrio .pe-v-h{flex-wrap:wrap}#conta-equilibrio .pe-v-in{width:100%;flex-wrap:nowrap;justify-content:flex-start}#conta-equilibrio .pe-v-m{flex:1;min-width:0}#conta-equilibrio .pe-v-m input{flex:1;width:auto;min-width:0}#conta-equilibrio .pe-v-m span:last-child{display:none}}',
       '#conta-equilibrio .pe-v-p{display:flex;align-items:center;gap:4px;flex:none}#conta-equilibrio .pe-v-p span{color:#64748b;font-size:14px}',
       '#conta-equilibrio .pe-v-p input{width:76px;height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:12px;padding:0 10px;text-align:right;font-variant-numeric:tabular-nums;background:#fff}',
-      '#conta-equilibrio .pe-v-q{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
-      '#conta-equilibrio .pe-vq{padding:8px 10px;border-radius:10px;background:#f8fafc;min-width:0}#conta-equilibrio .pe-vq.on{background:#fff8f4}',
-      '#conta-equilibrio .pe-vq-l{display:block;font-size:13px;color:#64748b}#conta-equilibrio .pe-vq-v{display:block;font-size:18px;letter-spacing:-.02em;color:#0f172a;font-variant-numeric:tabular-nums;white-space:nowrap}',
-      '#conta-equilibrio .pe-vq-b{height:6px;border-radius:99px;background:#e9eef5;overflow:hidden;margin:6px 0 4px}#conta-equilibrio .pe-vq-b i{display:block;height:100%;border-radius:99px;transition:width 500ms cubic-bezier(.23,1,.32,1)}',
-      '#conta-equilibrio .pe-vq small{font-size:13px;color:#64748b;font-variant-numeric:tabular-nums;display:block}',
-      '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-ring circle,#conta-equilibrio .pe-vq-b i{transition:none}}',
+      '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-ring circle{transition:none}}',
       '#conta-equilibrio .pe-qseg{display:flex;padding:3px;gap:3px;border-radius:12px;background:rgba(15,23,42,.06);margin-bottom:6px}',
       '#conta-equilibrio .pe-qseg button{flex:1;min-height:44px;border:0;border-radius:10px;background:transparent;font:600 13px/1.2 inherit;font-family:inherit;color:#475569;cursor:pointer;transition:background 160ms ease,color 160ms ease}',
       '#conta-equilibrio .pe-qseg button.on{background:#fff;color:#0f172a;box-shadow:0 1px 3px rgba(15,23,42,.12)}',
@@ -1140,8 +1135,8 @@
       '#conta-equilibrio .pe-dias{grid-template-columns:minmax(0,1fr) 80px;margin-top:10px}',
       '#conta-equilibrio .pe-vars input,#conta-equilibrio .pe-dias input{text-align:right}',
       '#conta-equilibrio .pe-rep{display:flex;flex-direction:column;gap:2px}',
-      '#conta-equilibrio .pe-rep label,#conta-equilibrio .pe-itbis{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;cursor:pointer}',
-      '#conta-equilibrio .pe-rep input,#conta-equilibrio .pe-itbis input{width:20px;height:20px}',
+      '#conta-equilibrio .pe-rep label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;cursor:pointer}',
+      '#conta-equilibrio .pe-rep input{width:20px;height:20px}',
       '#conta-equilibrio .pe-res-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}',
       '#conta-equilibrio .pe-res-h b{font-size:17px}',
       '#conta-equilibrio .pe-res-h span{font-size:13px;color:#475569}',
@@ -1150,7 +1145,7 @@
       '@keyframes peEntra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}',
       '#conta-equilibrio .pe-in{animation:peEntra 420ms cubic-bezier(.22,1,.36,1) both;animation-delay:var(--pe-d,0ms)}',
       '#conta-equilibrio .pe-ring circle:last-child{transition:stroke-dasharray 700ms cubic-bezier(.22,1,.36,1)}',
-      '#conta-equilibrio .pe-trk>i,#conta-equilibrio .pe-vq-b i{transition:width 650ms cubic-bezier(.22,1,.36,1)!important}',
+      '#conta-equilibrio .pe-trk>i{transition:width 650ms cubic-bezier(.22,1,.36,1)!important}',
       '#conta-equilibrio .pe-tab,#conta-equilibrio .pe-qseg button{transition:background 220ms ease,color 220ms ease,box-shadow 220ms ease,transform 100ms ease-out}',
       '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-in{animation:none}#conta-equilibrio .pe-ring circle:last-child,#conta-equilibrio .pe-barra i,#conta-equilibrio .pe-trk>i{transition:none!important}}',
       '#conta-equilibrio .pe-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}',
@@ -1189,7 +1184,7 @@
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px;">' +
         '<h3 style="margin:0;"><i class="ti ti-scale" style="color:#e4572e;"></i> Punto de equilibrio por tienda ' +
         '<button onclick="BayolEquilibrio.ayuda()" title="Ayuda" aria-label="Ayuda" style="background:none;border:none;cursor:pointer;color:#475569;font-size:15px;vertical-align:middle;padding:0 3px;min-width:44px;min-height:44px;"><i class="ti ti-info-circle"></i></button></h3>' +
-        '<div class="pe-bar"><div class="pe-mes" id="peMes"><input type="hidden" id="pe_mes">' +
+        '<div class="pe-bar"><div class="pe-mes" id="peMes">' +
           '<button type="button" class="pe-mes-a" aria-label="Mes anterior" onclick="BayolEquilibrio._mp(-1)"><i class="ti ti-chevron-left"></i></button>' +
           '<button type="button" class="pe-mes-l" id="peMesTxt" aria-haspopup="dialog" aria-expanded="false" onclick="BayolEquilibrio._ma()"></button>' +
           '<button type="button" class="pe-mes-a" aria-label="Mes siguiente" onclick="BayolEquilibrio._mp(1)"><i class="ti ti-chevron-right"></i></button>' +
@@ -1209,7 +1204,7 @@
     asegurarPestana(); estilos();
     var pe = $('conta-equilibrio'); if (pe) pe.style.display = '';
     var b = $('contaTabPE'); if (b) b.className = 'btn btn-blue';
-    var m = $('pe_mes'); if (!st.mes) st.mes = mesHoy(); if (m) m.value = st.mes;
+    if (!st.mes) st.mes = mesHoy();
     if (st.sucio || st.cargando) pintar(); else cargar();
   }
   function cerrar() { var pe = $('conta-equilibrio'); if (pe) pe.style.display = 'none'; var b = $('contaTabPE'); if (b) b.className = 'btn btn-light'; }
@@ -1250,8 +1245,8 @@
     tab: function (k) { if (k === 'ventas' && !window.BayolVentas) k = 'general'; if (k !== 'general' && k !== 'comunes' && k !== 'ventas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tab = k; st.animar = true; pintar(); },
     mes: function (v) {
       if (!v) return;
-      var seguir = function () { st.mes = v; st.filas = {}; var m = $('pe_mes'); if (m) m.value = v; cargar(); };
-      if (st.sucio && typeof confirmar === 'function') confirmar('Hay cambios sin guardar. ¿Cambiar de mes y perderlos?').then(function (ok) { if (ok) seguir(); else { var m = $('pe_mes'); if (m) m.value = st.mes; } });
+      var seguir = function () { st.mes = v; st.filas = {}; cargar(); };
+      if (st.sucio && typeof confirmar === 'function') confirmar('Hay cambios sin guardar. ¿Cambiar de mes y perderlos?').then(function (ok) { if (ok) seguir(); });
       else seguir();
     },
     recargar: function () {
