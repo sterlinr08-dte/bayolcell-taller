@@ -166,29 +166,27 @@
     // - cada precio es un botón que agrega con su nivel, con cantidad − N + en la misma línea (2);
     // - el nivel del cliente dice «Del cliente»; los otros muestran cuánto rebajan y solo el admin los usa (candado) (3);
     // - el margen y el costo solo los ve el admin (3); «Quedan N libres aquí» y no deja pasar de la existencia (3);
-    // - la tienda actual arriba con número grande y aviso «Últimas N»; las demás de más a menos; los ceros juntos (5).
+    // - la tienda actual arriba con número grande; en rojo si hay 0; las demás de más a menos; los ceros juntos (5).
     function cantDe(a) { var c = estado.cant && estado.cant[String(a.codigo)]; return c > 0 ? c : 1; }
     function libres(a) { var ex = existe(a); return ex === null ? null : Math.max(0, ex - enLista(a)); }
     function detalleHTML(a, i) {
       var nv = a.niveles || {}, cli = nivel(), admin = esAdminPk(), serv = esServ(a), serial = esCel(a);
-      var base = Number(nv[cli]) || precioDe(a), lib = libres(a), ya = enLista(a), cant = cantDe(a), costo = Number(a.costo) || 0;
+      var mins = a.niveles_min || {}, lib = libres(a), ya = enLista(a), cant = cantDe(a), costo = Number(a.costo) || 0;
       var sinEx = lib !== null && lib <= 0;
-      // Cantidad (no para celulares: cada IMEI suma uno, ni para servicios)
-      var tope = lib === null ? 99 : lib;
-      var cantHTML = (serial || serv) ? '' :
-        '<span class="pk-qty-l">Cantidad</span><div class="pk-qty" role="group" aria-label="Cantidad"><button type="button" data-q="-1" data-i="' + i + '" aria-label="Uno menos"' + (cant <= 1 ? ' disabled' : '') + '>−</button>' +
-        '<b aria-live="polite">' + cant + '</b><button type="button" data-q="1" data-i="' + i + '" aria-label="Uno más"' + (cant >= tope ? ' disabled' : '') + '>+</button></div>';
-      var estadoHTML = ya ? '<span class="pk-ya-det"><i class="ti ti-check" aria-hidden="true"></i> En la prefactura: ' + ya + '</span>' : '';
-      var cajas = NIV.map(function (n) {
+      var estadoHTML = ya ? '<span class="pk-ya-det"><i class="ti ti-check" aria-hidden="true"></i> En prefactura ×' + ya + '</span>' : '';
+      // Microcopy compacto (dueño, 08-nov-2026): el anillo ya dice cuál es del cliente; rebaja y ganancia en cifras cortas;
+      // los niveles sin precio no se muestran.
+      var corto = function (n) { return Math.round(n).toLocaleString('es-DO'); };
+      var cajas = NIV.filter(function (n) { return (Number(nv[n[0]]) || 0) > 0 || n[0] === cli; }).map(function (n) {
         var v = Number(nv[n[0]]) || 0, esCli = n[0] === cli, puede = v > 0 && !sinEx && (esCli || admin);
-        var sub = esCli ? 'Del cliente' : (v > 0 && base > 0 && v < base ? '−' + plata(base - v).replace(/\.00$/, '') : '');
-        var gana = admin && costo > 0 && v > 0 ? '<em>Gana ' + plata(v - costo).replace(/\.00$/, '') + ' · ' + Math.round((v - costo) / v * 100) + ' %</em>' : '';
+        var m = Number(mins[n[0]]) || 0, sub = v > 0 && m > 0 && m < v ? 'Mín ' + corto(m) : '';
+        var gana = admin && costo > 0 && v > 0 ? '<em>+' + corto(v - costo) + ' · ' + Math.round((v - costo) / v * 100) + '%</em>' : '';
         return '<button type="button" class="pk-nv pk-nv-' + n[0] + (esCli ? ' act' : '') + (v > 0 ? '' : ' no') + '"' + (puede ? ' data-add="' + n[0] + '" data-i="' + i + '"' : ' disabled') +
           ' aria-label="' + (puede ? 'Agregar ' + cant + ' a ' + n[1] + ' ' + (v > 0 ? plata(v) : '') : n[1] + (v > 0 ? ' (solo el administrador)' : ' sin precio')) + '">' +
           '<small>' + n[1] + (!esCli && v > 0 && !admin ? ' <i class="ti ti-lock" aria-hidden="true"></i>' : '') + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b>' +
-          (sub ? '<span class="pk-sub">' + esc(sub) + '</span>' : '') + gana + '</button>';
+          (sub ? '<span class="pk-sub">' + sub + '</span>' : '') + gana + '</button>';
       }).join('');
-      var costoHTML = admin && costo > 0 ? '<div class="pk-costo"><i class="ti ti-lock" aria-hidden="true"></i> Costo ' + plata(costo) + ' · solo administrador</div>' : '';
+      var costoHTML = admin && costo > 0 ? '<div class="pk-costo" title="Solo lo ve el administrador"><i class="ti ti-lock" aria-hidden="true"></i> Costo ' + plata(costo).replace(/\.00$/, '') + '</div>' : '';
       // Existencia por tienda
       var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
       var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {}, aq = almacen();
@@ -199,17 +197,19 @@
         var otras = Object.keys(alms).filter(function (c) { return c !== aq; }).map(function (c) { var n = Number(ex[c]) || 0; total += Math.max(0, n); return { c: c, n: n }; });
         total += Math.max(0, nAq);
         var con = otras.filter(function (o) { return o.n > 0; }).sort(function (x, y) { return y.n - x.n; }), sin = otras.filter(function (o) { return o.n <= 0; });
-        var aviso = nAq <= 0 ? '<span class="pk-aq-av out">Sin existencia aquí</span>' : (nAq <= 3 ? '<span class="pk-aq-av">Últimas ' + nAq + '</span>' : '');
+        var CORTO = { 'Oficina Santiago': 'Santiago', 'Garantía China': 'Garantía', 'Localidad Moca': 'Moca', 'Localidad Navarrete': 'Navarrete', 'Almacén 2do Nivel': '2do Nivel' };
+        var nomC = function (c) { var n = alms[c] || ''; return CORTO[n] || n; };
+        
         exHTML = '<div class="pk-exs">' +
-          '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(alms[aq] || 'Aquí') + '</b> <span class="pk-aq-t">Aquí</span>' + aviso +
-            (ya && lib !== null ? '<div class="pk-aq-lib">Quedan ' + lib + ' libres aquí</div>' : '') + '</div><strong>' + nAq + '</strong></div>' +
-          con.map(function (o) { return '<div class="pk-ot"><span>' + esc(alms[o.c]) + '</span><b>' + o.n + '</b></div>'; }).join('') +
-          (sin.length ? '<div class="pk-sin">Sin existencia: ' + sin.map(function (o) { return esc(alms[o.c]); }).join(' · ') + '</div>' : '') +
-          '<div class="pk-tot">' + total + ' en total</div></div>';
+          '<div class="pk-aq' + (nAq <= 0 ? ' out' : '') + '"><div><b>' + esc(nomC(aq) || 'Aquí') + '</b>' +
+            (ya && lib !== null ? '<div class="pk-aq-lib">' + lib + ' libres</div>' : '') + '</div><strong>' + nAq + '</strong></div>' +
+          con.map(function (o) { return '<div class="pk-ot"><span>' + esc(nomC(o.c)) + '</span><b>' + o.n + '</b></div>'; }).join('') +
+          (sin.length ? '<div class="pk-sin">0 en ' + sin.map(function (o) { return esc(nomC(o.c)); }).join(', ') + '</div>' : '') +
+          (con.length ? '<div class="pk-tot">Total ' + total + '</div>' : '') + '</div>';
       }
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
-        ((cantHTML || estadoHTML) ? '<div class="pk-top">' + estadoHTML + cantHTML + '</div>' : '') +
-        '<div class="pk-nvs">' + cajas + '</div>' + costoHTML + exHTML + '</div>';
+        (estadoHTML ? '<div class="pk-top">' + estadoHTML + '</div>' : '') +
+        '<div class="pk-nvs pk-n' + (cajas.split('class="pk-nv ').length - 1) + '">' + cajas + '</div>' + costoHTML + exHTML + '</div>';
     }
     // Nivel elegido para un artículo (el del cliente si no se tocó otro)
     function nivelFila(a) { var k = estado.nvSel && estado.nvSel[String(a.codigo)]; return (k && a.niveles && Number(a.niveles[k]) > 0) ? k : nivel(); }
@@ -423,9 +423,6 @@
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
       q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
       q('.bcrx-ppk-list', slot).addEventListener('click', function (e) {
-        // Cantidad − / +
-        var qb = e.target.closest('.pk-qty button[data-q]');
-        if (qb) { if (qb.disabled) return; var aq2 = estado.lista[Number(qb.getAttribute('data-i'))]; if (aq2) { estado.cant = estado.cant || {}; var lb = libres(aq2), nn = cantDe(aq2) + Number(qb.getAttribute('data-q')); estado.cant[String(aq2.codigo)] = Math.max(1, lb === null ? nn : Math.min(nn, Math.max(1, lb))); pintar(); } return; }
         // Precio de un nivel: agrega con ese nivel y la cantidad elegida (el admin puede usar cualquier nivel; los demás, el del cliente)
         var nvb = e.target.closest('.pk-nv[data-add]');
         if (nvb) { var ii = Number(nvb.getAttribute('data-i')), ai = estado.lista[ii]; if (ai) { estado.nvSel = estado.nvSel || {}; var kk = nvb.getAttribute('data-add'); if (kk === nivel()) delete estado.nvSel[String(ai.codigo)]; else if (esAdminPk()) estado.nvSel[String(ai.codigo)] = kk; else return; agregar(ii, cantDe(ai) - 1); } return; }

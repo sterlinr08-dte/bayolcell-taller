@@ -355,7 +355,7 @@ html.bc-rx #v-recepcion .pk-add.pk-btn:disabled,
 html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-add.pk-btn { background: #f1f5f9; color: #dc2626; border: 1.5px solid #fca5a5; box-shadow: none; }
 
 /* 08-nov-2026 · Ficha del artículo: mezcla de las propuestas 2 (Velocidad de caja), 3 (Asistente) y 5 (Existencia por tienda). */
-html.bc-rx #v-recepcion .bcrx-ppk-det { display: flex; flex-direction: column; gap: 10px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
 html.bc-rx #v-recepcion .bcrx-ppk-det .pk-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ya-det { font-size: 13.5px; font-weight: 700; color: #15803d; display: inline-flex; align-items: center; gap: 4px; }
 html.bc-rx #v-recepcion .bcrx-ppk-det .pk-qty-l { font-size: 13px; font-weight: 700; color: #64748b; margin-left: auto; }
@@ -392,3 +392,23 @@ html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ot b { font-size: 16px; color: #0f172a
 html.bc-rx #v-recepcion .bcrx-ppk-det .pk-sin { font-size: 12.5px; color: #94a3b8; padding: 0 12px; }
 html.bc-rx #v-recepcion .bcrx-ppk-det .pk-tot { font-size: 12.5px; font-weight: 700; color: #64748b; padding: 0 12px; text-align: right; }
 @media (prefers-reduced-motion: reduce) { html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv { transition: none; } }
+
+/* 08-nov-2026 · microcopy compacto de la ficha: menos alto y niveles sin precio fuera */
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nvs.pk-n1 { grid-template-columns: minmax(0, 1fr); }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nvs.pk-n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv { min-height: 56px; padding: 6px 6px; gap: 0; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-aq { padding: 8px 12px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-aq strong { font-size: 22px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-aq-t { text-transform: none; letter-spacing: 0; font-weight: 700; color: #0891b2; background: none; padding: 0; margin-left: 2px; font-size: 13px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-costo { text-align: right; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-top { justify-content: flex-end; }
+
+/* 08-nov-2026 · existencia en línea (dueño): tiendas como píldoras en una fila, el total a la derecha */
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-exs { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-aq, html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ot { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; min-height: 32px; line-height: 1.2; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ot { background: #f8fafc; border: 1px solid #e2e8f0; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-aq b, html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ot span { font-size: 14px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-aq strong, html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ot b { font-size: 16px; font-weight: 800; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-aq-lib { display: inline; margin: 0 0 0 4px; font-size: 12px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-tot { margin-left: auto; padding: 0 4px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-sin { flex-basis: 100%; order: 9; padding: 0 4px; }
