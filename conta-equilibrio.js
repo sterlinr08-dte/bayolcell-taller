@@ -75,12 +75,14 @@
   function fila(cod) { if (!st.filas[cod]) st.filas[cod] = filaVacia(cod); return st.filas[cod]; }
   function totalFijos(cod) { return (fila(cod).gastos || []).reduce(function (s, g) { return s + num(g.monto); }, 0); }
   function faltanMontos(cod) { return (fila(cod).gastos || []).filter(function (g) { return String(g.monto).trim() === ''; }).length; }
+  // Factor del ITBIS sobre la parte de las ventas que lo lleva (g18 = fracción de 0 a 1).
+  function factorItbis(g18) { return 1 + 0.18 * g18; }
   function itbisPct() { var v = fila(0).variables || {}; return Math.min(100, num(v.itbis_pct)) / 100; }
   function pctVariables(cod) {
     var v = fila(cod).variables || {};
     var tarj = (v.tarjeta_pct == null ? TARJETA_DEF.tarjeta_pct : num(v.tarjeta_pct)) * (v.tarjeta_parte == null ? TARJETA_DEF.tarjeta_parte : num(v.tarjeta_parte)) / 100;
     // El banco cobra sobre el total con ITBIS.
-    tarj = tarj * (1 + 0.18 * itbisPct());
+    tarj = tarj * factorItbis(itbisPct());
     return (VARIABLES.reduce(function (s, x) { return s + num(v[x.k]); }, 0) + tarj) / 100;
   }
 
@@ -121,6 +123,10 @@
     x.metaDia = x.metaFalta && quedan > 0 ? x.metaFalta / quedan : null;
   }
 
+  // Reparto manual de gastos comunes: suma de los % de las tiendas, y si cuadra en 100 %.
+  function sumaReparto(com) { return TIENDAS.reduce(function (a, t) { return a + num((com.reparto_pct || {})[t.cod]); }, 0); }
+  function repartoCuadra(com) { return Math.abs(sumaReparto(com) - 100) <= 0.01; }
+
   // ---------- cálculo ----------
   function calcular() {
     var com = fila(0), g18 = itbisPct(), itbis = g18 > 0, GC = totalFijos(0), em = estadoMes(st.mes);
@@ -138,11 +144,11 @@
     }
     var tiendas = TIENDAS.map(function (t) {
       var v = st.ventas[t.cod] || { venta: 0, costo: 0 };
-      var vn = v.venta / (1 + 0.18 * g18), c = v.costo;
+      var vn = v.venta / factorItbis(g18), c = v.costo;
       var mb = vn > 0 ? (vn - c) / vn : 0, mc = mb - pctVariables(t.cod);
       return { t: t, venta: v.venta, vn: vn, costo: c, mb: mb, mc: mc, gf: totalFijos(t.cod), faltan: faltanMontos(t.cod),
         diasMes: num(fila(t.cod).dias_habiles) || diasDefecto(st.mes, t), diasPas: contarDias(st.mes, t.domingo, true),
-        diasAyer: diasHastaAyer(st.mes, t.domingo), ventaAnt: (st.ventasAnt[t.cod] || { venta: 0 }).venta / (1 + 0.18 * g18) };
+        diasAyer: diasHastaAyer(st.mes, t.domingo), ventaAnt: (st.ventasAnt[t.cod] || { venta: 0 }).venta / factorItbis(g18) };
     });
     var sumVN = tiendas.reduce(function (s, x) { return s + x.vn; }, 0);
     var sumAnt = tiendas.reduce(function (s, x) { return s + x.ventaAnt; }, 0);
@@ -198,8 +204,7 @@
     metaDe(g, tiendas.reduce(function (s, x) { return s + x.meta; }, 0), quedanG);
     g.metaSug = tiendas.reduce(function (s, x) { return s + (x.metaSug || 0); }, 0);
     g.metasFaltan = tiendas.filter(function (x) { return !x.meta; }).length;
-    var repSuma = TIENDAS.reduce(function (a, t) { return a + num((com.reparto_pct || {})[t.cod]); }, 0);
-    var repMal = com.reparto === 'manual' && Math.abs(repSuma - 100) > 0.01;
+    var repSuma = sumaReparto(com), repMal = com.reparto === 'manual' && !repartoCuadra(com);
     var errVentas = TIENDAS.some(function (t) { return st.ventas[t.cod] && st.ventas[t.cod].error; });
     var usaAnt = com.reparto === 'venta' && base === 'anterior';
     var errAnt = usaAnt && TIENDAS.some(function (t) { return st.ventasAnt[t.cod] && st.ventasAnt[t.cod].error; });
@@ -276,8 +281,7 @@
     });
     var com = fila(0);
     if (com.reparto === 'manual') {
-      var s = TIENDAS.reduce(function (a, t) { return a + num((com.reparto_pct || {})[t.cod]); }, 0);
-      if (Math.abs(s - 100) > 0.01) { aviso('El reparto manual de gastos comunes debe sumar 100 %.', 'error'); return; }
+      if (!repartoCuadra(com)) { aviso('El reparto manual de gastos comunes debe sumar 100 %.', 'error'); return; }
     }
     var btn = $('peBtnGuardar'); if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
     try {
@@ -1263,6 +1267,17 @@
     _estado: function () { return st; },
     _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
   };
+
+  var avisoNeg = 0;
+  function sinNegativos(e) {
+    var el = e.target;
+    if (!el || el.tagName !== 'INPUT' || el.getAttribute('inputmode') !== 'decimal' || el.value.indexOf('-') < 0) return;
+    if (!el.closest('#conta-equilibrio, #peVendSheet')) return;
+    el.value = el.value.replace(/-/g, '');
+    if (Date.now() - avisoNeg > 4000) { avisoNeg = Date.now(); aviso('Solo números positivos.', 'error'); }
+  }
+  // Fase de captura: se limpia el campo antes de que lo lea su propio oninput / onchange.
+  document.addEventListener('input', sinNegativos, true);
 
   function iniciar() {
     if (!envolver()) { setTimeout(iniciar, 300); return; }
