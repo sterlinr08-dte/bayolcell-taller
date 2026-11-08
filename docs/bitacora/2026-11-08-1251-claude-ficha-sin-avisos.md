@@ -10,3 +10,7 @@
 - **Pruebas:** arnés `ficha2.html` a 390 px, como empleado y como admin.
   - Ningún botón mide menos de 44 px.
   - El detalle mide 156 px (ZTE) y 277 px (S8).
+
+## Adición (g23)
+- Pedido: «Quitarlo» (el «−150» debajo de Por mayor y Extremo). Ya no se muestra la diferencia con el precio del cliente final; el admin sigue viendo su ganancia «+X · Y%».
+- `taller.html` carga `taller-recepcion.js?v=20261108-g23`. Arnés a 390 px: ningún botón <44 px.

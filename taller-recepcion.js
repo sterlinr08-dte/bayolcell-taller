@@ -171,7 +171,7 @@
     function libres(a) { var ex = existe(a); return ex === null ? null : Math.max(0, ex - enLista(a)); }
     function detalleHTML(a, i) {
       var nv = a.niveles || {}, cli = nivel(), admin = esAdminPk(), serv = esServ(a), serial = esCel(a);
-      var base = Number(nv[cli]) || precioDe(a), lib = libres(a), ya = enLista(a), cant = cantDe(a), costo = Number(a.costo) || 0;
+      var lib = libres(a), ya = enLista(a), cant = cantDe(a), costo = Number(a.costo) || 0;
       var sinEx = lib !== null && lib <= 0;
       // Cantidad (no para celulares: cada IMEI suma uno, ni para servicios)
       var tope = lib === null ? 99 : lib;
@@ -184,12 +184,11 @@
       var corto = function (n) { return Math.round(n).toLocaleString('es-DO'); };
       var cajas = NIV.filter(function (n) { return (Number(nv[n[0]]) || 0) > 0 || n[0] === cli; }).map(function (n) {
         var v = Number(nv[n[0]]) || 0, esCli = n[0] === cli, puede = v > 0 && !sinEx && (esCli || admin);
-        var sub = !esCli && v > 0 && base > 0 && v < base ? '−' + corto(base - v) : '';
         var gana = admin && costo > 0 && v > 0 ? '<em>+' + corto(v - costo) + ' · ' + Math.round((v - costo) / v * 100) + '%</em>' : '';
         return '<button type="button" class="pk-nv pk-nv-' + n[0] + (esCli ? ' act' : '') + (v > 0 ? '' : ' no') + '"' + (puede ? ' data-add="' + n[0] + '" data-i="' + i + '"' : ' disabled') +
           ' aria-label="' + (puede ? 'Agregar ' + cant + ' a ' + n[1] + ' ' + (v > 0 ? plata(v) : '') : n[1] + (v > 0 ? ' (solo el administrador)' : ' sin precio')) + '">' +
           '<small>' + n[1] + (!esCli && v > 0 && !admin ? ' <i class="ti ti-lock" aria-hidden="true"></i>' : '') + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b>' +
-          (sub ? '<span class="pk-sub">' + esc(sub) + '</span>' : '') + gana + '</button>';
+          gana + '</button>';
       }).join('');
       var costoHTML = admin && costo > 0 ? '<div class="pk-costo" title="Solo lo ve el administrador"><i class="ti ti-lock" aria-hidden="true"></i> Costo ' + plata(costo).replace(/\.00$/, '') + '</div>' : '';
       // Existencia por tienda
