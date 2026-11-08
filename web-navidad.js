@@ -75,8 +75,8 @@
     var w = 1200, d = 'M0 0 H' + w + ' V4 ';
     for (var x = w; x > 0; x -= 18) d += 'Q' + (x - 9) + ' ' + (8 + (x * 7 % 6)) + ' ' + (x - 18) + ' 4 ';
     h.insertAdjacentHTML('beforeend', '<svg class="nv-techo" viewBox="0 0 1200 12" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + 'Z" fill="#f8fafc"/></svg>');
-    var cols = ['#ef4444', '#facc15', '#22c55e', '#38bdf8', '#f472b6'], n = innerWidth < 700 ? 14 : 34, s = '';
-    for (var i = 0; i < n; i++) s += '<i style="color:' + cols[i % 5] + '"></i>';
+    var cols = ['#ff3b5c', '#ffd23f', '#2ee59d', '#3fb7ff', '#c77dff'], n = innerWidth < 700 ? 14 : 34, s = '';
+    for (var i = 0; i < n; i++) s += '<i style="--n:' + i + ';color:' + cols[i % 5] + '"></i>';
     h.insertAdjacentHTML('beforeend', '<div class="nv-luces" aria-hidden="true">' + s + '</div>');
     var logo = h.querySelector('.logo'), wrap = h.querySelector('.wrap');
     if (logo && wrap) {

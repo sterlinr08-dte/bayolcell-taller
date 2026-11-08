@@ -10,11 +10,16 @@
 
 /* nieve en el borde del menú y luces */
 .nv-techo{position:absolute;left:0;right:0;bottom:-6px;width:100%!important;max-width:none!important;height:11px;pointer-events:none;z-index:2}
-.nv-luces{position:absolute;left:0;right:0;bottom:-15px;height:22px;pointer-events:none;z-index:3;display:flex;justify-content:space-around}
-.nv-luces::before{content:'';position:absolute;left:0;right:0;top:-2px;height:10px;border-bottom:1.5px solid rgba(21,128,61,.85);border-radius:0 0 50% 50%/0 0 100% 100%}
-.nv-luces i{width:8px;height:12px;margin-top:5px;border-radius:50% 50% 45% 45%;background:currentColor;box-shadow:0 0 8px currentColor,0 0 16px currentColor;animation:nvTitila 1.8s ease-in-out infinite alternate}
-.nv-luces i:nth-child(3n){animation-delay:.6s}.nv-luces i:nth-child(3n+1){animation-delay:1.2s}
-@keyframes nvTitila{from{opacity:1}to{opacity:.35}}
+/* luces: bombillos de cristal (dueño, 08-nov-2026, opción A): tapita plateada, brillo de vidrio y ola de encendido */
+.nv-luces{position:absolute;left:0;right:0;bottom:-22px;height:30px;pointer-events:none;z-index:3;display:flex;justify-content:space-around}
+.nv-luces::before{content:'';position:absolute;left:0;right:0;top:-1px;height:12px;border-bottom:1.5px solid #1f2937;border-radius:0 0 50% 50%/0 0 100% 100%}
+.nv-luces i{position:relative;width:10px;height:16px;margin-top:9px;border-radius:50% 50% 50% 50%/40% 40% 60% 60%;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85) 0 12%,transparent 30%),currentColor;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85) 0 12%,transparent 30%),radial-gradient(circle at 50% 60%,currentColor,color-mix(in srgb,currentColor 55%,#000));
+  box-shadow:0 0 10px 1px currentColor;box-shadow:0 0 10px 1px currentColor,0 0 22px 2px color-mix(in srgb,currentColor 50%,transparent);
+  animation:nvOla 2.4s ease-in-out infinite;animation-delay:calc(var(--n,0) * -.12s)}
+.nv-luces i::before{content:'';position:absolute;left:1.5px;right:1.5px;top:-5px;height:6px;border-radius:2px 2px 1px 1px;background:linear-gradient(90deg,#6b7280,#e5e7eb 45%,#9ca3af)}
+@keyframes nvOla{0%,100%{opacity:1;filter:brightness(1.15) saturate(1.1)}50%{opacity:.45;filter:brightness(.7)}}
 
 /* gorro de Santa sobre el logo */
 .nv-gorro{position:absolute;width:40px;height:auto;pointer-events:none;z-index:4;transform:rotate(-16deg);transform-origin:bottom left}
