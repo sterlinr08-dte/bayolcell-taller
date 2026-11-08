@@ -105,8 +105,14 @@
   // Lista en fila(0).variables.prestamos = [{ banco, interes, capital }]. Los intereses son gasto (van en la fila
   // «Intereses de préstamos», que se llena sola); el capital no es gasto pero sale de la caja.
   function prestamos() { var v = fila(0).variables || {}; return Array.isArray(v.prestamos) ? v.prestamos : null; }
+  // «Cuota total» (dueño, 08-nov-2026): se puede anotar la cuota completa sin separar. Mientras tanto toda la cuota
+  // cuenta como gasto (igual que antes) y se avisa; cuando haya desglose se pasa a «Separado» (intereses + capital).
+  function esTotal(p) { return p && p.modo === 'total'; }
+  function interesDe(p) { return esTotal(p) ? num(p.cuota) : num(p.interes); }
+  function capitalDe(p) { return esTotal(p) ? 0 : num(p.capital); }
+  function hayCuotaTotal() { return (prestamos() || []).some(function (p) { return esTotal(p) && num(p.cuota) > 0; }); }
   function capitalPrestamos() {
-    var l = prestamos(); if (l && l.length) return l.reduce(function (s, p) { return s + num(p.capital); }, 0);
+    var l = prestamos(); if (l && l.length) return l.reduce(function (s, p) { return s + capitalDe(p); }, 0);
     return num((fila(0).variables || {}).capital);
   }
   function filaIntereses() {
@@ -116,7 +122,7 @@
   function sincronizarIntereses() {
     var l = prestamos() || [], gs = fila(0).gastos, i = filaIntereses();
     if (!l.length) return;
-    var tot = Math.round(l.reduce(function (s, p) { return s + num(p.interes); }, 0) * 100) / 100;
+    var tot = Math.round(l.reduce(function (s, p) { return s + interesDe(p); }, 0) * 100) / 100;
     if (i < 0) { gs.push({ concepto: 'Intereses de préstamos', monto: tot, clave: 'intereses' }); return; }
     gs[i].concepto = 'Intereses de préstamos'; gs[i].monto = tot;
   }
@@ -355,6 +361,13 @@
     var f = fila(cod); f.variables = f.variables || {}; f.variables.meta = x.metaSug; st.sucio = true; pintar();
   }
   function listaPrestamos() { var c = fila(0); c.variables = c.variables || {}; if (!Array.isArray(c.variables.prestamos)) c.variables.prestamos = []; return c.variables.prestamos; }
+  function modoPrestamo(i, modo) {
+    var l = listaPrestamos(), p = l[i]; if (!p || (modo === 'total') === esTotal(p)) return;
+    if (modo === 'total') { if (!(num(p.cuota) > 0)) p.cuota = (num(p.interes) + num(p.capital)) || ''; p.modo = 'total'; }
+    else { if (!(num(p.interes) > 0) && !(num(p.capital) > 0) && num(p.cuota) > 0) p.interes = num(p.cuota); p.modo = 'separado'; }
+    sincronizarIntereses(); fila(0).variables.capital = capitalPrestamos(); st.sucio = true; pintar();
+    var el = document.querySelector('#pePrest .pe-p:nth-of-type(' + (i + 1) + ') label input'); if (el) el.focus();
+  }
   function editPrestamo(i, k, v) {
     var l = listaPrestamos(); if (!l[i]) return;
     l[i][k] = k === 'banco' ? String(v).slice(0, 60) : (v === '' ? '' : num(v));
@@ -368,7 +381,12 @@
   function agregarPrestamo() {
     var l = listaPrestamos(), c = fila(0).variables;
     // El primer renglón se lleva lo que ya estaba escrito (capital suelto e intereses de la lista de gastos).
-    if (!l.length) { var gi = filaIntereses(); l.push({ banco: '', interes: gi >= 0 ? (num(fila(0).gastos[gi].monto) || '') : '', capital: num(c.capital) || '' }); }
+    if (!l.length) {
+      var gi = filaIntereses(), previo = gi >= 0 ? num(fila(0).gastos[gi].monto) : 0;
+      // Si lo anotado antes es la cuota completa sin capital aparte, entra como «Cuota total» (caso de octubre 2026).
+      if (previo > 0 && !(num(c.capital) > 0)) l.push({ banco: '', modo: 'total', cuota: previo, interes: '', capital: '' });
+      else l.push({ banco: '', interes: previo || '', capital: num(c.capital) || '' });
+    }
     else l.push({ banco: '', interes: '', capital: '' });
     sincronizarIntereses(); c.capital = capitalPrestamos(); st.sucio = true; pintar();
     var el = document.querySelector('#pePrest input[data-p="' + (l.length - 1) + '"]'); if (el) el.focus();
@@ -423,6 +441,7 @@
     if (x.pe != null && x.vn >= x.pe && x.vn > 0) avisos.push('Ya ' + (esGeneral ? 'se cubrieron' : 'cubrió') + ' los gastos del mes. Lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
     else if (c.em === 'actual' && x.pe != null && x.proy < x.pe && x.diaNecesario != null) avisos.push('Al ritmo actual cerraría el mes por debajo del punto de equilibrio. Necesita vender ' + plata(x.diaNecesario) + ' por día hábil.');
     if (itbis) avisos.push('Se quita el ITBIS al ' + Math.round(c.g18 * 100) + ' % de las ventas.');
+    if (hayCuotaTotal()) avisos.push('Hay préstamos anotados con la cuota total: el capital está contando como gasto y el punto de equilibrio sale más alto. Sepárelos en intereses y capital cuando tenga el desglose.');
     if (c.sinAnt) avisos.push('El mes anterior no tiene ventas: los gastos comunes se reparten en partes iguales.');
     var cnx = esGeneral ? Object.keys(c.cn).reduce(function (a, k) { a.n += c.cn[k].n; a.v += c.cn[k].venta; return a; }, { n: 0, v: 0 }) : (c.cn[x.t && x.t.cod] ? { n: c.cn[x.t.cod].n, v: c.cn[x.t.cod].venta } : null);
     if (cnx && cnx.n) avisos.push('Incluye ' + cnx.n + ' nota(s) de crédito (devoluciones) por ' + plata(cnx.v) + ', ya restadas de la venta.');
@@ -730,16 +749,24 @@
   }
 
   function htmlTotPrestamos() {
-    var l = prestamos() || [], i = l.reduce(function (s, p) { return s + num(p.interes); }, 0), k = l.reduce(function (s, p) { return s + num(p.capital); }, 0);
-    return '<span>Intereses <b>' + plata(i) + '</b></span><span>Capital <b>' + plata(k) + '</b></span><span>Cuota del mes <b>' + plata(i + k) + '</b></span>';
+    var l = prestamos() || [], sep = l.filter(function (p) { return !esTotal(p); }), tot = l.filter(esTotal);
+    var i = sep.reduce(function (s, p) { return s + num(p.interes); }, 0), k = sep.reduce(function (s, p) { return s + num(p.capital); }, 0), t = tot.reduce(function (s, p) { return s + num(p.cuota); }, 0);
+    return (sep.length ? '<span>Intereses <b>' + plata(i) + '</b></span><span>Capital <b>' + plata(k) + '</b></span>' : '') +
+      (tot.length ? '<span>Sin separar <b>' + plata(t) + '</b></span>' : '') + '<span>Cuota del mes <b>' + plata(i + k + t) + '</b></span>';
   }
   function htmlPrestamos(cvv) {
     var l = prestamos() || [];
     var filas = l.map(function (p, i) {
-      return '<div class="pe-p">' +
+      var tot = esTotal(p), v = function (x) { return x === '' || x == null ? '' : num(x); };
+      return '<div class="pe-p' + (tot ? ' pe-p-total' : '') + '">' +
+        '<div class="pe-qseg pe-p-modo" role="group" aria-label="Cómo se anota el préstamo ' + (i + 1) + '">' +
+          '<button type="button" class="' + (tot ? '' : 'on') + '" aria-pressed="' + !tot + '" onclick="BayolEquilibrio._pm(' + i + ',\'separado\')">Intereses y capital</button>' +
+          '<button type="button" class="' + (tot ? 'on' : '') + '" aria-pressed="' + tot + '" onclick="BayolEquilibrio._pm(' + i + ',\'total\')">Cuota total</button></div>' +
         '<input class="pe-p-b" data-p="' + i + '" value="' + esc(p.banco || '') + '" placeholder="Banco o prestamista" aria-label="Banco del préstamo ' + (i + 1) + '" oninput="BayolEquilibrio._pb(' + i + ',\'banco\',this.value)">' +
-        '<label><span>Intereses</span><input inputmode="decimal" value="' + (p.interes === '' || p.interes == null ? '' : num(p.interes)) + '" placeholder="0.00" oninput="BayolEquilibrio._pb(' + i + ',\'interes\',this.value)"></label>' +
-        '<label><span>Capital</span><input inputmode="decimal" value="' + (p.capital === '' || p.capital == null ? '' : num(p.capital)) + '" placeholder="0.00" oninput="BayolEquilibrio._pb(' + i + ',\'capital\',this.value)"></label>' +
+        (tot
+          ? '<label class="pe-p-cuota"><span>Cuota total del mes</span><input inputmode="decimal" value="' + v(p.cuota) + '" placeholder="0.00" oninput="BayolEquilibrio._pb(' + i + ',\'cuota\',this.value)"></label>'
+          : '<label><span>Intereses</span><input inputmode="decimal" value="' + v(p.interes) + '" placeholder="0.00" oninput="BayolEquilibrio._pb(' + i + ',\'interes\',this.value)"></label>' +
+            '<label><span>Capital</span><input inputmode="decimal" value="' + v(p.capital) + '" placeholder="0.00" oninput="BayolEquilibrio._pb(' + i + ',\'capital\',this.value)"></label>') +
         '<button class="pe-x" title="Quitar préstamo" aria-label="Quitar préstamo ' + (i + 1) + '" onclick="BayolEquilibrio._pq(' + i + ')"><i class="ti ti-x"></i></button>' +
       '</div>';
     }).join('');
@@ -747,7 +774,8 @@
     return '<div class="pe-prest" id="pePrest"><h4>Préstamos (cuota de este mes)</h4>' + filas + suelto +
       (l.length ? '<div class="pe-p-tot" id="pePrestTot">' + htmlTotPrestamos() + '</div>' : '') +
       '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._pa()"><i class="ti ti-plus"></i> Agregar préstamo</button></div>' +
-      '<p class="pe-nota">Los intereses son gasto y pasan solos a «Intereses de préstamos». El capital no es gasto, pero sale de la caja: por eso se muestra aparte cuánto vender para pagar la cuota completa.</p></div>';
+      '<p class="pe-nota">Los intereses son gasto y pasan solos a «Intereses de préstamos». El capital no es gasto, pero sale de la caja: por eso se muestra aparte cuánto vender para pagar la cuota completa.' +
+      (hayCuotaTotal() ? ' <b>Con «Cuota total», toda la cuota cuenta como gasto hasta que la separe en intereses y capital.</b>' : '') + '</p></div>';
   }
 
   function htmlTablaGeneral(c) {
@@ -875,7 +903,7 @@
     if (g.metasFaltan === TIENDAS.length) con.push('Fije la meta de venta en cada tienda para poder medir el avance.');
     if (g.faltan > 0) con.push('Hay ' + g.faltan + ' gasto(s) sin monto: el punto de equilibrio puede salir más bajo de lo real.');
     var comunes = (fila(0).gastos || []).filter(function (x) { return num(x.monto) > 0; }).map(function (x) { return { c: x.concepto, m: num(x.monto) }; });
-    var prest = (prestamos() || []).map(function (p) { return { b: p.banco || 'Préstamo', i: num(p.interes), k: num(p.capital) }; });
+    var prest = (prestamos() || []).map(function (p) { return { b: (p.banco || 'Préstamo') + (esTotal(p) ? ' (cuota total, sin separar)' : ''), i: interesDe(p), k: capitalDe(p) }; });
     return { c: c, g: g, V: V, ventas: ventas, errV: errV, res: res, con: con, comunes: comunes, prest: prest, corte: corte, quedan: quedan };
   }
 
@@ -1147,10 +1175,12 @@
       '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-sh,#conta-equilibrio .pe-trk>i{transition:none}#conta-equilibrio .pe-sh{transform:none!important}}',
       '#conta-equilibrio .pe-prest{margin-top:14px;padding-top:4px;border-top:1px solid #eef2f7}',
       '#conta-equilibrio .pe-p{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 44px;gap:6px;align-items:end;margin:6px 0}',
+      '#conta-equilibrio .pe-p-modo{grid-column:1 / -1;margin:0}',
+      '#conta-equilibrio .pe-p-total .pe-p-cuota{grid-column:span 2}',
       '#conta-equilibrio .pe-p label{display:flex;flex-direction:column;gap:2px;font-size:13px;color:#64748b;min-width:0}',
       '#conta-equilibrio .pe-p input{height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 10px;min-width:0;width:100%;box-sizing:border-box;background:#fff}',
       '#conta-equilibrio .pe-p label input{text-align:right;font-variant-numeric:tabular-nums}',
-      '@media (max-width:480px){#conta-equilibrio .pe-p{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px}#conta-equilibrio .pe-p-b{grid-column:1 / -1}}',
+      '@media (max-width:480px){#conta-equilibrio .pe-p{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px}#conta-equilibrio .pe-p-b{grid-column:1 / -1}#conta-equilibrio .pe-p-total .pe-p-cuota{grid-column:1 / 3}}',
       '#conta-equilibrio .pe-p-tot{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:flex-end;font-size:13px;color:#475569;margin:8px 0 0}',
       '#conta-equilibrio .pe-p-tot b{color:#0f172a;font-variant-numeric:tabular-nums}',
       '#conta-equilibrio .pe-x{width:44px;height:48px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer}',
@@ -1287,7 +1317,7 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pm: modoPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
   };
 
   var avisoNeg = 0;
