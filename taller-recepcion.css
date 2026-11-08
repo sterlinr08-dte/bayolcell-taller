@@ -164,6 +164,8 @@ html.bc-rx #v-recepcion .bcrx-ppk-row.sin .pk-nom { color: #64748b; }
 html.bc-rx #v-recepcion .pk-cod { font: 600 12.5px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b; }
 html.bc-rx #v-recepcion .pk-nom { font-size: 14px; font-weight: 700; color: #0f172a; line-height: 1.25; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 html.bc-rx #v-recepcion .pk-nom small { display: block; font-size: 12px; font-weight: 600; color: #64748b; }
+html.bc-rx #v-recepcion .pk-logo { display: inline-flex; align-items: center; margin-right: 6px; vertical-align: -1px; color: #1d1d1f; }
+html.bc-rx #v-recepcion .pk-logo .bcl-logo { display: block; fill: currentColor; }
 html.bc-rx #v-recepcion .pk-tag { font-size: 10.5px; font-weight: 800; color: #7c3aed; background: #f5f3ff; border-radius: 6px; padding: 1px 5px; vertical-align: 1px; }
 html.bc-rx #v-recepcion .pk-stk { text-align: right; }
 html.bc-rx #v-recepcion .bcrx-stk { font-size: 12.5px; font-weight: 800; color: #15803d; background: #f0fdf4; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
