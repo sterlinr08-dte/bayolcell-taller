@@ -101,3 +101,8 @@ SOFTWARE.
 - Origen: github.com/Hainrixz/the-architect @ a25b09e, v2.6.0 (MIT, Copyright Enrique Henry / tododeia). Carpeta `the-architect` (licencia en su `LICENSE`).
 - Solo instrucciones (.md): SKILL.md, knowledge/, questions/, templates/, agents/, commands/. Sin scripts. La red solo se usa para leer versiones en registros públicos de paquetes. Sin telemetría (revisión del 20-oct-2026).
 - Uso: diseñar proyectos o funciones grandes antes de programar (entrevista → blueprint).
+
+## caldoai/skills (untangle-codebase) — 08-nov-2026
+- Origen: github.com/caldoai/skills @ f3cf477 (MIT, Copyright 2026 Maze). Carpeta: `untangle-codebase` (licencia en su `LICENSE`).
+- Solo instrucciones (un SKILL.md); sin scripts, red ni telemetría (revisión del 08-nov-2026). Se invoca a mano con `/untangle-codebase`.
+- **Regla del dueño:** usarla por partes, un módulo a la vez, primero solo la lista de problemas (pasos 2 y 3) y que el dueño apruebe antes de cambiar nada. Nunca de una sola pasada sobre todo el sistema (ver la regla contra los rediseños masivos).
