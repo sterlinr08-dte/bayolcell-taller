@@ -1,0 +1,12 @@
+# Ficha del artículo: sin «Últimas», «aquí» ni «Agotado» (g20–g22)
+
+- **Pedido del dueño:** después de ver la ficha como la ve un empleado: «Quitar últimas aquí», «Quitar aquí» y «Quitar agotado por si marca 0 es lo mismo que agotado».
+- **Cambio** (`taller-recepcion.js`, `buscadorArticulos` → `detalleHTML`): la fila de la tienda actual muestra solo el nombre y la cantidad. Se ven en rojo cuando hay 0.
+  - Se quitaron la etiqueta «Últimas» (≤3), la palabra «aquí» y la etiqueta «Agotado».
+  - Las clases `.pk-aq-t` y `.pk-aq-av` quedan sin uso en el CSS. No hacen daño.
+- **Versión:** `taller.html` carga `taller-recepcion.js?v=20261108-g22`.
+- **Rama:** `claude/ficha-microcopy`. Sigue la entrada `2026-11-08-1755-claude-ficha-microcopy.md`.
+- **Estado:** sin publicar; el dueño respondió «Todavía no».
+- **Pruebas:** arnés `ficha2.html` a 390 px, como empleado y como admin.
+  - Ningún botón mide menos de 44 px.
+  - El detalle mide 156 px (ZTE) y 277 px (S8).
