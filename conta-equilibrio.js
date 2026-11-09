@@ -450,13 +450,69 @@
   }
   // ---------- «Faltan N ventas» y gráfica «El cruce» (dueño, 09-nov-2026, idea de un reel) ----------
   // Venta promedio = lo vendido ÷ cantidad de facturas. Al empezar el mes (menos de 20 facturas) usa el mes anterior.
-  function ventasQueFaltan(tiendas, falta) {
-    var F = st.facturas; if (!F || !(falta > 0)) return null;
+  // Venta promedio por factura de un grupo de tiendas. Al empezar el mes (menos de 20 facturas) usa el mes anterior.
+  function promVenta(tiendas) {
+    var F = st.facturas; if (!F) return 0;
     var vn = 0, n = 0, va = 0, na = 0;
-    tiendas.forEach(function (x) { vn += x.vn; n += F.mes[x.t.cod] || 0; var a = st.ventasAnt[x.t.cod]; va += a && !a.error ? a.venta : 0; na += F.ant[x.t.cod] || 0; });
-    var prom = n >= 20 && vn > 0 ? vn / n : (na > 0 && va > 0 ? va / na : (n > 0 && vn > 0 ? vn / n : 0));
-    if (!(prom > 0)) return null;
+    tiendas.forEach(function (x) { vn += x.vn; n += F.mes[x.t.cod] || 0; va += x.ventaAnt || 0; na += F.ant[x.t.cod] || 0; });
+    return n >= 20 && vn > 0 ? vn / n : (na > 0 && va > 0 ? va / na : (n > 0 && vn > 0 ? vn / n : 0));
+  }
+  function ventasQueFaltan(tiendas, falta) {
+    if (!(falta > 0)) return null;
+    var prom = promVenta(tiendas); if (!(prom > 0)) return null;
     return { n: Math.ceil(falta / prom), prom: prom };
+  }
+  // Venta de un día (aaaa-mm-dd) de un grupo de tiendas, ajustada a la venta del cálculo (ITBIS y devoluciones).
+  function ventaDia(tiendas, x, fecha) {
+    var cods = tiendas.map(function (t) { return t.t.cod; }), dia = 0, mes = 0;
+    (st.diario || []).forEach(function (r) {
+      if (cods.indexOf(Number(r.codlocalidad)) < 0) return;
+      var v = Number(r.venta) || 0; if (r.fecha.slice(0, 7) === st.mes) mes += v; if (r.fecha === fecha) dia += v;
+    });
+    var vn = tiendas.reduce(function (a, t) { return a + t.vn; }, 0);
+    return mes > 0 && vn > 0 ? dia * vn / mes : dia;
+  }
+  function hoyISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  // ---------- Píldoras, tarjeta «Hoy» y rangos (dueño, 09-nov-2026, ideas de la plantilla Halvi) ----------
+  function htmlPildoras(tiendas, x, c) {
+    var F = st.facturas, n = F ? tiendas.reduce(function (a, t) { return a + (F.mes[t.t.cod] || 0); }, 0) : null, prom = promVenta(tiendas);
+    function pil(ic, v, t, col) { return '<div class="pe-pil"><i class="ti ti-' + ic + '"' + (col ? ' style="background:' + col + ';color:#fff"' : '') + '></i><div><b>' + v + '</b><small>' + t + '</small></div></div>'; }
+    return '<div class="pe-pils">' +
+      (c.em === 'actual' ? pil('bolt', corto(ventaDia(tiendas, x, hoyISO())), 'Hoy', '#e4572e') : pil('cash', corto(x.vn), 'Vendido', '#e4572e')) +
+      (n != null ? pil('receipt', n.toLocaleString('es-DO'), 'Facturas') : '') +
+      (prom > 0 ? pil('scale', corto(prom), 'Promedio') : '') +
+      pil('percentage', pct(x.mb), 'Margen') + '</div>';
+  }
+  function htmlHoy(tiendas, c) {
+    if (c.em !== 'actual' || !tiendas.length) return '';
+    var n = tiendas.length, i = ((st.hoyIdx || 0) % n + n) % n, t = tiendas[i];
+    // La meta de hoy es la misma de «Meta por periodo» (la fijada por el dueño); sin meta, lo que pide el equilibrio.
+    var ph = t.meta > 0 ? periodoDe(periodosMeta([t]), 'hoy') : null;
+    var obj = ph && ph.meta > 0 ? ph.meta : (t.falta > 0 && t.diaNecesario != null ? t.diaNecesario : (t.peDia || 0));
+    var v = ph && ph.meta > 0 && ph.vendido != null ? ph.vendido : ventaDia([t], t, hoyISO());
+    var falta = Math.max(0, obj - v), a = obj > 0 ? Math.min(1, v / obj) : 0, prom = promVenta([t]);
+    var flechas = n > 1 ? '<div class="pe-hoy-n"><button type="button" aria-label="Tienda anterior" onclick="BayolEquilibrio._hoy(-1)"><i class="ti ti-chevron-left"></i></button><button type="button" aria-label="Tienda siguiente" onclick="BayolEquilibrio._hoy(1)"><i class="ti ti-chevron-right"></i></button>' +
+      '<span class="pe-hoy-d">' + tiendas.map(function (z, j) { return '<s' + (j === i ? ' class="on"' : '') + '></s>'; }).join('') + '</span></div>' : '';
+    return '<div class="pe-hoy"><div class="pe-hoy-h"><b>Hoy · ' + esc(t.t.nombre) + '</b><span>' + (obj > 0 ? 'Meta ' + corto(obj) : '') + '</span></div>' +
+      '<div class="pe-hoy-v">' + corto(v) + '</div>' +
+      '<div class="pe-hoy-b"><i style="width:' + (a * 100).toFixed(1) + '%"></i></div>' +
+      '<p>' + (obj <= 0 ? 'Sin meta' : falta > 0 ? 'Falta <b>' + corto(falta) + '</b>' + (prom > 0 ? ' · ≈ ' + Math.ceil(falta / prom) + ' ventas' : '') : '<b>✓ Meta de hoy cumplida</b>') + '</p>' + flechas + '</div>';
+  }
+  function htmlRangos(tiendas, x, c) {
+    var va = 0, ca = 0, na = 0, F = st.facturas;
+    tiendas.forEach(function (t) { var a = st.ventasAnt[t.t.cod]; if (a && !a.error) { va += t.ventaAnt || 0; ca += a.costo || 0; } if (F) na += F.ant[t.t.cod] || 0; });
+    var filas = [];
+    if (va > 0 && x.vn > 0) { var mA = (va - ca) / va; filas.push({ t: 'Margen', v: x.mb, lo: mA - 0.03, hi: mA + 0.03, txt: pct(x.mb), ref: 'mes pasado ' + pct(mA) }); }
+    var prom = promVenta(tiendas);
+    if (na > 0 && va > 0 && prom > 0) { var pA = va / na; filas.push({ t: 'Venta promedio', v: prom, lo: pA * 0.9, hi: pA * 1.1, txt: corto(prom), ref: 'mes pasado ' + corto(pA) }); }
+    if (!filas.length) return '';
+    return '<div class="pe-rng"><div class="pe-cruce-h"><b>Contra el mes pasado</b></div>' + filas.map(function (f) {
+      var min = Math.min(f.lo, f.v) , max = Math.max(f.hi, f.v), pad = (max - min) * 0.25 || Math.abs(f.v) * 0.1 || 1; min -= pad; max += pad;
+      function P(v) { return ((v - min) / (max - min) * 100).toFixed(1); }
+      var est = f.v < f.lo ? 'Bajo' : f.v > f.hi ? 'Alto' : 'Normal', col = est === 'Bajo' ? '#dc2626' : est === 'Alto' ? '#15803d' : '#475569';
+      return '<div class="pe-rng-f"><div class="pe-rng-h"><div><b>' + f.t + '</b><small>' + f.txt + ' · ' + f.ref + '</small></div><span class="pe-chip ' + (est === 'Bajo' ? 'mal' : est === 'Alto' ? 'ok' : '') + '">' + est + '</span></div>' +
+        '<div class="pe-rng-b"><s style="left:' + P(f.lo) + '%;width:' + (P(f.hi) - P(f.lo)).toFixed(1) + '%"></s><i style="left:' + P(f.v) + '%;background:' + col + '"></i></div></div>';
+    }).join('') + '</div>';
   }
   // ---------- «Su semana» (dueño, 09-nov-2026, idea de la plantilla Halvi) ----------
   // Últimos 7 días hasta hoy (o hasta el último día del mes si ya pasó): días pasados rayados, hoy en rojo y la meta
@@ -546,6 +602,7 @@
     return '<div class="pe-res">' +
       '<div class="pe-res-h"><b>' + esc(nombre) + '</b><span>' + (x.alcanzado != null ? pct(x.alcanzado) + ' del punto de equilibrio' : 'Sin punto de equilibrio') + '</span></div>' +
       barra(x.alcanzado) +
+      htmlPildoras(esGeneral ? c.tiendas : [x], x, c) + htmlHoy(esGeneral ? c.tiendas : [x], c) +
       htmlErrores(c) +
       htmlMeta(x, esGeneral) +
       htmlPeriodos(esGeneral ? c.tiendas : [x], esGeneral) + (esGeneral ? '' : htmlVendedores(x)) +
@@ -565,7 +622,7 @@
           (x.faltaCaja ? 'Falta <b>' + plata(x.faltaCaja) + '</b>' + (x.diaCaja != null ? ' · ' + plata(x.diaCaja) + ' por día' : '') : 'Cuota cubierta') +
           '<br>Capital ' + plata(x.capital)) : '') +
         (c.em === 'actual' ? kpi('Proyección', plata(x.proy), null, 'Resultado ' + '<b style="color:' + colorRes(x.resultadoProy) + '">' + plata(x.resultadoProy) + '</b>') : '') +
-      '</div>' + htmlSemana(esGeneral ? c.tiendas : [x], x, c) + htmlCruce(esGeneral ? c.tiendas : [x], x, c) +
+      '</div>' + htmlSemana(esGeneral ? c.tiendas : [x], x, c) + htmlRangos(esGeneral ? c.tiendas : [x], x, c) + htmlCruce(esGeneral ? c.tiendas : [x], x, c) +
       (avisos.length ? '<ul class="pe-avisos">' + avisos.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
       '<p class="pe-nota">Estimado antes del ISR · No sustituye a la contadora</p>' +
     '</div>';
@@ -710,8 +767,19 @@
     var quedan = dHoy > q.d2 ? 0 : diasRango(st.mes, x.t.domingo, Math.max(q.d1, dHoy), q.d2);       // hoy incluido
     return { q: q, q1: q1, q2: q2, ideal: tot ? hechos / tot : 0, quedan: quedan, futura: dHoy <= q.d1 && em !== 'pasado' && !(em === 'actual' && dHoy === q.d1) };
   }
+  // Cuadritos de hoy por vendedor: 6 cuadros que se llenan con lo vendido hoy contra lo que necesita por día.
+  function cuadrosHoy(cod) {
+    return function (f, V) {
+      if (estadoMes(st.mes) !== 'actual' || V.futura || !V.quedan) return '';
+      var necesita = Math.max(0, f.mt - f.v + 0) / V.quedan, hoy = vendido([cod], hoyISO(), hoyISO(), f.e.cod);
+      if (!(necesita > 0)) return '';
+      var llenos = Math.min(6, Math.floor(hoy / necesita * 6));
+      return '<div class="pe-cua" title="Hoy ' + esc(plata(hoy)) + ' de ' + esc(plata(necesita)) + '"><span>' + Array.from({ length: 6 }, function (_, k) { return '<i' + (k < llenos ? ' class="on"' : '') + '></i>'; }).join('') + '</span><small>Hoy ' + corto(hoy) + ' de ' + corto(necesita) + '</small></div>';
+    };
+  }
   function htmlVendedores(x) {
     if (!(x.meta > 0)) return '';
+    var cuadros = cuadrosHoy(x.t.cod);
     var lista = vendedoresTienda(x.t.cod); if (!lista.length) return '';
     var V = quincenaVista(x), q = V.q, suma = lista.reduce(function (s, e) { return s + e.pct; }, 0), ok = Math.abs(suma - 100) <= 0.5;
     var filas = lista.map(function (e) {
@@ -734,7 +802,7 @@
         '<div class="pe-rk-c"><div class="pe-rk-h"><b>' + esc(nom) + '</b><span class="pe-rk-p">' + (V.futura ? '—' : pctC(a)) + '</span></div>' +
           '<div class="pe-trk" aria-hidden="true"><i style="width:' + w.toFixed(1) + '%;background:' + (a != null && a >= 1 ? '#16a34a' : (V.futura || dif >= 0 ? '#16a34a' : '#e4572e')) + '"></i>' +
             (V.futura || V.quedan === 0 ? '' : '<s style="left:' + (V.ideal * 100).toFixed(1) + '%"></s>') + '</div>' +
-          '<div class="pe-rk-f"><span>' + pie + '</span>' + chip + '</div></div></li>';
+          '<div class="pe-rk-f"><span>' + pie + '</span>' + chip + '</div>' + cuadros(f, V) + '</div></li>';
     }).join('');
     var em = estadoMes(st.mes);
     return '<section class="pe-per" aria-label="Meta por vendedor"><header><h5>Meta por vendedor</h5>' +
@@ -1170,6 +1238,10 @@
       '#conta-equilibrio .pe-card-h{display:flex;justify-content:space-between;align-items:center;gap:8px}',
       '#conta-equilibrio .pe-card-h h4{margin:0}',
       '#conta-equilibrio .pe-card-h b{font-size:17px;font-variant-numeric:tabular-nums}',
+      '#conta-equilibrio .pe-pils{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:4px 0;scrollbar-width:none}#conta-equilibrio .pe-pil{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:8px 12px 8px 8px}#conta-equilibrio .pe-pil>i{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#334155;font-size:17px}#conta-equilibrio .pe-pil b{display:block;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}#conta-equilibrio .pe-pil small{font-size:11px;color:#64748b}',
+      '#conta-equilibrio .pe-hoy{background:#111827;color:#fff;border-radius:18px;padding:16px;margin:4px 0 12px}#conta-equilibrio .pe-hoy-h{display:flex;justify-content:space-between;gap:8px;font-size:14px}#conta-equilibrio .pe-hoy-h span{color:#cbd5e1;font-size:12px;border:1px solid #475569;border-radius:999px;padding:2px 8px}#conta-equilibrio .pe-hoy-v{font-size:28px;font-weight:800;margin:6px 0;font-variant-numeric:tabular-nums}#conta-equilibrio .pe-hoy-b{height:6px;border-radius:6px;background:#374151;overflow:hidden}#conta-equilibrio .pe-hoy-b i{display:block;height:100%;background:#e4572e;border-radius:6px}#conta-equilibrio .pe-hoy p{margin:8px 0 0;font-size:13px;color:#e2e8f0}#conta-equilibrio .pe-hoy-n{display:flex;align-items:center;gap:8px;margin-top:10px}#conta-equilibrio .pe-hoy-n button{width:44px;height:44px;border-radius:50%;border:1px solid #4b5563;background:transparent;color:#fff;font-size:18px;cursor:pointer}#conta-equilibrio .pe-hoy-d{display:flex;gap:4px;margin-left:4px}#conta-equilibrio .pe-hoy-d s{width:6px;height:6px;border-radius:3px;background:#4b5563;text-decoration:none}#conta-equilibrio .pe-hoy-d s.on{width:18px;background:#e4572e}',
+      '#conta-equilibrio .pe-rng{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0}#conta-equilibrio .pe-rng-f{margin-top:12px}#conta-equilibrio .pe-rng-h{display:flex;justify-content:space-between;align-items:center;gap:8px}#conta-equilibrio .pe-rng-h b{display:block;font-size:14px}#conta-equilibrio .pe-rng-h small{font-size:12px;color:#64748b}#conta-equilibrio .pe-rng-b{position:relative;height:6px;border-radius:6px;background:#f1f5f9;margin:10px 4px 4px}#conta-equilibrio .pe-rng-b s{position:absolute;top:0;height:100%;background:#cbd5e1;border-radius:6px}#conta-equilibrio .pe-rng-b i{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #cbd5e1;transform:translate(-50%,-50%)}',
+      '#conta-equilibrio .pe-cua{display:flex;align-items:center;gap:8px;margin-top:6px}#conta-equilibrio .pe-cua span{display:flex;gap:3px}#conta-equilibrio .pe-cua i{width:16px;height:12px;border-radius:3px;background:repeating-linear-gradient(135deg,#e2e8f0 0 2px,#f8fafc 2px 4px);border:1px solid #e2e8f0}#conta-equilibrio .pe-cua i.on{background:#e4572e;border-color:#e4572e}#conta-equilibrio .pe-cua small{font-size:11px;color:#64748b}',
       '#conta-equilibrio .pe-sem{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0}#conta-equilibrio .pe-sm-n{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 12px}#conta-equilibrio .pe-sm-n small{display:block;font-size:11px;color:#64748b}#conta-equilibrio .pe-sm-n b{font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}',
       '#conta-equilibrio .pe-sm-g{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:130px;padding-bottom:20px;box-sizing:border-box}#conta-equilibrio .pe-sm-c{position:relative;display:flex;align-items:flex-end;justify-content:center;height:100%}#conta-equilibrio .pe-sm-c i{display:block;width:100%;max-width:34px;border-radius:8px 8px 4px 4px;background:repeating-linear-gradient(135deg,#e2e8f0 0 3px,#f8fafc 3px 6px);border:1px solid #e2e8f0}#conta-equilibrio .pe-sm-c.ok i{border-color:#bbf7d0}#conta-equilibrio .pe-sm-c.hoy i{background:#e4572e;border-color:#e4572e}#conta-equilibrio .pe-sm-c span{position:absolute;bottom:-20px;font-size:11px;color:#64748b}#conta-equilibrio .pe-sm-c.hoy span{color:#0f172a;font-weight:700}',
       '#conta-equilibrio .pe-sm-meta{position:absolute;left:0;right:0;border-top:1.5px dashed #94a3b8;z-index:1;pointer-events:none}#conta-equilibrio .pe-sm-meta em{position:absolute;right:0;top:-18px;font-style:normal;font-size:11px;font-weight:700;background:#334155;color:#fff;border-radius:6px;padding:1px 6px}',
@@ -1437,7 +1509,7 @@
     _estado: function () { return st; },
     _pintar: pintar,
     _refrescar: refrescarCalculo,
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pm: modoPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pm: modoPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _hoy: function (d) { st.hoyIdx = (st.hoyIdx || 0) + d; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
   };
 
   var avisoNeg = 0;
