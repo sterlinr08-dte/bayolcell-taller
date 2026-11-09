@@ -41,6 +41,68 @@
     for (var i = 0; i < CLAVES.length; i++) if ((CLAVES[i].solo == null || CLAVES[i].solo === cod) && CLAVES[i].re.test(g.concepto || '')) return CLAVES[i].k;
     return '';
   }
+  // ---------- Gastos desde la contabilidad (dueño, 09-nov-2026: «preparar, pero no conectar todavía») ----------
+  // Escondido: solo se ve con localStorage.bc_pe_libro = '1'. Lee las cuentas de gasto (6xxx) del libro diario del mes
+  // y las agrupa por sucursal: Santiago 1, Moca 4, Navarrete 7; «General» o vacío = gastos comunes (0).
+  function libroOn() { try { return localStorage.getItem('bc_pe_libro') === '1'; } catch (e) { return false; } }
+  var SUC_COD = { santiago: 1, moca: 4, navarrete: 7 };
+  function codDeSucursal(s) { return SUC_COD[String(s || '').trim().toLowerCase()] || 0; }
+  async function cargarLibro(cli, p) {
+    var ra = await cli.from('conta_asientos').select('id,sucursal,referencia').gte('fecha', p.ini).lt('fecha', p.fin);
+    if (ra.error) throw ra.error;
+    var porId = {}; (ra.data || []).forEach(function (a) { porId[a.id] = a; });
+    var ids = Object.keys(porId), lineas = [];
+    for (var i = 0; i < ids.length; i += 150) {
+      var rl = await cli.from('conta_asiento_lineas').select('asiento_id,cuenta_codigo,cuenta_nombre,debe,haber').in('asiento_id', ids.slice(i, i + 150)).like('cuenta_codigo', '6%');
+      if (rl.error) throw rl.error; lineas = lineas.concat(rl.data || []);
+    }
+    var out = {};
+    lineas.forEach(function (l) {
+      var a = porId[l.asiento_id]; if (!a) return;
+      var cod = codDeSucursal(a.sucursal), k = l.cuenta_codigo, m = (Number(l.debe) || 0) - (Number(l.haber) || 0);
+      var g = out[cod] || (out[cod] = {}), c = g[k] || (g[k] = { codigo: k, nombre: l.cuenta_nombre || k, monto: 0, asientos: {} });
+      c.monto += m; c.asientos[l.asiento_id] = 1;
+    });
+    Object.keys(out).forEach(function (cod) {
+      out[cod] = Object.keys(out[cod]).map(function (k) { var c = out[cod][k]; c.n = Object.keys(c.asientos).length; delete c.asientos; c.monto = Math.round(c.monto * 100) / 100; return c; })
+        .filter(function (c) { return Math.abs(c.monto) >= 0.01; }).sort(function (x, y) { return x.codigo < y.codigo ? -1 : 1; });
+    });
+    // Gastos anotados por el otro camino (Estado Mensual → «Registrar gasto» simple): solo para avisar, no se suman.
+    var rm = await cli.from('conta_movimientos').select('monto').eq('tipo', 'gasto').gte('fecha', p.ini).lt('fecha', p.fin);
+    var otros = rm.error ? null : (rm.data || []).reduce(function (s, x) { return s + (Number(x.monto) || 0); }, 0);
+    return { porTienda: out, otros: otros };
+  }
+  function htmlLibro(cod) {
+    if (!libroOn() || !st.libro) return '';
+    if (st.libro.error) return '<div class="pe-lib mal"><b>Contabilidad</b><span>No se pudo leer el libro diario</span></div>';
+    var l = st.libro.porTienda[cod] || [], tot = l.reduce(function (s, c) { return s + c.monto; }, 0), aqui = totalFijos(cod);
+    var dif = Math.round((tot - aqui) * 100) / 100;
+    return '<div class="pe-lib"><div><b>Contabilidad</b><span>' + (l.length ? plata(tot) + ' · ' + l.length + (l.length === 1 ? ' cuenta' : ' cuentas') : 'Sin gastos este mes') +
+      (l.length && Math.abs(dif) >= 1 ? ' · diferencia ' + plata(dif) : (l.length ? ' · cuadra' : '')) + '</span>' +
+      (cod === 0 && st.libro.otros ? '<span class="mal">Otros ' + plata(st.libro.otros) + ' en «Registrar gasto» simple: no se usan</span>' : '') + '</div>' +
+      (l.length ? '<button class="btn btn-light" onclick="BayolEquilibrio._lib(' + cod + ')"><i class="ti ti-download"></i> Usar contabilidad</button>' : '') + '</div>';
+  }
+  // Reemplaza los gastos de la tienda por los del libro, confirmados y con la cuenta como soporte. Hay que guardar después.
+  // Si hay préstamos en la lista, los intereses ya salen de ahí: la cuenta 6301 del libro no se toma para no contarlos dos veces.
+  function usarLibro(cod) {
+    var l = (st.libro && st.libro.porTienda[cod]) || []; if (!l.length) return;
+    var f = fila(cod), conPrest = cod === 0 && filaIntereses() >= 0 && ((f.variables || {}).prestamos || []).length;
+    var quien = (typeof sessionUser !== 'undefined' && sessionUser) ? sessionUser.nombre : 'Contabilidad', hoy = new Date().toISOString();
+    var nuevos = l.filter(function (c) { return !(conPrest && c.codigo === '6301'); }).map(function (c) {
+      return { concepto: c.nombre, monto: c.monto, captura: { estado: 'confirmado', nota: 'Libro diario · cuenta ' + c.codigo + ' · ' + c.n + (c.n === 1 ? ' asiento' : ' asientos'), por: quien, fecha: hoy, archivos: [] } };
+    });
+    if (conPrest) { var gi = filaIntereses(); nuevos.push(f.gastos[gi]); }
+    f.gastos = ponerClaves(cod, nuevos); st.sucio = true; pintar();
+    aviso('Gastos de contabilidad listos. Guarde el mes.');
+  }
+  // Navarrete en las sucursales de Contabilidad (solo con el interruptor encendido).
+  function sucursalesConNavarrete() {
+    if (!libroOn()) return;
+    ['rgto_sucursal', 'mef_sucursal', 'em_sucursal', 'ef_sucursal'].forEach(function (id) {
+      var s = document.getElementById(id); if (!s || [].some.call(s.options, function (o) { return o.value === 'Navarrete'; })) return;
+      var o = document.createElement('option'); o.value = 'Navarrete'; o.textContent = 'Navarrete'; s.appendChild(o);
+    });
+  }
   function ponerClaves(cod, gastos) { (gastos || []).forEach(function (g) { var k = claveDe(g, cod); if (k) g.clave = k; }); return gastos; }
 
   var st = { mes: null, tab: 'general', filas: {}, ventas: {}, ventasAnt: {}, cn: {}, cargando: false, sucio: false };
@@ -296,8 +358,11 @@
       rf[0].data.forEach(function (r) { facturas.mes[r.codlocalidad] = Number(r.facturas) || 0; });
       rf[1].data.forEach(function (r) { facturas.ant[r.codlocalidad] = Number(r.facturas) || 0; });
     } catch (e) { if (typeof logError === 'function') logError('equilibrio facturas', e); }
+    var libro = null;
+    if (libroOn()) { try { libro = await cargarLibro(cli, p); } catch (e) { libro = { error: true }; if (typeof logError === 'function') logError('equilibrio libro', e); } }
     if (token !== st.token) return;
     st.facturas = facturas;
+    st.libro = libro;
     st.diario = diario; st.errDiario = errDiario; st.errCN = errCN;
     st.ventas = ventas; st.ventasAnt = ventasAnt; st.cn = cn; st.cargando = false; st.sucio = false; st.animar = true;
     pintar();
@@ -907,6 +972,7 @@
     }
     return '<div class="pe-card">' +
       '<div class="pe-card-h"><h4>' + (esTienda ? 'Gastos fijos de la tienda' : 'Gastos comunes de la empresa') + '</h4><b id="peTotFijos">' + plata(totalFijos(cod)) + '</b></div>' +
+      htmlLibro(cod) +
       '<div id="peGastos">' + filas + '</div>' +
       '<div class="pe-acc">' +
         '<button class="btn btn-light" onclick="BayolEquilibrio._a(' + cod + ')"><i class="ti ti-plus"></i> Agregar concepto</button>' +
@@ -1238,6 +1304,7 @@
       '#conta-equilibrio .pe-card-h{display:flex;justify-content:space-between;align-items:center;gap:8px}',
       '#conta-equilibrio .pe-card-h h4{margin:0}',
       '#conta-equilibrio .pe-card-h b{font-size:17px;font-variant-numeric:tabular-nums}',
+      '#conta-equilibrio .pe-lib{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px 12px;margin:8px 0}#conta-equilibrio .pe-lib>div{display:flex;flex-direction:column;gap:2px}#conta-equilibrio .pe-lib b{font-size:14px;color:#1e3a8a}#conta-equilibrio .pe-lib span{font-size:13px;color:#334155}#conta-equilibrio .pe-lib .mal,#conta-equilibrio .pe-lib.mal span{color:#b45309}#conta-equilibrio .pe-lib button{min-height:44px}',
       '#conta-equilibrio .pe-pils{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:4px 0;scrollbar-width:none}#conta-equilibrio .pe-pil{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:8px 12px 8px 8px}#conta-equilibrio .pe-pil>i{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#334155;font-size:17px}#conta-equilibrio .pe-pil b{display:block;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}#conta-equilibrio .pe-pil small{font-size:11px;color:#64748b}',
       '#conta-equilibrio .pe-hoy{background:#111827;color:#fff;border-radius:18px;padding:16px;margin:4px 0 12px}#conta-equilibrio .pe-hoy-h{display:flex;justify-content:space-between;gap:8px;font-size:14px}#conta-equilibrio .pe-hoy-h span{color:#cbd5e1;font-size:12px;border:1px solid #475569;border-radius:999px;padding:2px 8px}#conta-equilibrio .pe-hoy-v{font-size:28px;font-weight:800;margin:6px 0;font-variant-numeric:tabular-nums}#conta-equilibrio .pe-hoy-b{height:6px;border-radius:6px;background:#374151;overflow:hidden}#conta-equilibrio .pe-hoy-b i{display:block;height:100%;background:#e4572e;border-radius:6px}#conta-equilibrio .pe-hoy p{margin:8px 0 0;font-size:13px;color:#e2e8f0}#conta-equilibrio .pe-hoy-n{display:flex;align-items:center;gap:8px;margin-top:10px}#conta-equilibrio .pe-hoy-n button{width:44px;height:44px;border-radius:50%;border:1px solid #4b5563;background:transparent;color:#fff;font-size:18px;cursor:pointer}#conta-equilibrio .pe-hoy-d{display:flex;gap:4px;margin-left:4px}#conta-equilibrio .pe-hoy-d s{width:6px;height:6px;border-radius:3px;background:#4b5563;text-decoration:none}#conta-equilibrio .pe-hoy-d s.on{width:18px;background:#e4572e}',
       '#conta-equilibrio .pe-rng{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0}#conta-equilibrio .pe-rng-f{margin-top:12px}#conta-equilibrio .pe-rng-h{display:flex;justify-content:space-between;align-items:center;gap:8px}#conta-equilibrio .pe-rng-h b{display:block;font-size:14px}#conta-equilibrio .pe-rng-h small{font-size:12px;color:#64748b}#conta-equilibrio .pe-rng-b{position:relative;height:6px;border-radius:6px;background:#f1f5f9;margin:10px 4px 4px}#conta-equilibrio .pe-rng-b s{position:absolute;top:0;height:100%;background:#cbd5e1;border-radius:6px}#conta-equilibrio .pe-rng-b i{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #cbd5e1;transform:translate(-50%,-50%)}',
@@ -1509,7 +1576,7 @@
     _estado: function () { return st; },
     _pintar: pintar,
     _refrescar: refrescarCalculo,
-    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pm: modoPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _hoy: function (d) { st.hoyIdx = (st.hoyIdx || 0) + d; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
+    _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pm: modoPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _lib: usarLibro, _hoy: function (d) { st.hoyIdx = (st.hoyIdx || 0) + d; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
   };
 
   var avisoNeg = 0;
@@ -1525,6 +1592,7 @@
 
   function iniciar() {
     if (!envolver()) { setTimeout(iniciar, 300); return; }
+    sucursalesConNavarrete();
     asegurarPestana(); mostrarBoton();
     var v = $('v-contabilidad');
     if (v && v.classList.contains('active')) { try { if (localStorage.getItem('bayol_subtab_conta') === 'equilibrio') window.contaTab('equilibrio'); } catch (e) {} }
