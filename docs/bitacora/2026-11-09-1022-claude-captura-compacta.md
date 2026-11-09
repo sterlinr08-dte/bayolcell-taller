@@ -20,3 +20,4 @@
 - cambiar a «Confirmado» actualiza el avance a 1 / 10.
 
 **Rama:** `claude/captura-compacta`. Sin publicar.
+- **Ajuste.** El dueño pidió achicar la barra del estado: «tienen bares muy larga para el tamaño de las letras». Ahora el estado toma el ancho de su texto (mínimo 150 px), seguido de 📎 y la nota.

@@ -62,3 +62,4 @@
 #conta-equilibrio .pc-gasto .pe-g>:nth-child(n+4){grid-column:1/-1}
 #conta-equilibrio .pc-controles select,#conta-equilibrio .pc-controles .pc-upload,#conta-equilibrio .pc-nota-t{box-sizing:border-box;height:46px;min-height:46px}
 @media(max-width:480px){#conta-equilibrio .pc-gasto .pe-g{grid-template-columns:minmax(0,1fr) 108px 44px}#conta-equilibrio .pc-gasto .pe-g .pe-g-c{grid-column:auto}#conta-equilibrio .pc-gasto .pe-g .pe-g-m{grid-column:auto;width:100%!important}}
+#conta-equilibrio .pc-controles select{flex:0 1 auto;width:auto;min-width:150px;padding-right:30px}
