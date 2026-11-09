@@ -1795,6 +1795,9 @@ body{
 <!-- Prefactura «nivel pro» (dueño 30-oct-2026, opción B: dos columnas en PC) + ventana de impresora. Apagar: BC_PFPRO=false o localStorage bc_pfpro_off=1 -->
 <script>var BC_PFPRO=true;try{if(BC_PFPRO&&localStorage.getItem('bc_pfpro_off')!=='1')document.documentElement.classList.add('bc-pfpro');}catch(e){if(BC_PFPRO)document.documentElement.classList.add('bc-pfpro');}</script>
 <link rel="stylesheet" href="bc-prefactura-pro.css?v=20261030-p1">
+<!-- 09-nov-2026 (dueño): Prefactura compacta. Apagar: BC_PFC=false o localStorage bc_pfc_off='1'. -->
+<script>var BC_PFC=true;try{if(BC_PFC&&localStorage.getItem('bc_pfc_off')!=='1')document.documentElement.classList.add('bc-pfc');}catch(e){if(BC_PFC)document.documentElement.classList.add('bc-pfc');}</script>
+<link rel="stylesheet" href="bc-prefactura-compacta.css?v=20261109-c1">
 <!-- Etiquetas «estudio de etiqueta» (dueño 30-oct-2026, opción B). Apagar: BC_ETQ=false o localStorage bc_etq_off=1 -->
 <script>var BC_ETQ=true;try{if(BC_ETQ&&localStorage.getItem('bc_etq_off')!=='1')document.documentElement.classList.add('bc-etq');}catch(e){if(BC_ETQ)document.documentElement.classList.add('bc-etq');}</script>
 <link rel="stylesheet" href="bc-etiquetas-pro.css?v=20261030-e1">
@@ -5759,6 +5762,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 <script defer src="taller-recepcion.js?v=20261108-g25"></script>
 <script defer src="taller-prefactura.js?v=20261102-pm2"></script>
 <script defer src="bc-prefactura-pro.js?v=20261031-p2"></script>
+<script defer src="bc-prefactura-compacta.js?v=20261109-c1"></script>
 <script defer src="bc-etiquetas-pro.js?v=20261030-e1"></script>
 <script defer src="bc-raspa.js?v=20261029-r1"></script>
 <script defer src="bc-prefactura-imprimir.js?v=20261029-i12"></script>
