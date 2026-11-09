@@ -42,3 +42,14 @@ Las líneas de factura son el doble de las facturas. Por eso se cuentan facturas
 - **`cmp2`:** `calcular()` da idéntico en las 21 fechas contra main.
 
 **Rama:** `claude/equilibrio-cruce`. Sin publicar.
+
+## Ajuste de microcopy
+El dueño escribió: «hay mucho texto explicativo… utiliza el reglamento microcopy». Se acortaron los textos de la pantalla, no los del Reporte ni del Excel:
+
+| Dónde | Cambio |
+|---|---|
+| Tarjetas | «Debe vender», «Vendido», «Ganancia necesaria», «Falta», «Con cuota del préstamo», «Proyección» |
+| Textos debajo de las tarjetas | Solo el dato: «RD$ X por día», «≈ N ventas», «Margen X %», «Sin gastos comunes», «Bajo el equilibrio» |
+| Avisos | De 2 a 6 palabras, por ejemplo «Sin ventas en Info Plus este mes», «Ventas sin ITBIS (18 %)», «Préstamos con cuota total: equilibrio más alto» |
+| Notas al pie | «Estimado antes del ISR · No sustituye a la contadora» y «Por días hábiles (lun–sáb)». Se quitó la nota de la sugerida, porque el botón ya dice «Usar sugerida RD$ X». |
+| El cruce | «✓ Gana desde el día N», «Ganaría desde el día N», «Al ritmo actual no llega», «No cubrió los gastos». Leyenda: «Vendido» y «Equilibrio». |
