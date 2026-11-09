@@ -51,12 +51,15 @@
   function render(g, cod, i, campos) {
     var m = g.captura || {}, e = estado(g), id = 'pc_' + cod + '_' + i;
     var archivos = (m.archivos || []).map(function (a, j) { return '<button type="button" class="pc-file" data-pc-ver="' + j + '" title="Ver comprobante">' + esc(a.nombre) + '</button>'; }).join('');
-    return '<article class="pc-gasto" data-pc-cod="' + cod + '" data-pc-i="' + i + '">' + campos +
-      '<div class="pc-controles"><label for="' + id + '_estado">Estado<select id="' + id + '_estado" data-pc-estado aria-label="Estado de ' + esc(g.concepto) + '">' +
-      (!cantidad(g) ? '<option value="pendiente">Sin monto</option>' : '') + Object.keys(estados).map(function (k) { return '<option value="' + k + '"' + (e === k ? ' selected' : '') + '>' + estados[k] + '</option>'; }).join('') + '</select></label>' +
-      '<label class="pc-adjuntar">Comprobante<span class="pc-upload"><span>Adjuntar foto o PDF</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-pc-adjuntar aria-label="Adjuntar comprobante de ' + esc(g.concepto) + '"></span></label></div>' +
-      '<div class="pc-files">' + archivos + '</div><details' + (m.nota ? ' open' : '') + '><summary>Nota y ayuda</summary><p>' + esc(ayuda(g)) + '</p><label for="' + id + '_nota">Nota<textarea id="' + id + '_nota" data-pc-nota maxlength="400" placeholder="Soporte o dato pendiente">' + esc(m.nota || '') + '</textarea></label></details>' +
-      (m.por ? '<p class="pc-autor">Registró ' + esc(m.por) + (m.fecha ? ' · ' + esc(new Date(m.fecha).toLocaleDateString('es-DO')) : '') + '</p>' : '') + '</article>';
+    var n = (m.archivos || []).length, notaAbierta = !!(m.nota || '').trim();
+    return '<article class="pc-gasto' + (notaAbierta ? ' pc-nota-on' : '') + '" data-pc-cod="' + cod + '" data-pc-i="' + i + '">' + campos +
+      '<div class="pc-controles"><select id="' + id + '_estado" class="pc-e-' + e + '" data-pc-estado aria-label="Estado de ' + esc(g.concepto) + '">' +
+      (!cantidad(g) ? '<option value="pendiente">Sin monto</option>' : '') + Object.keys(estados).map(function (k) { return '<option value="' + k + '"' + (e === k ? ' selected' : '') + '>' + estados[k] + '</option>'; }).join('') + '</select>' +
+      '<label class="pc-upload' + (n ? ' tiene' : '') + '" title="Adjuntar comprobante"><i class="ti ti-paperclip" aria-hidden="true"></i>' + (n ? '<b>' + n + '</b>' : '') + '<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-pc-adjuntar aria-label="Adjuntar comprobante de ' + esc(g.concepto) + '"></label>' +
+      '<button type="button" class="pc-nota-t' + (notaAbierta ? ' tiene' : '') + '" data-pc-nota-t aria-expanded="' + notaAbierta + '" aria-controls="' + id + '_np" title="Nota y ayuda"><i class="ti ti-' + (notaAbierta ? 'note' : 'message-plus') + '" aria-hidden="true"></i></button></div>' +
+      (archivos ? '<div class="pc-files">' + archivos + '</div>' : '') +
+      '<div class="pc-np" id="' + id + '_np"><p>' + esc(ayuda(g)) + '</p><textarea id="' + id + '_nota" data-pc-nota maxlength="400" aria-label="Nota de ' + esc(g.concepto) + '" placeholder="Nota o dato pendiente">' + esc(m.nota || '') + '</textarea></div>' +
+      (m.por ? '<p class="pc-autor">' + esc(m.por) + (m.fecha ? ' · ' + esc(new Date(m.fecha).toLocaleDateString('es-DO')) : '') + '</p>' : '') + '</article>';
   }
   function actualizarAvance() {
     var el = document.getElementById('pcAvance'); if (el) el.innerHTML = avance();
@@ -106,6 +109,8 @@
     else if (el.matches('[data-pc-adjuntar]')) adjuntar(el.files[0], cod, i);
   });
   document.addEventListener('click', function (ev) {
+    var t = ev.target.closest && ev.target.closest('[data-pc-nota-t]');
+    if (t) { var art = t.closest('.pc-gasto'), on = art.classList.toggle('pc-nota-on'); t.setAttribute('aria-expanded', String(on)); if (on) { var ta = art.querySelector('[data-pc-nota]'); if (ta) ta.focus(); } return; }
     var el = ev.target.closest && ev.target.closest('[data-pc-ver]'); if (!el || !B.puede()) return;
     var row = el.closest('.pc-gasto'); ver(Number(row.dataset.pcCod), Number(row.dataset.pcI), Number(el.dataset.pcVer));
   });
