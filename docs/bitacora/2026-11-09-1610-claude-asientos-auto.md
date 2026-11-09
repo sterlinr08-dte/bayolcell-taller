@@ -46,3 +46,8 @@ Con esto, la nómina por tienda queda en las cuentas 6101–6106. Esas cuentas s
 - Ventas por tienda: `AUTO-IP` genera un solo asiento «General» por mes.
 
 **Rama:** `claude/asientos-auto`. Sin publicar. No se tocó la base de datos.
+
+## Respuestas del dueño (09-nov-2026)
+1. **Adelantos a empleados:** van a 110201 Clientes. Ya era el valor por defecto; no cambia nada.
+2. **Pago de la nómina:** todo sale del banco. A quien no tiene cuenta se le paga con cheque, que también sale del banco, así que el haber sigue siendo 110103 Bancos.
+3. **Regalía:** en un renglón aparte. Así está hecho: es un asiento propio «Regalía · periodo · tienda», separado del de nómina.
