@@ -458,6 +458,38 @@
     if (!(prom > 0)) return null;
     return { n: Math.ceil(falta / prom), prom: prom };
   }
+  // ---------- «Su semana» (dueño, 09-nov-2026, idea de la plantilla Halvi) ----------
+  // Últimos 7 días hasta hoy (o hasta el último día del mes si ya pasó): días pasados rayados, hoy en rojo y la meta
+  // del día punteada (lo que hay que vender por día para cubrir los gastos). Arriba: hoy, promedio, mejor día y
+  // contra los 7 días anteriores. Ajustado a la venta del cálculo igual que «El cruce».
+  function htmlSemana(tiendas, x, c) {
+    if (c.em === 'futuro' || !st.diario || !st.diario.length) return '';
+    var cods = tiendas.map(function (t) { return t.t.cod; }), por = {};
+    st.diario.forEach(function (r) { if (cods.indexOf(Number(r.codlocalidad)) >= 0) por[r.fecha] = (por[r.fecha] || 0) + (Number(r.venta) || 0); });
+    var p = st.mes.split('-'), y = +p[0], m = +p[1] - 1, ult = new Date(y, m + 1, 0).getDate();
+    var fin = new Date(y, m, Math.min(diaDeHoy(st.mes) || ult, ult));
+    function f(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    var crudoMes = 0; Object.keys(por).forEach(function (k) { if (k.slice(0, 7) === st.mes) crudoMes += por[k]; });
+    var k = crudoMes > 0 && x.vn > 0 ? x.vn / crudoMes : 1;
+    var dias = [], prev = 0;
+    for (var i = 13; i >= 0; i--) { var d = new Date(fin); d.setDate(fin.getDate() - i); var v = (por[f(d)] || 0) * k; if (i >= 7) prev += v; else dias.push({ d: d, v: v }); }
+    var sem = dias.reduce(function (a, b) { return a + b.v; }, 0);
+    if (!(sem > 0)) return '';
+    var hoy = dias[6].v, abiertos = dias.filter(function (z) { return z.v > 0; }), prom = abiertos.length ? sem / abiertos.length : 0;
+    var mejor = dias.reduce(function (a, b) { return b.v > a.v ? b : a; }, dias[0]), vs = prev > 0 ? sem / prev - 1 : null;
+    var meta = x.peDia || 0, maxV = Math.max(meta, mejor.v) * 1.12 || 1;
+    var DN = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'], esHoy = c.em === 'actual';
+    function corto(n) { return n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + ' M' : n >= 1e3 ? Math.round(n / 1e3) + ' mil' : String(Math.round(n)); }
+    var barras = dias.map(function (z, j) {
+      var h = Math.max(2, Math.round(z.v / maxV * 100)), ult7 = j === 6;
+      return '<div class="pe-sm-c' + (ult7 ? ' hoy' : '') + (z.v >= meta && meta > 0 ? ' ok' : '') + '" title="' + esc(DN[z.d.getDay()] + ' ' + z.d.getDate() + ': ' + plata(z.v)) + '"><i style="height:' + h + '%"></i><span>' + (ult7 && esHoy ? 'Hoy' : DN[z.d.getDay()]) + '</span></div>';
+    }).join('');
+    function cifra(t, v, col) { return '<div><small>' + t + '</small><b' + (col ? ' style="color:' + col + '"' : '') + '>' + v + '</b></div>'; }
+    return '<div class="pe-sem"><div class="pe-cruce-h"><b>Su semana</b></div>' +
+      '<div class="pe-sm-n">' + cifra(esHoy ? 'Hoy' : 'Último día', 'RD$ ' + corto(hoy), hoy >= meta && meta > 0 ? '#15803d' : '#e4572e') + cifra('Promedio', 'RD$ ' + corto(prom)) + cifra('Mejor día', 'RD$ ' + corto(mejor.v)) +
+        cifra('vs 7 días antes', vs == null ? '—' : (vs >= 0 ? '+' : '−') + Math.abs(vs * 100).toFixed(1) + ' %', vs == null ? null : vs >= 0 ? '#15803d' : '#dc2626') + '</div>' +
+      '<div class="pe-sm-g">' + (meta > 0 ? '<div class="pe-sm-meta" style="bottom:calc(20px + ' + (Math.min(100, meta / maxV * 100) * 1.1).toFixed(1) + 'px)"><em>' + esc('Meta ' + corto(meta)) + '</em></div>' : '') + barras + '</div></div>';
+  }
   function htmlCruce(tiendas, x, c) {
     if (c.em === 'futuro' || x.pe == null || !(x.pe > 0)) return '';
     var p = st.mes.split('-'), y = +p[0], m = +p[1] - 1, ult = new Date(y, m + 1, 0).getDate(), ini = st.mes + '-01';
@@ -533,7 +565,7 @@
           (x.faltaCaja ? 'Falta <b>' + plata(x.faltaCaja) + '</b>' + (x.diaCaja != null ? ' · ' + plata(x.diaCaja) + ' por día' : '') : 'Cuota cubierta') +
           '<br>Capital ' + plata(x.capital)) : '') +
         (c.em === 'actual' ? kpi('Proyección', plata(x.proy), null, 'Resultado ' + '<b style="color:' + colorRes(x.resultadoProy) + '">' + plata(x.resultadoProy) + '</b>') : '') +
-      '</div>' + htmlCruce(esGeneral ? c.tiendas : [x], x, c) +
+      '</div>' + htmlSemana(esGeneral ? c.tiendas : [x], x, c) + htmlCruce(esGeneral ? c.tiendas : [x], x, c) +
       (avisos.length ? '<ul class="pe-avisos">' + avisos.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') +
       '<p class="pe-nota">Estimado antes del ISR · No sustituye a la contadora</p>' +
     '</div>';
@@ -1138,7 +1170,11 @@
       '#conta-equilibrio .pe-card-h{display:flex;justify-content:space-between;align-items:center;gap:8px}',
       '#conta-equilibrio .pe-card-h h4{margin:0}',
       '#conta-equilibrio .pe-card-h b{font-size:17px;font-variant-numeric:tabular-nums}',
-      '#conta-equilibrio .pe-cruce{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0}#conta-equilibrio .pe-cruce-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}#conta-equilibrio .pe-cruce-h b{font-size:15px}#conta-equilibrio .pe-cruce-h span{font-size:12px;color:#64748b}#conta-equilibrio .pe-cruce svg{width:100%;height:auto;display:block;margin-top:6px}#conta-equilibrio .pe-cruce-m{font-size:14px;margin:6px 0 2px;color:#0f172a}#conta-equilibrio .pe-cruce-l{font-size:12px;color:#64748b;margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}#conta-equilibrio .pe-cruce-l i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-left:6px}',
+      '#conta-equilibrio .pe-sem{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0}#conta-equilibrio .pe-sm-n{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 12px}#conta-equilibrio .pe-sm-n small{display:block;font-size:11px;color:#64748b}#conta-equilibrio .pe-sm-n b{font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}',
+      '#conta-equilibrio .pe-sm-g{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:130px;padding-bottom:20px;box-sizing:border-box}#conta-equilibrio .pe-sm-c{position:relative;display:flex;align-items:flex-end;justify-content:center;height:100%}#conta-equilibrio .pe-sm-c i{display:block;width:100%;max-width:34px;border-radius:8px 8px 4px 4px;background:repeating-linear-gradient(135deg,#e2e8f0 0 3px,#f8fafc 3px 6px);border:1px solid #e2e8f0}#conta-equilibrio .pe-sm-c.ok i{border-color:#bbf7d0}#conta-equilibrio .pe-sm-c.hoy i{background:#e4572e;border-color:#e4572e}#conta-equilibrio .pe-sm-c span{position:absolute;bottom:-20px;font-size:11px;color:#64748b}#conta-equilibrio .pe-sm-c.hoy span{color:#0f172a;font-weight:700}',
+      '#conta-equilibrio .pe-sm-meta{position:absolute;left:0;right:0;border-top:1.5px dashed #94a3b8;z-index:1;pointer-events:none}#conta-equilibrio .pe-sm-meta em{position:absolute;right:0;top:-18px;font-style:normal;font-size:11px;font-weight:700;background:#334155;color:#fff;border-radius:6px;padding:1px 6px}',
+      '@media (max-width:420px){#conta-equilibrio .pe-sm-n{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+      '#conta-equilibrio .pe-cruce{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;margin:12px 0}#conta-equilibrio .pe-cruce-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}#conta-equilibrio .pe-cruce-h b{font-size:15px}#conta-equilibrio .pe-cruce-h span{font-size:12px;color:#64748b}#conta-equilibrio .pe-cruce svg{width:100%;max-width:420px;height:auto;display:block;margin:6px auto 0}#conta-equilibrio .pe-cruce-m{font-size:14px;margin:6px 0 2px;color:#0f172a}#conta-equilibrio .pe-cruce-l{font-size:12px;color:#64748b;margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}#conta-equilibrio .pe-cruce-l i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-left:6px}',
       '#conta-equilibrio .pe-g{display:grid;grid-template-columns:minmax(0,1fr) 150px 44px;gap:6px;margin:6px 0}',
       '#conta-equilibrio .pe-g input,#conta-equilibrio .pe-vars input,#conta-equilibrio .pe-dias input{height:48px;font-size:16px;border:1px solid #d8dee9;border-radius:10px;padding:0 10px;min-width:0;background:#fff}',
       '#conta-equilibrio .pe-g-m{text-align:right;font-variant-numeric:tabular-nums}',
