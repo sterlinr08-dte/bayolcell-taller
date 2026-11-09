@@ -124,6 +124,7 @@
     if (!l.length) return;
     var tot = Math.round(l.reduce(function (s, p) { return s + interesDe(p); }, 0) * 100) / 100;
     if (i < 0) { gs.push({ concepto: 'Intereses de préstamos', monto: tot, clave: 'intereses' }); return; }
+    if (window.BayolCaptura && (num(gs[i].monto) !== tot || gs[i].concepto !== 'Intereses de préstamos')) window.BayolCaptura.tocar(gs[i], true);
     gs[i].concepto = 'Intereses de préstamos'; gs[i].monto = tot;
   }
   // Venta para que alcance el efectivo: gastos fijos (con intereses) + capital, entre la contribución.
@@ -292,6 +293,7 @@
   }
 
   async function guardar(cod) {
+    if (st.guardando) return;
     var cli = sb(); if (!cli) return;
     var lista = cod == null ? [0].concat(TIENDAS.map(function (t) { return t.cod; })) : [cod];
     var quien = (typeof sessionUser !== 'undefined' && sessionUser) ? sessionUser.nombre : 'Sistema';
@@ -304,9 +306,11 @@
     if (com.reparto === 'manual') {
       if (!repartoCuadra(com)) { aviso('El reparto manual de gastos comunes debe sumar 100 %.', 'error'); return; }
     }
+    st.guardando = true;
+    var vista = $('conta-equilibrio'); if (vista) vista.querySelectorAll('button,input,select,textarea').forEach(function (el) { el.disabled = true; });
     var btn = $('peBtnGuardar'); if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
     try {
-      var r = await cli.from('conta_equilibrio').upsert(filas, { onConflict: 'mes,codlocalidad' }).select('*');
+      var r = window.BayolCaptura ? await window.BayolCaptura.guardar(cli, filas) : await cli.from('conta_equilibrio').upsert(filas, { onConflict: 'mes,codlocalidad' }).select('*');
       if (r.error) throw r.error;
       (r.data || []).forEach(function (f) { ponerClaves(f.codlocalidad, f.gastos); st.filas[f.codlocalidad] = f; });
       st.sucio = false;
@@ -315,35 +319,38 @@
       if (typeof logError === 'function') logError('equilibrio guardar', e);
       aviso('No se pudo guardar: ' + ((e && e.message) || e), 'error');
     }
+    st.guardando = false;
     pintar();
   }
 
   async function copiarMesAnterior() {
+    if (st.guardando || (window.BayolCaptura && window.BayolCaptura.ocupado())) { aviso('Espere a que termine el guardado o el comprobante.', 'error'); return; }
     var cli = sb(); if (!cli) return;
-    var ant = mesAnterior(st.mes) + '-01';
+    var mesDestino = st.mes, ant = mesAnterior(st.mes) + '-01';
     try {
       var r = await cli.from('conta_equilibrio').select('*').eq('mes', ant);
       if (r.error) throw r.error;
       if (!r.data || !r.data.length) { aviso('El mes anterior no tiene gastos guardados.', 'error'); return; }
       var ok = true;
       if (typeof confirmar === 'function') ok = await confirmar('¿Copiar los gastos del mes anterior a este mes?\n\nSe reemplazan los montos escritos en pantalla. Revise y guarde después.');
-      if (!ok) return;
+      if (!ok || st.mes !== mesDestino) return;
       r.data.forEach(function (f) {
         var t = TIENDAS.filter(function (x) { return x.cod === f.codlocalidad; })[0];
-        st.filas[f.codlocalidad] = { mes: st.mes + '-01', codlocalidad: f.codlocalidad, gastos: ponerClaves(f.codlocalidad, f.gastos || []), variables: f.variables || {},
+        st.filas[f.codlocalidad] = { actualizado_en: (st.filas[f.codlocalidad] || {}).actualizado_en || null, mes: st.mes + '-01', codlocalidad: f.codlocalidad, gastos: ponerClaves(f.codlocalidad, f.gastos || []), variables: f.variables || {},
           dias_habiles: f.codlocalidad === 0 ? null : diasDefecto(st.mes, t), incluye_itbis: !!f.incluye_itbis,
           reparto: f.reparto || 'venta', reparto_pct: f.reparto_pct || {}, notas: f.notas || '' };
       });
+      if (window.BayolCaptura) window.BayolCaptura.copiar(r.data.map(function (f) { return st.filas[f.codlocalidad]; }));
       st.sucio = true; aviso('Copiado. Revise los montos y toque Guardar.');
       pintar();
     } catch (e) { aviso('No se pudo copiar: ' + ((e && e.message) || e), 'error'); }
   }
 
   // ---------- edición ----------
-  function editMonto(cod, i, v) { fila(cod).gastos[i].monto = v === '' ? '' : num(v); st.sucio = true; refrescarCalculo(); }
-  function editConcepto(cod, i, v) { fila(cod).gastos[i].concepto = v; st.sucio = true; }
+  function editMonto(cod, i, v) { if (window.BayolCaptura) window.BayolCaptura.tocar(fila(cod).gastos[i], true); fila(cod).gastos[i].monto = v === '' ? '' : num(v); st.sucio = true; refrescarCalculo(); }
+  function editConcepto(cod, i, v) { fila(cod).gastos[i].concepto = v; if (window.BayolCaptura) window.BayolCaptura.tocar(fila(cod).gastos[i], true); st.sucio = true; if (window.BayolCaptura) pintar(); }
   function agregarConcepto(cod) { fila(cod).gastos.push({ concepto: '', monto: '' }); st.sucio = true; pintar(); var el = document.querySelector('#peGastos input[data-i="' + (fila(cod).gastos.length - 1) + '"]'); if (el) el.focus(); }
-  function quitarConcepto(cod, i) { fila(cod).gastos.splice(i, 1); st.sucio = true; pintar(); }
+  function quitarConcepto(cod, i) { if (window.BayolCaptura && window.BayolCaptura.ocupado()) { aviso('Espere al comprobante.', 'error'); return; } fila(cod).gastos.splice(i, 1); st.sucio = true; pintar(); }
   function editVar(cod, k, v) { fila(cod).variables = fila(cod).variables || {}; fila(cod).variables[k] = num(v); st.sucio = true; refrescarCalculo(); }
   function editDias(cod, v) { fila(cod).dias_habiles = v === '' ? null : Math.min(31, Math.round(num(v))); st.sucio = true; refrescarCalculo(); }
   function editComun(k, v) {
@@ -375,7 +382,7 @@
     st.sucio = true;
     if (k === 'banco') return;
     var t = $('pePrestTot'); if (t) t.innerHTML = htmlTotPrestamos();
-    var gi = filaIntereses(), el = gi >= 0 && document.querySelector('#peGastos input[data-i="' + gi + '"]'); if (el) el.value = num(fila(0).gastos[gi].monto) || '';
+    var gi = filaIntereses(), el = gi >= 0 && document.querySelector('#peGastos input[data-i="' + gi + '"]'); if (el) el.value = fila(0).gastos[gi].monto === '' ? '' : num(fila(0).gastos[gi].monto);
     refrescarCalculo();
   }
   function agregarPrestamo() {
@@ -393,7 +400,7 @@
   }
   function quitarPrestamo(i) {
     var l = listaPrestamos(); l.splice(i, 1);
-    if (l.length) sincronizarIntereses(); else { var gi = filaIntereses(); if (gi >= 0) fila(0).gastos[gi].monto = ''; }
+    if (l.length) sincronizarIntereses(); else { var gi = filaIntereses(); if (gi >= 0) { fila(0).gastos[gi].monto = ''; if (window.BayolCaptura) window.BayolCaptura.tocar(fila(0).gastos[gi], true); } }
     fila(0).variables.capital = capitalPrestamos(); st.sucio = true; pintar();
   }
   function editRepartoPct(cod, v) { var c = fila(0); c.reparto_pct = c.reparto_pct || {}; c.reparto_pct[cod] = num(v); st.sucio = true; refrescarCalculo(); }
@@ -403,6 +410,7 @@
     if (!nom) { aviso('Escriba primero el monto de la nómina de la tienda.', 'error'); return; }
     f.gastos.forEach(function (g) {
       var k = claveDe(g, cod);
+      if (window.BayolCaptura && (k === 'tss' || k === 'regalia')) window.BayolCaptura.tocar(g, true);
       if (k === 'tss') g.monto = Math.round(nom * TSS_PCT) / 100;
       if (k === 'regalia') g.monto = Math.round(nom * PROV_PCT) / 100;
     });
@@ -431,6 +439,7 @@
   }
   function htmlResumen(x, nombre, esGeneral, c) {
     var itbis = c.itbis, avisos = [];
+    if (window.BayolCaptura && window.BayolCaptura.tienePendientes()) avisos.push('Resultado provisional: faltan gastos confirmados o soportes.');
     if (c.errVentas) { /* lo dice el recuadro «Faltan datos» */ }
     else if (c.em === 'futuro') avisos.push('Este mes todavía no empieza. Puede ir anotando los gastos.');
     else if (x.vn <= 0) avisos.push('No hay ventas registradas en Info Plus para este mes. Verifique la sincronización o el mes elegido.');
@@ -438,7 +447,7 @@
     if (c.repMal) avisos.push('El reparto manual de gastos comunes suma ' + c.repSuma + ' %. Debe sumar 100 %.');
     if (x.mc <= 0 && x.vn > 0) avisos.push('Con el margen actual ' + (esGeneral ? 'el negocio' : 'esta tienda') + ' no cubre sus gastos variables. Revise los precios, el costo o los porcentajes de gastos variables.');
     if (x.faltan > 0) avisos.push('Hay ' + x.faltan + ' concepto(s) de gastos fijos sin monto. El punto de equilibrio puede salir más bajo de lo real.');
-    if (x.pe != null && x.vn >= x.pe && x.vn > 0) avisos.push('Ya ' + (esGeneral ? 'se cubrieron' : 'cubrió') + ' los gastos del mes. Lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
+    if ((!window.BayolCaptura || !window.BayolCaptura.tienePendientes()) && x.pe != null && x.vn >= x.pe && x.vn > 0) avisos.push('Ya ' + (esGeneral ? 'se cubrieron' : 'cubrió') + ' los gastos del mes. Lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
     else if (c.em === 'actual' && x.pe != null && x.proy < x.pe && x.diaNecesario != null) avisos.push('Al ritmo actual cerraría el mes por debajo del punto de equilibrio. Necesita vender ' + plata(x.diaNecesario) + ' por día hábil.');
     if (itbis) avisos.push('Se quita el ITBIS al ' + Math.round(c.g18 * 100) + ' % de las ventas.');
     if (hayCuotaTotal()) avisos.push('Hay préstamos anotados con la cuota total: el capital está contando como gasto y el punto de equilibrio sale más alto. Sepárelos en intereses y capital cuando tenga el desglose.');
@@ -458,8 +467,8 @@
         kpi('Ganancia que necesita', plata(x.ft), null, 'Lleva ' + '<b style="color:' + colorRes(x.vn * x.mc - x.ft) + '">' + plata(Math.max(0, x.vn * x.mc)) + '</b> (venta − costo − variables)') +
         kpi('Le falta', x.falta != null ? plata(x.falta) : '—', x.falta ? '#b45309' : '#15803d', x.diaNecesario != null ? plata(x.diaNecesario) + ' por día que queda' : '') +
         kpi('Gastos fijos', plata(x.ft), null, esGeneral ? 'Propios de las tiendas ' + plata(x.gf) + ' · comunes ' + plata(x.gc) : 'Propios ' + plata(x.gf) + ' · comunes ' + plata(x.gc) + ' (' + pct(x.partePct) + ')') +
-        kpi(c.em === 'pasado' ? 'Resultado del mes' : 'Resultado a la fecha', x.resultado == null ? '—' : plata(x.resultado), x.resultado == null ? null : colorRes(x.resultado),
-          x.resultado == null ? '' : (x.resultado >= 0 ? 'Ganancia' : 'Pérdida') + (c.em === 'actual' ? ' · con los gastos de los días transcurridos' : '')) +
+        kpi(window.BayolCaptura && window.BayolCaptura.tienePendientes() ? 'Resultado provisional' : (c.em === 'pasado' ? 'Resultado del mes' : 'Resultado a la fecha'), x.resultado == null ? '—' : plata(x.resultado), x.resultado == null ? null : colorRes(x.resultado),
+          x.resultado == null ? '' : (window.BayolCaptura && window.BayolCaptura.tienePendientes() ? 'Con los gastos anotados' : (x.resultado >= 0 ? 'Ganancia' : 'Pérdida')) + (c.em === 'actual' ? ' · con los gastos de los días transcurridos' : '')) +
         (!esGeneral ? kpi('Aporte de la tienda', x.aporte == null ? '—' : plata(x.aporte), x.aporte == null ? null : colorRes(x.aporte), 'Sin gastos comunes. Sirve para decidir sobre la tienda.') : '') +
         kpi('Margen de seguridad', x.seguridad == null ? '—' : pct(x.seguridad), x.seguridad == null ? null : colorRes(x.seguridad), x.seguridad == null ? '' : (x.seguridad >= 0 ? 'Lo que puede bajar la venta sin perder' : 'Por debajo del punto de equilibrio')) +
         (x.capital > 0 && x.peCaja != null ? kpi('Para pagar también la cuota del préstamo', plata(x.peCaja),
@@ -701,13 +710,14 @@
   function htmlGastos(cod) {
     var f = fila(cod), esTienda = cod !== 0, lp = !esTienda && (prestamos() || []).length, gi = lp ? filaIntereses() : -1;
     var filas = f.gastos.map(function (g, i) {
+      function envolver(html) { return window.BayolCaptura ? window.BayolCaptura.render(g, cod, i, html) : html; }
       // Con la lista de préstamos, los intereses se llenan solos: no se escriben a mano.
-      if (i === gi) return '<div class="pe-g"><input class="pe-g-c" value="' + esc(g.concepto) + '" readonly aria-label="Concepto"><input class="pe-g-m" data-i="' + i + '" value="' + (num(g.monto) || '') + '" readonly title="Se llena solo con la lista de préstamos" aria-label="Intereses de préstamos, se llena solo"><span class="pe-auto" title="Se llena solo con la lista de préstamos"><i class="ti ti-lock"></i></span></div>';
-      return '<div class="pe-g">' +
+      if (i === gi) return envolver('<div class="pe-g"><input class="pe-g-c" value="' + esc(g.concepto) + '" readonly aria-label="Concepto"><input class="pe-g-m" data-i="' + i + '" value="' + (g.monto === '' || g.monto == null ? '' : num(g.monto)) + '" readonly title="Se llena solo con la lista de préstamos" aria-label="Intereses de préstamos, se llena solo"><span class="pe-auto" title="Se llena solo con la lista de préstamos"><i class="ti ti-lock"></i></span></div>');
+      return envolver('<div class="pe-g">' +
         '<input class="pe-g-c" value="' + esc(g.concepto) + '" placeholder="Concepto" onchange="BayolEquilibrio._c(' + cod + ',' + i + ',this.value)" aria-label="Concepto">' +
         '<input class="pe-g-m" data-i="' + i + '" inputmode="decimal" value="' + (g.monto === '' || g.monto == null ? '' : num(g.monto)) + '" placeholder="0.00" oninput="BayolEquilibrio._m(' + cod + ',' + i + ',this.value)" aria-label="Monto de ' + esc(g.concepto) + '">' +
-        '<button class="pe-x" title="Quitar" aria-label="Quitar" onclick="BayolEquilibrio._q(' + cod + ',' + i + ')"><i class="ti ti-x"></i></button>' +
-      '</div>';
+        '<button class="pe-x" title="Quitar" aria-label="Quitar" onclick="BayolEquilibrio._q(' + cod + ',' + i + ')"><span aria-hidden="true">×</span></button>' +
+      '</div>');
     }).join('');
     var vars = '';
     if (esTienda) {
@@ -744,7 +754,7 @@
       '<div class="pe-acc">' +
         '<button class="btn btn-light" onclick="BayolEquilibrio._a(' + cod + ')"><i class="ti ti-plus"></i> Agregar concepto</button>' +
         (esTienda ? '<button class="btn btn-light" onclick="BayolEquilibrio._n(' + cod + ')" title="TSS 16.29 % y regalía 8.33 % de la nómina"><i class="ti ti-calculator"></i> Calcular TSS y regalía</button>' : '') +
-      '</div>' + vars +
+      '</div>' + (window.BayolCaptura ? '<details class="pc-ajustes"><summary>Ajustes contables</summary>' + vars + '</details>' : vars) +
     '</div>';
   }
 
@@ -787,6 +797,10 @@
   }
 
   function refrescarCalculo() {
+    if (window.BayolCaptura) {
+      window.BayolCaptura.actualizar();
+      document.querySelectorAll('.pc-gasto').forEach(function (el) { var f = fila(Number(el.dataset.pcCod)), g = f.gastos[Number(el.dataset.pcI)], sel = el.querySelector('[data-pc-estado]'); if (!sel || !g) return; var e = window.BayolCaptura.estado(g); if (e === 'pendiente' && !sel.querySelector('option[value=pendiente]')) sel.insertAdjacentHTML('afterbegin', '<option value="pendiente">Sin monto</option>'); sel.value = e; });
+    }
     var tot = $('peTotFijos'); if (tot && st.tab !== 'general') tot.textContent = plata(totalFijos(st.tab === 'comunes' ? 0 : st.tab));
     var box = $('peResumen'); if (!box) return;
     var c = calcular();
@@ -852,7 +866,7 @@
     cont.innerHTML =
       '<div class="pe-tabs" role="tablist">' + tabs.map(function (t) {
         return '<button role="tab" aria-selected="' + (st.tab === t.k) + '" class="pe-tab' + (st.tab === t.k ? ' on' : '') + '" onclick="BayolEquilibrio.tab(' + (typeof t.k === 'number' ? t.k : '\'' + t.k + '\'') + ')">' + esc(t.t) + '</button>';
-      }).join('') + '</div>' + cuerpo +
+      }).join('') + '</div>' + (window.BayolCaptura ? '<div id="pcAvance">' + window.BayolCaptura.avance() + '</div>' : '') + cuerpo +
       (st.tab === 'ventas' ? '' : '<div class="pe-pie"><span id="peEstado">' + (st.sucio ? 'Cambios sin guardar' : '') + '</span>' +
         '<button class="btn btn-light" onclick="BayolEquilibrio.copiar()"><i class="ti ti-copy"></i> Copiar del mes anterior</button>' +
         '<button id="peBtnGuardar" class="btn btn-blue" onclick="BayolEquilibrio.guardar()"><i class="ti ti-device-floppy"></i> Guardar gastos del mes</button>' +
@@ -873,16 +887,17 @@
     var g = c.g, quedan = g.quedan;
     var V = function (cod) { return ventas ? window.BayolVentas.datos(cod, ventas, metasMes()) : null; };
     // Resumen en frases.
-    var res = [];
+    var res = [], provisional = window.BayolCaptura && window.BayolCaptura.tienePendientes();
+    if (window.BayolCaptura) { var captura = window.BayolCaptura.resumen([0].concat(TIENDAS.map(function (t) { return t.cod; })).map(fila)); res.push((provisional ? 'Equilibrio provisional' : 'Captura lista para revisión contable') + ': ' + captura.confirmados + ' de ' + captura.total + ' gastos confirmados; ' + captura.pendientes + ' sin monto, ' + captura.estimados + ' estimados y ' + captura.revisar + ' por revisar.'); }
     var corte = c.em === 'actual' ? 'al ' + new Date().toLocaleDateString('es-DO', { day: 'numeric', month: 'long' }) : (c.em === 'pasado' ? 'del mes completo' : '');
     if (g.pe != null) {
       res.push('En ' + nombreMes(st.mes).toLowerCase() + ' (' + corte + ') ' + B.lasTiendas() + ' llevan vendido ' + plata(g.vn) + ', el ' + pct(g.alcanzado) + ' de lo que necesitan para cubrir los gastos del mes (' + plata(g.pe) + ').');
       if (g.falta > 0) res.push('Para cubrir los gastos falta vender ' + plata(g.falta) + (g.diaNecesario ? ': ' + plata(g.diaNecesario) + ' por día en los ' + quedan + ' días que quedan.' : '.'));
-      else res.push('Los gastos del mes ya están cubiertos: lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
+      else if (!provisional) res.push('Los gastos del mes ya están cubiertos: lo que se venda de aquí en adelante, menos el costo y los gastos variables, es ganancia.');
     } else res.push('Todavía no se puede calcular el punto de equilibrio: faltan gastos o ventas del mes.');
     if (g.capital > 0 && g.peCaja != null) res.push('Para pagar también la cuota completa de los préstamos (capital ' + plata(g.capital) + ', que no es gasto pero sale de la caja) hay que vender ' + plata(g.peCaja) + (g.faltaCaja > 0 ? '; faltan ' + plata(g.faltaCaja) + (g.diaCaja ? ' (' + plata(g.diaCaja) + ' por día)' : '') + '.' : '; ya se alcanzó.'));
     if (g.meta > 0) res.push('La meta de venta del mes suma ' + plata(g.meta) + ' y va al ' + pct(g.metaAvance) + (g.metasFaltan ? ' (falta fijar la meta en ' + g.metasFaltan + ' tienda(s)).' : '.'));
-    if (g.resultado != null) res.push((g.resultado >= 0 ? 'Ganancia' : 'Pérdida') + ' a la fecha: ' + plata(Math.abs(g.resultado)) + (c.em === 'actual' ? ', comparando con los gastos de los días transcurridos. Al ritmo actual cerraría el mes en ' + plata(g.proy) + ' de venta y un resultado de ' + plata(g.resultadoProy) + '.' : '.'));
+    if (g.resultado != null) res.push((provisional ? 'Resultado provisional' : (g.resultado >= 0 ? 'Ganancia' : 'Pérdida')) + ' a la fecha: ' + plata(provisional ? g.resultado : Math.abs(g.resultado)) + (c.em === 'actual' ? ', comparando con los gastos de los días transcurridos. Al ritmo actual cerraría el mes en ' + plata(g.proy) + ' de venta y un resultado de ' + plata(g.resultadoProy) + '.' : '.'));
     // Conclusiones.
     var con = erroresCarga(c).map(function (t) { return 'Ojo: ' + t; });
     var conMeta = c.tiendas.filter(function (x) { return x.meta > 0; });
@@ -894,7 +909,7 @@
       if (atr && atr.falta > 0) con.push(atr.t.nombre + ' es la tienda más lejos de su punto de equilibrio (' + pct(atr.alcanzado) + '). Le faltan ' + plata(atr.falta) + (atr.diaNecesario ? ', ' + plata(atr.diaNecesario) + ' por día.' : '.'));
     }
     c.tiendas.forEach(function (x) { if (x.aporte != null && x.aporte < 0) con.push(x.t.nombre + ' no cubre ni sus propios gastos (aporte ' + plata(x.aporte) + '). Revise precios, costos o gastos de esa tienda.'); });
-    c.tiendas.forEach(function (x) { if (x.alcanzado != null && x.alcanzado >= 1) con.push(x.t.nombre + ' ya cubrió sus gastos del mes.'); });
+    c.tiendas.forEach(function (x) { if (!provisional && x.alcanzado != null && x.alcanzado >= 1) con.push(x.t.nombre + ' ya cubrió sus gastos del mes.'); });
     if (ventas) {
       var tv = V('todas'), dm = tv.detalle_venta + tv.mayor_venta;
       if (dm > 0) con.push('El ' + pct(tv.mayor_venta / dm) + ' de la venta de productos fue al por mayor y el ' + pct(tv.detalle_venta / dm) + ' al detalle. Se vendieron ' + entero(tv.cel_unid) + ' celulares y se cobraron ' + entero(tv.rep_n) + ' reparaciones.');
@@ -943,7 +958,7 @@
       '.tw{overflow-x:auto}@media(max-width:640px){.hoja{padding:16px}table{font-size:12px}}' +
       '@media print{body{background:#fff}.acc{display:none}.tw{overflow:visible}.tw table{min-width:0}table{font-size:9.5px}th,td{padding:5px 3px}.n{white-space:normal}.hoja{padding:0;max-width:none}h2{break-after:avoid}table,tr{break-inside:avoid}@page{size:letter;margin:14mm}}' +
       '</style></head><body><div class="acc"><button onclick="window.close()">Cerrar</button><button class="p" onclick="window.print()">Imprimir o guardar PDF</button></div><div class="hoja">' +
-      '<div class="cab"><img src="' + e(logo) + '" alt="" onerror="this.style.display=\'none\'"><div><h1>Punto de equilibrio · ' + e(nombreMes(st.mes)) + '</h1><p>Bayol Cell · ' + e(B.nombresTiendas()) + ' · ' + e(c.em === 'actual' ? 'Datos ' + R.corte + ' (mes en curso)' : c.em === 'pasado' ? 'Mes cerrado' : 'Mes futuro') + '</p></div></div>' +
+      '<div class="cab"><img src="' + e(logo) + '" alt="" onerror="this.style.display=\'none\'"><div><h1>Punto de equilibrio · ' + e(nombreMes(st.mes)) + '</h1><p>Bayol Cell · ' + e(B.nombresTiendas()) + ' · ' + e(c.em === 'actual' ? 'Datos ' + R.corte + ' (mes en curso)' : c.em === 'pasado' ? 'Mes completo' : 'Mes futuro') + '</p></div></div>' +
       '<h2>1. Resumen</h2><div class="res">' + R.res.map(function (x) { return '<p>' + e(x) + '</p>'; }).join('') + '</div>' +
       '<h2>2. Cada tienda</h2><table>' + th(['Tienda', 'Meta', 'Vendido', '% meta', 'Debe vender (equilibrio)', 'Le falta', 'Por día que queda', 'Margen', 'Resultado a la fecha', 'Aporte (sin comunes)']) + tiendas + '</table>' +
       '<p class="nota">«Debe vender» es la venta que cubre los gastos fijos propios y la parte de los comunes. «Aporte» es lo que deja la tienda sin cargarle los gastos comunes.</p>' +
@@ -1009,7 +1024,7 @@
         X.utils.book_append_sheet(wb, ws, nombre);
       };
       var RD = '#,##0.00', PC = '0.0%';
-      hoja('Resumen', [['Punto de equilibrio · ' + nombreMes(st.mes)], ['Bayol Cell · ' + (c.em === 'actual' ? 'Datos ' + R.corte : c.em === 'pasado' ? 'Mes cerrado' : 'Mes futuro')], []]
+      hoja('Resumen', [['Punto de equilibrio · ' + nombreMes(st.mes)], ['Bayol Cell · ' + (c.em === 'actual' ? 'Datos ' + R.corte : c.em === 'pasado' ? 'Mes completo' : 'Mes futuro')], []]
         .concat(R.res.map(function (x) { return [x]; })).concat([[], ['Conclusiones']]).concat(R.con.map(function (x) { return ['• ' + x]; })), [120], {});
       hoja('Tiendas', [['Tienda', 'Meta', 'Vendido', '% de la meta', 'Debe vender (equilibrio)', '% del equilibrio', 'Le falta', 'Por día que queda', 'Para pagar también la cuota', 'Margen', 'Contribución', 'Resultado a la fecha', 'Aporte (sin comunes)', 'Proyección de venta']]
         .concat(c.tiendas.map(function (x) { return [x.t.nombre, r2(x.meta || null), r2(x.vn), p1(x.metaAvance), r2(x.pe), p1(x.alcanzado), r2(x.falta), r2(x.diaNecesario), r2(x.peCaja), p1(x.mb), p1(x.mc), r2(x.resultado), r2(x.aporte), r2(x.proy)]; }))
@@ -1019,7 +1034,7 @@
       [0].concat(TIENDAS.map(function (t) { return t.cod; })).forEach(function (cod) {
         var nom = cod === 0 ? 'Gastos comunes' : TIENDAS.filter(function (t) { return t.cod === cod; })[0].nombre;
         gfil.push([nom.toUpperCase(), '']);
-        (fila(cod).gastos || []).forEach(function (x) { gfil.push(['   ' + x.concepto, num(x.monto)]); });
+        (fila(cod).gastos || []).forEach(function (x) { gfil.push(['   ' + x.concepto, x.monto === '' || x.monto == null ? '' : num(x.monto)]); });
         gfil.push(['   Total ' + nom, r2(totalFijos(cod))], []);
       });
       hoja('Gastos', gfil, [44, 16], { B: RD });
@@ -1039,6 +1054,11 @@
           mf.push([]);
         });
         hoja('Metas', mf, [12, 40, 8, 16, 16, 10, 18, 18], { C: PC, D: RD, E: RD, F: PC, G: RD, H: RD });
+      }
+      if (window.BayolCaptura) {
+        var cf = [['Mes', 'Tienda', 'Concepto', 'Monto', 'Estado', 'Nota', 'Registró', 'Fecha', 'Comprobantes']];
+        [0].concat(TIENDAS.map(function (t) { return t.cod; })).forEach(function (cod) { var nombre = cod === 0 ? 'Gastos comunes' : TIENDAS.find(function (t) { return t.cod === cod; }).nombre; fila(cod).gastos.forEach(function (g) { var m = g.captura || {}; cf.push([st.mes, nombre, g.concepto, g.monto === '' || g.monto == null ? '' : num(g.monto), window.BayolCaptura.estado(g), m.nota || '', m.por || '', m.fecha || '', (m.archivos || []).map(function (a) { return a.nombre; }).join('; ')]); }); });
+        hoja('Captura', cf, [12, 18, 36, 16, 16, 45, 24, 24, 36], { D: RD });
       }
       X.writeFile(wb, 'Punto_de_equilibrio_' + st.mes + '_BayolCell.xlsx');
     } catch (e) { aviso('No se pudo preparar el Excel. Intente de nuevo.', 'error'); if (typeof logError === 'function') logError('equilibrio excel', e); }
@@ -1300,12 +1320,14 @@
   window.BayolEquilibrio = {
     tab: function (k) { if (k === 'ventas' && !window.BayolVentas) k = 'general'; if (k !== 'general' && k !== 'comunes' && k !== 'ventas' && !TIENDAS.some(function (t) { return t.cod === k; })) return; st.tab = k; st.animar = true; pintar(); },
     mes: function (v) {
-      if (!v) return;
+      if (!v || st.guardando) return;
+      if (window.BayolCaptura && window.BayolCaptura.ocupado()) { aviso('Espere al comprobante.', 'error'); return; }
       var seguir = function () { st.mes = v; st.filas = {}; cargar(); };
       if (st.sucio && typeof confirmar === 'function') confirmar('Hay cambios sin guardar. ¿Cambiar de mes y perderlos?').then(function (ok) { if (ok) seguir(); });
       else seguir();
     },
     recargar: function () {
+      if (st.guardando || (window.BayolCaptura && window.BayolCaptura.ocupado())) { aviso('Espere al comprobante o al guardado.', 'error'); return; }
       if (window.BayolVentas && window.BayolVentas.olvidar) window.BayolVentas.olvidar();
       if (st.sucio && typeof confirmar === 'function') { confirmar('Hay cambios sin guardar. ¿Actualizar y perderlos?').then(function (ok) { if (ok) cargar(); }); return; }
       cargar();
@@ -1317,6 +1339,8 @@
     ayuda: ayuda,
     calcular: calcular,
     _estado: function () { return st; },
+    _pintar: pintar,
+    _refrescar: refrescarCalculo,
     _m: editMonto, _c: editConcepto, _a: agregarConcepto, _q: quitarConcepto, _v: editVar, _d: editDias, _r: editComun, _rp: editRepartoPct, _n: sugerirNomina, _pb: editPrestamo, _pm: modoPrestamo, _pa: agregarPrestamo, _pq: quitarPrestamo, _mt: editMeta, _ms: usarMetaSugerida, _mp: mesPaso, _ma: abrirMeses, _vp: editVendPct, _vq: function (n) { st.vendQ = n; st.animar = true; pintar(); }, _vs: hojaVend, _vc: cerrarHoja, _anim: animarEntrada, _vm: editVendMonto, _vr: repartirVend
   };
 
