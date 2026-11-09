@@ -10,6 +10,7 @@ manda lo más nuevo. Ante la duda, volver a leer (nunca suponer).
 
 ## 2. Dueño y reglas de trabajo
 - Dueño: **Sterling** (Esterlin). No es programador: español sencillo, sin jerga; terminar con «Para probarlo:».
+- **Qué modelo conviene (dueño, 09-nov-2026):** al empezar cada pedido, decir en una línea si conviene el modelo normal (familia Opus, cuesta la mitad) o el más capaz (familia Fable). Regla corta: si un error cuesta dinero o es difícil de deshacer (auditar dinero, contabilidad, base de datos con riesgo, diseñar un módulo completo, errores difíciles, revisar a otra IA en algo delicado), el más capaz; si se ve en pantalla y se corrige en un minuto (textos, botones, compactar, reportes de anuncios, publicar, bitácoras, referencias), el normal. El cambio lo hace el dueño con `/model`.
 - **Trato de «usted»** en todo texto al empleado y al cliente (desde 19-oct). Rótulos con nombres, no preguntas. Sin exclamaciones.
 - **Publicar solo con «publícalo»** (o equivalente explícito) para esa entrega concreta. Lo demás queda en la rama.
 - **Bitácora nueva** por cada cambio/decisión/publicación: `docs/bitacora/AAAA-MM-DD-HHMM-claude-tema.md`.
