@@ -46,6 +46,7 @@
     var s = doc.getElementById(id); if (!s || !s.value) return '';
     var o = s.options[s.selectedIndex]; var t = o ? o.textContent.trim() : '';
     t = t.replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    t = t.replace(/^(Localidad|Oficina|Almacén)\s+/i, ''); // «Oficina Santiago» → «Santiago», para que quepa el vendedor
     if (corto) t = t.split(/\s+/)[0];
     return bonito(t);
   }
