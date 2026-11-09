@@ -1231,7 +1231,7 @@
       '#conta-equilibrio .pe-tab{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid #e2e8f0;background:#fff;font-size:14px;font-weight:600;color:#334155;cursor:pointer}',
       '#conta-equilibrio .pe-tab.on{background:#e4572e;border-color:#e4572e;color:#fff}',
       '#conta-equilibrio .pe-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}',
-      '@media (max-width:900px){#conta-equilibrio .pe-grid{grid-template-columns:1fr}}',
+      '@media (max-width:900px){#conta-equilibrio .pe-grid{grid-template-columns:minmax(0,1fr)}}',
       '@media (max-width:480px){#conta-equilibrio .pe-g{grid-template-columns:minmax(0,1fr) 44px;}#conta-equilibrio .pe-g-c{grid-column:1 / -1}#conta-equilibrio .pe-g-m{grid-column:1;width:100%}}',
       '#conta-equilibrio .pe-card,#conta-equilibrio .pe-res{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 6px 18px -14px rgba(15,23,42,.35)}',
       '#conta-equilibrio .pe-card h4{margin:12px 0 8px;font-size:14px;color:#0f172a}',
