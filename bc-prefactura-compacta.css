@@ -1,0 +1,85 @@
+/* BAYOL CELL · Prefactura compacta (dueño, 09-nov-2026). La arma bc-prefactura-compacta.js.
+   Apagar: BC_PFC=false o localStorage bc_pfc_off='1'. */
+
+/* 1 · Píldora Precio · Almacén · Vendedor (solo celular) */
+html.bc-pfc #v-recepcion .pfc-cond { display: none; }
+@media (max-width: 760px) {
+  html.bc-pfc #v-recepcion .pfc-cond {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 44px; margin-top: 8px;
+    padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; color: #334155;
+    font: 600 15px/1.2 inherit; cursor: pointer; text-align: left;
+  }
+  html.bc-pfc #v-recepcion .pfc-cond .pfc-cond-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html.bc-pfc #v-recepcion .pfc-cond i { flex: none; transition: transform .18s ease-out; }
+  html.bc-pfc #v-recepcion .pfc-cond[aria-expanded="true"] i { transform: rotate(180deg); }
+  html.bc-pfc #v-recepcion .pfc-cond.falta { border-color: #fdba74; background: #fff7ed; color: #9a3412; }
+  html.bc-pfc #v-recepcion .pfc-cond:active { transform: scale(.98); }
+  html.bc-pfc #v-recepcion .bcpf-franja:not(.pfc-abierta) > .pcol:not(:first-child) { display: none !important; }
+  html.bc-pfc #v-recepcion .bcpf-franja { gap: 10px !important; padding: 10px 12px !important; }
+}
+
+/* 2 · WhatsApp primero; en el celular la cédula detrás de «+ Cédula» */
+html.bc-pfc #v-recepcion .bcpf-clidatos .bcpf-campos > .pfc-wa { order: -1; }
+html.bc-pfc #v-recepcion .pfc-ced-btn { display: none; }
+@media (max-width: 760px) {
+  html.bc-pfc #v-recepcion .bcpf-clidatos:not(.pfc-ced-on) .bcpf-campos > .bcpf-ced { display: none !important; }
+  html.bc-pfc #v-recepcion .bcpf-clidatos:not(.pfc-ced-on) .pfc-ced-btn {
+    display: inline-flex; align-items: center; justify-self: start; order: 9; min-height: 44px; padding: 0 14px;
+    border: 1px dashed #cbd5e1; border-radius: 999px; background: #fff; color: #475569; font: 600 14px inherit; cursor: pointer;
+  }
+  html.bc-pfc #v-recepcion .bcpf-clidatos .bcpf-campos { gap: 10px !important; }
+}
+
+/* 3 · Artículos en 2 filas (celular) */
+html.bc-pfc #v-recepcion .pfc-pct { display: none; }
+@media (max-width: 760px) {
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-it {
+    grid-template-columns: minmax(0, 1fr) auto 44px; grid-template-areas: "d i x" "c i x" "l l l" "m m m" "s s s";
+    column-gap: 10px; row-gap: 4px; padding: 10px 4px 12px;
+  }
+  html.bc-pfc #v-recepcion .bcpf-it .n { display: none; }
+  html.bc-pfc #v-recepcion .bcpf-it .dsub { grid-area: c; margin-top: 0; }
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-it .imp { grid-area: i; text-align: right; line-height: 1.25; align-self: start; padding-top: 4px; font-size: 15px; }
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-it .imp s { text-align: right; }
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-it .del { grid-area: x; align-self: start; }
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-it .l2 { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; align-items: center !important; margin-top: 6px; }
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-it .l2 > .lq { flex-direction: row; gap: 0; flex: none; }
+  html.bc-pfc #v-recepcion .bcpf-it .l2 > label > span:first-child,
+  html.bc-pfc #v-recepcion .bcpf-it .l2 > .lq > span:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  html.bc-pfc #v-recepcion .bcpf-it .l2 > label:first-child { flex: 1 1 96px; min-width: 96px; }
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-it .pin { width: 100% !important; min-width: 0; }
+  html.bc-pfc #v-recepcion .bcpf-it.pfc-sindc .ldc { display: none !important; }
+  html.bc-pfc #v-recepcion .bcpf-it:not(.pfc-sindc) .pfc-pct { display: none !important; }
+  html.bc-pfc #v-recepcion .bcpf-it .pfc-pct {
+    display: grid; place-items: center; flex: none; width: 48px; height: 48px; border: 1px solid #e2e8f0; border-radius: 10px;
+    background: #f8fafc; color: #475569; font: 700 16px inherit; cursor: pointer;
+  }
+  html.bc-pfc #v-recepcion .bcpf-it .pfc-pct:active { transform: scale(.96); }
+}
+
+/* 6 · «Nueva» arriba, junto al Nº */
+html.bc-pfc #v-recepcion .pfc-oculto { display: none !important; }
+html.bc-pfc #v-recepcion .pfc-nueva {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid #e2e8f0;
+  border-radius: 999px; background: #fff; color: #0f172a; font: 700 14px inherit; cursor: pointer; flex: none;
+}
+html.bc-pfc #v-recepcion .pfc-nueva i { font-size: 18px; }
+html.bc-pfc #v-recepcion .pfc-nueva:hover { background: #f8fafc; }
+html.bc-pfc #v-recepcion .pfc-nueva:active { transform: scale(.97); }
+/* Celular: arriba a la derecha, junto a «BAYOL CELL» (ahí sobra espacio y no se confunde con «Nº Nueva») */
+@media (max-width: 760px) {
+  html.bc-pfc #v-recepcion .bcpf-dh { position: relative; }
+  html.bc-pfc body #v-recepcion#v-recepcion .bcpf-dh .pfc-nueva { position: absolute; top: 0; right: 0; }
+}
+@media (max-width: 760px) { html.bc-pfc #v-recepcion .bcpf-qs { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+
+/* 7 · PC: WhatsApp, nombre y cédula en el Resumen */
+html.bc-pfc #v-recepcion .bcpro-res .bcpf-clidatos { margin: 0 !important; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; }
+html.bc-pfc body #v-recepcion#v-recepcion .bcpro-res .bcpf-clidatos .bcpf-campos { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
+html.bc-pfc body #v-recepcion#v-recepcion .bcpro-res .bcpf-clidatos .bcpf-campos > div { order: 0; }
+html.bc-pfc body #v-recepcion#v-recepcion .bcpro-res .bcpf-clidatos .bcpf-campos > .pfc-wa { order: -1; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.bc-pfc #v-recepcion .pfc-cond i { transition: none; }
+  html.bc-pfc #v-recepcion .pfc-cond:active, html.bc-pfc #v-recepcion .pfc-nueva:active, html.bc-pfc #v-recepcion .bcpf-it .pfc-pct:active { transform: none; }
+}

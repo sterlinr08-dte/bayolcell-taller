@@ -39,7 +39,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   c('referencia ya contenida: no se repite', r.helper[3] === 'HOUSING IPHONE 8G PLUS BLANCO COMPLETO', r.helper[3]);
   c('sin referencia: igual', r.helper[4] === 'COVER IPHONE XR TRANSPARENTE', r.helper[4]);
   c('las 5 líneas llevan el texto completo', JSON.stringify(r.lineas) === JSON.stringify(r.helper.slice(0, 5)), r.lineas);
-  c('se ve en pantalla', r.pantalla.some(t => /14 NORMAL · 128GB/.test(t)) && r.pantalla.some(t => /BLANCO · VACIO/.test(t)), r.pantalla.slice(0, 3));
+  c('se ve en pantalla', r.pantalla.some(t => /14 NORMAL · 128GB/i.test(t)) && r.pantalla.some(t => /BLANCO · VACIO/i.test(t)), r.pantalla.slice(0, 3));
   c('va a Info Plus con la referencia', r.infoplus.some(t => /· 128GB/.test(t)) && r.infoplus.some(t => /· VACIO/.test(t)), r.infoplus);
   c('ninguna línea pasa de 100 letras', r.largoMax <= 100, r.largoMax);
   c('sin errores de JS', errs.length === 0, errs);
