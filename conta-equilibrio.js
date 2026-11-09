@@ -472,7 +472,7 @@
     var cruce = null; for (d = 1; d <= hoy; d++) if (acum[d] >= x.pe) { cruce = d; break; }
     var proy = c.em === 'actual' && hoy < ult ? Math.max(x.proy, acum[hoy]) : null, cruceP = null;
     if (cruce == null && proy != null && proy >= x.pe) { var r = (proy - acum[hoy]) / (ult - hoy); cruceP = hoy + Math.ceil((x.pe - acum[hoy]) / (r || 1)); }
-    var W = 320, H = 170, L = 8, R = 8, T = 22, Bm = 24, maxV = Math.max(x.pe, acum[hoy], proy || 0) * 1.1;
+    var W = 320, H = 140, L = 8, R = 8, T = 22, Bm = 24, maxV = Math.max(x.pe, acum[hoy], proy || 0) * 1.1;
     function X(d) { return L + (W - L - R) * d / ult; } function Y(v) { return T + (H - T - Bm) * (1 - v / maxV); }
     var pts = acum.map(function (v, d) { return X(d).toFixed(1) + ',' + Y(v).toFixed(1); }).join(' ');
     var dc = cruce || cruceP, msg;
@@ -714,7 +714,7 @@
       (ok ? '' : '<p class="pe-alerta">Las metas suman ' + (Math.round(suma * 10) / 10) + ' % de la tienda. Deben sumar 100 %.</p>') +
       '<ol class="pe-rkl">' + html + '</ol>' +
       '<div class="pe-acc"><button class="btn btn-light" onclick="BayolEquilibrio._vs(' + x.t.cod + ')"><i class="ti ti-adjustments"></i> Editar metas</button></div>' +
-      '<p class="pe-nota">La raya negra marca dónde debería ir cada uno hoy para cumplir la quincena' + (x.t.domingo ? ' (cuenta los domingos)' : '') + '. Se ordena solo: el que va mejor, arriba.</p></section>';
+      '<p class="pe-nota">Raya negra: donde debería ir hoy' + (x.t.domingo ? ' (con domingos)' : '') + '</p></section>';
   }
   // Hoja para editar las metas (% o pesos por mes) de los vendedores de una tienda.
   function htmlHojaVend(cod) {
@@ -1287,6 +1287,8 @@
       '#conta-equilibrio .pe-kpi small{font-size:13px;color:#475569}',
       '#conta-equilibrio .pe-kpi b{font-size:18px;font-variant-numeric:tabular-nums}',
       '#conta-equilibrio .pe-kpi span{font-size:13px;color:#475569}',
+      '#conta-equilibrio .pe-kpi span b{font-size:inherit}',
+      '@media (max-width:560px){#conta-equilibrio .pe-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}#conta-equilibrio .pe-kpi{padding:8px 9px;border-radius:10px}#conta-equilibrio .pe-kpi small{font-size:12px}#conta-equilibrio .pe-kpi b{font-size:15px;overflow-wrap:anywhere}#conta-equilibrio .pe-kpi span{font-size:12px;line-height:1.35}}',
       '#conta-equilibrio .pe-avisos{margin:10px 0 0;padding-left:18px;font-size:13px;color:#7c2d12}',
       '#conta-equilibrio .pe-errores{margin:12px 0;padding:12px 14px;border-radius:14px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:14px}',
       '#conta-equilibrio .pe-errores ul{margin:6px 0 10px;padding-left:18px}',

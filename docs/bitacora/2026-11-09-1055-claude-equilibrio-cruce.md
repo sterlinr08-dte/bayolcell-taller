@@ -53,3 +53,4 @@ El dueño escribió: «hay mucho texto explicativo… utiliza el reglamento micr
 | Avisos | De 2 a 6 palabras, por ejemplo «Sin ventas en Info Plus este mes», «Ventas sin ITBIS (18 %)», «Préstamos con cuota total: equilibrio más alto» |
 | Notas al pie | «Estimado antes del ISR · No sustituye a la contadora» y «Por días hábiles (lun–sáb)». Se quitó la nota de la sugerida, porque el botón ya dice «Usar sugerida RD$ X». |
 | El cruce | «✓ Gana desde el día N», «Ganaría desde el día N», «Al ritmo actual no llega», «No cubrió los gastos». Leyenda: «Vendido» y «Equilibrio». |
+- **Más compacto** (dueño: «Compacta más»). En el celular (≤560 px) las tarjetas van en 2 columnas, con letra de 15 px para la cifra y 12 px para el texto. La gráfica «El cruce» bajó de 170 a 140 de alto. La nota de vendedores ahora dice «Raya negra: donde debería ir hoy». A 390 px no hay scroll horizontal ni errores.
