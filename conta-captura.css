@@ -1,0 +1,34 @@
+/* Captura guiada: alcance exclusivo de Punto de equilibrio. */
+#conta-equilibrio .pc-avance{background:linear-gradient(130deg,#fff8f2,#fff);border:1px solid #ead8ca;border-radius:20px;padding:24px;margin:0 0 24px;color:#0f172a}
+#conta-equilibrio .pc-enc{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#conta-equilibrio .pc-eyebrow{font-size:13px;color:#675042}
+#conta-equilibrio .pc-enc h3{font-size:20px;line-height:1.3;margin:8px 0;font-weight:750}
+#conta-equilibrio .pc-enc>b{white-space:nowrap;font-size:20px;font-variant-numeric:tabular-nums}
+#conta-equilibrio .pc-avance progress{width:100%;height:8px;border:0;border-radius:9px;overflow:hidden;accent-color:#c4512c;margin:12px 0}
+#conta-equilibrio .pc-avance progress::-webkit-progress-bar{background:#efdfd3}
+#conta-equilibrio .pc-avance progress::-webkit-progress-value{background:#c4512c}
+#conta-equilibrio .pc-cifras{display:flex;gap:12px 24px;flex-wrap:wrap;font-size:13px;color:#475569;margin:8px 0}
+#conta-equilibrio .pc-cifras b{color:#0f172a}
+#conta-equilibrio .pc-gasto{border-bottom:1px solid #e2e8f0;padding:20px 0;min-width:0}
+#conta-equilibrio .pc-gasto:last-child{border-bottom:0}
+#conta-equilibrio .pc-gasto .pe-g{margin:0 0 20px}
+#conta-equilibrio .pc-controles{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+#conta-equilibrio .pc-gasto label{display:flex;flex-direction:column;gap:8px;font-size:13px;letter-spacing:0;text-transform:none;color:#475569;min-width:0}
+#conta-equilibrio .pc-gasto select,#conta-equilibrio .pc-gasto textarea,#conta-equilibrio .pc-gasto input[type=file]{box-sizing:border-box;min-height:48px;width:100%;max-width:100%;border:1px solid #cbd5e1;background:#fff;color:#0f172a;border-radius:12px;font:inherit;font-size:16px;padding:10px 12px}
+#conta-equilibrio .pc-gasto textarea{min-height:80px;resize:vertical}
+#conta-equilibrio .pc-gasto input[type=file]{font-size:13px;padding:4px;cursor:pointer}
+#conta-equilibrio .pc-gasto input::file-selector-button{min-height:38px;border:0;border-radius:9px;background:#eff6ff;color:#1d4ed8;padding:6px 10px;font-size:13px;cursor:pointer}
+#conta-equilibrio .pc-files{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+#conta-equilibrio .pc-file{min-height:44px;max-width:100%;border:1px solid #bfdbfe;border-radius:12px;color:#1d4ed8;background:#eff6ff;padding:8px 12px;font-size:13px;overflow-wrap:anywhere;text-align:left;cursor:pointer}
+#conta-equilibrio .pc-autor{font-size:12px;color:#64748b;margin:8px 0 0}
+#conta-equilibrio .pc-avance summary,#conta-equilibrio .pc-gasto summary,#conta-equilibrio .pc-ajustes>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:14px;color:#334155;gap:8px;list-style:none}
+#conta-equilibrio .pc-avance summary::before,#conta-equilibrio .pc-gasto summary::before,#conta-equilibrio .pc-ajustes>summary::before{content:'+';font-size:20px;color:#b04a29}
+#conta-equilibrio details[open]>summary::before{content:'−'}
+#conta-equilibrio .pc-avance p,#conta-equilibrio .pc-gasto details p{font-size:13px;line-height:1.6;color:#475569;margin:8px 0 20px}
+#conta-equilibrio .pc-ajustes{margin-top:24px}
+#conta-equilibrio .pc-gasto :is(select,textarea,input):focus-visible,#conta-equilibrio .pc-file:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+@media(max-width:640px){#conta-equilibrio .pc-avance{padding:24px 16px}#conta-equilibrio .pc-enc h3{font-size:17px}#conta-equilibrio .pc-controles{grid-template-columns:1fr}#conta-equilibrio .pc-cifras{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+#conta-equilibrio .pc-upload{position:relative;display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 12px;border:1px dashed #a9bbd4;border-radius:12px;background:#f4f8fe;color:#1d4ed8;overflow:hidden}
+#conta-equilibrio .pc-upload>span{font-size:14px;text-transform:none;letter-spacing:0;font-weight:600}
+#conta-equilibrio .pc-upload input[type=file]{position:absolute;inset:0;opacity:0;padding:0;cursor:pointer;height:100%}
+#conta-equilibrio .pc-upload:focus-within{outline:3px solid #93c5fd;outline-offset:2px}
