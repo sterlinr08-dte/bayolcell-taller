@@ -176,10 +176,10 @@ listas y sincronización.
 - **Reglamento smart en cada pedido (dueño, 31-oct-2026):** todo pedido se entrega con acciones smart sin pedirlas: lee el contexto, muestra el estado, sugiere el siguiente paso, un toque hace y deshace, evita el error antes, lleva el cursor a donde sigue, nunca salta candados de precio/permiso/inventario. El informe lleva la tabla «Qué hace solo». Detalle en `DESIGN.md`. Vale para los 3 proyectos.
 
 
-## Captura guiada de equilibrio — preparada el 09-nov-2026, sin publicar
+## Captura guiada de equilibrio — publicación autorizada el 09-nov-2026
 - Dueño eligió B: captura por tienda con Confirmado / Estimado / Por revisar, comprobantes y avance del mes para su asistente.
 - Rama `codex/captura-guiada-equilibrio`; detalle en `docs/bitacora/2026-11-09-1000-chatgpt-captura-equilibrio.md`.
 - Montos en la misma tabla; metadatos dentro de cada gasto. Comprobantes privados, guardado con control de versiones y sin modificar las fórmulas.
 - «Sin monto» no equivale a cero; copiar mes anterior deja lo copiado como estimado sin reciclar recibos. Completo = listo para revisión contable; no implica cierre del mes.
-- Migración `20261109133442_equilibrio_captura_guiada.sql` preparada, NO aplicada. Aplicarla antes del frontend únicamente al publicar esta entrega con autorización del dueño.
+- El dueño vio las capturas de celular y PC y autorizó «Hazlo». Migración `20261109133442_equilibrio_captura_guiada.sql` aplicada el 09-nov-2026 a BayolCell-taller: bucket privado y RPC verificados; huella de los 4 registros de gastos idéntica antes/después. Publicación del frontend mediante PR #263. Ver bitácora `2026-11-09-0952-chatgpt-publicacion-captura-equilibrio.md`.
 - No se cargaron gastos reales de noviembre ni se cambiaron históricos. La asistente conserva el requisito de permiso de Contabilidad existente.
