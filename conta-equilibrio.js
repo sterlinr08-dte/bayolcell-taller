@@ -234,11 +234,51 @@
       base: base, sinAnt: usaAnt && !errAnt && sumAnt <= 0, errAnt: errAnt, errDiario: !!st.errDiario, errCN: !!st.errCN, cn: st.cn || {} };
   }
 
+  // ---------- carga que no parpadea (dueño, 10-nov-2026; referencia Moxen «Demora») ----------
+  // Menos de 0,3 s: no se enseña nada. Desde 0,3 s: esqueleto, al menos 0,5 s. A los 4 s: «Sigue tardando» + Cancelar.
+  // A los 15 s: se corta y ofrece Reintentar. Apagar: localStorage.bc_pe_demora_off='1' (vuelve el «Cargando…» de antes).
+  var DEMORA = { nada: 300, minimo: 500, lento: 4000, corte: 15000 };
+  var dm = { fase: 'nada', t: [], tEsq: 0 };
+  function demoraOn() { try { return localStorage.getItem('bc_pe_demora_off') !== '1'; } catch (e) { return true; } }
+  function demoraLimpiar() { dm.t.forEach(clearTimeout); dm.t = []; }
+  function demoraIniciar(token) {
+    demoraLimpiar(); dm.fase = 'nada'; dm.tEsq = 0;
+    if (!demoraOn()) { dm.fase = 'viejo'; return; }
+    var si = function (fn) { return function () { if (token === st.token && st.cargando) fn(); }; };
+    dm.t.push(setTimeout(si(function () { dm.fase = 'esq'; dm.tEsq = Date.now(); pintar(); }), DEMORA.nada));
+    dm.t.push(setTimeout(si(function () { dm.fase = 'lento'; pintar(); }), DEMORA.lento));
+    dm.t.push(setTimeout(si(function () { detenerCarga('No cargó en 15 segundos.'); }), DEMORA.corte));
+  }
+  function demoraEsperar() {
+    var f = dm.tEsq ? DEMORA.minimo - (Date.now() - dm.tEsq) : 0;
+    return f > 0 ? new Promise(function (r) { setTimeout(r, f); }) : Promise.resolve();
+  }
+  function detenerCarga(msg) { st.token = (st.token || 0) + 1; demoraLimpiar(); st.cargando = false; st.cargaMsg = msg; pintar(); }
+  function cancelarCarga() { if (st.cargando) detenerCarga('Carga cancelada.'); }
+  function htmlEsqueleto() {
+    var b = function (w, h) { return '<i class="pe-esq-b" style="width:' + w + ';height:' + (h || 14) + 'px"></i>'; };
+    var fila = '<div class="pe-esq-fila">' + b('34%') + b('100%', 10) + '</div>';
+    return '<div class="pe-esq" role="status" aria-live="polite" aria-label="Cargando punto de equilibrio">' +
+      '<div class="pe-esq-aviso" hidden><span>Sigue tardando…</span><button type="button" class="btn btn-light" onclick="BayolEquilibrio.cancelarCarga()">Cancelar</button></div>' +
+      '<div class="pe-esq-tabs">' + b('86px', 40) + b('96px', 40) + b('96px', 40) + b('110px', 40) + '</div>' +
+      '<div class="pe-esq-kpis">' + [0, 1, 2, 3].map(function () { return '<div class="pe-esq-caja">' + b('60%', 11) + b('80%', 24) + '</div>'; }).join('') + '</div>' +
+      '<div class="pe-esq-caja">' + b('38%', 16) + fila + fila + fila + '</div>' +
+      '<div class="pe-esq-caja">' + b('44%', 16) + fila + fila + fila + fila + '</div>' +
+      '</div>';
+  }
+  function pintarCarga(cont) {
+    if (dm.fase === 'viejo') { cont.innerHTML = '<p class="pe-vacio"><i class="ti ti-loader"></i> Cargando ventas de Info Plus…</p>'; return; }
+    cont.setAttribute('aria-busy', 'true');
+    if (dm.fase === 'nada') { if (cont.querySelector('.pe-carga-msg, .pe-vacio')) cont.innerHTML = ''; return; }
+    if (!cont.querySelector('.pe-esq')) cont.innerHTML = htmlEsqueleto();
+    var a = cont.querySelector('.pe-esq-aviso'); if (a) a.hidden = dm.fase !== 'lento';
+  }
+
   // ---------- datos ----------
   async function cargar() {
     var cli = sb(); if (!cli) return;
-    st.cargando = true; st.errorTabla = false; pintar();
     var token = st.token = (st.token || 0) + 1;
+    st.cargando = true; st.errorTabla = false; st.cargaMsg = null; demoraIniciar(token); pintar();
     var p = periodo(st.mes);
     try {
       var r = await cli.from('conta_equilibrio').select('*').eq('mes', p.ini);
@@ -296,7 +336,9 @@
       rf[0].data.forEach(function (r) { facturas.mes[r.codlocalidad] = Number(r.facturas) || 0; });
       rf[1].data.forEach(function (r) { facturas.ant[r.codlocalidad] = Number(r.facturas) || 0; });
     } catch (e) { if (typeof logError === 'function') logError('equilibrio facturas', e); }
+    await demoraEsperar();
     if (token !== st.token) return;
+    demoraLimpiar();
     st.facturas = facturas;
     st.diario = diario; st.errDiario = errDiario; st.errCN = errCN;
     st.ventas = ventas; st.ventasAnt = ventasAnt; st.cn = cn; st.cargando = false; st.sucio = false; st.animar = true;
@@ -1008,7 +1050,9 @@
     var mt = $('peMesTxt'); if (mt) mt.textContent = etiquetaMes(st.mes);
     var cont = $('pe_contenido'); if (!cont) return;
     if (!puede()) { cont.innerHTML = '<p class="pe-vacio">Necesita permiso de Contabilidad para ver el punto de equilibrio.</p>'; return; }
-    if (st.cargando) { cont.innerHTML = '<p class="pe-vacio"><i class="ti ti-loader"></i> Cargando ventas de Info Plus…</p>'; return; }
+    if (st.cargando) { pintarCarga(cont); return; }
+    cont.removeAttribute('aria-busy');
+    if (st.cargaMsg) { cont.innerHTML = '<div class="pe-vacio pe-carga-msg" role="alert"><p>' + esc(st.cargaMsg) + '</p><button type="button" class="btn btn-blue" onclick="BayolEquilibrio.recargar()"><i class="ti ti-refresh"></i> Reintentar</button></div>'; return; }
     if (st.errorTabla) { cont.innerHTML = '<p class="pe-vacio">No se pudieron cargar los gastos guardados. Toque Actualizar.</p>'; return; }
     var tabs = [{ k: 'general', t: 'General' }].concat(TIENDAS.map(function (t) { return { k: t.cod, t: t.nombre }; }), window.BayolVentas ? [{ k: 'ventas', t: 'Ventas' }] : [], [{ k: 'comunes', t: 'Gastos comunes' }]);
     var c = calcular();
@@ -1227,6 +1271,21 @@
     var s = document.createElement('style'); s.id = 'peEstilos';
     s.textContent = [
       '#conta-equilibrio .pe-vacio{color:var(--text-muted);text-align:center;padding:24px}',
+      '#conta-equilibrio .pe-carga-msg p{margin:0 0 12px;font-size:16px;color:#0f172a}',
+      '#conta-equilibrio .pe-carga-msg .btn{min-height:48px;padding:0 20px;font-size:16px}',
+      '#conta-equilibrio .pe-esq{display:grid;gap:12px}',
+      '#conta-equilibrio .pe-esq-b{display:block;border-radius:8px;background:linear-gradient(90deg,#e8edf4 25%,#f4f7fb 37%,#e8edf4 63%);background-size:400% 100%;animation:peEsq 1.4s ease infinite}',
+      '#conta-equilibrio .pe-esq-tabs{display:flex;gap:6px;flex-wrap:wrap}',
+      '#conta-equilibrio .pe-esq-tabs .pe-esq-b{border-radius:999px}',
+      '#conta-equilibrio .pe-esq-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}',
+      '#conta-equilibrio .pe-esq-caja{display:grid;gap:12px;border:1px solid #e2e8f0;border-radius:16px;padding:14px;background:#fff}',
+      '#conta-equilibrio .pe-esq-fila{display:grid;gap:8px}',
+      '#conta-equilibrio .pe-esq-aviso{display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 0;font-size:15px;color:#475569}',
+      '#conta-equilibrio .pe-esq-aviso[hidden]{display:none}',
+      '#conta-equilibrio .pe-esq-aviso .btn{min-height:44px;padding:0 18px}',
+      '@keyframes peEsq{0%{background-position:100% 50%}100%{background-position:0 50%}}',
+      '@media (max-width:560px){#conta-equilibrio .pe-esq-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+      '@media (prefers-reduced-motion:reduce){#conta-equilibrio .pe-esq-b{animation:none}}',
       '#conta-equilibrio .pe-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px}',
       '#conta-equilibrio .pe-tab{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid #e2e8f0;background:#fff;font-size:14px;font-weight:600;color:#334155;cursor:pointer}',
       '#conta-equilibrio .pe-tab.on{background:#e4572e;border-color:#e4572e;color:#fff}',
@@ -1494,6 +1553,7 @@
       if (st.sucio && typeof confirmar === 'function') confirmar('Hay cambios sin guardar. ¿Cambiar de mes y perderlos?').then(function (ok) { if (ok) seguir(); });
       else seguir();
     },
+    cancelarCarga: cancelarCarga,
     recargar: function () {
       if (st.guardando || (window.BayolCaptura && window.BayolCaptura.ocupado())) { aviso('Espere al comprobante o al guardado.', 'error'); return; }
       if (window.BayolVentas && window.BayolVentas.olvidar) window.BayolVentas.olvidar();
