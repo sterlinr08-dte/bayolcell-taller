@@ -1,0 +1,33 @@
+// 10-nov-2026 · «Imprimir label»: los accesos rápidos de estado se comparten por config_taller.label_estados. Datos inventados.
+// Correr: node scripts/pruebas/servidor.cjs &  y luego  node scripts/pruebas/label-accesos-compartidos.cjs
+const { chromium } = require('playwright'); const fs = require('fs'); const B = __dirname; const PUERTO = process.env.PUERTO || 8788;
+(async () => { const b = await chromium.launch(); let fallos = 0; const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
+  await ctx.route(/supabase-js|googleapis|gstatic|unpkg|jsdelivr|cdnjs/, r => { const u = r.request().url(); if (/supabase-js/.test(u)) return r.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(B + '/supabase-stub.js', 'utf8') }); r.fulfill({ status: 200, contentType: /css/.test(u) ? 'text/css' : 'application/javascript', body: '' }); });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 160)));
+  await p.goto(`http://127.0.0.1:${PUERTO}/taller.html?f=` + Date.now(), { waitUntil: 'load', timeout: 120000 }); await p.waitForTimeout(3500);
+  const r = await p.evaluate(async () => { const w = ms => new Promise(r => setTimeout(r, ms)); const o = {};
+    sessionUser = { id: 'a1', nombre: 'Admin', usuario: 'admin', rol: 'admin', _tipo: 'usuario' }; document.body.classList.add('logged-in'); document.getElementById('app').style.display = 'block'; document.getElementById('login').style.display = 'none'; document.getElementById('appLoader').style.display = 'none';
+    localStorage.removeItem('bc_lr_eq'); localStorage.setItem('bc_lr_lista', JSON.stringify(['SOLO LOCAL']));
+    cache.refurb = [{ id: 'e1', modelo: 'CELULAR IPHONE 13', capacidad: '128GB', imei: '351016097520739', marca: 'Apple' }];
+    cache.configTaller = { id: 1, label_estados: ['CLASE A', 'GRADO B'] };
+    const llamadas = []; let fallar = false; const avisos = []; toast = (m, t) => avisos.push([m, t]);
+    const real = supabaseClient.from.bind(supabaseClient);
+    supabaseClient.from = (t) => t !== 'config_taller' ? real(t) : { update: (v) => ({ eq: (c, id) => { llamadas.push({ v, c, id }); return Promise.resolve(fallar ? { error: { message: 'sin permiso' } } : { error: null }); } }) };
+    const $ = id => document.getElementById(id), chips = () => [...document.querySelectorAll('#lr_chips .lr-chip:not(.lr-chip-ed)')].map(c => c.textContent.replace(/\s*✕/, '').trim()), ed = () => document.querySelector('#lr_chips .lr-chip-ed');
+    imprimirLabelEquipo('e1'); await w(300); o.abre = chips();
+    ed().click(); await w(50); const e = $('lr_estado'); e.value = 'sin face id'; e.dispatchEvent(new Event('input', { bubbles: true })); await w(50); document.querySelector('#lr_chips .lr-chip-mas').click(); await w(100);
+    o.trasAgregar = chips(); o.llamada = llamadas[0]; o.cache = cache.configTaller.label_estados;
+    [...document.querySelectorAll('#lr_chips .lr-chip-x')].find(c => c.dataset.t === 'GRADO B').click(); await w(100); o.trasQuitar = llamadas[1] && llamadas[1].v.label_estados;
+    fallar = true; [...document.querySelectorAll('#lr_chips .lr-chip-x')].find(c => c.dataset.t === 'CLASE A').click(); await w(150);
+    o.falla = { aviso: avisos[0], cache: cache.configTaller.label_estados, chips: chips(), local: JSON.parse(localStorage.getItem('bc_lr_lista')) };
+    cache.configTaller = { id: 1 }; _lrSoloLocal = false; cerrarLabelRapido(); imprimirLabelEquipo('e1'); await w(200); o.sinColumna = chips();
+    cache.configTaller = null; localStorage.removeItem('bc_lr_lista'); cerrarLabelRapido(); imprimirLabelEquipo('e1'); await w(200); o.sinNada = chips();
+    return o; });
+  const c = (n, ok, d) => { console.log((ok ? 'OK   ' : 'FALLO') + ' ' + n + (d !== undefined ? ' · ' + JSON.stringify(d) : '')); if (!ok) fallos++; };
+  c('abre con la lista compartida (no la local)', r.abre.join('|') === 'CLASE A|GRADO B', r.abre);
+  c('agregar guarda en config_taller (id 1) y en memoria', r.llamada && r.llamada.id === 1 && r.llamada.c === 'id' && JSON.stringify(r.llamada.v) === '{"label_estados":["CLASE A","GRADO B","SIN FACE ID"]}' && r.cache.length === 3, [r.llamada, r.cache]);
+  c('quitar guarda la lista nueva', JSON.stringify(r.trasQuitar) === '["CLASE A","SIN FACE ID"]', r.trasQuitar);
+  c('si la base falla: avisa, queda en este equipo y no cambia lo compartido', r.falla.aviso && r.falla.aviso[0] === 'Guardado solo en este equipo.' && JSON.stringify(r.falla.cache) === '["CLASE A","SIN FACE ID"]' && r.falla.chips.join('|') === 'SIN FACE ID' && r.falla.local.join('|') === 'SIN FACE ID', r.falla);
+  c('sin lista compartida: usa la del equipo', r.sinColumna.join('|') === 'SIN FACE ID', r.sinColumna); c('sin nada: CLASE A · B · C', r.sinNada.join('|') === 'CLASE A|CLASE B|CLASE C', r.sinNada);
+  c('sin errores de JavaScript', errs.length === 0, errs);
+  await b.close(); console.log(fallos ? fallos + ' fallo(s)' : 'Todo bien'); process.exit(fallos ? 1 : 0); })();
