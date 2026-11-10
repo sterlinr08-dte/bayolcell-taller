@@ -18613,7 +18613,23 @@ function _lrEstadoInicial(eq) {
 // Lista de accesos rápidos: editable por el usuario (dueño, 10-nov-2026: «Se puede poner editable el acceso rápido smart»).
 // Vive en este navegador (bc_lr_lista). Sin lista guardada: CLASE A · B · C.
 let _lrEditando = false;
-function _lrLista() { const l = _lrLeer('bc_lr_lista', null); return Array.isArray(l) ? l.filter(t => typeof t === 'string' && t.trim()).slice(0, 10) : _LR_BASE.slice(); }
+// Compartida entre todas las computadoras (dueño, 10-nov-2026: «Publícalo y compártela»): config_taller.label_estados.
+// Si la base no responde, la lista queda en este navegador (bc_lr_lista) y se avisa.
+let _lrSoloLocal = false;
+function _lrLimpia(l) { return l.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim().toUpperCase().slice(0, 40)).filter((t, i, a) => a.indexOf(t) === i).slice(0, 10); }
+function _lrLista() {
+    const comp = (typeof cache !== 'undefined' && cache.configTaller) ? cache.configTaller.label_estados : null;
+    if(!_lrSoloLocal && Array.isArray(comp)) return _lrLimpia(comp);
+    const l = _lrLeer('bc_lr_lista', null); return Array.isArray(l) ? _lrLimpia(l) : _LR_BASE.slice();
+}
+function _lrGuardarLista(l) {
+    l = _lrLimpia(l); _lrGuardar('bc_lr_lista', l);
+    const ct = (typeof cache !== 'undefined') ? cache.configTaller : null, antes = ct ? ct.label_estados : null;
+    if(!ct || ct.id == null) { _lrSoloLocal = true; return; }
+    ct.label_estados = l; _lrSoloLocal = false;
+    Promise.resolve().then(() => supabaseClient.from('config_taller').update({ label_estados: l }).eq('id', ct.id)).then(r => { if(r && r.error) throw r.error; })
+        .catch(e => { ct.label_estados = antes; _lrSoloLocal = true; try { logError('label accesos compartidos', e); } catch(_e) {} toast('Guardado solo en este equipo.', 'error'); });
+}
 function _lrPintarChips() {
     const c = document.getElementById('lr_chips'), inp = document.getElementById('lr_estado'); if(!c || !inp) return;
     if(!_lrSmartOn()) { c.innerHTML = ''; return; }
@@ -18629,12 +18645,12 @@ function _lrPintarChips() {
         `<button type="button" class="lr-chip lr-chip-ed on" onclick="_lrEditar(false)"><i class="ti ti-check"></i> Listo</button>`;
 }
 function _lrEditar(on) { _lrEditando = !!on; _lrPintarChips(); if(on) { const i = document.getElementById('lr_estado'); if(i && window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) i.focus(); } }
-function _lrQuitarAcceso(t) { _lrGuardar('bc_lr_lista', _lrLista().filter(x => x !== t)); _lrPintarChips(); }
+function _lrQuitarAcceso(t) { _lrGuardarLista(_lrLista().filter(x => x !== t)); _lrPintarChips(); }
 function _lrAgregarAcceso() {
     const inp = document.getElementById('lr_estado'); if(!inp) return;
     const t = (inp.value || '').trim().toUpperCase(), l = _lrLista();
     if(!t || l.includes(t) || l.length >= 10) return;
-    l.push(t); _lrGuardar('bc_lr_lista', l); _lrPintarChips();
+    l.push(t); _lrGuardarLista(l); _lrPintarChips();
 }
 // Un toque lo pone; otro toque lo quita.
 function _lrEstadoChip(t) { const inp = document.getElementById('lr_estado'); if(!inp) return; inp.value = ((inp.value || '').trim().toUpperCase() === t) ? '' : t; _lrPintarChips(); _lrPreview(); }
@@ -18651,7 +18667,7 @@ function _lrRecordarEstado() {
     const porEq = _lrLeer('bc_lr_eq', {}) || {};
     if(id) { if(t) porEq[id] = t; else delete porEq[id]; const ks = Object.keys(porEq); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k => delete porEq[k]); _lrGuardar('bc_lr_eq', porEq); }
     // Un texto propio que se imprime se suma solo a los accesos rápidos (si hay espacio); se quita con «Editar».
-    if(t) { const l = _lrLista(); if(!l.includes(t) && l.length < 10) { l.push(t); _lrGuardar('bc_lr_lista', l); } }
+    if(t) { const l = _lrLista(); if(!l.includes(t) && l.length < 10) { l.push(t); _lrGuardarLista(l); } }
 }
 function _lrStyles() {
     if(document.getElementById('lrStyles')) return;
