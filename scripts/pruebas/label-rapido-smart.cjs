@@ -11,10 +11,10 @@ const PUERTO = process.env.PUERTO || 8788;
   const r = await p.evaluate(async () => { const w = ms => new Promise(r => setTimeout(r, ms)); const o = {};
     sessionUser = { id: 'a1', nombre: 'Admin', usuario: 'admin', rol: 'admin', _tipo: 'usuario' }; isAdminUser = () => true;
     document.body.classList.add('logged-in'); document.getElementById('app').style.display = 'block'; document.getElementById('login').style.display = 'none'; document.getElementById('appLoader').style.display = 'none';
-    localStorage.removeItem('bc_lr_eq'); localStorage.removeItem('bc_lr_estados');
+    localStorage.removeItem('bc_lr_eq'); localStorage.removeItem('bc_lr_lista');
     cache.refurb = [{ id: 'e1', modelo: 'CELULAR IPHONE 8G PLUS', capacidad: '256GB', color: 'Negro', imei: '353011095998944', marca: 'Apple' }, { id: 'e2', modelo: 'CELULAR IPHONE 13', capacidad: '128GB', imei: '351016097520739', marca: 'Apple', clasificacion_final: 'b' }];
     let impresos = []; imprimirLabelAdhesivo = async () => { impresos.push({ estado: document.getElementById('lbl_estado_texto').value, copias: document.getElementById('lbl_copias').value }); };
-    const $ = id => document.getElementById(id), chips = () => [...document.querySelectorAll('#lr_chips .lr-chip')].map(c => c.textContent + (c.classList.contains('on') ? '*' : ''));
+    const $ = id => document.getElementById(id), chips = () => [...document.querySelectorAll('#lr_chips .lr-chip:not(.lr-chip-ed)')].map(c => c.textContent + (c.classList.contains('on') ? '*' : ''));
     imprimirLabelEquipo('e1'); await w(400);
     const box = document.querySelector('#modalLabelRapido .lr-box').getBoundingClientRect(), body = document.querySelector('#modalLabelRapido .lr-body'), imp = document.querySelector('#modalLabelRapido .lr-imp').getBoundingClientRect(), prev = $('lr_preview').getBoundingClientRect();
     o.cabe = box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth; o.box = [Math.round(box.width), Math.round(box.height)];
@@ -28,6 +28,12 @@ const PUERTO = process.env.PUERTO || 8788;
     await imprimirLabelRapido(); await w(100); o.impreso = impresos[0]; o.cerrada = !$('modalLabelRapido').classList.contains('active');
     imprimirLabelEquipo('e1'); await w(200); o.recuerda = $('lr_estado').value; o.chips1 = chips(); cerrarLabelRapido();
     imprimirLabelEquipo('e2'); await w(200); o.clasif = $('lr_estado').value; o.chips2 = chips();
+    // Editar accesos rápidos: quitar, agregar y que quede guardado
+    const ed = () => document.querySelector('#lr_chips .lr-chip-ed'); ed().click(); await w(60);
+    o.edicion = chips(); [...document.querySelectorAll('#lr_chips .lr-chip-x')].find(c => c.dataset.t === 'CLASE C').click(); await w(60);
+    const e2 = $('lr_estado'); e2.value = 'sin face id'; e2.dispatchEvent(new Event('input', { bubbles: true })); await w(60); o.ofrece = (document.querySelector('#lr_chips .lr-chip-mas') || {}).textContent;
+    e2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await w(60); o.noImprime = impresos.length; ed().click(); await w(60); o.editada = chips();
+    o.altoEd = Math.round(ed().getBoundingClientRect().height); cerrarLabelRapido(); imprimirLabelEquipo('e2'); await w(200); o.guardada = chips();
     const d = document.documentElement; o.sw = d.scrollWidth - d.clientWidth;
     if (window.__foto) { cerrarLabelRapido(); imprimirLabelEquipo('e1'); await w(300); }
     return o; });
@@ -39,6 +45,7 @@ const PUERTO = process.env.PUERTO || 8788;
   c('un toque lo pone (y sale en la vista previa); otro lo quita', r.trasChip.join('|') === 'CLASE A|CLASE A*|true' && r.quita === '', [r.trasChip, r.quita]);
   c('escribe en MAYÚSCULAS solo', r.mayus === 'AVISO BAT', r.mayus); c('copias con + y se imprime lo escrito', r.copias === '2' && r.impreso && r.impreso.estado === 'AVISO BAT' && r.impreso.copias === '2' && r.cerrada, [r.copias, r.impreso, r.cerrada]);
   c('recuerda el texto del equipo y lo ofrece como botón', r.recuerda === 'AVISO BAT' && r.chips1.join('|') === 'CLASE A|CLASE B|CLASE C|AVISO BAT*', [r.recuerda, r.chips1]);
+  c('Editar: quita «CLASE C», agrega «SIN FACE ID» con Enter (sin imprimir) y queda guardado', /^\+ SIN FACE ID/.test(r.ofrece || '') && r.noImprime === 1 && r.editada.join('|') === 'CLASE A|CLASE B|AVISO BAT|SIN FACE ID*' && r.guardada.join('|') === 'CLASE A|CLASE B*|AVISO BAT|SIN FACE ID' && r.altoEd >= 44, [r.ofrece, r.noImprime, r.editada, r.guardada, r.altoEd]);
   c('equipo con clasificación «b» abre en CLASE B', r.clasif === 'CLASE B' && r.chips2[1] === 'CLASE B*', [r.clasif, r.chips2]);
   c('sin desplazamiento horizontal', r.sw <= 1, r.sw); c('sin errores de JavaScript', errs.length === 0, errs);
   await ctx.close(); }

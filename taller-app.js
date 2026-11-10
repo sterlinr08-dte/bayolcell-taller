@@ -18576,7 +18576,7 @@ function imprimirLabelEquipo(equipoId) {
                 <div class="form-row"><label for="lr_modelo">Modelo</label><input id="lr_modelo" value="${escapeHtml(modeloLimpio)}" oninput="_lrPreview()"></div>
                 <div class="form-row lr-c4"><label for="lr_gb">Capacidad</label><input id="lr_gb" value="${escapeHtml(capac)}" oninput="_lrPreview()"></div>
                 <div class="form-row lr-c6"><label for="lr_imei">IMEI / Serial</label><input id="lr_imei" inputmode="numeric" value="${escapeHtml(eq.imei || '')}" oninput="_lrPreview()"></div>
-                <div class="form-row lr-ancho"><label for="lr_estado">Texto de estado</label><input id="lr_estado" data-eq="${escapeHtml(String(eq.id))}" value="${escapeHtml(estadoIni)}" placeholder="Opcional" autocomplete="off" autocapitalize="characters" oninput="_lrEstadoInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();imprimirLabelRapido();}">
+                <div class="form-row lr-ancho"><label for="lr_estado">Texto de estado</label><input id="lr_estado" data-eq="${escapeHtml(String(eq.id))}" value="${escapeHtml(estadoIni)}" placeholder="Opcional" autocomplete="off" autocapitalize="characters" oninput="_lrEstadoInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();if(_lrEditando)_lrAgregarAcceso();else imprimirLabelRapido();}">
                     <div class="lr-chips" id="lr_chips" role="group" aria-label="Textos de estado"></div></div>
             </div>
             <div class="lr-fila">
@@ -18594,7 +18594,7 @@ function imprimirLabelEquipo(equipoId) {
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalLabelRapido'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
     modal.style.zIndex = '600'; // por encima de la Ficha del Equipo (.fe-back, z-index 500) y del modal genérico
     modal.innerHTML = html; modal.classList.add('active');
-    _lrPintarChips(); _lrPreview();
+    _lrEditando = false; _lrPintarChips(); _lrPreview();
     // El cursor va a lo único que falta escribir (solo con teclado físico, para no abrir el teclado del celular)
     try { if(window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) { const e = document.getElementById('lr_estado'); if(e) { e.focus(); e.select(); } } } catch(_e) {}
 }
@@ -18610,12 +18610,31 @@ function _lrEstadoInicial(eq) {
     const m = String(eq.clasificacion_final || eq.clasificacion || '').trim().match(/^(?:clase\s*)?([A-D]\+?)$/i);
     return m ? 'CLASE ' + m[1].toUpperCase() : '';
 }
+// Lista de accesos rápidos: editable por el usuario (dueño, 10-nov-2026: «Se puede poner editable el acceso rápido smart»).
+// Vive en este navegador (bc_lr_lista). Sin lista guardada: CLASE A · B · C.
+let _lrEditando = false;
+function _lrLista() { const l = _lrLeer('bc_lr_lista', null); return Array.isArray(l) ? l.filter(t => typeof t === 'string' && t.trim()).slice(0, 10) : _LR_BASE.slice(); }
 function _lrPintarChips() {
     const c = document.getElementById('lr_chips'), inp = document.getElementById('lr_estado'); if(!c || !inp) return;
     if(!_lrSmartOn()) { c.innerHTML = ''; return; }
-    const usados = (_lrLeer('bc_lr_estados', []) || []).filter(t => t && !_LR_BASE.includes(t)).slice(0, 3);
-    const act = (inp.value || '').trim().toUpperCase();
-    c.innerHTML = _LR_BASE.concat(usados).map(t => `<button type="button" class="lr-chip${t === act ? ' on' : ''}" aria-pressed="${t === act}" data-t="${escapeHtml(t)}" onclick="_lrEstadoChip(this.dataset.t)">${escapeHtml(t)}</button>`).join('');
+    const lista = _lrLista(), act = (inp.value || '').trim().toUpperCase();
+    if(!_lrEditando) {
+        c.innerHTML = lista.map(t => `<button type="button" class="lr-chip${t === act ? ' on' : ''}" aria-pressed="${t === act}" data-t="${escapeHtml(t)}" onclick="_lrEstadoChip(this.dataset.t)">${escapeHtml(t)}</button>`).join('') +
+            `<button type="button" class="lr-chip lr-chip-ed" onclick="_lrEditar(true)" title="Editar accesos rápidos" aria-label="Editar accesos rápidos"><i class="ti ti-pencil"></i> Editar</button>`;
+        return;
+    }
+    const puedeAgregar = act && !lista.includes(act) && lista.length < 10;
+    c.innerHTML = lista.map(t => `<button type="button" class="lr-chip lr-chip-x" data-t="${escapeHtml(t)}" onclick="_lrQuitarAcceso(this.dataset.t)" aria-label="Quitar ${escapeHtml(t)}">${escapeHtml(t)} <b>✕</b></button>`).join('') +
+        (puedeAgregar ? `<button type="button" class="lr-chip lr-chip-mas" onclick="_lrAgregarAcceso()">+ ${escapeHtml(act)}</button>` : `<span class="lr-chip-nota">${lista.length >= 10 ? 'Máximo 10' : 'Escriba arriba y toque +'}</span>`) +
+        `<button type="button" class="lr-chip lr-chip-ed on" onclick="_lrEditar(false)"><i class="ti ti-check"></i> Listo</button>`;
+}
+function _lrEditar(on) { _lrEditando = !!on; _lrPintarChips(); if(on) { const i = document.getElementById('lr_estado'); if(i && window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) i.focus(); } }
+function _lrQuitarAcceso(t) { _lrGuardar('bc_lr_lista', _lrLista().filter(x => x !== t)); _lrPintarChips(); }
+function _lrAgregarAcceso() {
+    const inp = document.getElementById('lr_estado'); if(!inp) return;
+    const t = (inp.value || '').trim().toUpperCase(), l = _lrLista();
+    if(!t || l.includes(t) || l.length >= 10) return;
+    l.push(t); _lrGuardar('bc_lr_lista', l); _lrPintarChips();
 }
 // Un toque lo pone; otro toque lo quita.
 function _lrEstadoChip(t) { const inp = document.getElementById('lr_estado'); if(!inp) return; inp.value = ((inp.value || '').trim().toUpperCase() === t) ? '' : t; _lrPintarChips(); _lrPreview(); }
@@ -18631,7 +18650,8 @@ function _lrRecordarEstado() {
     const t = (inp.value || '').trim().toUpperCase(), id = inp.dataset.eq;
     const porEq = _lrLeer('bc_lr_eq', {}) || {};
     if(id) { if(t) porEq[id] = t; else delete porEq[id]; const ks = Object.keys(porEq); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k => delete porEq[k]); _lrGuardar('bc_lr_eq', porEq); }
-    if(t && !_LR_BASE.includes(t)) { const l = (_lrLeer('bc_lr_estados', []) || []).filter(x => x !== t); l.unshift(t); _lrGuardar('bc_lr_estados', l.slice(0, 6)); }
+    // Un texto propio que se imprime se suma solo a los accesos rápidos (si hay espacio); se quita con «Editar».
+    if(t) { const l = _lrLista(); if(!l.includes(t) && l.length < 10) { l.push(t); _lrGuardar('bc_lr_lista', l); } }
 }
 function _lrStyles() {
     if(document.getElementById('lrStyles')) return;
@@ -18653,6 +18673,12 @@ function _lrStyles() {
       #modalLabelRapido .lr-chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;font:600 14px inherit;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;}
       #modalLabelRapido .lr-chip:hover{background:#f1f5f9;} #modalLabelRapido .lr-chip:active{transform:scale(.97);}
       #modalLabelRapido .lr-chip.on{background:#0e7490;border-color:#0e7490;color:#fff;}
+      #modalLabelRapido .lr-chip-ed{border-style:dashed;color:#475569;display:inline-flex;align-items:center;gap:5px;}
+      #modalLabelRapido .lr-chip-ed.on{border-style:solid;}
+      #modalLabelRapido .lr-chip-x{border-color:#fca5a5;background:#fef2f2;color:#991b1b;display:inline-flex;align-items:center;gap:8px;}
+      #modalLabelRapido .lr-chip-x b{font-size:12px;}
+      #modalLabelRapido .lr-chip-mas{border-color:#0e7490;color:#0e7490;border-style:dashed;}
+      #modalLabelRapido .lr-chip-nota{display:inline-flex;align-items:center;min-height:44px;font-size:13px;color:#64748b;padding:0 4px;white-space:nowrap;}
       #modalLabelRapido .lr-fila{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 10px;}
       #modalLabelRapido .lr-paso{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#334155;}
       #modalLabelRapido .lr-paso>span{margin-right:2px;}
