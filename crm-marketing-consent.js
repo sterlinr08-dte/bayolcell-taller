@@ -10,7 +10,8 @@
   var FB_DIRECT='20261110-ab1';
   var MSG_LOAD='20261110-ab1'; // crm-message-loading.js con versión propia: subir V volvería a pedir todas las hojas del CRM
   var GLASS='20260916-glass2';
-  var AMBIENT='20260915-hotfix3';
+  var AMBIENT='20261110-c1';
+  var CRM_C='20261110-c1'; // CRM rápido (10-nov-2026): crm-facebook-chat.css/.js cambiaron (clases de estado en vez de :has)
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260929-f1';
   var surfaceCss=null;
@@ -45,7 +46,7 @@
   // 1-nov-2026 (PC de bajos recursos): el reflector sigue al ratón y vuelve a medir la pantalla en cada movimiento;
   // con la CPU 6 veces más lenta duplicaba el trabajo de la PC solo por mover el ratón. En modo ligero no se carga.
   try{if(!document.documentElement.classList.contains('bc-ligero')){var bcr=document.createElement('script');bcr.async=false;bcr.src='bc-reflector.js?v=20261021r3';document.head.appendChild(bcr);}}catch(e){} // Efectos reflector (réplica de NEXUS PRO): barra superior, brillo fijo, luz de vidrio
-  try{var bcb=document.createElement('script');bcb.async=false;bcb.src='bc-busqueda.js?v=20261009b3';document.head.appendChild(bcb);}catch(e){} // Buscador «Premium» (réplica de NEXUS PRO): lupa que se estira a píldora en todos los buscadores
+  try{var bcb=document.createElement('script');bcb.async=false;bcb.src='bc-busqueda.js?v=20261110b4';document.head.appendChild(bcb);}catch(e){} // Buscador «Premium» (réplica de NEXUS PRO): lupa que se estira a píldora en todos los buscadores
 
   try{var nav=document.createElement('script');nav.async=false;nav.src='taller-nav-apple.js?v=20261003-n1';document.head.appendChild(nav);}catch(e){} // Barra de navegación de ventanas estilo Apple (capa reversible)
   try{var bcm=document.createElement('script');bcm.async=false;bcm.src='taller-sidebar-mini.js?v=20261009m1';document.head.appendChild(bcm);}catch(e){} // Menú lateral compacto: solo íconos en la computadora, se abre al pasar el ratón
@@ -136,7 +137,7 @@
 
     var facebookCss=document.createElement('link');
     facebookCss.rel='stylesheet';
-    facebookCss.href='crm-facebook-chat.css?v='+V;
+    facebookCss.href='crm-facebook-chat.css?v='+CRM_C;
     colocarCss(facebookCss);
 
     var polishCss=document.createElement('link');
@@ -174,7 +175,7 @@
         document.head.appendChild(polish);
       };
       var facebook=document.createElement('script');
-      facebook.src='crm-facebook-chat.js?v='+V;
+      facebook.src='crm-facebook-chat.js?v='+CRM_C;
       facebook.onload=function(){document.head.appendChild(scope);};
       facebook.onerror=function(){document.head.appendChild(scope);};
       document.head.appendChild(facebook);
@@ -193,7 +194,7 @@
 
     // WhatsApp idéntico a WhatsApp Web / app (solo la pestaña WhatsApp). Va después del diseño unificado.
     var waIdentico=document.createElement('script');
-    waIdentico.src='crm-wa-identico.js?v=20261110-w22'; // su VERSION interna (hojas de estilo) sigue en w21: no cambiaron
+    waIdentico.src='crm-wa-identico.js?v=20261110-w23'; // su VERSION interna (hojas de estilo) la fija el propio archivo
     document.head.appendChild(waIdentico);
 
     // Automatizaciones estilo ManyChat (Fase 1: comentario → privado en Instagram/Facebook). Solo admin.

@@ -44,7 +44,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   });
   if (SHOTS) await p.screenshot({ path: `${SHOTS}/editar-${W}.png` });
   const c = (n, ok, d) => { console.log((ok ? 'OK   ' : 'FALLO') + ` [${W}] ${n}` + (d !== undefined ? ' · ' + JSON.stringify(d) : '')); if (!ok) fallos++; };
-  c('versión w21', r.version === '20261031-w21', r.version);
+  c('versión w22', r.version === '20261110-w22', r.version);   // 10-nov-2026: w22 = CRM rápido (crm-estilos.js)
   c('menú dice «Editar» en mensaje propio', r.etiqueta === 'Editar' && r.visible, r.etiqueta);
   c('botón del menú ≥ 44 px', r.altoBoton >= 44, r.altoBoton);
   c('no aparece en mensaje del cliente', r.ocultoEnCliente);

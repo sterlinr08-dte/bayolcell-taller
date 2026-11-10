@@ -772,7 +772,9 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     .top-right-info { padding:4px 9px; font-size:10px; }
     .top-bar > .btn { min-width:32px; min-height:32px; padding:4px 8px !important; display:inline-flex; align-items:center; justify-content:center; }
 
-    .content:has(#v-crmLinea.active) { overflow:hidden; }
+    /* CRM rápido (10-nov-2026): clase .bc-crm-activo que pone crm-estilos.js, en vez de :has(). Misma fuerza (1 id + 2 clases). */
+    #app .content.bc-crm-activo { overflow:hidden; }
+    @media not all and (min-width:1px) { .content:has(#v-crmLinea.active) { overflow:hidden; } } /* original, apagada: bc_crm_estilos_off=1 la enciende */
     #v-crmLinea.active { display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; }
     #v-crmLinea .crm-selectores { gap:7px; margin-bottom:6px; justify-content:flex-start; animation:crmBarraEntrada .22s ease-out both; }
     #v-crmLinea .crm-pill-select { flex:0 1 250px; max-width:250px; padding:5px 10px; font-size:11px; gap:6px; min-height:32px; }
@@ -1785,7 +1787,14 @@ body{
 <!-- Tamaño táctil (regla del dueño 18-oct-2026): capa reversible. Apagar: BC_TACTIL=false o localStorage bc_tactil_off=1 -->
 <script>var BC_TACTIL=true;try{if(BC_TACTIL&&localStorage.getItem('bc_tactil_off')!=='1')document.documentElement.classList.add('bc-tactil');}catch(e){if(BC_TACTIL)document.documentElement.classList.add('bc-tactil');}</script>
 <link rel="stylesheet" href="taller-tactil.css?v=20261019-t2">
-<link rel="stylesheet" href="taller-app-movil.css?v=20261027-m3">
+<link rel="stylesheet" href="taller-app-movil.css?v=20261110-m4">
+<!-- CRM rápido (10-nov-2026, dueño: «que el CRM sea más rápido e instantáneo»): las 14 reglas :has() del CRM pasan a clases de
+     estado que pone crm-estilos.js (cada burbuja nueva recalculaba el estilo de miles de elementos). Capa reversible.
+     Apagar: BC_CRM_CLASES=false o localStorage bc_crm_estilos_off=1. Apagada, crm-estilos.js vuelve a encender las reglas
+     originales, que siguen escritas en cada archivo dentro de «@media not all and (min-width:1px)». -->
+<script>var BC_CRM_CLASES=true;try{if(BC_CRM_CLASES&&localStorage.getItem('bc_crm_estilos_off')!=='1')document.documentElement.classList.add('bc-crm-clases');}catch(e){if(BC_CRM_CLASES)document.documentElement.classList.add('bc-crm-clases');}</script>
+<!-- CRM · iconos ordenados (dueño 10-nov-2026). Capa reversible. Apagar: BC_CRM_ICO=false o localStorage bc_crm_ico_off=1 -->
+<script>var BC_CRM_ICO=true;try{if(BC_CRM_ICO&&localStorage.getItem('bc_crm_ico_off')!=='1')document.documentElement.classList.add('bc-crm-ico');}catch(e){if(BC_CRM_ICO)document.documentElement.classList.add('bc-crm-ico');}</script>
 <!-- Recepción organizada (dueño 19-oct-2026): capa reversible. Apagar: BC_RX=false o localStorage bc_rx_off=1 -->
 <script>var BC_RX=true;try{if(BC_RX&&localStorage.getItem('bc_rx_off')!=='1')document.documentElement.classList.add('bc-rx');}catch(e){if(BC_RX)document.documentElement.classList.add('bc-rx');}</script>
 <link rel="stylesheet" href="taller-recepcion.css?v=20261108-g15">
@@ -1864,6 +1873,7 @@ var Q='.modal-backdrop.active,#modalGenerico,.view.active:is(#v-etiquetas,#v-des
 var on=null;function ver(){var b=!!document.querySelector(Q);if(b!==on){on=b;l.media=b?'all':'not all';}}
 function arrancar(){ver();new MutationObserver(ver).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});}
 if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',arrancar);window.bcFespHasVer=ver;})();</script>
+<link rel="stylesheet" href="crm-iconos.css?v=20261110-i1">
 </head>
 <body>
 
@@ -5752,6 +5762,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
 <script defer src="crm-ortografia.js?v=20261102-or1"></script>
 <script defer src="taller-app.min.js?v=20261110-ab1"></script>
+<script defer src="crm-estilos.js?v=20261110-c1"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
 <script defer src="conta-base.js?v=20261108-cb2"></script>
 <script defer src="conta-ventas.js?v=20261108-rv4"></script>
@@ -5789,6 +5800,6 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 <script defer src="taller-ui-despachos.js?v=20261026-a4"></script>
 <script defer src="taller-reacond-proceso.js?v=20261031-p2"></script>
 <script defer src="crm-consulta-precio.js?v=20261024-h3"></script>
-<script defer src="crm-marketing-consent.js?v=20261110-ab1"></script>
+<script defer src="crm-marketing-consent.js?v=20261110-c2"></script>
 </body>
 

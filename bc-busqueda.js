@@ -288,6 +288,7 @@
       var t0 = op.t0 || Date.now();
       if (input.id) estadoId[input.id] = { abierto: true, t0: t0 };
       this.wrap.classList.add('open'); this.marco.classList.add('open'); this.lupa.setAttribute('aria-expanded', 'true');
+      if (window.bcCrmEstilosSync) window.bcCrmEstilosSync();   // CRM rápido (10-nov-2026): la clase espejo de «buscador abierto» tiene que estar puesta antes de medir (antes era un :has())
       this.medir();
       if (this.superponer && !this.superpuesto) this.superponerSi();
       this.desvanecer(true);
@@ -307,6 +308,7 @@
     this.abierto = false;
     if (this.input.id) estadoId[this.input.id] = { abierto: false };
     this.wrap.classList.remove('open'); this.marco.classList.remove('open'); this.lupa.setAttribute('aria-expanded', 'false');
+    if (window.bcCrmEstilosSync) window.bcCrmEstilosSync();   // CRM rápido (10-nov-2026): ver abrir()
     this.desvanecer(false); this.soltarTeclado();
     if (op.foco && this.marco.contains(doc.activeElement)) { try { this.lupa.focus({ preventScroll: true }); } catch (e) {} }
     else if (doc.activeElement === this.input) this.input.blur();   // toque afuera: baja el teclado

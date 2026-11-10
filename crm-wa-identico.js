@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261031-w21';
+  var VERSION = '20261110-w22';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -33,6 +33,10 @@
     document.head.appendChild(k);
   }
   css(); setTimeout(css, 1600); setTimeout(css, 4000);
+  // CRM rápido (10-nov-2026): estas hojas ya no usan :has(); las clases de estado las pone crm-estilos.js, que carga
+  // taller.html. En una pestaña abierta desde antes de esa entrega (taller.html viejo en memoria) no está: se carga aquí.
+  // Como ese taller.html no puso html.bc-crm-clases, la capa solo enciende las reglas :has() originales (todo como antes).
+  if (!window.__bcCrmEstilos){ try { var ce = document.createElement('script'); ce.src = 'crm-estilos.js?v=20261110-c1'; document.head.appendChild(ce); } catch(e){} }
 
   var vista = function(){ return document.getElementById('v-crmLinea'); };
   var esWa = function(){ var v = vista(); return !!(v && v.classList.contains('active') && v.dataset.socialChannel === 'whatsapp'); };
