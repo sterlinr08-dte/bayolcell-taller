@@ -84,3 +84,18 @@ resto, guardar → `raspa_canjear`; ya usado (Nº, fecha, cajera), vencido, acce
 compra, búsqueda por teléfono (lista) y por QR, compra con celular (botón apagado), activar con factura, Escape, canje rechazado con
 aviso fijo. Mide espaciado y tamaños; 0 errores de consola.
 Uso: `node scripts/pruebas/servidor.cjs &` y `QRJS=/ruta/qrcode.min.js node scripts/pruebas/raspa-y-gana.cjs [carpeta-capturas]`.
+
+## crm-rapido.cjs (10-nov-2026)
+Paquete «CRM rápido» del chat de WhatsApp, con el simulador `crm-rapido-stub.js` (120 conversaciones, un chat de 200 mensajes con
+fotos y audios, espera configurable por tabla y registro de cada consulta). A 390 y 1280 px comprueba: cambiar de chat con la red
+lenta (cabecera nueva al instante, «Cargando…», caja y botón bloqueados en la PC, nada sale hacia otro cliente, el borrador se
+queda en su chat, un solo pintado «cargando» y uno del chat); «Sin mensajes todavía.» / «No se pudo cargar · Reintentar»;
+volver a un chat no baja el historial y subir a mano sí; un envío lento no bloquea los demás chats, vence, queda «No enviado ·
+Reintentar» y no se duplica (doble toque, reintento, mensaje que sí salió); 502 con HTML → aviso verdadero sin renovar la sesión;
+una sola burbuja cuando el servidor corrige la ortografía y la burbuja «enviando» no desaparece; enlaces de `wa.me` y con «&»
+completos y textos maliciosos sin ejecutar; el canal de Facebook se cierra fuera del CRM; `refreshKpisReal` sin consultas; enlaces
+firmados en una petición; fotos con carga diferida; el chat y la caja no se reconstruyen al enviar; sugerencia de IA y conteo de
+leads sin hacer esperar; búsqueda sin recrear la lista en cada tecla; conteo exacto solo la primera vez; consultas por acción;
+Instagram y Facebook abren; empleado no administrador; y todo apagado con `localStorage.bc_crm_rapido_off='1'`.
+Uso: `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/crm-rapido.cjs [carpeta-capturas]` (`PUERTO=xxxx` en los dos
+para otro puerto; el servidor ya acepta `PUERTO`).

@@ -14,14 +14,25 @@
   // adjuntos en segundo plano). Antes este archivo lo reemplazaba y cargaba TODO el historial de golpe.
   window.abrirHiloWhatsapp=async function(id){
     _waCancelarGrabacionSiActiva();_crmListaAnimarProxima=false;
-    _waForzarScrollFondo=_waHiloId!==id;
-    if(_waHiloId!==id){_waMensajes=[];_waSugerenciasIA=[];}
+    const cambio=_waHiloId!==id;
+    const rapido=typeof _crmRapidoOn==='function'&&_crmRapidoOn();
+    _waForzarScrollFondo=cambio;
+    if(cambio){_waMensajes=[];_waSugerenciasIA=[];}
     _waHiloId=id;
+    // 10-nov-2026: mientras llegan los mensajes el chat dice «Cargando…» (no «Sin mensajes todavía.»).
+    if(cambio&&rapido) window.__bcWaCarga={hilo:id,estado:'cargando'};
     // 23-oct-2026 (parpadeos): en la PC la lista y el chat ya están en pantalla; solo se marca la fila activa y el
     // chat se pinta una vez, cuando llegan los mensajes. Antes se pintaba todo dos veces (vacío y luego lleno).
     // En el celular sí se pinta ya, para que el chat aparezca al instante.
     if(typeof _waEsMovil==='function'&&_waEsMovil()) _pintarWhatsapp();
-    else if(typeof _actualizarListaWhatsappIncremental==='function') _actualizarListaWhatsappIncremental();
+    else{
+      if(typeof _actualizarListaWhatsappIncremental==='function') _actualizarListaWhatsappIncremental();
+      // 10-nov-2026 (mensaje al cliente equivocado): al cambiar de chat en la PC la pantalla seguía mostrando el
+      // anterior hasta que cargaba el nuevo, pero lo que se escribía ya salía hacia el nuevo. Ahora se pinta UNA vez
+      // la cabecera del chat nuevo con «Cargando…» y la caja bloqueada (solo el panel del chat, no la lista), y
+      // luego el chat ya cargado. No vuelve el doble pintado de todo que se quitó el 23-oct.
+      if(cambio&&rapido&&typeof _pintarWhatsappDetalle==='function') _pintarWhatsappDetalle();
+    }
     const h=_waHilos.find(x=>x.id===id);
     // Read acknowledgement must not block reading the messages.
     if(h?.no_leidos_count){
