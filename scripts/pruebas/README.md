@@ -84,3 +84,11 @@ resto, guardar → `raspa_canjear`; ya usado (Nº, fecha, cajera), vencido, acce
 compra, búsqueda por teléfono (lista) y por QR, compra con celular (botón apagado), activar con factura, Escape, canje rechazado con
 aviso fijo. Mide espaciado y tamaños; 0 errores de consola.
 Uso: `node scripts/pruebas/servidor.cjs &` y `QRJS=/ruta/qrcode.min.js node scripts/pruebas/raspa-y-gana.cjs [carpeta-capturas]`.
+## crm-estilos.cjs (10-nov-2026)
+CRM rápido: clases de estado en vez de `:has()` (`crm-estilos.js`). A 390 y 1280 px, con datos inventados: la marca `html.bc-crm-clases`
+sale del `<head>`; las clases espejo se ponen y se quitan al entrar y salir del CRM, abrir y cerrar un chat, abrir el buscador, abrir
+un chat de Instagram o de Facebook y cambiar de canal; la clase cambia al instante al llamar `_crmActualizarClaseChatAbierto`;
+ninguna regla `:has()` del CRM queda activa y las originales siguen escritas (apagadas); una burbuja nueva recalcula menos de 200
+elementos (antes 1,215 en celular y 2,359 en PC; solo Chromium); con `bc_crm_estilos_off=1` no hay clases, vuelven las reglas
+originales y siguen encendidas al salir y volver a entrar; una pestaña con el `taller.html` anterior queda igual que apagada;
+0 errores de JavaScript. Uso: `node scripts/pruebas/servidor.cjs &` y `node scripts/pruebas/crm-estilos.cjs` (`PUERTO=…` para otro puerto).

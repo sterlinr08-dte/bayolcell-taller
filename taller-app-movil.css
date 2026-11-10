@@ -27,11 +27,21 @@ html.bc-teclado body #v-crmLinea :is(.bc-ig-composer, .bc-fb-composer) { padding
     margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
   }
   /* Un padre con transform/filtro haría que «fixed» se mida contra él y no contra la pantalla */
-  html.bc-app body #v-crmLinea.chat-abierto, html.bc-app body:has(#v-crmLinea.chat-abierto) #app .content {
+  /* CRM rápido (10-nov-2026): body.bc-crm-chat-abierto (lo pone crm-estilos.js) en vez de body:has(#v-crmLinea.chat-abierto).
+     «:is(*, #bcCrmE)» no cambia a quién aplica: solo le da a la regla la misma fuerza que tenía con el :has(). */
+  html.bc-app body #v-crmLinea.chat-abierto, html.bc-app body.bc-crm-chat-abierto:is(*, #bcCrmE) #app .content {
     transform: none !important; filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; contain: none !important;
   }
-  html.bc-app body:has(#v-crmLinea.chat-abierto) { overflow: hidden; }
-  html.bc-app body:has(#v-crmLinea.chat-abierto) .top-bar { visibility: hidden !important; }
+  html.bc-app body.bc-crm-chat-abierto:is(*, #bcCrmE) { overflow: hidden; }
+  html.bc-app body.bc-crm-chat-abierto:is(*, #bcCrmE) .top-bar { visibility: hidden !important; }
+  /* Reglas originales con :has(), apagadas; se encienden solas con bc_crm_estilos_off=1 (ver crm-estilos.js). */
+  @media not all and (min-width:1px) {
+    html.bc-app body:has(#v-crmLinea.chat-abierto) #app .content {
+      transform: none !important; filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; contain: none !important;
+    }
+    html.bc-app body:has(#v-crmLinea.chat-abierto) { overflow: hidden; }
+    html.bc-app body:has(#v-crmLinea.chat-abierto) .top-bar { visibility: hidden !important; }
+  }
   html.bc-app body #v-crmLinea.chat-abierto .wa-chat-head { padding-top: max(8px, env(safe-area-inset-top)) !important; }
   html.bc-app body #v-crmLinea.chat-abierto .wa-input-bar,
   html.bc-app body #v-crmLinea.chat-abierto :is(.bc-ig-composer, .bc-fb-composer) { padding-bottom: max(8px, env(safe-area-inset-bottom)) !important; }

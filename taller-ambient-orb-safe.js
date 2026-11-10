@@ -74,7 +74,12 @@
         // como cualquier vista, así que el z-index:1 de #app .content>.view
         // ya lo tapa igual que a todo lo demás; no necesita este caso
         // especial (se quita la regla que escondía el orb para Facebook).
-        'body:has(#v-crmLinea.bc-ig-chat-open) #bcAmbientOrbSafe{display:none!important}'
+        // CRM rápido (10-nov-2026): con html.bc-crm-clases se usa la clase body.bc-crm-ig-abierto (la pone
+        // crm-estilos.js) en vez de :has(), que obligaba a recalcular el estilo de todo el taller en cada cambio.
+        // Con bc_crm_estilos_off=1 vuelve la regla original. «:is(*,#bcCrmE)» solo conserva la misma fuerza.
+        (document.documentElement.classList.contains('bc-crm-clases')
+          ? 'body.bc-crm-ig-abierto:is(*,#bcCrmE) #bcAmbientOrbSafe{display:none!important}'
+          : 'body:has(#v-crmLinea.bc-ig-chat-open) #bcAmbientOrbSafe{display:none!important}')
       ].join('');
       document.head.appendChild(style);
 

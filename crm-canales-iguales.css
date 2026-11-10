@@ -116,7 +116,9 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
 body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgJump,#bcFbJump){ background:#fff !important; color:var(--cx-icono) !important; border:0 !important; border-radius:999px !important; box-shadow:0 1px 1px rgba(11,20,26,.06),0 2px 5px rgba(11,20,26,.2) !important; }
 
 /* Sin chat abierto: el mismo fondo claro que muestra WhatsApp */
-body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat,.bc-social-generic-chat):not(:has(:is(#bcIgMessages,#bcFbMessages))){ background:#f5f2ee !important; background-image:none !important; border:0 !important; }
+/* CRM rápido (10-nov-2026): clase .bc-crm-sin-mensajes (la pone crm-estilos.js) en vez de :not(:has(…)). «:is(#bcCrmE, .clase)» conserva la fuerza de 1 id. */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat,.bc-social-generic-chat):is(#bcCrmE,.bc-crm-sin-mensajes){ background:#f5f2ee !important; background-image:none !important; border:0 !important; }
+@media not all and (min-width:1px){ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat,.bc-social-generic-chat):not(:has(:is(#bcIgMessages,#bcFbMessages))){ background:#f5f2ee !important; background-image:none !important; border:0 !important; } } /* original, apagada: bc_crm_estilos_off=1 la enciende */
 
 /* =====================================================================
    Barra de arriba en DOS líneas (PC), en las MISMAS posiciones que WhatsApp:
@@ -240,8 +242,13 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
 
 /* Tableta (769–1024 px) con un chat abierto: igual que WhatsApp, se ven los canales pero no los filtros */
 @media (min-width:769px) and (max-width:1024px){
-  body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) #bcSocialHubHead{ display:block !important; }
-  body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) .bc-smart-interactions{ display:none !important; }
+  /* CRM rápido (10-nov-2026): .bc-crm-fb-abierto (lo pone crm-estilos.js) en vez de :has(#bcSocialFacebookPanel.bc-fb-open). Misma fuerza. */
+  body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"].bc-crm-fb-abierto:is(*,#bcCrmE)) #bcSocialHubHead{ display:block !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"].bc-crm-fb-abierto:is(*,#bcCrmE)) .bc-smart-interactions{ display:none !important; }
+  @media not all and (min-width:1px){ /* originales, apagadas: bc_crm_estilos_off=1 las enciende */
+    body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) #bcSocialHubHead{ display:block !important; }
+    body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) .bc-smart-interactions{ display:none !important; }
+  }
 }
 
 /* Barra del nombre más fina (igual que WhatsApp, 3 oct 2026) */

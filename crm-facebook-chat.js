@@ -215,6 +215,7 @@
   // solo mide cuánto queda visible desde ahí hasta el fondo real de la
   // pantalla (respetando el teclado en iOS) para dárselo como alto.
   function resize(){
+    if(window.bcCrmEstilosSync)window.bcCrmEstilosSync(); // CRM rápido (10-nov-2026): la clase espejo de «chat abierto» tiene que estar puesta antes de medir
     const p=$('#bcSocialFacebookPanel');
     if(!p||!p.classList.contains('bc-fb-open'))return;
     if(!matchMedia('(max-width:1024px)').matches){document.documentElement.style.removeProperty('--fb-shell-height');return;}

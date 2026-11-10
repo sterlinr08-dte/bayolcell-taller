@@ -12,7 +12,9 @@
    ===================================================================== */
 @media (min-width:1025px){
   /* Márgenes alrededor de la vista CRM */
-  body .content:has(> #v-crmLinea.active){ padding:8px 12px 10px !important; }
+  /* CRM rápido (10-nov-2026): .content.bc-crm-activo (lo pone crm-estilos.js) en vez de :has(> #v-crmLinea.active). Misma fuerza (1 id + 2 clases + 1 etiqueta). */
+  body #app .content.bc-crm-activo{ padding:8px 12px 10px !important; }
+  @media not all and (min-width:1px){ body .content:has(> #v-crmLinea.active){ padding:8px 12px 10px !important; } } /* original, apagada: bc_crm_estilos_off=1 la enciende */
   body #v-crmLinea.active[data-social-channel]{ padding:8px 10px !important; row-gap:5px !important; }
 
   /* Línea 1: canales más bajitos (40 → 32) */
@@ -26,7 +28,8 @@
   body #v-crmLinea.active[data-social-channel] .crm-busq-row{ height:auto !important; }
   body #v-crmLinea.active[data-social-channel] .crm-busq-row .bcbp-marco{ --bcbp-d:34px; }
   /* Búsqueda abierta: por encima de los filtros rápidos (antes «Todos»/«No leídos» se veían dentro del campo) */
-  body #v-crmLinea.active[data-social-channel] .crm-busq-row:has(.bcbp-marco.open){ position:relative; z-index:40 !important; }
+  body #v-crmLinea.active[data-social-channel] .crm-busq-row.bc-crm-busq-abierta:is(*,.bcCrmE){ position:relative; z-index:40 !important; } /* CRM rápido: clase de crm-estilos.js en vez de :has(.bcbp-marco.open) */
+  @media not all and (min-width:1px){ body #v-crmLinea.active[data-social-channel] .crm-busq-row:has(.bcbp-marco.open){ position:relative; z-index:40 !important; } } /* original, apagada: bc_crm_estilos_off=1 la enciende */
   body #v-crmLinea.active[data-social-channel] .crm-busq-row .bcbp-marco.open{ z-index:40 !important; }
   body #v-crmLinea.active[data-social-channel] #crmSelectorWrap .crm-pill-select{ height:32px !important; min-height:0 !important; padding-top:3px !important; padding-bottom:3px !important; }
 
