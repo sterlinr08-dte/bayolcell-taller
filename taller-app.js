@@ -6953,6 +6953,7 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
         <div class="ab-inp"><i class="ti ti-search"></i><input id="artBuscModal" data-bcbp-no autocomplete="off" placeholder="Buscar articulo..." value="${escapeHtml(_artBusc.q)}" oninput="_artBuscOnInput(this.value)" onkeydown="_artBuscKey(event)"><span class="ab-kbd">Ctrl K</span></div>
         <button class="ab-fbtn" onclick="_artBuscToggleFiltros()"><i class="ti ti-adjustments-horizontal"></i></button>
         <button class="ab-fbtn" onclick="_buscadorSincronizarIP(this)" title="Sincronizar"><i class="ti ti-refresh"></i></button>
+        ${(typeof isAdminUser === 'function' && isAdminUser() && window.BayolPreciosLote) ? `<button class="ab-fbtn" onclick="BayolPreciosLote.abrir()" title="Precios en lote (nivel 1)" aria-label="Precios en lote"><i class="ti ti-list-numbers"></i></button>` : ''}
       </div>
       <div class="ab-chips" id="abChips">${chips}</div>
       <div id="artBuscSyncMsg" style="font-size:11px; padding:0 20px 4px; font-family:inherit; color:#86868b;"></div>
