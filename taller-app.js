@@ -6764,9 +6764,61 @@ function _abCat(desc) {
     if(/CAMARA|CÁMARA|\bCAM\b/.test(d)) return 'camara';
     if(/\bIC\b|\bCHIP\b|INTEGRAD/.test(d)) return 'ic';
     if(/HERRAMIENT|DESTORNILLAD|PINZA|MICROSCOP|SOLDAD|PISTOLA|SEPARAD|VENTOSA/.test(d)) return 'herramienta';
-    if(/(CELULAR|TELEFONO|TELÉFONO|SMARTPHONE|MOBILE|IPHONE|REDMI|GALAXY|OUKITEL|XIAOMI|SAMSUNG|TECNO|INFINIX)/.test(d) && !/BATERIA|PANTALLA|FLEX|CAMARA|CABLE|\bPIN\b|CARGADOR|FUNDA|PROTECTO|VIDRIO|GLASS|ADHESIV|COVER|\bCASE\b|FORRO|ESTUCHE|CARCASA|\bTAPA\b|\bMICA\b|CRISTAL|TEMPLADO|LENTE|SOPORTE|HOLDER|AUDIFONO|AUDÍFONO|AURICULAR|CORREA|MALLA|STYLUS|LAPIZ|LÁPIZ/.test(d)) return 'celular';
+    if(/(CELULAR|TELEFONO|TELÉFONO|SMARTPHONE|MOBILE|IPHONE|REDMI|GALAXY|OUKITEL|XIAOMI|SAMSUNG|TECNO|INFINIX)/.test(d) && !/MARCO|HOUSING|CHASIS|BATERIA|PANTALLA|FLEX|CAMARA|CABLE|\bPIN\b|CARGADOR|FUNDA|PROTECTO|VIDRIO|GLASS|ADHESIV|COVER|\bCASE\b|FORRO|ESTUCHE|CARCASA|\bTAPA\b|\bMICA\b|CRISTAL|TEMPLADO|LENTE|SOPORTE|HOLDER|AUDIFONO|AUDÍFONO|AURICULAR|CORREA|MALLA|STYLUS|LAPIZ|LÁPIZ/.test(d)) return 'celular';
     if(/CABLE|CARGADOR|FUNDA|COVER|\bCASE\b|FORRO|ESTUCHE|CARCASA|PROTECTOR|ADHESIV|PEGATINA|AUDIFONO|AUDÍFONO|GLASS|VIDRIO|ACCESORIO|\bMICA\b|CRISTAL|TEMPLADO/.test(d)) return 'accesorio';
     return '';
+}
+// ===== Buscador smart (dueño, 10-nov-2026: «Ponlo smart») =====
+// 1) Cada filtro muestra cuántos artículos tiene y se esconde si no tiene ninguno.
+// 2) Las fallas del equipo se tocan: «CAMBIAR MARCO» deja solo los marcos del modelo buscado; otro toque lo quita.
+// Apagar en un equipo: localStorage.bc_ab_smart_off='1'.
+function _abSmartOn() { try { return localStorage.getItem('bc_ab_smart_off') !== '1'; } catch(e) { return true; } }
+const _AB_FALLA_MAP = [
+    { re: /MARCO|CHASIS|HOUSING/, pal: ['MARCO', 'HOUSING', 'CHASIS'] }, { re: /\bTAPA\b/, pal: ['TAPA', 'HOUSING', 'BACK COVER'] },
+    { re: /PANTALLA|DISPLAY|\bLCD\b|TOUCH/, pal: ['PANTALLA', 'DISPLAY', 'LCD', 'TOUCH'] }, { re: /BATER|\bPILA\b/, pal: ['BATERIA', 'BATERÍA', 'PILA'] },
+    { re: /CAMARA|CÁMARA/, pal: ['CAMARA', 'CÁMARA'] }, { re: /\bPIN\b|CARGA/, pal: ['PIN', 'CARGA'] },
+    { re: /BOCINA|ALTAVOZ|AURICULAR|SPEAKER/, pal: ['BOCINA', 'ALTAVOZ', 'AURICULAR', 'SPEAKER'] }, { re: /CRISTAL|GLASS|VIDRIO|LENTE/, pal: ['CRISTAL', 'GLASS', 'VIDRIO', 'LENTE'] },
+    { re: /MICROFONO|MICRÓFONO/, pal: ['MICROFONO', 'MICRÓFONO'] }, { re: /BOTON|BOTÓN/, pal: ['BOTON', 'BOTÓN'] }, { re: /\bFLEX\b/, pal: ['FLEX'] }
+];
+function _abFallaPal(txt) {
+    const t = (txt || '').toUpperCase().replace(/\(ADIC\.\)/, '');
+    const m = _AB_FALLA_MAP.find(x => x.re.test(t)); if(m) return m.pal;
+    const w = t.split(/[^A-ZÁÉÍÓÚÑ0-9]+/).filter(x => x.length > 3 && !/^(CAMBIAR|CAMBIO|PULIR|SUBIR|REPARAR|REVISAR|LIMPIAR|ROTA|ROTO|DAÑADA|DAÑADO|MALA|MALO|FALLA|PARA|ADIC)$/.test(x));
+    return w.length ? [w[w.length - 1]] : null;
+}
+function _abCumpleFalla(a, pal) { const d = (a.descripcion || '').toUpperCase(); return pal.some(p => d.includes(p)); }
+function _artBuscFalla(txt) {
+    if(_artBusc.falla === txt) { _artBusc.falla = ''; _artBusc.fpal = null; }
+    else { const pal = _abFallaPal(txt); if(!pal) return; _artBusc.falla = txt; _artBusc.fpal = pal; _artBusc.cat = ''; }
+    _artBusc.page = 1; _artBusc.hl = -1; renderBuscadorArticulos();
+}
+function _abPrepararFallas(m) {
+    if(!_abSmartOn()) return;
+    m.querySelectorAll('.ab-ref-fallas span:not(.t)').forEach(sp => {
+        const txt = (sp.textContent || '').trim(); if(!txt || !_abFallaPal(txt)) return;
+        sp.classList.add('ab-falla'); sp.dataset.falla = txt; sp.setAttribute('role', 'button'); sp.tabIndex = 0; sp.title = 'Ver solo las piezas de esta falla';
+        sp.insertAdjacentHTML('beforeend', '<b class="ab-falla-n"></b>');
+        sp.onclick = () => _artBuscFalla(txt);
+        sp.onkeydown = (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _artBuscFalla(txt); } };
+    });
+}
+// listaQ: lo que sale con el texto buscado; listaF: además con la falla tocada (sin el filtro de categoría)
+function _abPintarSmart(listaQ, listaF) {
+    if(!_abSmartOn()) return;
+    const n = {}; listaF.forEach(a => { const c = _abCat(a.descripcion); n[c] = (n[c] || 0) + 1; });
+    document.querySelectorAll('#abChips .ab-chip').forEach(c => {
+        const k = c.getAttribute('data-cat') || '', cant = k === '' ? listaF.length : (n[k] || 0);
+        let b = c.querySelector('.ab-chip-n'); if(!b) { b = document.createElement('span'); b.className = 'ab-chip-n'; c.appendChild(b); }
+        b.textContent = cant.toLocaleString('es-DO');
+        c.classList.toggle('on', k === (_artBusc.cat || ''));
+        c.style.display = (cant || k === '' || k === _artBusc.cat) ? '' : 'none';
+    });
+    document.querySelectorAll('#modalBuscadorArt .ab-falla').forEach(sp => {
+        const pal = _abFallaPal(sp.dataset.falla) || [], cant = listaQ.filter(a => _abCumpleFalla(a, pal)).length;
+        const b = sp.querySelector('.ab-falla-n'); if(b) b.textContent = cant;
+        sp.classList.toggle('on', _artBusc.falla === sp.dataset.falla); sp.classList.toggle('cero', !cant);
+        sp.setAttribute('aria-pressed', _artBusc.falla === sp.dataset.falla ? 'true' : 'false');
+    });
 }
 function _abEmoji(cat) { return ({ celular: '<i class="ti ti-device-mobile" style="font-size:inherit;color:inherit;"></i>', pantalla: '<i class="ti ti-device-tablet" style="font-size:inherit;color:inherit;"></i>', bateria: '<i class="ti ti-battery-charging" style="font-size:inherit;color:inherit;"></i>', flex: '<i class="ti ti-cpu" style="font-size:inherit;color:inherit;"></i>', camara: '<i class="ti ti-camera" style="font-size:inherit;color:inherit;"></i>', ic: '<i class="ti ti-cpu-2" style="font-size:inherit;color:inherit;"></i>', herramienta: '<i class="ti ti-tool" style="font-size:inherit;color:inherit;"></i>', accesorio: '<i class="ti ti-headphones" style="font-size:inherit;color:inherit;"></i>' })[cat] || '<i class="ti ti-package" style="font-size:inherit;color:inherit;"></i>'; }
 function _abInv(a) {
@@ -6804,6 +6856,15 @@ function _abStyles() {
       .ab-chip{border:1.5px solid rgba(0,0,0,.08);background:#fff;color:#1a1a1a;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;flex:none;}
       .ab-chip:hover{background:#f5f5f7;border-color:rgba(0,0,0,.12);}
       .ab-chip.on{background:#c8191f;border-color:#c8191f;color:#fff;}
+      .ab-chip-n{margin-left:6px;font-size:11px;font-weight:700;opacity:.6;font-variant-numeric:tabular-nums;}
+      .ab-falla{cursor:pointer;display:inline-flex!important;align-items:center;gap:5px;min-height:30px;border:1.5px solid transparent;transition:background .15s,border-color .15s,transform .1s;user-select:none;}
+      .ab-falla:hover{border-color:#fca5a5;} .ab-falla:active{transform:scale(.97);}
+      .ab-falla.on{background:#c8191f!important;color:#fff!important;border-color:#c8191f;}
+      .ab-falla.cero{opacity:.55;}
+      .ab-falla-n{font-size:10.5px;font-weight:800;background:rgba(255,255,255,.75);color:#991b1b;border-radius:999px;padding:0 6px;min-width:18px;text-align:center;line-height:17px;}
+      .ab-falla:focus-visible{outline:2px solid #c8191f;outline-offset:2px;}
+      @media (pointer:coarse){.ab-ref-fallas{flex:none;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;} .ab-ref-fallas::-webkit-scrollbar{display:none;} .ab-ref-fallas>*{flex:none;white-space:nowrap;} .ab-falla{min-height:44px;padding:0 12px!important;} .ab-chip{min-height:44px;display:inline-flex;align-items:center;}}
+      @media (prefers-reduced-motion:reduce){.ab-falla{transition:none;} .ab-falla:active{transform:none;}}
       .ab-results{flex:1;min-height:0;overflow-y:auto;padding:4px 0;background:#fff;}
       .ab-card{display:flex;align-items:center;gap:12px;background:#fff;border:0;border-bottom:1px solid rgba(0,0,0,.06);padding:10px 20px;cursor:pointer;transition:background .1s;}
       .ab-card:last-child{border-bottom:0;}
@@ -6876,7 +6937,7 @@ function _abStyles() {
 async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     _artBuscTarget = (typeof targetSS === 'string' && targetSS) ? targetSS : 'ss-eq-articulo';
     _artBuscOnPick = (typeof onPick === 'function') ? onPick : null;
-    _artBusc = { q: (seed || '').toString(), cat: '', page: 1, size: 200, hl: -1 };
+    _artBusc = { q: (seed || '').toString(), cat: '', page: 1, size: 200, hl: -1, falla: '', fpal: null };
     _abStyles();
     let m = document.getElementById('modalBuscadorArt'); if(m) m.remove();
     m = document.createElement('div'); m.id = 'modalBuscadorArt'; m.className = 'ab-backdrop';
@@ -6899,6 +6960,7 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
       <div class="ab-foot" id="abFoot"></div>
     </div>`;
     document.body.appendChild(m);
+    _abPrepararFallas(m);
     if(cache.infoplusArticulos && cache.infoplusArticulos.length) renderBuscadorArticulos();
     await _ensureInfoplusArticulos();
     renderBuscadorArticulos();
@@ -6966,6 +7028,9 @@ function renderBuscadorArticulos() {
     const q = (_artBusc.q || '').toLowerCase().trim();
     let lista = cache.infoplusArticulos;
     if(q) { const pal = q.split(/\s+/).filter(Boolean); lista = lista.filter(a => { const hay = [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase(); return pal.every(p => hay.includes(p)); }); }
+    const listaQ = lista;
+    if(_artBusc.fpal && _abSmartOn()) lista = lista.filter(a => _abCumpleFalla(a, _artBusc.fpal));
+    _abPintarSmart(listaQ, lista);
     if(_artBusc.cat) lista = lista.filter(a => _abCat(a.descripcion) === _artBusc.cat);
     const total = lista.length;
     const size = _artBusc.size, pages = Math.max(1, Math.ceil(total / size));
@@ -6973,7 +7038,7 @@ function renderBuscadorArticulos() {
     const start = (_artBusc.page - 1) * size;
     const items = lista.slice(start, start + size);
     if(cEl) cEl.textContent = `${total.toLocaleString('es-DO')} artículos encontrados${total > size ? ` (mostrando ${items.length})` : ''}`;
-    if(!total) { cont.innerHTML = `<div style="text-align:center; color:#86868b; padding:40px 20px; font-size:14px;">No hay resultados${q ? ` para "${escapeHtml(q)}"` : ''}.</div>`; if(fEl) fEl.innerHTML = ''; return; }
+    if(!total) { cont.innerHTML = `<div style="text-align:center; color:#86868b; padding:40px 20px; font-size:14px;">No hay resultados${q ? ` para "${escapeHtml(q)}"` : ''}${_artBusc.falla ? ` en «${escapeHtml(_artBusc.falla)}»` : ''}.${_artBusc.falla ? `<br><button class="btn btn-light" style="margin-top:12px;min-height:44px;border-radius:10px;font-weight:600;" onclick="_artBuscFalla(_artBusc.falla)">Ver todos</button>` : ''}</div>`; if(fEl) fEl.innerHTML = ''; return; }
     cont.innerHTML = items.map((a, i) => _abCard(a, i)).join('');
     _abRenderFoot(total, pages, items.length);
 }
