@@ -14,7 +14,7 @@
   const THREAD_PAGE = 60;
   const MESSAGE_PAGE = 80;
   const SEARCH_LIMIT = 100;
-  const VERSION = '20260916.1';
+  const VERSION = '20261110.1';
 
   const state = window.BayolWhatsAppPaging = window.BayolWhatsAppPaging || {};
   state.version = VERSION;
@@ -40,6 +40,12 @@
     loadedReal: 0,
     olderLoads: 0
   };
+
+  // 10-nov-2026 · Paquete «CRM rápido» (ver taller-app.js): se apaga con localStorage.bc_crm_rapido_off='1'.
+  function rapido(){
+    try { return typeof _crmRapidoOn === 'function' && _crmRapidoOn(); } catch(_e) { return false; }
+  }
+  const COUNT_REFRESH_MS = 5 * 60 * 1000;
 
   function currentLine(){
     try { return _crmLineaActualId || null; } catch(_e) { return null; }
@@ -98,6 +104,7 @@
     s.lineId = lineId || null;
     s.offset = 0;
     s.total = null;
+    s.countAt = 0;
     s.hasMore = false;
     s.loading = false;
     s.generation++;
@@ -146,8 +153,11 @@
     s.loading = true;
     const gen = ++s.generation;
     const target = Math.max(THREAD_PAGE, lineChanged ? THREAD_PAGE : (s.offset || THREAD_PAGE));
+    // 10-nov-2026: el conteo exacto de conversaciones se pide al entrar a la línea y, después, como mucho cada
+    // 5 minutos. Antes iba en cada refresco.
+    const wantCount = !rapido() || lineChanged || s.total == null || !s.countAt || (Date.now() - s.countAt) > COUNT_REFRESH_MS;
     try {
-      const r = await queryThreadWindow(0, target - 1, true);
+      const r = await queryThreadWindow(0, target - 1, wantCount);
       if(gen !== s.generation || lineId !== currentLine()) return;
       if(r.error) throw r.error;
 
@@ -156,7 +166,8 @@
       try { _waHilos = sortThreads(rows.slice()); } catch(_e) {}
       s.baseIds = new Set(rows.map(h => h.id));
       s.offset = rows.length;
-      if(r.count != null) s.total = r.count;
+      if(wantCount && r.count != null) { s.total = r.count; s.countAt = Date.now(); }
+      else if(!wantCount) s.total = rows.length < target ? rows.length : Math.max(s.total || 0, rows.length);
       if(s.total == null) s.total = Math.max(s.offset, s.total || 0);
       s.hasMore = s.total != null ? s.offset < s.total : rows.length === target;
       s.loads++;
@@ -303,6 +314,16 @@
   }
 
   async function hydrateMedia(rows, token){
+    if(rapido() && typeof _waSignedUrls === 'function'){
+      // 10-nov-2026: una sola petición para todos los adjuntos de la página.
+      const conAdjunto = (rows || []).filter(m => m && m.media_path);
+      if(conAdjunto.length){
+        let urls = null;
+        try { urls = await _waSignedUrls(conAdjunto.map(m => m.media_path)); } catch(_e) { urls = null; }
+        conAdjunto.forEach(m => { const u = urls ? urls.get(m.media_path) : null; m._mediaUrl = u || null; });
+      }
+      return token === _waCargaToken;
+    }
     await Promise.all((rows || []).map(async m => {
       if(!m?.media_path) return;
       try { m._mediaUrl = await _waSignedUrl(m.media_path); } catch(_e) { m._mediaUrl = null; }
@@ -311,10 +332,32 @@
   }
 
   function hydrateLater(rows, token, hiloId){
-    const queue = (rows || []).filter(m => m && m.media_path && m._mediaUrl === undefined);
+    let queue = (rows || []).filter(m => m && m.media_path && m._mediaUrl === undefined);
     if(!queue.length) return;
     let timer = null;
     const current = () => token === _waCargaToken && hiloId === _waHiloId;
+    if(rapido() && typeof _waSignedUrls === 'function'){
+      // 10-nov-2026: los enlaces se piden en UNA petición (antes uno por adjunto) y, al llegar, se cambia solo la
+      // burbuja de cada adjunto (antes se repintaba el chat entero varias veces).
+      if(typeof _waUrlEnCache === 'function') queue.forEach(m => { const u = _waUrlEnCache(m.media_path); if(u) m._mediaUrl = u; });
+      queue = queue.filter(m => m._mediaUrl === undefined);
+      if(!queue.length) return;
+      _waSignedUrls(queue.map(m => m.media_path)).then(urls => {
+        if(!current()) return;
+        const ids = [];
+        queue.forEach(m => {
+          const u = urls.get(m.media_path) || null;
+          m._mediaUrl = u;
+          // El tiempo real puede haber cambiado el objeto del mensaje por una copia: se actualiza también esa.
+          const vivo = (_waMensajes || []).find(x => x && x.id === m.id);
+          if(vivo && vivo !== m && vivo.media_path === m.media_path) vivo._mediaUrl = u;
+          ids.push(m.id);
+        });
+        const soloEsas = typeof _waRepintarBurbujas === 'function' && _waRepintarBurbujas(ids);
+        if(!soloEsas && typeof _pintarWhatsappDetalle === 'function') _pintarWhatsappDetalle();
+      }).catch(() => {});
+      return;
+    }
     const repaint = () => { clearTimeout(timer); timer = setTimeout(() => { if(current() && typeof _pintarWhatsappDetalle === 'function') _pintarWhatsappDetalle(); }, 120); };
     async function worker(){
       while(queue.length && current()){
@@ -359,11 +402,26 @@
     let forceBottom = false;
     try { forceBottom = !!_waForzarScrollFondo; } catch(_e) {}
     const preserveOlder = sameHilo && !forceBottom && s.loadedReal > MESSAGE_PAGE;
+    const fast = rapido();
+    // 10-nov-2026: el conteo exacto de mensajes solo al abrir el chat; en los refrescos del mismo chat sobra.
+    const wantCount = !fast || !sameHilo || forceBottom || s.total == null;
     if(!sameHilo || forceBottom) resetMessageState(hiloId);
+
+    // 10-nov-2026: la sugerencia de IA se pide a la vez que los mensajes (antes, después) y ya no hace esperar al
+    // chat: si llega más tarde, se pinta cuando llegue.
+    const sugQuery = () => supabaseClient
+      .from('whatsapp_ia_sugerencias')
+      .select('id, texto_sugerido, razon, modelo_detectado, creado_en')
+      .eq('hilo_id', hiloId)
+      .eq('estado', 'pendiente')
+      .order('creado_en', {ascending:true})
+      .limit(1);
+    let sugListo = null;
+    const sugP = fast ? Promise.resolve(sugQuery()).then(r => (sugListo = r || {}), () => (sugListo = {})) : null;
 
     const {data, error, count} = await supabaseClient
       .from('whatsapp_mensajes')
-      .select('*', {count:'exact'})
+      .select('*', wantCount ? {count:'exact'} : undefined)
       .eq('hilo_id', hiloId)
       .order('creado_en', {ascending:false})
       .order('id', {ascending:false})
@@ -371,9 +429,17 @@
     if(token !== _waCargaToken) return;
     if(error){
       try { logError('cargarMensajesHilo paginado', error); toastError('No cargaron los mensajes'); } catch(_e) {}
+      if(fast){
+        // 10-nov-2026: si el chat ya tenía sus mensajes en pantalla, un refresco fallido no los borra. Si no había
+        // nada, el chat dice «No se pudo cargar · Reintentar» (antes: «Sin mensajes todavía.»).
+        const delHilo = (_waMensajes || []).length && (_waMensajes || []).every(m => m && m.hilo_id === hiloId);
+        if(!delHilo){ _waMensajes = []; window.__bcWaCarga = {hilo:hiloId, estado:'error'}; }
+        return;
+      }
       if(token === _waCargaToken && !preserveOlder) _waMensajes = [];
       return;
     }
+    if(fast) window.__bcWaCarga = {hilo:hiloId, estado:'ok'};
 
     const latest = (data || []).slice().reverse();
     // Conserva las URLs ya firmadas (evita parpadeo al refrescar) y firma las nuevas EN SEGUNDO PLANO:
@@ -388,20 +454,28 @@
     hydrateLater(lista, token, hiloId);
     const reals = realMessages(lista);
     s.hiloId = hiloId;
-    s.total = count == null ? Math.max(s.total || 0, reals.length) : count;
+    const hadMore = s.hasMore;
+    s.total = (!wantCount || count == null) ? Math.max(s.total || 0, reals.length) : count;
     s.loadedReal = reals.length;
     s.oldestCreatedAt = reals.length ? reals[0].creado_en : null;
-    s.hasMore = s.total != null ? s.loadedReal < s.total : (data || []).length === MESSAGE_PAGE;
+    if(wantCount) s.hasMore = s.total != null ? s.loadedReal < s.total : (data || []).length === MESSAGE_PAGE;
+    // Sin conteo: si la página vino llena puede haber más arriba (al subir se comprueba); si no, está todo.
+    else s.hasMore = preserveOlder ? hadMore : (data || []).length === MESSAGE_PAGE;
 
-    const {data:sug} = await supabaseClient
-      .from('whatsapp_ia_sugerencias')
-      .select('id, texto_sugerido, razon, modelo_detectado, creado_en')
-      .eq('hilo_id', hiloId)
-      .eq('estado', 'pendiente')
-      .order('creado_en', {ascending:true})
-      .limit(1);
-    if(token !== _waCargaToken) return;
-    _waSugerenciasIA = sug || [];
+    if(!fast){
+      const {data:sug} = await sugQuery();
+      if(token !== _waCargaToken) return;
+      _waSugerenciasIA = sug || [];
+      return;
+    }
+    const firmaSug = list => JSON.stringify((list || []).map(x => x.id));
+    if(sugListo){ _waSugerenciasIA = sugListo.data || []; return; }   // ya llegó: sale en el mismo pintado del chat
+    sugP.then(() => {
+      if(token !== _waCargaToken || hiloId !== _waHiloId) return;
+      const antes = firmaSug(_waSugerenciasIA), nuevas = (sugListo && sugListo.data) || [];
+      _waSugerenciasIA = nuevas;
+      if(antes !== firmaSug(nuevas) && typeof _pintarWhatsappDetalle === 'function') _pintarWhatsappDetalle();
+    });
   }
 
   async function loadOlderMessages(){
@@ -433,7 +507,9 @@
       const reals = realMessages(merged);
       s.loadedReal = reals.length;
       s.oldestCreatedAt = reals.length ? reals[0].creado_en : null;
-      s.hasMore = s.total != null ? s.loadedReal < s.total : older.length === MESSAGE_PAGE;
+      // 10-nov-2026: el total ya no se recuenta en cada refresco, así que al subir manda la página: llena = puede haber más.
+      if(rapido()) { s.hasMore = older.length === MESSAGE_PAGE; if(s.total != null) s.total = Math.max(s.total, s.loadedReal); }
+      else s.hasMore = s.total != null ? s.loadedReal < s.total : older.length === MESSAGE_PAGE;
       s.olderLoads++;
 
       if(typeof _pintarWhatsappDetalle === 'function') _pintarWhatsappDetalle();
@@ -458,6 +534,9 @@
     if(!chat || messageScrollEl === chat) return;
     messageScrollEl = chat;
     chat.addEventListener('scroll', function(){
+      // 10-nov-2026: al repintar, el contenedor viejo ya no está en la página pero aún recibe un último aviso de
+      // desplazamiento con scrollTop 0; eso bajaba solo todo el historial al volver a un chat. Solo cuenta el vivo.
+      if(!chat.isConnected) return;
       if(chat.scrollTop < 180 && state.messages.hasMore && !state.messages.loadingOlder) loadOlderMessages();
     }, {passive:true});
   }

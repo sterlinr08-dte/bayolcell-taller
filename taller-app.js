@@ -280,8 +280,14 @@ window.addEventListener('unhandledrejection', function(ev){
 });
 // Para revisar errores recientes: escribir bayolVerErrores() en la consola del navegador
 window.bayolVerErrores = function(){ console.table(window._bcErrores); return window._bcErrores; };
+// 10-nov-2026 · Paquete «CRM rápido»: 8 errores del chat de WhatsApp y mejoras de velocidad (ver bitácora
+// 2026-11-10 claude-crm-rapido-ab). Apagar en un equipo: localStorage.bc_crm_rapido_off = '1' y recargar.
+function _crmRapidoOn() { try { return localStorage.getItem('bc_crm_rapido_off') !== '1'; } catch(e) { return true; } }
 function getFriendlyError(error, fallback) {
     const m = error?.message || '';
+    // 10-nov-2026: una página de error del servidor (502 con HTML) hace fallar res.json() con «Unexpected token '<'».
+    // La palabra «token» hacía creer que era la sesión: salía «Su sesión se renovó…» y se renovaba sin motivo.
+    if(_crmRapidoOn() && /unexpected token|unexpected end of json|not valid json|json\.parse/i.test(m)) return fallback || 'El servidor no respondió. Intente de nuevo.';
     if(/jwt|expired|token/i.test(m)) { _bcRefreshSession(); return "Su sesión se renovó. Intente de nuevo; si el problema persiste, recargue la página."; }
     return m || fallback || "Error inesperado.";
 }
@@ -374,7 +380,17 @@ function pedirTexto(mensaje, opciones) {
     });
 }
 function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
-function linkifyText(escaped) { return escaped.replace(/(https?:\/\/[^\s<&"']+)/gi, '<a href="$1" target="_blank" rel="noopener" style="color:#1d4ed8; text-decoration:underline;">$1</a>'); }
+function linkifyText(escaped) {
+    if(!_crmRapidoOn()) return escaped.replace(/(https?:\/\/[^\s<&"']+)/gi, '<a href="$1" target="_blank" rel="noopener" style="color:#1d4ed8; text-decoration:underline;">$1</a>');
+    // 10-nov-2026: el texto llega ya escapado, así que un «&» de la dirección viene como «&amp;»; antes la cortaba ahí.
+    // Sigue sin aceptar <, comillas ni otras entidades. La puntuación final de la frase queda fuera del enlace.
+    return String(escaped ?? '').replace(/https?:\/\/(?:[^\s<&"']|&amp;)+/gi, u => {
+        const cola = (u.match(/(?:[.,;:!?]|&amp;)+$/) || [''])[0];
+        const url = cola ? u.slice(0, -cola.length) : u;
+        if(!/^https?:\/\/./i.test(url)) return u;
+        return `<a href="${url}" target="_blank" rel="noopener" style="color:#1d4ed8; text-decoration:underline;">${url}</a>${cola}`;
+    });
+}
 
 /* ============================================================
    NOTIFICACIONES CON SONIDO (Web Audio API)
@@ -2632,6 +2648,8 @@ function nav(v, btn) {
     
     document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
     document.getElementById("v-" + v)?.classList.add("active");
+    // 10-nov-2026: al salir del CRM también se cierra el canal de tiempo real de Facebook (se reabre al volver).
+    if(v !== 'crmLinea' && _crmRapidoOn()) { try { window.BayolFacebookRealtimeDirect?.detener?.(); } catch(e) {} }
     if(btn) {
         document.querySelectorAll(".nav button").forEach(x => x.classList.remove("active"));
         btn.classList.add("active");
@@ -30461,6 +30479,10 @@ let _waForzarScrollFondo = false;
 // aparte para que una actualización de Realtime no haga desaparecer la
 // burbuja mientras el servidor todavía está confirmando el envío.
 const _waMensajesOptimistas = new Map();
+// 10-nov-2026: envíos de texto en curso, por chat. Antes había un solo candado para todo el CRM y sin tiempo límite:
+// un envío lento dejaba sin poder enviar en ningún chat, sin aviso. Ahora cada chat tiene el suyo y vence a los 25 s.
+const _waEnviosEnVuelo = new Set();
+let _waEnvioLimiteMs = 25000;
 let _crmImportandoHistorial = false;
 let _crmListaAnimarProxima = true;
 let _crmRefrescoSilencioso = false;
@@ -30626,6 +30648,25 @@ function _crmPintarBadgeLeads() {
 
 async function renderWhatsapp() {
     _crmListaAnimarProxima = true;
+    if(_crmRapidoOn()) {
+        // 10-nov-2026: el conteo de leads solo pinta su numerito, así que ya no hace esperar a la lista; y la lista
+        // se pinta en cuanto llegan los hilos, sin esperar a los mensajes del chat que estaba abierto.
+        const leads = _crmContarLeadsAbiertos();
+        await cargarHilosWhatsapp();
+        let recargarChat = false;
+        if(_waHiloId) {
+            if(_waHilos.some(h => h.id === _waHiloId)) recargarChat = true;
+            else _waHiloId = null;
+        }
+        _pintarWhatsapp();
+        if(recargarChat) {
+            const id = _waHiloId;
+            await cargarMensajesHilo(id);
+            if(_waHiloId === id && !_waActualizarChatIncremental()) _pintarWhatsappDetalle();
+        }
+        await leads;
+        return;
+    }
     await cargarHilosWhatsapp();
     await _crmContarLeadsAbiertos();
     // Si hay un hilo abierto, sus mensajes NUNCA se recargaban solos al volver
@@ -30958,9 +30999,13 @@ function _crmAbrirBusqueda() {
     inp.style.display = '';
     inp.focus();
 }
+let _crmBuscarPend = null;
 function _crmBuscarCambio(v) {
     _crmBusqueda = v || '';
-    _pintarWhatsappLista();
+    if(!_crmRapidoOn()) { _pintarWhatsappLista(); return; }
+    // 10-nov-2026: antes la lista entera se volvía a crear en cada tecla. Ahora se espera a que deje de escribir.
+    clearTimeout(_crmBuscarPend);
+    _crmBuscarPend = setTimeout(() => { _crmBuscarPend = null; _pintarWhatsappLista(); }, 120);
 }
 // Si se sale del buscador sin haber escrito nada, vuelve a ser un botón (no
 // deja un campo vacío ocupando espacio).
@@ -31044,6 +31089,42 @@ async function _waSignedUrl(path) {
         return data.signedUrl;
     } catch(e) { return null; }
 }
+
+// 10-nov-2026: enlaces firmados en lote (una petición por chat; antes una por cada foto, audio o documento).
+// Devuelve Map ruta -> enlace (o null si no se pudo). Usa y llena la misma caché de _waSignedUrl.
+async function _waSignedUrls(paths) {
+    const out = new Map(), faltan = [];
+    for(const p of new Set(paths || [])) {
+        if(!p) continue;
+        const hit = _waUrlCache.get(p);
+        if(hit && hit.exp > Date.now() + 120000) out.set(p, hit.url); else faltan.push(p);
+    }
+    if(!faltan.length) return out;
+    const unoPorUno = async (lista) => {
+        const cola = lista.slice();
+        await Promise.all(Array.from({ length: 4 }, async () => { while(cola.length) { const p = cola.shift(); out.set(p, await _waSignedUrl(p)); } }));
+    };
+    let almacen = null;
+    try { almacen = supabaseClient.storage.from('whatsapp-media'); } catch(e) {}
+    if(!almacen || typeof almacen.createSignedUrls !== 'function') { await unoPorUno(faltan); return out; }
+    for(let i = 0; i < faltan.length; i += 100) {
+        const lote = faltan.slice(i, i + 100);
+        try {
+            const { data, error } = await almacen.createSignedUrls(lote, 3600);
+            if(error || !Array.isArray(data)) throw (error || new Error('sin datos'));
+            data.forEach((d, k) => {
+                const p = (d && lote.includes(d.path)) ? d.path : lote[k];
+                const u = (d && d.signedUrl) || null;
+                if(!p) return;
+                if(u) _waUrlCache.set(p, { url: u, exp: Date.now() + 3600000 });
+                out.set(p, u);
+            });
+            lote.forEach(p => { if(!out.has(p)) out.set(p, null); });
+        } catch(e) { await unoPorUno(lote.filter(p => !out.has(p))); }
+    }
+    return out;
+}
+function _waUrlEnCache(path) { const hit = _waUrlCache.get(path); return (hit && hit.exp > Date.now() + 120000) ? hit.url : undefined; }
 
 // Token de generacion: si dos cargas quedan en vuelo (usuario toca otra
 // conversacion antes de que la primera termine, o entra un refresco de
@@ -31585,8 +31666,10 @@ function _waBurbujaMedia(m) {
     // aspect-ratio reserva el alto ANTES de que la imagen/video cargue (si no,
     // mide 0px hasta terminar de descargar y el chat "salta" — el scroll al
     // fondo se calculaba antes de que hubiera nada que medir).
-    if(m.tipo_contenido === 'imagen') return `<img src="${m._mediaUrl}" style="max-width:280px; width:100%; aspect-ratio:4/3; object-fit:cover; background:#e9edef; border-radius:7px; display:block; margin-bottom:4px; cursor:pointer;" onclick="window.open('${m._mediaUrl}','_blank')">`;
-    if(m.tipo_contenido === 'audio') return `<audio controls preload="metadata" src="${m._mediaUrl}" style="width:250px; max-width:100%; display:block; margin-bottom:4px; height:36px;"></audio>`;
+    // 10-nov-2026: las fotos fuera de pantalla se bajan al acercarse y el audio al darle a reproducir.
+    const _dif = _crmRapidoOn();
+    if(m.tipo_contenido === 'imagen') return `<img src="${m._mediaUrl}"${_dif ? ' loading="lazy" decoding="async"' : ''} style="max-width:280px; width:100%; aspect-ratio:4/3; object-fit:cover; background:#e9edef; border-radius:7px; display:block; margin-bottom:4px; cursor:pointer;" onclick="window.open('${m._mediaUrl}','_blank')">`;
+    if(m.tipo_contenido === 'audio') return `<audio controls preload="${_dif ? 'none' : 'metadata'}" src="${m._mediaUrl}" style="width:250px; max-width:100%; display:block; margin-bottom:4px; height:36px;"></audio>`;
     if(m.tipo_contenido === 'video') return `<video controls preload="metadata" src="${m._mediaUrl}" style="max-width:280px; width:100%; aspect-ratio:4/3; background:#000; border-radius:7px; display:block; margin-bottom:4px;"></video>`;
     return `<a href="${m._mediaUrl}" target="_blank" style="font-size:12.5px; display:block; margin-bottom:4px;"><i class="ti ti-file"></i> Ver documento adjunto</a>`;
 }
@@ -31683,7 +31766,7 @@ function _waBurbujaRowHTML(m, nombre, porId) {
     </div>`;
     }
     const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
-    return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`} data-estado="${esOut ? (m.estado||'') : ''}" data-reac="${escapeHtml(_waFirmaReacciones(m))}">
+    return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? ` data-tempid="${escapeHtml(m.id)}"` : ` data-msgid="${m.id}"`} data-estado="${esOut ? (m.estado||'') : ''}" data-reac="${escapeHtml(_waFirmaReacciones(m))}">
         ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
         <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;${m.reacciones && (m.reacciones.cliente || m.reacciones.negocio) ? ' position:relative; margin-bottom:16px;' : ''}">
             ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
@@ -31694,16 +31777,105 @@ function _waBurbujaRowHTML(m, nombre, porId) {
             ${_waMetaHTML(m)}
             ${citaHTML}
             ${_waBurbujaMedia(m)}
-            ${m.cuerpo && m.tipo_contenido !== 'ubicacion' && m.tipo_contenido !== 'contacto' ? `<div style="white-space:pre-wrap; word-break:break-word;">${linkifyText(_waEnlazarTelefonos(escapeHtml(m.cuerpo)))}</div>` : ''}
+            ${m.cuerpo && m.tipo_contenido !== 'ubicacion' && m.tipo_contenido !== 'contacto' ? `<div style="white-space:pre-wrap; word-break:break-word;">${_waEnlazarTexto(escapeHtml(m.cuerpo))}</div>` : ''}
             <div class="wa-tick-line" style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                 ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                 ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
                 ${esOut && window.bcOrtoMarca ? window.bcOrtoMarca(m.meta && m.meta.ortografia && m.meta.ortografia.original, m.estado) : ''}
             </div>
-            ${esOut ? _waMotivoFallo(m) : ''}
+            ${esOut ? (esOptimista && m.estado === 'fallido' && _crmRapidoOn() ? _waNoEnviadoHTML(m) : _waMotivoFallo(m)) : ''}
             ${_waReaccionesHTML(m)}
         </div>
     </div>`;
+}
+// 10-nov-2026: un envío que falló o venció queda en el chat con su texto y un botón para volver a intentarlo.
+function _waNoEnviadoHTML(m) {
+    return `<div class="wa-motivo-fallo" style="font-size:12px; color:#b91c1c; margin-top:3px; text-align:left; display:flex; align-items:center; gap:4px; flex-wrap:wrap;"><span><i class="ti ti-alert-circle"></i> No enviado ·</span><button type="button" class="wa-reintentar" onclick="_waReintentarEnvio('${escapeHtml(m.id)}')" style="min-height:44px; min-width:44px; padding:0 8px; border:0; background:none; color:#b91c1c; font:inherit; font-size:13px; font-weight:700; text-decoration:underline; cursor:pointer;">Reintentar</button></div>`;
+}
+function _waReintentarEnvio(tempId) {
+    const opt = _waMensajesOptimistas.get(tempId);
+    const input = document.getElementById('waTexto');
+    if(!opt || opt.estado !== 'fallido' || opt.hilo_id !== _waHiloId || !input || input.disabled) return;
+    if(_waEnviosEnVuelo.has(_waHiloId)) { toast('Enviando el mensaje anterior…'); return; }
+    // Si el empleado ya estaba escribiendo otra cosa, se le devuelve a la caja después de reenviar.
+    const fallido = String(opt.cuerpo || '');
+    const otro = (input.value.trim() && input.value.trim() !== fallido.trim()) ? input.value : '';
+    input.value = fallido;
+    const p = enviarMensajeWhatsapp();
+    const caja = document.getElementById('waTexto');
+    if(otro && caja && !caja.value) { caja.value = otro; _waActualizarBotonEnvio(); }
+    return p;
+}
+// Vuelve a dibujar solo las burbujas indicadas (p. ej. cuando su adjunto ya tiene enlace). Devuelve false si no se
+// pudo, y entonces quien llama repinta el chat entero como antes.
+function _waRepintarBurbujas(ids) {
+    const sc = document.getElementById('waMessagesScroll');
+    if(!sc || !_waHiloId || _waDetalleHiloPintadoId !== _waHiloId) return false;
+    if(_waGrabando && _waGrabandoHiloId === _waHiloId) return true;
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    if(!h) return false;
+    const nombre = h.nombre_perfil || 'Sin nombre';
+    const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
+    const fn = (typeof window._waBurbujaRowHTML === 'function') ? window._waBurbujaRowHTML : _waBurbujaRowHTML;
+    const pegadoAlFondo = (sc.scrollHeight - sc.scrollTop - sc.clientHeight) < 80;
+    for(const id of ids || []) {
+        const m = porId[id];
+        if(!m || m._optimista) continue;
+        const row = sc.querySelector(`.wa-brow[data-msgid="${id}"]`);
+        if(!row) return false;
+        row.outerHTML = fn(m, nombre, porId);
+    }
+    _waWireSwipe();
+    if(pegadoAlFondo) {
+        const alFondo = () => { if(sc.isConnected) sc.scrollTop = sc.scrollHeight; };
+        alFondo(); requestAnimationFrame(alFondo);
+        sc.querySelectorAll('img, video').forEach(el => { if(el.complete) return; el.addEventListener('load', alFondo, { once: true }); el.addEventListener('loadedmetadata', alFondo, { once: true }); });
+    }
+    return true;
+}
+// Añade, actualiza o quita solo la burbuja provisional de un envío, sin reconstruir el chat. Devuelve false si no se
+// pudo (chat no pintado), y entonces se repinta entero.
+function _waPintarBurbujaEnvio(tempId) {
+    const sc = document.getElementById('waMessagesScroll');
+    if(!sc || !_waHiloId || _waDetalleHiloPintadoId !== _waHiloId) return false;
+    if(_waGrabando && _waGrabandoHiloId === _waHiloId) return true;
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    if(!h) return false;
+    const nombre = h.nombre_perfil || 'Sin nombre';
+    const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
+    const fn = (typeof window._waBurbujaRowHTML === 'function') ? window._waBurbujaRowHTML : _waBurbujaRowHTML;
+    // Provisionales que ya no están en memoria (un «no enviado» que se descartó al reenviar).
+    sc.querySelectorAll('.wa-brow[data-tempid]').forEach(el => { const m = porId[el.dataset.tempid]; if(!m || !m._optimista) el.remove(); });
+    const m = porId[tempId];
+    const fila = Array.from(sc.querySelectorAll('.wa-brow[data-tempid]')).find(el => el.dataset.tempid === tempId);
+    if(m && m._optimista) {
+        if(fila) fila.outerHTML = fn(m, nombre, porId);
+        else {
+            const pegadoAlFondo = (sc.scrollHeight - sc.scrollTop - sc.clientHeight) < 80;
+            const vacio = sc.querySelector(':scope > .wa-chat-empty');
+            if(vacio) vacio.remove();
+            sc.insertAdjacentHTML('beforeend', fn(m, nombre, porId));
+            if(pegadoAlFondo) { sc.scrollTop = sc.scrollHeight; requestAnimationFrame(() => { if(sc.isConnected) sc.scrollTop = sc.scrollHeight; }); }
+        }
+    }
+    _waMensajeAnimarId = null;
+    _waWireSwipe();
+    _waPintarReplyBar();
+    _waActualizarBotonEnvio();
+    return true;
+}
+// La fila que llega por tiempo real, ¿es la definitiva del envío que este equipo tiene en curso en ese chat?
+// No se compara el texto (el servidor puede corregir la ortografía): solo hay un envío de texto en curso por chat,
+// así que basta con que sea un texto saliente, no automático, enviado por este empleado. Si la fila no trae autor
+// (el eco de WhatsApp, o algo escrito desde el celular de la línea) solo vale cuando el texto es idéntico.
+function _waEsFilaDeMiEnvio(opt, n) {
+    if(!opt || !n || n.direccion !== 'out' || opt.hilo_id !== n.hilo_id) return false;
+    if((n.tipo_contenido || 'text') !== 'text' || n.es_automatico || n.plantilla_nombre) return false;
+    if(n.enviado_por_id != null) { if(String(n.enviado_por_id) !== String(sessionUser?.id ?? '')) return false; }
+    else if(String(n.cuerpo || '') !== String(opt._original ?? opt.cuerpo ?? '')) return false;
+    const t = new Date(n.creado_en).getTime();
+    if(Number.isFinite(t) && opt._t0 && t < opt._t0 - 120000) return false;
+    return true;
 }
 
 function _waQuienEnvio(m, optimista) {
@@ -31760,13 +31932,31 @@ function _waActualizarChatIncremental() {
         row.dataset.estado = m.estado;
     });
 
-    scrollContainer.querySelectorAll('.wa-brow:not([data-msgid])').forEach(el => el.remove());
+    // 10-nov-2026: antes aquí se borraban TODAS las burbujas provisionales; si entraba un mensaje del cliente mientras
+    // un envío seguía en curso, la burbuja «enviando» desaparecía. Ahora solo se quitan las que ya no existen.
+    const _rapido = _crmRapidoOn();
+    const _provisionales = _rapido ? _waMensajes.filter(m => m._optimista) : [];
+    scrollContainer.querySelectorAll('.wa-brow:not([data-msgid])').forEach(el => {
+        const m = _rapido && el.dataset.tempid ? porId[el.dataset.tempid] : null;
+        if(!m || !m._optimista) { el.remove(); return; }
+        if((el.dataset.estado || '') !== (m.estado || '')) el.outerHTML = _waBurbujaRowHTML(m, nombre, porId);
+    });
 
     const newMsgs = _waMensajes.filter(m => !m._optimista && m.id && !renderedIds.has(m.id));
-    if(newMsgs.length) {
+    if(newMsgs.length || _provisionales.length) {
         const pegadoAlFondo = (scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight) < 80;
         const html = newMsgs.map(m => _waBurbujaRowHTML(m, nombre, porId)).join('');
-        scrollContainer.insertAdjacentHTML('beforeend', html);
+        if(html) scrollContainer.insertAdjacentHTML('beforeend', html);
+        // Las provisionales van al final (son lo último que se escribió); las que falten se añaden.
+        let tocado = !!html;
+        _provisionales.forEach(m => {
+            const fila = Array.from(scrollContainer.querySelectorAll('.wa-brow[data-tempid]')).find(el => el.dataset.tempid === m.id);
+            if(fila) { if(html) scrollContainer.appendChild(fila); }
+            else { scrollContainer.insertAdjacentHTML('beforeend', _waBurbujaRowHTML(m, nombre, porId)); tocado = true; }
+        });
+        if(!tocado) return true;
+        const _vacio = scrollContainer.querySelector(':scope > .wa-chat-empty');
+        if(_vacio) _vacio.remove();
         _waMensajeAnimarId = null;
         _waWireSwipe();
         if(pegadoAlFondo) {
@@ -31797,6 +31987,13 @@ function _pintarWhatsappDetalle() {
     // scroll ANTES de reconstruir todo el HTML — este render puede dispararse
     // por un mensaje de tiempo real (de este mismo cliente) mientras esta a
     // medio escribir una respuesta o leyendo mensajes viejos hacia arriba.
+    const _rapido = _crmRapidoOn();
+    // 10-nov-2026: estado de la carga del chat (lo escriben crm-message-loading.js y crm-whatsapp-pagination.js).
+    const _carga = (_rapido && window.__bcWaCarga && window.__bcWaCarga.hilo === _waHiloId) ? window.__bcWaCarga.estado : 'ok';
+    // En la PC, mientras carga el chat que se acaba de tocar, la caja y el botón quedan bloqueados: así nada de lo
+    // que se escriba puede salir hacia un cliente cuyo chat todavía no se ve.
+    const _bloquearCaja = _carga === 'cargando' && !_waMensajes.length && !_waEsMovil();
+    const _mismoHiloPintado = _waDetalleHiloPintadoId === _waHiloId;
     const _prevInput = document.getElementById('waTexto');
     const _borrador = _prevInput ? _prevInput.value : '';
     const _teniaFoco = document.activeElement === _prevInput;
@@ -31831,7 +32028,10 @@ function _pintarWhatsappDetalle() {
 
     html += `<div id="waMessagesScroll" style="flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:6px;">`;
     if(!_waMensajes.length) {
-        html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
+        // «Sin mensajes todavía.» solo cuando de verdad no hay: mientras carga o si falló se dice eso.
+        if(_carga === 'cargando') html += `<div class="wa-chat-empty" data-carga="cargando">Cargando…</div>`;
+        else if(_carga === 'error') html += `<div class="wa-chat-empty" data-carga="error">No se pudo cargar · <button type="button" class="wa-reintentar-carga" onclick="_waReintentarCarga()" style="min-height:44px; min-width:44px; padding:0 8px; border:0; background:none; color:inherit; font:inherit; font-weight:700; text-decoration:underline; cursor:pointer;">Reintentar</button></div>`;
+        else html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
     } else {
         const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
         html += _waMensajes.map(m => _waBurbujaRowHTML(m, nombre, porId)).join('');
@@ -31861,8 +32061,8 @@ function _pintarWhatsappDetalle() {
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
                 <button class="wa-icon-btn" id="btnWaUbicacion" onclick="_crmMostrarMenuUbicacion('whatsapp', this)" title="Enviar ubicación de la tienda"><i class="ti ti-map-pin"></i></button>
                 <button class="wa-icon-btn" id="btnWaRapidas" onclick="window._waAbrirRapidas && window._waAbrirRapidas()" title="Respuestas rápidas" aria-label="Respuestas rápidas"><i class="ti ti-bolt"></i></button>
-                <textarea id="waTexto" rows="1" placeholder="Escriba una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)"></textarea>
-                <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
+                <textarea id="waTexto" rows="1" placeholder="${_bloquearCaja ? 'Cargando…' : 'Escriba una respuesta...'}"${_bloquearCaja ? ' disabled' : ''} autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)"></textarea>
+                <button class="wa-send-btn" id="btnWaEnviar"${_bloquearCaja ? ' disabled' : ''} onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>
             <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
         } else {
@@ -31906,13 +32106,29 @@ function _pintarWhatsappDetalle() {
     // barra de escribir despues de cada envio exitoso.
     const nuevoInput = document.getElementById('waTexto');
     if(nuevoInput) {
-        if(_borrador) nuevoInput.value = _borrador;
+        // 10-nov-2026: lo escrito solo se conserva si se repinta el MISMO chat. Antes, al cambiar de chat en la PC,
+        // el texto a medio escribir para un cliente aparecía en la caja del otro (su borrador se guarda por chat).
+        if(_borrador && (!_rapido || _mismoHiloPintado)) nuevoInput.value = _borrador;
         if(_teniaFoco) { nuevoInput.focus(); try { nuevoInput.setSelectionRange(_caret, _caret); } catch(e) {} }
     }
     _waWireSwipe();
     _waPintarReplyBar();
     _waWireEnfoqueInput();
     _waActualizarBotonEnvio();
+    // Si este chat tiene un envío en curso, su botón sigue bloqueado aunque se repinte.
+    if(_rapido && _waEnviosEnVuelo.has(_waHiloId)) {
+        const _btn = document.getElementById('btnWaEnviar');
+        if(_btn) { _btn.disabled = true; _btn.classList.add('wa-enviando'); }
+    }
+}
+// Botón «Reintentar» cuando no cargaron los mensajes del chat abierto.
+async function _waReintentarCarga() {
+    const id = _waHiloId;
+    if(!id) return;
+    window.__bcWaCarga = { hilo: id, estado: 'cargando' };
+    _pintarWhatsappDetalle();
+    await cargarMensajesHilo(id);
+    if(_waHiloId === id) _pintarWhatsappDetalle();
 }
 
 // Safari termina de actualizar visualViewport al final de la animacion del
@@ -33004,6 +33220,19 @@ function _waEnlazarTelefonos(escapado) {
         return `<a href="#" class="wa-tel" data-tel="${d}" onclick="_waMenuTelefono(event, this.dataset.tel)">${txt}</a>`;
     });
 }
+// 10-nov-2026: primero se separan las direcciones web y los teléfonos se enlazan solo en el resto del texto. Antes
+// «https://wa.me/18095551234» quedaba partido: el enlace abría «https://wa.me/» y el número iba aparte.
+function _waEnlazarTexto(escapado) {
+    const s = String(escapado || '');
+    if(!_crmRapidoOn()) return linkifyText(_waEnlazarTelefonos(s));
+    const re = /https?:\/\/(?:[^\s<&"']|&amp;)+/gi;
+    let out = '', i = 0, m;
+    while((m = re.exec(s))) {
+        out += _waEnlazarTelefonos(s.slice(i, m.index)) + linkifyText(m[0]);
+        i = m.index + m[0].length;
+    }
+    return out + _waEnlazarTelefonos(s.slice(i));
+}
 function _waMenuTelefono(ev, digitos) {
     ev.preventDefault(); ev.stopPropagation();
     _waCerrarMenuTelefono();
@@ -33301,7 +33530,8 @@ function _waWireSwipe() {
 }
 
 async function enviarMensajeWhatsapp() {
-    if(_waEnviando) return;
+    const rapido = _crmRapidoOn();
+    if(!rapido && _waEnviando) return;
     const input = document.getElementById('waTexto');
     const mensaje = (input?.value || '').trim();
     if(!mensaje) return;
@@ -33312,6 +33542,12 @@ async function enviarMensajeWhatsapp() {
     const hiloDestino = _waHiloId;
     const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
     if(!hiloDestino) return;
+    if(rapido) {
+        // 10-nov-2026: nunca se envía a un chat que no es el que está pintado (cambio de chat a medio cargar).
+        if(_waDetalleHiloPintadoId !== hiloDestino || (input && input.disabled)) return;
+        // Un envío de texto a la vez por chat; los demás chats no se bloquean.
+        if(_waEnviosEnVuelo.has(hiloDestino)) { toast('Enviando el mensaje anterior…'); return; }
+    }
     const tempId = `wa-temp-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
     const optimista = {
         id: tempId,
@@ -33322,10 +33558,15 @@ async function enviarMensajeWhatsapp() {
         responde_a_id: respondeA,
         creado_en: new Date().toISOString(),
         estado: 'enviando',
-        _optimista: true
+        _optimista: true,
+        _t0: Date.now(),
+        _original: mensaje
     };
+    // Mensajes que ya estaban en el chat antes de este envío (para reconocer la fila nueva si vence la espera).
+    const idsAntes = new Set(_waMensajes.filter(m => !m._optimista).map(m => m.id));
 
     _waEnviando = true;
+    if(rapido) _waEnviosEnVuelo.add(hiloDestino);
     activarAudioNotif();
     // Respuesta visual inmediata: el composer se vacía y la burbuja nace en
     // el mismo frame del toque, sin esperar la confirmación de Zernio.
@@ -33338,34 +33579,81 @@ async function enviarMensajeWhatsapp() {
     if(input) input.value = '';
     if(_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
     _waMensajeAnimarId = tempId;
-    _pintarWhatsappDetalle();
+    // 10-nov-2026: se añade o actualiza solo esta burbuja; antes cada envío reconstruía el chat entero dos veces.
+    const pintar = () => { if(!(rapido && _waPintarBurbujaEnvio(tempId))) _pintarWhatsappDetalle(); };
+    pintar();
     const bloquearBoton = (activo) => {
+        if(rapido && _waHiloId !== hiloDestino) return;   // el botón que se ve es de otro chat
         const botonActual = document.getElementById('btnWaEnviar');
         if(!botonActual) return;
         botonActual.disabled = activo;
         botonActual.classList.toggle('wa-enviando', activo);
     };
     bloquearBoton(true);
+    const liberar = () => {
+        _waEnviosEnVuelo.delete(hiloDestino);
+        _waEnviando = rapido ? _waEnviosEnVuelo.size > 0 : false;
+        bloquearBoton(false); _waActualizarBotonEnvio();
+    };
 
-    const marcarFallo = (textoError) => {
-        const opt = _waMensajesOptimistas.get(tempId);
-        if(opt) opt.estado = 'fallido';
+    // sinRespuesta = venció la espera: no se sabe si el mensaje salió.
+    const marcarFallo = (textoError, sinRespuesta) => {
+        let opt = _waMensajesOptimistas.get(tempId);
+        if(rapido && !opt) {
+            // La fila definitiva ya llegó por tiempo real y sustituyó a la provisional: el mensaje sí salió.
+            if(sinRespuesta) return;
+            // El servidor dijo que NO salió: la fila que llegó era de otro envío. Se vuelve a mostrar como no enviado.
+            opt = optimista;
+            _waMensajesOptimistas.set(tempId, opt);
+            if(_waHiloId === hiloDestino && !_waMensajes.includes(opt)) _waMensajes.push(opt);
+        }
+        if(opt) { opt.estado = 'fallido'; if(sinRespuesta) opt._sinRespuesta = true; }
         if(_waHiloId === hiloDestino) {
             const actual = document.getElementById('waTexto');
             if(actual && !actual.value) actual.value = mensaje;
-            _pintarWhatsappDetalle();
+            pintar();
         }
         toastError(textoError || 'No se pudo enviar el mensaje.');
     };
+    // Venció el tiempo límite. Antes de decir «no enviado» se mira si el mensaje llegó a guardarse: así no se
+    // invita a reenviar algo que el cliente ya recibió.
+    const alVencer = async () => {
+        if(!_waMensajesOptimistas.has(tempId)) return;   // ya lo confirmó el tiempo real
+        try {
+            const { data } = await supabaseClient.from('whatsapp_mensajes').select('*').eq('hilo_id', hiloDestino).eq('direccion', 'out')
+                .gt('creado_en', new Date(optimista._t0 - 120000).toISOString()).order('creado_en', { ascending: false }).limit(10);
+            const fila = (data || []).find(n => !idsAntes.has(n.id) && _waEsFilaDeMiEnvio(optimista, n));
+            if(fila) {
+                _waMensajesOptimistas.delete(tempId);
+                _waMensajes = _waMensajes.filter(m => m.id !== tempId);
+                if(_waHiloId === hiloDestino) { await cargarMensajesHilo(hiloDestino); if(_waHiloId === hiloDestino) await _crmRepintarWhatsappSilencioso(); }
+                return;
+            }
+        } catch(e) { logError('enviarMensajeWhatsapp/alVencer', e); }
+        marcarFallo('El servidor no respondió', true);
+    };
+    let control = null, limite = null;
     try {
+        if(rapido && typeof AbortController === 'function') {
+            control = new AbortController();
+            limite = setTimeout(() => { try { control.abort(); } catch(e) {} }, _waEnvioLimiteMs);
+        }
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(!session) { marcarFallo('Inicie sesión de nuevo.'); return; }
-        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', Object.assign({
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ hilo_id: hiloDestino, mensaje, responde_a_id: respondeA })
-        });
-        const j = await res.json();
+        }, control ? { signal: control.signal } : {}));
+        let j;
+        if(rapido) {
+            // 10-nov-2026: un 502 con una página HTML no es JSON; antes res.json() reventaba y salía un aviso falso.
+            const tipo = (res.headers && typeof res.headers.get === 'function' && res.headers.get('content-type')) || '';
+            j = null;
+            if(/json/i.test(tipo)) { try { j = await res.json(); } catch(e) { if(control && control.signal.aborted) throw e; j = null; } }
+            if(!j || typeof j !== 'object') { marcarFallo(res.ok ? 'Respuesta no válida del servidor' : 'El servidor no respondió'); return; }
+        } else j = await res.json();
+        clearTimeout(limite); limite = null;
         if(j && j.ok) {
             const opt = _waMensajesOptimistas.get(tempId);
             if(opt) {
@@ -33374,9 +33662,14 @@ async function enviarMensajeWhatsapp() {
                 // 2-nov-2026 (ortografía): mostrar exactamente lo que recibió el cliente.
                 if(typeof j.texto_enviado === 'string' && j.texto_enviado) opt.cuerpo = j.texto_enviado;
                 if(j.ortografia && j.ortografia.corregido) opt.meta = Object.assign({}, opt.meta || {}, { ortografia: { original: String(j.ortografia.original || '') } });
+                // 10-nov-2026: si la fila definitiva ya está en el chat (llegó antes que esta respuesta), la provisional sobra.
+                if(rapido && opt.wa_message_id && _waMensajes.some(m => !m._optimista && m.wa_message_id === opt.wa_message_id)) {
+                    _waMensajesOptimistas.delete(tempId);
+                    _waMensajes = _waMensajes.filter(m => m.id !== tempId);
+                }
             }
             if(_waHiloId === hiloDestino) {
-                _pintarWhatsappDetalle();
+                pintar();
                 reproducirSonido('whatsappEnviado');
             }
             // 3 oct 2026 (lag al enviar): antes el botón seguía bloqueado hasta
@@ -33385,7 +33678,7 @@ async function enviarMensajeWhatsapp() {
             // llega el OK; la fila definitiva la trae el tiempo real
             // (_crmRtAplicarEnMemoria la cambia por la provisional). Solo si a
             // los 2,5 s la provisional sigue ahí se recarga el chat como antes.
-            _waEnviando = false; bloquearBoton(false); _waActualizarBotonEnvio();
+            liberar();
             setTimeout(async () => {
                 if(!_waMensajesOptimistas.has(tempId) || _waHiloId !== hiloDestino) return;
                 try { await cargarMensajesHilo(hiloDestino); if(_waHiloId === hiloDestino) await _crmRepintarWhatsappSilencioso(); }
@@ -33398,8 +33691,12 @@ async function enviarMensajeWhatsapp() {
         } else {
             marcarFallo(j?.mensaje || 'No se pudo enviar el mensaje.');
         }
-    } catch(e) { logError('enviarMensajeWhatsapp', e); marcarFallo(getFriendlyError(e)); }
-    finally { _waEnviando = false; bloquearBoton(false); _waActualizarBotonEnvio(); }
+    } catch(e) {
+        logError('enviarMensajeWhatsapp', e);
+        if(control && control.signal.aborted) await alVencer();
+        else marcarFallo(rapido && /failed to fetch|networkerror|load failed/i.test(e?.message || '') ? 'Sin conexión' : getFriendlyError(e));
+    }
+    finally { clearTimeout(limite); liberar(); }
 }
 
 /* ---- Vincular / crear cliente (compartido entre bandeja y leads) ---- */
@@ -34178,11 +34475,22 @@ function _crmRtAplicarEnMemoria(payload, tabla) {
             // La burbuja provisional («enviando…») de este mismo mensaje se reemplaza por la fila real.
             for(const [tempId, opt] of _waMensajesOptimistas) {
                 if(opt.hilo_id !== n.hilo_id || n.direccion !== 'out') continue;
+                // 10-nov-2026: ya no se compara el texto (si el servidor corrige la ortografía no coincide y quedaban
+                // dos burbujas). Vale el número del mensaje o, si aún no ha vuelto la respuesta, que sea el envío en
+                // curso de este chat (también el que venció sin respuesta y resulta que sí salió).
                 const mismo = (opt.wa_message_id && opt.wa_message_id === n.wa_message_id) ||
-                    (!opt.wa_message_id && opt.estado !== 'fallido' && (opt.cuerpo || '') === (n.cuerpo || ''));
+                    (_crmRapidoOn()
+                        ? (!opt.wa_message_id && (opt.estado !== 'fallido' || opt._sinRespuesta) && _waEsFilaDeMiEnvio(opt, n))
+                        : (!opt.wa_message_id && opt.estado !== 'fallido' && (opt.cuerpo || '') === (n.cuerpo || '')));
                 if(!mismo) continue;
                 _waMensajesOptimistas.delete(tempId);
                 _waMensajes = _waMensajes.filter(m => m.id !== tempId);
+                // El envío había vencido sin respuesta y resulta que sí salió: se retira el texto que se había
+                // devuelto a la caja para reintentar, así no se manda dos veces.
+                if(opt._sinRespuesta && _waHiloId === n.hilo_id) {
+                    const caja = document.getElementById('waTexto');
+                    if(caja && caja.value === opt._original) { caja.value = ''; caja.dispatchEvent(new Event('input', { bubbles: true })); }
+                }
                 break;
             }
             const meter = () => {
@@ -34263,7 +34571,8 @@ function _crmSuscribirRealtime(lineaId) {
             if(tabActiva === 'mensajes') {
                 _crmRtUltimaRecargaCompleta = Date.now();
                 await cargarHilosWhatsapp();
-                await _crmContarLeadsAbiertos();
+                if(_crmRapidoOn()) _crmContarLeadsAbiertos(); // solo pinta su numerito: no hace esperar al chat
+                else await _crmContarLeadsAbiertos();
                 if(recargarHiloAbierto && _waHiloId) {
                     await cargarMensajesHilo(_waHiloId);
                     await _crmRepintarWhatsappSilencioso();
@@ -34960,6 +35269,7 @@ async function renderCrmLinea(btn) {
     const posicion = _crmCapturarPosicionActualizacion();
     if(btn) btn.classList.add('girando');
     try {
+        try { window.BayolFacebookRealtimeDirect?.reanudar?.(); } catch(e) {} // 10-nov-2026: se cerró al salir del CRM
         const yaConstruido = _crmEstructura.length > 0;
         if(!yaConstruido) await construirSelectorCRM();
         if(!_crmLineaActualId) {

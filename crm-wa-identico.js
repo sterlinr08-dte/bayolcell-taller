@@ -551,7 +551,12 @@
       var yo = null; try { yo = _crmMiIdentidad(); } catch(e){}
       extras = (r.data || []).filter(function(h){ return admin() || !h.asignado_id || (yo && String(h.asignado_id) === String(yo.id)); });
       extrasDeLinea = lid;
-      repintarLista();
+      // 10-nov-2026: si la lista ya está pintada, solo se añaden y ordenan las conversaciones fijadas o archivadas
+      // que falten. Antes se recreaba la lista entera justo después de su primer pintado (doble trabajo al entrar).
+      var lista = document.getElementById('waLista');
+      var rapido = false; try { rapido = typeof _crmRapidoOn === 'function' && _crmRapidoOn(); } catch(e){}
+      if (rapido && lista && lista.querySelector('.wa-row') && typeof _actualizarListaWhatsappIncremental === 'function') _actualizarListaWhatsappIncremental();
+      else repintarLista();
     } catch(e){} finally { cargandoExtras = false; }
   }
   function mezclarExtras(){

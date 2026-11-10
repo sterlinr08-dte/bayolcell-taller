@@ -242,9 +242,35 @@
     state.timer=setTimeout(runRefresh,DEBOUNCE_MS);
   }
 
+  // 10-nov-2026: fuera del CRM este canal no hace nada (runRefresh ya salía sin refrescar), pero seguía abierto
+  // toda la sesión. Ahora taller-app.js lo cierra al salir del CRM (nav) y lo reabre al volver (renderCrmLinea).
+  // Se apaga con localStorage.bc_crm_rapido_off='1' (queda abierto siempre, como antes).
+  function rapido(){
+    try { return typeof _crmRapidoOn === 'function' && _crmRapidoOn(); } catch(_e){ return false; }
+  }
+  function crmActivo(){ const r=root(); return !!(r && r.classList.contains('active')); }
+  function detener(){
+    if(state.timer){ clearTimeout(state.timer); state.timer=null; }
+    state.pendingOpenChat=false;
+    const ch=state.stableChannel;
+    if(!ch) return;
+    state.stableChannel=null;
+    state.installed=false;
+    try{ client()?.removeChannel(ch); }catch(_e){}
+  }
+  function reanudar(){
+    const habia=!!state.stableChannel;
+    install();
+    // Lo que llegó mientras el canal estaba cerrado se recupera con un refresco de la lista.
+    if(!habia && state.stableChannel && facebookActive()) schedule(false);
+  }
+  state.detener=detener;
+  state.reanudar=reanudar;
+
   function installStableRealtime(){
     const c=client();
     if(!c?.channel || state.stableChannel) return false;
+    if(rapido() && !crmActivo()) return false;
     try{
       state.stableChannel=c.channel('bc-social-facebook-stable-v2')
         .on('postgres_changes',{event:'*',schema:'public',table:'social_hilos'},function(){
