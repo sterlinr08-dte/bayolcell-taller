@@ -5,4 +5,4 @@ http.createServer((req, res) => {
   const f = path.join(RAIZ, decodeURIComponent(req.url.split('?')[0])); if (!f.startsWith(RAIZ) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
   const ext = path.extname(f); const body = fs.readFileSync(f); const h = { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'max-age=600' };
   if (/^(text|application)/.test(h['Content-Type'])) { h['Content-Encoding'] = 'gzip'; res.writeHead(200, h); res.end(zlib.gzipSync(body)); } else { res.writeHead(200, h); res.end(body); }
-}).listen(8788, '127.0.0.1');
+}).listen(Number(process.env.PUERTO) || 8788, '127.0.0.1'); // PUERTO=xxxx para otro puerto

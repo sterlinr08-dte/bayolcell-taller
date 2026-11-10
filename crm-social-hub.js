@@ -273,6 +273,11 @@
   }
 
   async function refreshKpisReal(){
+    // 10-nov-2026: otra capa reescribe esa cabecera y estos 4 contadores ya no están en pantalla; sin ellos, las 5
+    // consultas de abajo (hasta 5,000 filas cada una) se hacían en cada acción para nada.
+    let rapido = false;
+    try { rapido = typeof _crmRapidoOn === 'function' && _crmRapidoOn(); } catch {}
+    if (rapido && !['#bcKpiWa','#bcKpiIg','#bcKpiLeads','#bcKpiChannels'].some(id => $(id))) return;
     const client = sb();
     if (!client) return;
     let waPending = null, igUnread = null, leads = null, channels = 0;

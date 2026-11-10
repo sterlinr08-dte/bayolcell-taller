@@ -5,9 +5,10 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20261102-or1';
-  var SOCIAL_HUB='20261102-or1';
-  var PERF='20261031-f2';
-  var FB_DIRECT='20260920-incr1';
+  var SOCIAL_HUB='20261110-ab1';
+  var PERF='20261110-ab1';
+  var FB_DIRECT='20261110-ab1';
+  var MSG_LOAD='20261110-ab1'; // crm-message-loading.js con versión propia: subir V volvería a pedir todas las hojas del CRM
   var GLASS='20260916-glass2';
   var AMBIENT='20261110-c1';
   var CRM_C='20261110-c1'; // CRM rápido (10-nov-2026): crm-facebook-chat.css/.js cambiaron (clases de estado en vez de :has)
@@ -182,7 +183,7 @@
     document.head.appendChild(hub);
 
     var messages=document.createElement('script');
-    messages.src='crm-message-loading.js?v='+V;
+    messages.src='crm-message-loading.js?v='+MSG_LOAD;
     document.head.appendChild(messages);
 
     // Fase 2 CRM: mismo diseño en WhatsApp/Instagram/Facebook + separadores de fecha.
@@ -193,7 +194,7 @@
 
     // WhatsApp idéntico a WhatsApp Web / app (solo la pestaña WhatsApp). Va después del diseño unificado.
     var waIdentico=document.createElement('script');
-    waIdentico.src='crm-wa-identico.js?v=20261110-w22';
+    waIdentico.src='crm-wa-identico.js?v=20261110-w23'; // su VERSION interna (hojas de estilo) la fija el propio archivo
     document.head.appendChild(waIdentico);
 
     // Automatizaciones estilo ManyChat (Fase 1: comentario → privado en Instagram/Facebook). Solo admin.
