@@ -18562,39 +18562,142 @@ function imprimirLabelEquipo(equipoId) {
     modeloLimpio = modeloLimpio.replace(/\s{2,}/g, ' ').trim() || parsed.modelo;
     if(esApple) modeloLimpio = ('iP ' + modeloLimpio).trim();
     const capac = (eq.capacidad && String(eq.capacidad).trim()) ? String(eq.capacidad).trim() : parsed.capacidad;
-    const html = `<div class="modal-box" style="max-width:460px; width:95%;">
-        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
-            <h3 style="color:#fff;"><i class="ti ti-printer"></i> Imprimir label</h3>
-            <button class="modal-close" onclick="cerrarLabelRapido()" style="color:#fff;">✕</button>
+    // Ventana ajustada a la pantalla + «Texto de estado» smart (dueño, 10-nov-2026). Apagar smart: localStorage.bc_lr_smart_off='1'.
+    _lrStyles();
+    const estadoIni = _lrEstadoInicial(eq);
+    const html = `<div class="modal-box lr-box">
+        <div class="modal-header lr-head">
+            <h3><i class="ti ti-printer"></i> Imprimir label</h3>
+            <button class="modal-close" onclick="cerrarLabelRapido()" aria-label="Cerrar">✕</button>
         </div>
-        <div class="modal-body">
-            <div class="form-row"><label>Marca</label><input id="lr_marca" value="${escapeHtml(marca)}" oninput="_lrPreview()"></div>
-            <div class="form-row"><label>Modelo</label><input id="lr_modelo" value="${escapeHtml(modeloLimpio)}" oninput="_lrPreview()"></div>
-            <div class="form-row"><label>Capacidad (GB / RAM)</label><input id="lr_gb" value="${escapeHtml(capac)}" oninput="_lrPreview()"></div>
-            <div class="form-row"><label>IMEI / Serial</label><input id="lr_imei" value="${escapeHtml(eq.imei || '')}" oninput="_lrPreview()"></div>
-            <div class="form-row"><label>Texto de estado (opcional)</label><input id="lr_estado" placeholder="Ej. CLASE A" oninput="_lrPreview()"></div>
-            <div class="form-row"><label>Copias</label><input id="lr_copias" type="number" min="1" value="1" style="font-weight:700;"></div>
-            <div style="margin-top:6px; display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;"><i class="ti ti-photo"></i> Vista previa</div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <button type="button" onclick="_lrAjustarFuente(-1)" title="Letra más chica" style="width:26px; height:26px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-weight:800; font-size:14px; line-height:1;">−</button>
-                    <span id="lr_font_val" style="font-size:11px; color:var(--text-muted); min-width:26px; text-align:center;">13px</span>
-                    <button type="button" onclick="_lrAjustarFuente(1)" title="Letra más grande" style="width:26px; height:26px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; font-weight:800; font-size:14px; line-height:1;">+</button>
-                </div>
+        <div class="modal-body lr-body">
+            <div class="lr-grid">
+                <div class="form-row"><label for="lr_marca">Marca</label><input id="lr_marca" value="${escapeHtml(marca)}" oninput="_lrPreview()"></div>
+                <div class="form-row"><label for="lr_modelo">Modelo</label><input id="lr_modelo" value="${escapeHtml(modeloLimpio)}" oninput="_lrPreview()"></div>
+                <div class="form-row lr-c4"><label for="lr_gb">Capacidad</label><input id="lr_gb" value="${escapeHtml(capac)}" oninput="_lrPreview()"></div>
+                <div class="form-row lr-c6"><label for="lr_imei">IMEI / Serial</label><input id="lr_imei" inputmode="numeric" value="${escapeHtml(eq.imei || '')}" oninput="_lrPreview()"></div>
+                <div class="form-row lr-ancho"><label for="lr_estado">Texto de estado</label><input id="lr_estado" data-eq="${escapeHtml(String(eq.id))}" value="${escapeHtml(estadoIni)}" placeholder="Opcional" autocomplete="off" autocapitalize="characters" oninput="_lrEstadoInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();if(_lrEditando)_lrAgregarAcceso();else imprimirLabelRapido();}">
+                    <div class="lr-chips" id="lr_chips" role="group" aria-label="Textos de estado"></div></div>
             </div>
-            <div style="display:flex; justify-content:center; background:#f8fafc; border-radius:8px; padding:14px;"><div id="lr_preview" onwheel="_lrRuedaFuente(event)" title="Rueda del mouse: ajusta el tamaño de letra"></div></div>
-            <p style="font-size:11px; color:var(--text-muted); margin:8px 0 0;">Use la misma impresora y calibración de "Impresión de Labels". Ajuste la letra con los botones −/+ o la rueda del mouse sobre la vista previa.</p>
+            <div class="lr-fila">
+                <div class="lr-paso"><span>Copias</span><button type="button" onclick="_lrCopias(-1)" aria-label="Menos copias">−</button><input id="lr_copias" type="number" min="1" max="99" value="1" inputmode="numeric" aria-label="Copias"><button type="button" onclick="_lrCopias(1)" aria-label="Más copias">+</button></div>
+                <div class="lr-paso"><span>Letra</span><button type="button" onclick="_lrAjustarFuente(-1)" title="Letra más chica" aria-label="Letra más chica">−</button><b id="lr_font_val">13px</b><button type="button" onclick="_lrAjustarFuente(1)" title="Letra más grande" aria-label="Letra más grande">+</button></div>
+            </div>
+            <div class="lr-prev"><div id="lr_preview" onwheel="_lrRuedaFuente(event)" title="Rueda del mouse: ajusta el tamaño de letra"></div></div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer lr-foot">
             <button class="btn btn-light" onclick="cerrarLabelRapido()">Cancelar</button>
-            <button class="btn btn-blue" onclick="imprimirLabelRapido()"><i class="ti ti-printer"></i> Imprimir</button>
+            <button class="btn btn-blue lr-imp" onclick="imprimirLabelRapido()"><i class="ti ti-printer"></i> Imprimir</button>
         </div>
     </div>`;
     let modal = document.getElementById('modalLabelRapido');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalLabelRapido'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
     modal.style.zIndex = '600'; // por encima de la Ficha del Equipo (.fe-back, z-index 500) y del modal genérico
     modal.innerHTML = html; modal.classList.add('active');
+    _lrEditando = false; _lrPintarChips(); _lrPreview();
+    // El cursor va a lo único que falta escribir (solo con teclado físico, para no abrir el teclado del celular)
+    try { if(window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) { const e = document.getElementById('lr_estado'); if(e) { e.focus(); e.select(); } } } catch(_e) {}
+}
+// ===== Label rápido: ventana ajustada y «Texto de estado» smart =====
+const _LR_BASE = ['CLASE A', 'CLASE B', 'CLASE C'];
+function _lrSmartOn() { try { return localStorage.getItem('bc_lr_smart_off') !== '1'; } catch(e) { return true; } }
+function _lrLeer(k, def) { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? def : v; } catch(e) { return def; } }
+function _lrGuardar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+// Texto con el que abre: 1) el que ya se imprimió para ese equipo; 2) su clasificación (A, B, C…); 3) vacío.
+function _lrEstadoInicial(eq) {
+    if(!_lrSmartOn()) return '';
+    const porEq = _lrLeer('bc_lr_eq', {}); if(porEq && porEq[eq.id]) return String(porEq[eq.id]);
+    const m = String(eq.clasificacion_final || eq.clasificacion || '').trim().match(/^(?:clase\s*)?([A-D]\+?)$/i);
+    return m ? 'CLASE ' + m[1].toUpperCase() : '';
+}
+// Lista de accesos rápidos: editable por el usuario (dueño, 10-nov-2026: «Se puede poner editable el acceso rápido smart»).
+// Vive en este navegador (bc_lr_lista). Sin lista guardada: CLASE A · B · C.
+let _lrEditando = false;
+function _lrLista() { const l = _lrLeer('bc_lr_lista', null); return Array.isArray(l) ? l.filter(t => typeof t === 'string' && t.trim()).slice(0, 10) : _LR_BASE.slice(); }
+function _lrPintarChips() {
+    const c = document.getElementById('lr_chips'), inp = document.getElementById('lr_estado'); if(!c || !inp) return;
+    if(!_lrSmartOn()) { c.innerHTML = ''; return; }
+    const lista = _lrLista(), act = (inp.value || '').trim().toUpperCase();
+    if(!_lrEditando) {
+        c.innerHTML = lista.map(t => `<button type="button" class="lr-chip${t === act ? ' on' : ''}" aria-pressed="${t === act}" data-t="${escapeHtml(t)}" onclick="_lrEstadoChip(this.dataset.t)">${escapeHtml(t)}</button>`).join('') +
+            `<button type="button" class="lr-chip lr-chip-ed" onclick="_lrEditar(true)" title="Editar accesos rápidos" aria-label="Editar accesos rápidos"><i class="ti ti-pencil"></i> Editar</button>`;
+        return;
+    }
+    const puedeAgregar = act && !lista.includes(act) && lista.length < 10;
+    c.innerHTML = lista.map(t => `<button type="button" class="lr-chip lr-chip-x" data-t="${escapeHtml(t)}" onclick="_lrQuitarAcceso(this.dataset.t)" aria-label="Quitar ${escapeHtml(t)}">${escapeHtml(t)} <b>✕</b></button>`).join('') +
+        (puedeAgregar ? `<button type="button" class="lr-chip lr-chip-mas" onclick="_lrAgregarAcceso()">+ ${escapeHtml(act)}</button>` : `<span class="lr-chip-nota">${lista.length >= 10 ? 'Máximo 10' : 'Escriba arriba y toque +'}</span>`) +
+        `<button type="button" class="lr-chip lr-chip-ed on" onclick="_lrEditar(false)"><i class="ti ti-check"></i> Listo</button>`;
+}
+function _lrEditar(on) { _lrEditando = !!on; _lrPintarChips(); if(on) { const i = document.getElementById('lr_estado'); if(i && window.matchMedia && matchMedia('(hover:hover) and (pointer:fine)').matches) i.focus(); } }
+function _lrQuitarAcceso(t) { _lrGuardar('bc_lr_lista', _lrLista().filter(x => x !== t)); _lrPintarChips(); }
+function _lrAgregarAcceso() {
+    const inp = document.getElementById('lr_estado'); if(!inp) return;
+    const t = (inp.value || '').trim().toUpperCase(), l = _lrLista();
+    if(!t || l.includes(t) || l.length >= 10) return;
+    l.push(t); _lrGuardar('bc_lr_lista', l); _lrPintarChips();
+}
+// Un toque lo pone; otro toque lo quita.
+function _lrEstadoChip(t) { const inp = document.getElementById('lr_estado'); if(!inp) return; inp.value = ((inp.value || '').trim().toUpperCase() === t) ? '' : t; _lrPintarChips(); _lrPreview(); }
+function _lrEstadoInput(inp) {
+    if(_lrSmartOn()) { const p = inp.selectionStart, u = inp.value.toUpperCase(); if(u !== inp.value) { inp.value = u; try { inp.setSelectionRange(p, p); } catch(e) {} } _lrPintarChips(); }
     _lrPreview();
+}
+function _lrCopias(d) { const i = document.getElementById('lr_copias'); if(!i) return; i.value = Math.max(1, Math.min(99, (parseInt(i.value) || 1) + d)); }
+// Al imprimir se recuerda el texto: para ese equipo y en la lista de «usados».
+function _lrRecordarEstado() {
+    if(!_lrSmartOn()) return;
+    const inp = document.getElementById('lr_estado'); if(!inp) return;
+    const t = (inp.value || '').trim().toUpperCase(), id = inp.dataset.eq;
+    const porEq = _lrLeer('bc_lr_eq', {}) || {};
+    if(id) { if(t) porEq[id] = t; else delete porEq[id]; const ks = Object.keys(porEq); if(ks.length > 300) ks.slice(0, ks.length - 300).forEach(k => delete porEq[k]); _lrGuardar('bc_lr_eq', porEq); }
+    // Un texto propio que se imprime se suma solo a los accesos rápidos (si hay espacio); se quita con «Editar».
+    if(t) { const l = _lrLista(); if(!l.includes(t) && l.length < 10) { l.push(t); _lrGuardar('bc_lr_lista', l); } }
+}
+function _lrStyles() {
+    if(document.getElementById('lrStyles')) return;
+    const st = document.createElement('style'); st.id = 'lrStyles';
+    st.textContent = `
+      #modalLabelRapido{padding:12px;}
+      #modalLabelRapido .lr-box{max-width:560px;width:100%;max-height:calc(100dvh - 24px);display:flex;flex-direction:column;overflow:hidden;}
+      #modalLabelRapido .lr-head{flex:none;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border-radius:18px 18px 0 0;padding:10px 12px 10px 18px;display:flex;align-items:center;justify-content:space-between;}
+      #modalLabelRapido .lr-head h3{color:#fff;margin:0;font-size:17px;}
+      #modalLabelRapido .lr-head .modal-close{color:#fff;width:44px;height:44px;flex:none;}
+      #modalLabelRapido .lr-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 18px 12px;}
+      #modalLabelRapido .lr-grid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:10px 12px;}
+      #modalLabelRapido .lr-grid .form-row{margin:0;min-width:0;grid-column:span 5;} #modalLabelRapido .lr-grid .lr-c4{grid-column:span 4;} #modalLabelRapido .lr-grid .lr-c6{grid-column:span 6;}
+      #modalLabelRapido .lr-grid .lr-ancho{grid-column:1 / -1;}
+      #modalLabelRapido .lr-grid label{display:block;font-size:13px;font-weight:600;color:#334155;margin:0 0 4px;text-transform:none;letter-spacing:0;}
+      #modalLabelRapido .lr-grid input{width:100%;box-sizing:border-box;height:48px;font-size:16px;padding:0 12px;}
+      #modalLabelRapido .lr-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+      #modalLabelRapido .lr-chips:empty{display:none;}
+      #modalLabelRapido .lr-chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;font:600 14px inherit;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;}
+      #modalLabelRapido .lr-chip:hover{background:#f1f5f9;} #modalLabelRapido .lr-chip:active{transform:scale(.97);}
+      #modalLabelRapido .lr-chip.on{background:#0e7490;border-color:#0e7490;color:#fff;}
+      #modalLabelRapido .lr-chip-ed{border-style:dashed;color:#475569;display:inline-flex;align-items:center;gap:5px;}
+      #modalLabelRapido .lr-chip-ed.on{border-style:solid;}
+      #modalLabelRapido .lr-chip-x{border-color:#fca5a5;background:#fef2f2;color:#991b1b;display:inline-flex;align-items:center;gap:8px;}
+      #modalLabelRapido .lr-chip-x b{font-size:12px;}
+      #modalLabelRapido .lr-chip-mas{border-color:#0e7490;color:#0e7490;border-style:dashed;}
+      #modalLabelRapido .lr-chip-nota{display:inline-flex;align-items:center;min-height:44px;font-size:13px;color:#64748b;padding:0 4px;white-space:nowrap;}
+      #modalLabelRapido .lr-fila{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 10px;}
+      #modalLabelRapido .lr-paso{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#334155;}
+      #modalLabelRapido .lr-paso>span{margin-right:2px;}
+      #modalLabelRapido .lr-paso button{width:44px;height:44px;border-radius:12px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:800;font-size:18px;line-height:1;color:#0f172a;}
+      #modalLabelRapido .lr-paso button:active{transform:scale(.96);}
+      #modalLabelRapido .lr-paso input{width:56px;height:44px;text-align:center;font-size:16px;font-weight:700;padding:0;box-sizing:border-box;-moz-appearance:textfield;}
+      #modalLabelRapido .lr-paso input::-webkit-outer-spin-button,#modalLabelRapido .lr-paso input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+      #modalLabelRapido .lr-paso b{min-width:38px;text-align:center;font-size:13px;color:#475569;}
+      #modalLabelRapido .lr-prev{display:flex;justify-content:center;background:#f8fafc;border-radius:12px;padding:12px;overflow:auto;}
+      #modalLabelRapido .lr-foot{flex:none;border-radius:0 0 18px 18px;padding:10px 18px;}
+      #modalLabelRapido .lr-foot .btn{min-height:48px;padding:0 18px;font-size:15px;}
+      #modalLabelRapido .lr-foot .lr-imp{min-height:54px;flex:1 1 auto;justify-content:center;font-size:16px;}
+      @media (max-width:520px){#modalLabelRapido .lr-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;} #modalLabelRapido .lr-chips::-webkit-scrollbar{display:none;} #modalLabelRapido .lr-chip{flex:none;} #modalLabelRapido .lr-foot{flex-direction:row!important;flex-wrap:nowrap;} #modalLabelRapido .lr-foot .btn{width:auto!important;margin:0!important;} #modalLabelRapido .lr-fila{margin:10px 0 8px;} #modalLabelRapido .lr-prev{padding:8px;} #modalLabelRapido{padding:8px;} #modalLabelRapido .lr-box{max-height:calc(100dvh - 16px);} #modalLabelRapido .lr-body{padding:12px 14px 10px;} #modalLabelRapido .lr-paso>span{display:none;}}
+      /* Pantalla baja y ancha (laptop): los datos a la izquierda y la vista previa a la derecha, para que quepa sin desplazarse */
+      @media (max-height:800px) and (min-width:900px){#modalLabelRapido .lr-box{max-width:860px;} #modalLabelRapido .lr-body{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:18px;align-items:start;} #modalLabelRapido .lr-grid{grid-column:1;grid-row:1;} #modalLabelRapido .lr-fila{grid-column:1;grid-row:2;margin-bottom:0;} #modalLabelRapido .lr-prev{grid-column:2;grid-row:1 / 3;align-self:stretch;align-items:center;}}
+      @media (max-height:700px) and (max-width:899px){#modalLabelRapido .lr-grid{gap:8px 12px;} #modalLabelRapido .lr-fila{margin:8px 0;} #modalLabelRapido .lr-prev{padding:8px;}}
+      @media (prefers-reduced-motion:reduce){#modalLabelRapido .lr-chip,#modalLabelRapido .lr-paso button{transition:none;} #modalLabelRapido .lr-chip:active,#modalLabelRapido .lr-paso button:active{transform:none;}}
+    `;
+    document.head.appendChild(st);
 }
 // Vista previa en vivo del label en el popup (misma plantilla y calibración que Impresión de Labels)
 function _lrPreview() {
@@ -18641,6 +18744,7 @@ async function imprimirLabelRapido() {
     set('lbl_estado_texto', v('lr_estado'));
     set('lbl_copias', v('lr_copias') || 1);
     try { await imprimirLabelAdhesivo(); } catch(e) { logError('Imprimir label rápido', e); toastError(getFriendlyError(e)); return; }
+    _lrRecordarEstado();
     cerrarLabelRapido();
 }
 
