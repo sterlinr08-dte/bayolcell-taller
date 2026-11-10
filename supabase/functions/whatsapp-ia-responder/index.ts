@@ -1,6 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { cotizarPantalla, esPreguntaDePantalla, frasePrecio, modeloDelMensaje } from "./_shared/precio-pantalla.ts";
+// 10-nov-2026: foto de una PIEZA → candidatos de Info Plus solo en la nota interna del empleado (ver el archivo).
+import { buscarCandidatos, leerPieza, notaInterna } from "./_shared/pieza-foto.ts";
 
 // whatsapp-ia-responder — agente de IA (Claude Haiku 5.5 desde el 21-oct-2026) para WhatsApp.
 //
@@ -406,7 +408,8 @@ Reglas:
 2. NO inventes precios, disponibilidad ni promesas que no esten en la informacion del negocio de arriba -- si no lo sabes, dilo con naturalidad y ofrece confirmar con un compañero.
 3. Si el cliente pide la ubicacion/direccion de la sucursal, escribe la direccion (si la tienes arriba)${tieneGps ? ' y menciona que le vas a mandar la ubicacion por GPS tambien' : ''}.
 4. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
-{"respuesta": "el texto sugerido", "modelo_detectado": "marca y modelo si identificaste un equipo en una foto, o null", "pidio_ubicacion": true o false}`;
+{"respuesta": "el texto sugerido", "modelo_detectado": "marca y modelo si identificaste un equipo en una foto, o null", "pidio_ubicacion": true o false, "pieza_foto": {"pieza": "PANTALLA|BATERIA|FLEX|PIN|CAMARA|LENTE|TAPA|MARCO|BOCINA|MICROFONO|BOTON|CRISTAL|BANDEJA|CARGADOR|CABLE", "equipo": "marca y modelo al que pertenece"} o null}
+5. "pieza_foto" va SOLO si la FOTO muestra una pieza o repuesto suelto (o el cliente pregunta por la pieza que se ve). Si no estas seguro del tipo o del equipo, pon null. NO escribas en "respuesta" el precio ni la existencia de esa pieza: el sistema se los muestra al empleado aparte para que los confirme.`;
 
   const userContent: Record<string, unknown>[] = [
     { type: "text", text: `${ejemplosTexto ? `<ejemplos>\n${ejemplosTexto}\n</ejemplos>\n\n` : ""}${nombreContacto ? `Nombre del contacto en WhatsApp: ${nombreContacto}\n\n` : ""}<conversacion>\n${lineasHistorial}\n</conversacion>\n\nRedacta la sugerencia de respuesta para el ultimo mensaje del cliente en esa conversacion. Responde con el JSON pedido.` },
@@ -416,6 +419,7 @@ Reglas:
   let respuesta = "";
   let modeloDetectado: string | null = null;
   let pidioUbicacion = false;
+  let piezaFoto: ReturnType<typeof leerPieza> = null;
   if (!(await hayCupoIA())) return { ok: false, response: json({ ok: true, omitido: "tope diario de IA alcanzado" }) };
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -439,6 +443,7 @@ Reglas:
         modeloDetectado = String(parsed.modelo_detectado).slice(0, 200);
       }
       pidioUbicacion = parsed.pidio_ubicacion === true;
+      if (mensajeEsImagen) piezaFoto = leerPieza(parsed.pieza_foto);
     } else {
       console.error("whatsapp-ia-responder: sugerencia sin JSON reconocible:", JSON.stringify(data).slice(0, 500));
     }
@@ -450,7 +455,14 @@ Reglas:
 
   respuesta = respuesta.replace(/¿/g, "");
 
-  const razon = mensajeEsImagen
+  // Pieza en la foto: el código busca candidatos en Info Plus (nivel 1, nunca costo) y los deja SOLO en la nota
+  // interna de la sugerencia. Si la búsqueda falla o no hay coincidencias, queda la nota de siempre.
+  let notaPieza: string | null = null;
+  if (piezaFoto) {
+    try { notaPieza = notaInterna(piezaFoto, await buscarCandidatos(db, piezaFoto)); }
+    catch (e) { console.error("whatsapp-ia-responder: no se pudo buscar la pieza en Info Plus:", e instanceof Error ? e.message : String(e)); }
+  }
+  const razon = notaPieza ? notaPieza : mensajeEsImagen
     ? "Detectó una foto de equipo"
     : pidioUbicacion
       ? (tieneGps ? "Pidió la ubicación — recuerda enviar también el GPS (botón 📍)" : "Pidió la ubicación")
