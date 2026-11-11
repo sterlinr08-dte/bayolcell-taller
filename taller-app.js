@@ -25786,6 +25786,10 @@ function generarHtmlLabelDiag(equipo) {
         // fuentes no traen; ahora es un cuadro de 1.15 em con borde de 1 px (a 203 dpi ≈2 puntos; uno más grueso se veía relleno): más grande, se marca bien con lapicero y sale siempre.
         // Apagar: localStorage bayol_dlbl_caja='0' (vuelve la letra «☐»).
         let cajaOn = true; try { cajaOn = localStorage.getItem('bayol_dlbl_caja') !== '0'; } catch(e) {}
+        // Sin la raya de rayitas entre secciones (dueño, 11-nov-2026: «la raya intermitente ocupa espacio»): ese alto pasa a
+        // la letra. Las fallas se leen en Z (izquierda → derecha, luego la fila de abajo). Volver a la raya: bayol_dlbl_raya='1'.
+        let rayaOn = false; try { rayaOn = localStorage.getItem('bayol_dlbl_raya') === '1'; } catch(e) {}
+        const sepRaya = rayaOn ? 'border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;' : 'margin-top:0.5mm;';
         const caja = cajaOn ? `<span class="diag-caja" style="display:inline-block; width:1.15em; height:1.15em; border:1px solid #000; box-sizing:border-box; vertical-align:-0.22em; margin-right:0.4em;"></span>` : '☐ ';
         if(fallasEq.length > 0) {
             const itemsHtml = fallasEq.map(fa => {
@@ -25793,7 +25797,7 @@ function generarHtmlLabelDiag(equipo) {
                 return `<div class="diag-falla" style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${caja}${escapeHtml(txt)}</div>`;
             }).join('');
             fallasHtml = `
-                <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
+                <div class="diag-fallas-area" style="${sepRaya}">
                     <div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; margin-bottom:0.5px;">REVISAR:</div>
                     <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:0 6px;">${itemsHtml}</div>
                 </div>`;
@@ -25816,7 +25820,7 @@ function generarHtmlLabelDiag(equipo) {
                 </div>
                 ${qrUrl ? `<img class="diag-qr" src="${qrUrl}" alt="QR IMEI" style="flex:none; width:${qrMm}mm; height:${qrMm}mm; image-rendering:pixelated; image-rendering:crisp-edges; display:block; margin-top:0.2mm;">` : ''}
                 </div>
-                ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
+                ${notas ? `<div class="diag-notas-area" style="${sepRaya} font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
                 ${fallasHtml}
             </div>
         `;
