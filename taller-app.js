@@ -25782,10 +25782,15 @@ function generarHtmlLabelDiag(equipo) {
         const STK = '0px';       // sin engrosar: el supersampling x2 ya da nitidez; el text-stroke blobbeaba en térmica
         const fmenor = F; // notas y fallas del mismo tamaño (dueño, 3-nov-2026: letras más grandes)
         let fallasHtml = '';
+        // Casilla dibujada (dueño, 11-nov-2026: «casillas más grandes»). Antes era la letra «☐», chiquita y que algunas
+        // fuentes no traen; ahora es un cuadro de 1.15 em con borde de 1 px (a 203 dpi ≈2 puntos; uno más grueso se veía relleno): más grande, se marca bien con lapicero y sale siempre.
+        // Apagar: localStorage bayol_dlbl_caja='0' (vuelve la letra «☐»).
+        let cajaOn = true; try { cajaOn = localStorage.getItem('bayol_dlbl_caja') !== '0'; } catch(e) {}
+        const caja = cajaOn ? `<span class="diag-caja" style="display:inline-block; width:1.15em; height:1.15em; border:1px solid #000; box-sizing:border-box; vertical-align:-0.22em; margin-right:0.4em;"></span>` : '☐ ';
         if(fallasEq.length > 0) {
             const itemsHtml = fallasEq.map(fa => {
                 const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
-                return `<div class="diag-falla" style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
+                return `<div class="diag-falla" style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.06; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${caja}${escapeHtml(txt)}</div>`;
             }).join('');
             fallasHtml = `
                 <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
