@@ -11,12 +11,15 @@
  * + asignarFallasSinDueno). Los candados del servidor siguen mandando (trg_refurb_guardia / fase 3): quien no es administrador
  * no puede pasar a Listo un equipo con tareas o piezas pendientes; aquí solo se avisa cuántas tiene.
  * Solo administración o permiso piezas_aprobar_extra (igual que el tablero «Lo que está parado»).
+ * 12-nov-2026 (dueño: «primero elijo el técnico que le voy a asignar el grupo de celulares»): arriba se elige el técnico
+ * del grupo y todos los «Entregar a técnico» que se pasen van a él (los ya escaneados también). Cada fila se puede cambiar.
+ * Si no se elige, sigue como antes: se sugiere el de menos carga.
  * Apagar: localStorage.bc_reacond_pistola_off = '1'  ·  window.BC_REACOND_PISTOLA = false
  */
 (function(){'use strict';
 if (window.BayolReacondPistola) return;
 try { if (window.BC_REACOND_PISTOLA === false || localStorage.getItem('bc_reacond_pistola_off') === '1') return; } catch(_){}
-var VERSION = '20261112k1';
+var VERSION = '20261112k2';
 var REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
 var TXT = { pendiente:'Recibido', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En reparación', tecnico_recibio:'En reparación',
   espera_pieza:'Esperando pieza', reasignado:'En reparación', reparacion_externa:'Reparación externa', listo_revision:'Control de calidad',
@@ -98,6 +101,12 @@ function estilos(){
   '.rpk-paso.listo,.rpk-paso.aprobar{background:#dcfce7;color:#166534;}.rpk-paso.calidad{background:#ede9fe;color:#5b21b6;}.rpk-paso.despachar{background:#fef3c7;color:#92400e;}.rpk-paso.evaluar,.rpk-paso.nada{background:#e2e8f0;color:#475569;}' +
   '.rpk-x{width:44px;height:44px;border:0;background:transparent;color:#64748b;font-size:18px;cursor:pointer;border-radius:8px;}' +
   '.rpk-tec{height:44px;font-size:14px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px;max-width:150px;}' +
+  '.rpk-grupo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;}' +
+  '.rpk-grupo>span{font-size:13px;font-weight:700;color:#334155;margin-right:2px;}' +
+  '.rpk-chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;touch-action:manipulation;}' +
+  '.rpk-chip small{font-size:11.5px;font-weight:600;color:#64748b;}' +
+  '.rpk-chip.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.rpk-chip.on small{color:#dbeafe;}' +
+  '.rpk-chip:active{transform:scale(.97);}.rpk-chip:focus-visible{outline:3px solid #93c5fd;outline-offset:2px;}' +
   '.rpk-vacio{border:1px dashed #cbd5e1;border-radius:10px;padding:18px;text-align:center;color:#64748b;font-size:13.5px;}' +
   '.rpk-res{display:flex;gap:6px;flex-wrap:wrap;font-size:12.5px;color:#334155;margin-right:auto;align-items:center;}' +
   '.rpk-res b{font-variant-numeric:tabular-nums;}' +
@@ -111,11 +120,11 @@ function abrir(){
   if (!puede()) return mal('Sin permiso');
   estilos();
   var prev = document.getElementById('rpkVentana'); if (prev) prev.remove();
-  S = { filas: [], pend: {} };
+  S = { filas: [], pend: {}, tecGrupo: '' };
   var box = document.createElement('div');
   box.className = 'modal-backdrop active'; box.id = 'rpkVentana'; box.style.zIndex = '600';
   box.innerHTML = '<div class="modal-box rpk-box"><div class="modal-header"><h3 style="margin:0;"><i class="ti ti-scan"></i> Pasar con pistola</h3><button class="modal-close" type="button" aria-label="Cerrar">✕</button></div>' +
-    '<div class="modal-body"><input id="rpkIn" class="rpk-in" inputmode="numeric" autocomplete="off" placeholder="QR del label o IMEI" aria-label="IMEI">' +
+    '<div class="modal-body"><div class="rpk-grupo" id="rpkGrupo" role="group" aria-label="Técnico del grupo"></div><input id="rpkIn" class="rpk-in" inputmode="numeric" autocomplete="off" placeholder="QR del label o IMEI" aria-label="IMEI">' +
     '<div class="rpk-ayuda">Cada equipo avanza a su paso siguiente' + (modo() === 'completo' ? ', sin saltar ninguno' : '') + '. Sirven también los últimos 5 números.</div>' +
     '<div id="rpkLista" class="rpk-lista"></div></div>' +
     '<div class="modal-footer"><span class="rpk-res" id="rpkRes"></span><button class="btn btn-light" type="button" data-cerrar style="min-height:44px;">Cerrar</button><button class="btn btn-blue rpk-ok" type="button" id="rpkAplicar" disabled>Aplicar</button></div></div>';
@@ -128,7 +137,33 @@ function abrir(){
     ev.preventDefault(); t.split(/[\s,;]+/).forEach(function(x){ if (soloNum(x).length >= 5) leer(x, true); }); pintar();
   });
   box.querySelector('#rpkAplicar').onclick = aplicar;
-  pintar(); setTimeout(function(){ try { inp.focus(); } catch(_){} }, 60);
+  pintarGrupo(); pintar(); setTimeout(function(){ try { inp.focus(); } catch(_){} }, 60);
+}
+/* Técnico del grupo: un toque lo elige (y lo pone en todos los «Entregar a técnico»); otro toque lo quita. */
+function cargaDe(){
+  var c = {}; try { refurb().forEach(function(e){ if (e.tecnico_asignado_id && REPARACION.indexOf(e.estado_evaluacion) >= 0) c[e.tecnico_asignado_id] = (c[e.tecnico_asignado_id] || 0) + 1; }); } catch(_){}
+  return c;
+}
+function pintarGrupo(){
+  var G = document.getElementById('rpkGrupo'); if (!G || !S) return;
+  var T = tecnicos(), c = cargaDe();
+  if (!T.length) { G.innerHTML = ''; return; }
+  G.innerHTML = '<span>Técnico del grupo:</span>' + T.map(function(t){
+    var on = t.id === S.tecGrupo, n = c[t.id] || 0;
+    return '<button type="button" class="rpk-chip' + (on ? ' on' : '') + '" data-grupo="' + esc(t.id) + '" aria-pressed="' + on + '">' + (on ? '<i class="ti ti-check" aria-hidden="true"></i>' : '') +
+      esc((t.nombre || 'Técnico').split(' ').slice(0, 2).join(' ')) + ' <small>' + n + ' en reparación</small></button>';
+  }).join('');
+  G.querySelectorAll('[data-grupo]').forEach(function(b){ b.onclick = function(){
+    var id = b.getAttribute('data-grupo'); S.tecGrupo = S.tecGrupo === id ? '' : id;
+    if (S.tecGrupo) S.filas.forEach(function(f){ if (f.paso.k === 'asignar') f.tec = S.tecGrupo; });
+    else S.filas.forEach(function(f){ if (f.paso.k === 'asignar') f.tec = sugeridoDe(f.e); });
+    pintarGrupo(); pintar(); enfocar();
+  }; });
+}
+function sugeridoDe(e){
+  var t = e.tecnico_asignado_id || '';
+  if (!t) { try { var sug = window.BayolReacondSmart && window.BayolReacondSmart.sugerir([e]); if (sug && sug[e.id]) t = sug[e.id]; } catch(_){} }
+  return t;
 }
 function cerrar(){ var b = document.getElementById('rpkVentana'); if (b) b.remove(); S = null; }
 
@@ -138,10 +173,7 @@ function leer(texto, sinPintar){
   if (r.error) { mal(r.error + (soloNum(texto) ? ' · ' + soloNum(texto).slice(-6) : '')); return; }
   if (S.filas.some(function(f){ return f.e.id === r.e.id; })) { ok('Ya está en la lista'); return; }
   var p = paso(r.e), fila = { e: r.e, paso: p, tec: '', repetido: !!r.repetido };
-  if (p.k === 'asignar') {
-    fila.tec = r.e.tecnico_asignado_id || '';
-    if (!fila.tec) { try { var sug = window.BayolReacondSmart && window.BayolReacondSmart.sugerir([r.e]); if (sug && sug[r.e.id]) fila.tec = sug[r.e.id]; } catch(_){} }
-  }
+  if (p.k === 'asignar') fila.tec = S.tecGrupo || sugeridoDe(r.e);
   S.filas.unshift(fila);
   if (p.k === 'listo' || p.k === 'calidad' || p.k === 'aprobar') cargarPendientes([r.e.id]);
   if (!sinPintar) pintar();
@@ -178,7 +210,7 @@ function pintar(){
       (av.length ? ' · <span class="rpk-av">' + esc(av.join(' · ')) + '</span>' : '') + '</div></div>' +
       '<div class="rpk-der">' + sel + '<span class="rpk-paso ' + p.k + '">' + esc(p.txt) + '</span></div>' +
       '<button type="button" class="rpk-x" data-quitar="' + i + '" aria-label="Quitar">✕</button></div>';
-  }).join('') : '<div class="rpk-vacio">Escanee el primer equipo.</div>';
+  }).join('') : '<div class="rpk-vacio">' + (S.tecGrupo ? 'Escanee el primer equipo para ' + esc((nomTec(S.tecGrupo) || '').split(' ')[0] || 'el técnico') + '.' : 'Elija el técnico arriba y escanee los equipos.') + '</div>';
   L.querySelectorAll('[data-quitar]').forEach(function(b){ b.onclick = function(){ S.filas.splice(Number(b.getAttribute('data-quitar')), 1); pintar(); enfocar(); }; });
   L.querySelectorAll('[data-tec]').forEach(function(s){ s.onchange = function(){ S.filas[Number(s.getAttribute('data-tec'))].tec = s.value; resumen(); }; });
   resumen();
