@@ -1,0 +1,101 @@
+/* BAYOL CELL · Reacondicionados «limpio» (12-nov-2026, dueño: «dale una mejor apariencia a reacondicionado»).
+   Solo estilo: no mueve botones, no cambia ids ni onclick. Todo cuelga de html.bc-rlim (se pone en el <head>, antes del
+   primer pintado). Apagar: BC_RLIM=false en taller.html o localStorage.bc_reacond_limpio_off='1'.
+   1) Un solo color de acción (naranja Bayol); el rojo queda para problemas (DESIGN.md §2).
+   2) Cabecera y tablero más bajos.  3) Lotes: píldoras neutras con punto de color.
+   4) Dentro del lote: barra de herramientas clara y equipos en filas compactas (antes tarjetas con foto grande). */
+html.bc-rlim { --rl-ink:#0f172a; --rl-mut:#64748b; --rl-line:rgba(15,23,42,.09); --rl-acc:#e4572e; --rl-acc2:#ff6b35; --rl-blue:#1d4ed8; }
+
+/* ---------- 1 · Cabecera ---------- */
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn { min-height:44px; border-radius:12px; font-weight:700; box-shadow:none !important; }
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn-success,
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child #btnRegistrarExistente { background:#fff !important; color:var(--rl-ink) !important; border:1px solid var(--rl-line) !important; }
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn-success i,
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child #btnRegistrarExistente i { color:var(--rl-mut); }
+
+/* ---------- 2 · Tablero «Lo que está parado» ---------- */
+html.bc-rlim #app #v-refurb #rssTablero .rpk-btn { background:linear-gradient(135deg,var(--rl-acc2),var(--rl-acc)); border-color:transparent; border-radius:12px; box-shadow:0 6px 16px rgba(228,87,46,.22); }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card { border-radius:14px; background:#fff; box-shadow:none; border:1px solid var(--rl-line); }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card .rss-n { color:var(--rl-ink); font-variant-numeric:tabular-nums; }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card .rss-acc { color:var(--rl-blue) !important; font-weight:700; }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card.ambar .rss-acc i, html.bc-rlim #app #v-refurb #rssTablero .rss-card.rojo .rss-acc i { color:inherit; }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card .rss-det { color:var(--rl-mut); }
+
+/* ---------- 3 · Lista de lotes ---------- */
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-card { border-radius:14px !important; border:1px solid var(--rl-line) !important; padding:12px 14px !important; box-shadow:none; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-name { color:var(--rl-ink) !important; font-size:16px !important; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stages { display:flex !important; flex-wrap:wrap; gap:6px !important; margin-top:10px !important; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc .reacond-lote-stage { background:#fff !important; color:#475569 !important; border:1px solid var(--rl-line); border-radius:999px !important; padding:4px 10px !important; font-size:12px !important; color:var(--rl-mut); display:inline-flex; align-items:center; gap:6px; text-align:left !important; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage br { display:none; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc .reacond-lote-stage b { color:#0f172a !important; font-size:13px !important; order:2; font-variant-numeric:tabular-nums; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(1)::before { background:#f59e0b; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(2)::before { background:#3b82f6; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(3)::before { background:#f97316; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(4)::before { background:#a855f7; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(5)::before { background:#22c55e; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(6)::before { background:#14b8a6; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .rlc-btn { background:#fff !important; color:var(--rl-blue) !important; border:1px solid var(--rl-line) !important; border-radius:12px !important; min-height:44px; box-shadow:none !important; }
+
+/* ---------- 4 · Dentro del lote: herramientas ---------- */
+html.bc-rlim #app #v-refurb #reacondDetalleLote .rcu-barra .btn.btn-dark { background:#fff !important; color:var(--rl-ink) !important; border:1px solid var(--rl-line) !important; box-shadow:none !important; }
+html.bc-rlim #app #v-refurb #reacondDetalleLote .rcu-barra .btn.btn-dark i { color:var(--rl-mut); }
+html.bc-rlim #reacondDetalleLote .rcu-barra .btn { border-radius:12px; min-height:44px; }
+
+/* ---------- 4b · Equipos del lote en filas compactas ---------- */
+html.bc-rlim #reacondEquiposLista { display:flex !important; flex-direction:column; gap:6px !important; }
+html.bc-rlim #reacondEquiposLista .bcf-card {
+  display:grid !important; align-items:center; column-gap:12px; row-gap:0;
+  grid-template-columns:28px 46px minmax(0,1.5fr) minmax(0,auto) minmax(0,1fr) minmax(0,auto) minmax(0,1.1fr) auto;
+  grid-template-areas:"chk img tit tag per cost foot acc" "chk img sub tag per cost foot acc";
+  padding:8px 12px !important; border-radius:12px !important; min-height:60px; box-shadow:none !important; border:1px solid var(--rl-line) !important; background:#fff !important;
+}
+html.bc-rlim #reacondEquiposLista .bcf-card:hover { background:rgba(59,130,246,.05) !important; }
+html.bc-rlim #reacondEquiposLista .bcf-h { display:contents !important; }
+html.bc-rlim #reacondEquiposLista .bcf-chk-wrap { grid-area:chk; min-width:28px; min-height:44px; display:flex; align-items:center; justify-content:center; margin:0 !important; }
+html.bc-rlim #reacondEquiposLista .bcf-tit { grid-area:tit; align-self:end; min-width:0; }
+html.bc-rlim #reacondEquiposLista .bcf-tit b { font-size:14px; line-height:1.2; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html.bc-rlim #reacondEquiposLista .bcf-sub { grid-area:sub; align-self:start; font-size:12px; color:var(--rl-mut); margin:0 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+html.bc-rlim #reacondEquiposLista .bcf-tag { grid-area:tag; justify-self:start; white-space:nowrap; }
+html.bc-rlim #reacondEquiposLista .bcf-media { grid-area:img; width:46px !important; height:46px !important; min-height:0 !important; margin:0 !important; padding:0 !important; border-radius:10px; overflow:hidden; background:#f1f5f9; }
+html.bc-rlim #reacondEquiposLista .bcf-media img { width:100% !important; height:100% !important; object-fit:contain; display:block; }
+html.bc-rlim #reacondEquiposLista .bcf-per { grid-area:per; margin:0 !important; padding:0 !important; border:0 !important; background:none !important; min-width:0; display:flex; align-items:center; gap:8px; }
+html.bc-rlim #reacondEquiposLista .bcf-per .bcf-av { width:28px; height:28px; flex:none; }
+html.bc-rlim #reacondEquiposLista .bcf-per-txt small { display:none; }
+html.bc-rlim #reacondEquiposLista .bcf-per-txt b { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+html.bc-rlim #reacondEquiposLista .bcf-upd { display:none; }
+html.bc-rlim #reacondEquiposLista .rcu-res { grid-area:cost; margin:0 !important; padding:0 !important; border:0 !important; background:none !important; display:block; text-align:right; }
+html.bc-rlim #reacondEquiposLista .rcu-res > div { display:block; padding:0 !important; }
+html.bc-rlim #reacondEquiposLista .rcu-res small { display:none; }
+html.bc-rlim #reacondEquiposLista .rcu-res b { font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+html.bc-rlim #reacondEquiposLista .rcu-res > div:nth-child(n+2) { display:none; }
+html.bc-rlim #reacondEquiposLista .bcf-prog { display:none !important; }
+html.bc-rlim #reacondEquiposLista .bcf-f { grid-area:foot; margin:0 !important; padding:0 !important; border:0 !important; display:flex; flex-wrap:wrap; gap:4px 10px; font-size:12px; color:var(--rl-mut); min-width:0; }
+html.bc-rlim #reacondEquiposLista .bcf-acc { grid-area:acc; margin:0 !important; padding:0 !important; border:0 !important; display:flex; align-items:center; gap:4px; }
+html.bc-rlim #reacondEquiposLista .bcf-acc .bcf-acc-sp { display:none; }
+html.bc-rlim #reacondEquiposLista .bcf-acc .bcf-ib { width:44px; height:44px; }
+html.bc-rlim #reacondEquiposLista .bcf-acc .bcf-abrir { min-height:44px; border-radius:12px; }
+
+/* Lo que no tiene sitio fijo en la fila (botón «Registrar salida», avisos) baja a su propia línea. */
+html.bc-rlim #reacondEquiposLista .bcf-card > :not(.bcf-h):not(.bcf-sub):not(.bcf-media):not(.bcf-per):not(.rcu-res):not(.bcf-prog):not(.bcf-f):not(.bcf-acc) { grid-column:3 / -1; justify-self:start; margin:4px 0 0 !important; }
+
+@media (max-width: 900px) {
+  html.bc-rlim #reacondEquiposLista .bcf-card {
+    grid-template-columns:28px 44px minmax(0,1fr) auto auto;
+    grid-template-areas:"chk img tit tit tit" "chk img sub sub sub" "tag tag tag per per" "foot foot foot cost acc";
+    row-gap:4px; padding:10px 12px !important;
+  }
+  html.bc-rlim #reacondEquiposLista .bcf-tit b { white-space:normal; }
+  html.bc-rlim #reacondEquiposLista .bcf-f { flex-wrap:nowrap; overflow:hidden; white-space:nowrap; }
+  html.bc-rlim #reacondEquiposLista .bcf-f > * { flex:none; white-space:nowrap; }
+  html.bc-rlim #reacondEquiposLista .bcf-f .bcf-color { display:none; } /* el color ya se ve en la foto; se cambia desde «Poner colores» */
+  html.bc-rlim #reacondEquiposLista .bcf-per { justify-self:end; max-width:100%; }
+  html.bc-rlim #reacondEquiposLista .bcf-acc { justify-content:flex-end; }
+  html.bc-rlim #reacondEquiposLista .bcf-acc .bcf-ib { display:none; }
+  html.bc-rlim #reacondEquiposLista .bcf-card > :not(.bcf-h):not(.bcf-sub):not(.bcf-media):not(.bcf-per):not(.rcu-res):not(.bcf-prog):not(.bcf-f):not(.bcf-acc) { grid-column:1 / -1; }
+  html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child > div { display:flex !important; gap:8px; flex-wrap:nowrap !important; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; scrollbar-width:none; padding-bottom:2px; }
+  html.bc-rlim #app #v-refurb #rssTablero .rss-head { gap:6px; }
+  html.bc-rlim #app #v-refurb #rssTablero .rss-sub { display:none; }
+  html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn { white-space:nowrap; flex:none; }
+}
+@media (prefers-reduced-motion: reduce) { html.bc-rlim #reacondEquiposLista .bcf-card { transition:none; } }
