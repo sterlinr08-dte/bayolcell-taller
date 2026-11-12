@@ -16,7 +16,7 @@
 (function(){'use strict';
 if (window.BayolReacondCostado) return;
 try { if (window.BC_REACOND_COSTADO === false || localStorage.getItem('bc_reacond_costado_off') === '1') return; } catch(_){}
-var VERSION = '20261112c3';
+var VERSION = '20261112c4';
 var pintado = '';        // estado del equipo cuando se pintó el panel (para repintar si cambia por fuera)
 var ocupado = false;     // hay una acción en curso (no cerrar ni repetir)
 var abierto = null;      // id del equipo abierto
@@ -26,8 +26,10 @@ var memo = {};           // id → { t, fallas, hist }
 function esc(s){ return (typeof escapeHtml === 'function') ? escapeHtml(s == null ? '' : String(s)) : String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
 function sb(){ try { return supabaseClient; } catch(_) { return null; } }
 function lista(){ return document.getElementById('reacondEquiposLista'); }
-function filas(){ var l = lista(); return l ? Array.prototype.slice.call(l.querySelectorAll('.bcf-card')) : []; }
+// En la vista Columnas (taller-reacond-columnas.js) las tarjetas son .rco-card y llevan la de siempre escondida adentro.
+function filas(){ var l = lista(); if (!l) return []; var r = l.querySelectorAll('.rco-card'); return Array.prototype.slice.call(r.length ? r : l.querySelectorAll('.bcf-card')); }
 function idDe(card){
+  if (card.getAttribute && card.getAttribute('data-eq')) return card.getAttribute('data-eq');
   var k = card.querySelector('.bcf-chk'), s = (k && k.getAttribute('onclick')) || card.getAttribute('onclick') || '';
   var m = s.match(/_reacondToggleSel\('([^']+)'/) || s.match(/\('([^']+)'\)/);
   return m ? m[1] : '';
@@ -332,7 +334,7 @@ function cerrar(sinFoco){
 document.addEventListener('click', function(ev){
   if (_paso) return;
   var l = lista(); if (!l || !l.contains(ev.target)) return;
-  var card = ev.target.closest && ev.target.closest('.bcf-card'); if (!card) return;
+  var card = ev.target.closest && (ev.target.closest('.rco-card') || ev.target.closest('.bcf-card')); if (!card) return;
   if (ev.target.closest('button, a, input, label, select, .bcf-acc, .bcf-chk-wrap')) return;
   // No se corta el clic a las demás capas (menús que se cierran al tocar fuera): solo se apaga el onclick de la fila para este toque.
   var oc = card.onclick; card.onclick = null; setTimeout(function(){ if (document.body.contains(card)) card.onclick = oc; }, 0);
