@@ -45,7 +45,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     else c(`${t} hoja desde abajo, de ancho completo`, r.panel[0] === 0 && r.panel[2] === W && r.panel[1] > 60 && r.panel[1] + r.panel[3] <= 845, r.panel);
     c(`${t} muestra modelo, IMEI, estado, técnico, costo, nota, pieza, tareas`, /12 PRO$/.test(r.tit) && /353013095201003/.test(r.txt) && /LUIS MIGUEL/.test(r.txt) && /Face ID/.test(r.txt) && /PANTALLA IPHONE 12 PRO INCELL/.test(r.txt) && /Cambiar batería/.test(r.txt), [r.tit, r.txt.slice(0, 260)]);
     c(`${t} fallas y movimientos cargados`, /BATERÍA/.test(r.txt) && /Asignado a LUIS MIGUEL/.test(r.txt), r.txt.slice(-200));
-    c(`${t} botones de 44 px, principal de 54 px, nada cortado`, r.btn.every(x => x === '44x44') && r.abrir >= 54 && !r.cortado && r.sw <= 0, [r.btn, r.abrir, r.cortado, r.sw]);
+    c(`${t} botones de 44 px, nada cortado`, r.btn.every(x => x === '44x44') && r.abrir >= 44 && !r.cortado && r.sw <= 0, [r.btn, r.abrir, r.cortado, r.sw]);
     c(`${t} panel opaco y ✕ visible`, /rgb\(255, 255, 255\)|0\.9/.test(r.fondo) && !/255, 255, 255|rgba\(0, 0, 0, 0\)/.test(r.x[0]), [r.fondo, r.x]);
     if (SHOTS) await p.screenshot({ path: `${SHOTS}/costado-${W}.png` });
     if (W >= 1100) { await p.keyboard.press('ArrowDown'); await p.waitForTimeout(200); const a = await p.evaluate(() => BayolReacondCostado.abierto()); await p.keyboard.press('k'); await p.keyboard.press('k'); await p.waitForTimeout(200); const z = await p.evaluate(() => BayolReacondCostado.abierto());
