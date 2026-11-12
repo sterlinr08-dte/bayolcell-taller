@@ -40,13 +40,27 @@ function tecnicos(){
 }
 function soloNum(s){ return String(s == null ? '' : s).replace(/\D/g, ''); }
 
+/* Dos modos (12-nov-2026, el dueño pidió ver ambos):
+   · 'corto'    → Evaluado → En reparación → Listo para venta → Despachado (salta «Técnico recibió» y «Calidad»).
+   · 'completo' → no salta nada: En reparación → Técnico recibió → Control de calidad → Listo para venta.
+   Se elige con window.BC_REACOND_PISTOLA_MODO o localStorage.bc_reacond_pistola_modo. */
+function modo(){
+  var m = ''; try { m = window.BC_REACOND_PISTOLA_MODO || localStorage.getItem('bc_reacond_pistola_modo') || ''; } catch(_){}
+  return m === 'completo' ? 'completo' : 'corto';
+}
+var DESTINO = { listo: 'listo_venta', recibio: 'tecnico_recibio', calidad: 'listo_revision', aprobar: 'listo_venta' };
+var HIST = { listo: 'Terminado → Listo para venta (pistola, flujo corto)', recibio: 'Técnico recibió el equipo (pistola)', calidad: 'Enviado a control de calidad (pistola)', aprobar: 'Aprobado en control de calidad → Listo para venta (pistola)' };
 /* Qué paso le toca a un equipo según su estado. */
 function paso(e){
   var s = e.estado_evaluacion || 'pendiente';
   if (s === 'evaluado') return { k: 'asignar', txt: 'Entregar a técnico', a: 'En reparación' };
-  if (REPARACION.indexOf(s) >= 0 || s === 'listo_revision') return { k: 'listo', txt: 'Terminado', a: 'Listo para venta' };
   if (s === 'listo_venta' && !e.completado) return { k: 'despachar', txt: 'Despachar', a: 'Despachado' };
   if (s === 'pendiente' || s === 'en_evaluacion') return { k: 'evaluar', txt: 'Falta evaluar', a: '' };
+  if (modo() === 'completo') {
+    if (s === 'en_proceso' || s === 'reasignado') return { k: 'recibio', txt: 'Técnico recibió', a: 'Técnico recibió' };
+    if (s === 'tecnico_recibio' || s === 'espera_pieza' || s === 'reparacion_externa') return { k: 'calidad', txt: 'A calidad', a: 'Control de calidad' };
+    if (s === 'listo_revision') return { k: 'aprobar', txt: 'Aprobar calidad', a: 'Listo para venta' };
+  } else if (REPARACION.indexOf(s) >= 0 || s === 'listo_revision') return { k: 'listo', txt: 'Terminado', a: 'Listo para venta' };
   return { k: 'nada', txt: 'Ya despachado', a: '' };
 }
 
@@ -81,13 +95,13 @@ function estilos(){
   '.rpk-s{font-size:12px;color:#64748b;overflow-wrap:anywhere;}' +
   '.rpk-av{color:#b45309;font-weight:700;}' +
   '.rpk-paso{font-size:12.5px;font-weight:800;padding:5px 9px;border-radius:999px;white-space:nowrap;background:#dbeafe;color:#1e3a8a;}' +
-  '.rpk-paso.listo{background:#dcfce7;color:#166534;}.rpk-paso.despachar{background:#fef3c7;color:#92400e;}.rpk-paso.evaluar,.rpk-paso.nada{background:#e2e8f0;color:#475569;}' +
+  '.rpk-paso.listo,.rpk-paso.aprobar{background:#dcfce7;color:#166534;}.rpk-paso.calidad{background:#ede9fe;color:#5b21b6;}.rpk-paso.despachar{background:#fef3c7;color:#92400e;}.rpk-paso.evaluar,.rpk-paso.nada{background:#e2e8f0;color:#475569;}' +
   '.rpk-x{width:44px;height:44px;border:0;background:transparent;color:#64748b;font-size:18px;cursor:pointer;border-radius:8px;}' +
   '.rpk-tec{height:44px;font-size:14px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px;max-width:150px;}' +
   '.rpk-vacio{border:1px dashed #cbd5e1;border-radius:10px;padding:18px;text-align:center;color:#64748b;font-size:13.5px;}' +
   '.rpk-res{display:flex;gap:6px;flex-wrap:wrap;font-size:12.5px;color:#334155;margin-right:auto;align-items:center;}' +
   '.rpk-res b{font-variant-numeric:tabular-nums;}' +
-  '.rpk-ok{min-height:54px;padding:0 20px;font-size:15px;font-weight:800;}' +
+  '.rpk-ok{min-height:54px;padding:0 20px;font-size:15px;font-weight:800;white-space:nowrap;flex:none;}' +
   '@media (max-width:560px){.rpk-fila{grid-template-columns:minmax(0,1fr) 44px;}.rpk-fila .rpk-der{grid-column:1 / -1;grid-row:2;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}.rpk-fila .rpk-x{grid-column:2;grid-row:1;}}' +
   '@media (min-width:561px){.rpk-der{display:flex;gap:8px;align-items:center;}}';
   document.head.appendChild(st);
@@ -102,7 +116,7 @@ function abrir(){
   box.className = 'modal-backdrop active'; box.id = 'rpkVentana'; box.style.zIndex = '600';
   box.innerHTML = '<div class="modal-box rpk-box"><div class="modal-header"><h3 style="margin:0;"><i class="ti ti-scan"></i> Pasar con pistola</h3><button class="modal-close" type="button" aria-label="Cerrar">✕</button></div>' +
     '<div class="modal-body"><input id="rpkIn" class="rpk-in" inputmode="numeric" autocomplete="off" placeholder="QR del label o IMEI" aria-label="IMEI">' +
-    '<div class="rpk-ayuda">Cada equipo avanza a su paso siguiente. Sirven también los últimos 5 números.</div>' +
+    '<div class="rpk-ayuda">Cada equipo avanza a su paso siguiente' + (modo() === 'completo' ? ', sin saltar ninguno' : '') + '. Sirven también los últimos 5 números.</div>' +
     '<div id="rpkLista" class="rpk-lista"></div></div>' +
     '<div class="modal-footer"><span class="rpk-res" id="rpkRes"></span><button class="btn btn-light" type="button" data-cerrar style="min-height:44px;">Cerrar</button><button class="btn btn-blue rpk-ok" type="button" id="rpkAplicar" disabled>Aplicar</button></div></div>';
   document.body.appendChild(box);
@@ -129,7 +143,7 @@ function leer(texto, sinPintar){
     if (!fila.tec) { try { var sug = window.BayolReacondSmart && window.BayolReacondSmart.sugerir([r.e]); if (sug && sug[r.e.id]) fila.tec = sug[r.e.id]; } catch(_){} }
   }
   S.filas.unshift(fila);
-  if (p.k === 'listo') cargarPendientes([r.e.id]);
+  if (p.k === 'listo' || p.k === 'calidad' || p.k === 'aprobar') cargarPendientes([r.e.id]);
   if (!sinPintar) pintar();
 }
 
@@ -171,7 +185,7 @@ function pintar(){
 }
 function enfocar(){ var i = document.getElementById('rpkIn'); if (i) try { i.focus(); } catch(_){} }
 function grupos(){
-  var g = { asignar: [], listo: [], despachar: [], evaluar: [], nada: [] };
+  var g = { asignar: [], listo: [], recibio: [], calidad: [], aprobar: [], despachar: [], evaluar: [], nada: [] };
   S.filas.forEach(function(f){ g[f.paso.k].push(f); });
   return g;
 }
@@ -180,10 +194,13 @@ function resumen(){
   var partes = [];
   if (g.asignar.length) partes.push('<span><b>' + g.asignar.length + '</b> a técnico</span>');
   if (g.listo.length) partes.push('<span><b>' + g.listo.length + '</b> terminados</span>');
+  if (g.recibio.length) partes.push('<span><b>' + g.recibio.length + '</b> recibidos</span>');
+  if (g.calidad.length) partes.push('<span><b>' + g.calidad.length + '</b> a calidad</span>');
+  if (g.aprobar.length) partes.push('<span><b>' + g.aprobar.length + '</b> aprobados</span>');
   if (g.despachar.length) partes.push('<span><b>' + g.despachar.length + '</b> por despachar</span>');
   if (g.evaluar.length) partes.push('<span><b>' + g.evaluar.length + '</b> sin evaluar</span>');
   r.innerHTML = partes.join(' · ');
-  var n = g.asignar.length + g.listo.length + g.despachar.length;
+  var n = g.asignar.length + g.listo.length + g.recibio.length + g.calidad.length + g.aprobar.length + g.despachar.length;
   b.disabled = !n; b.textContent = n ? 'Aplicar ' + n : 'Aplicar';
 }
 
@@ -206,13 +223,14 @@ async function aplicar(){
       for (var k = 0; k < ids.length; k++) { try { await asignarFallasSinDueno('equipo', ids[k], t); } catch(_){} }
       hechos.a += ids.length;
     }
-    // 2 · En reparación / calidad → Listo para venta (flujo corto). Uno por uno: si el servidor frena uno, siguen los demás.
-    var frenados = [];
-    for (var j = 0; j < g.listo.length; j++) {
-      var e = g.listo[j].e, ahora = new Date().toISOString();
-      var r2 = await sb().from('equipos_refurbish').update({ estado_evaluacion: 'listo_venta', fecha_terminado: ahora }).eq('id', e.id);
+    // 2 · Pasos de un solo estado (Terminado, Técnico recibió, A calidad, Aprobar). Uno por uno: si el servidor frena uno, siguen los demás.
+    var frenados = [], mov = g.listo.concat(g.recibio, g.calidad, g.aprobar);
+    for (var j = 0; j < mov.length; j++) {
+      var e = mov[j].e, kk = mov[j].paso.k, dest = DESTINO[kk], upd = { estado_evaluacion: dest };
+      if (dest === 'listo_venta') upd.fecha_terminado = new Date().toISOString();
+      var r2 = await sb().from('equipos_refurbish').update(upd).eq('id', e.id);
       if (r2.error) { frenados.push(modelo(e) + ': ' + (r2.error.message || 'no se pudo')); continue; }
-      try { await sb().from('equipo_historial').insert([{ equipo_id: e.id, estado_anterior: e.estado_evaluacion, estado_nuevo: 'listo_venta', accion: 'Terminado → Listo para venta (pistola, flujo corto)', usuario: usuario() }]); } catch(_){}
+      try { await sb().from('equipo_historial').insert([{ equipo_id: e.id, estado_anterior: e.estado_evaluacion, estado_nuevo: dest, accion: HIST[kk], usuario: usuario() }]); } catch(_){}
       hechos.l++;
     }
     if (frenados.length) fallo = frenados.length + ' no pasaron. ' + frenados[0];
@@ -223,7 +241,7 @@ async function aplicar(){
   var idsDesp = g.despachar.map(function(f){ return f.e.id; });
   var msg = [];
   if (hechos.a) msg.push(hechos.a + ' a técnico');
-  if (hechos.l) msg.push(hechos.l + ' listos');
+  if (hechos.l) msg.push(hechos.l + (modo() === 'completo' ? ' avanzaron' : ' listos'));
   if (msg.length) ok(msg.join(' · '));
   if (fallo) mal(fallo);
   cerrar();
@@ -270,5 +288,5 @@ function vigilar(){
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vigilar); else vigilar();
 
-window.BayolReacondPistola = { version: VERSION, abrir: abrir, paso: paso, buscar: buscar };
+window.BayolReacondPistola = { version: VERSION, abrir: abrir, paso: paso, buscar: buscar, modo: modo };
 })();

@@ -25,7 +25,7 @@ const PUERTO = process.env.PUERTO || 8788;
     o.hay = !!window.BayolReacondPistola; if (!o.hay) return o;
     const tb = document.createElement('div'); tb.id = 'rssTablero'; tb.innerHTML = '<div class="rss-head"><span>Lo que está parado</span></div>'; document.body.appendChild(tb); await w(80);
     const bt = tb.querySelector('.rpk-btn'); o.botonTablero = !!bt && bt.getBoundingClientRect().height >= 44; tb.remove();
-    const P = BayolReacondPistola; o.pasos = E.map(e => P.paso(e).k);
+    const P = BayolReacondPistola; window.BC_REACOND_PISTOLA_MODO = 'completo'; o.pasosCompleto = E.map(e => P.paso(e).k); window.BC_REACOND_PISTOLA_MODO = window.__modoFoto || ''; o.pasos = E.map(e => P.paso(e).k);
     o.buscaCorto = (P.buscar('98941').e || {}).id; o.buscaNada = P.buscar('00000111').error; o.buscaPoco = P.buscar('12').error;
     P.abrir(); await w(120);
     const inp = document.getElementById('rpkIn'), scan = async t => { inp.value = t; inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await w(60); };
@@ -42,7 +42,7 @@ const PUERTO = process.env.PUERTO || 8788;
     o.chicos = [...document.querySelectorAll('#rpkVentana button, #rpkVentana select, #rpkVentana input')].filter(x => x.offsetParent && x.getBoundingClientRect().height < 44).map(x => (x.className || x.id) + ':' + Math.round(x.getBoundingClientRect().height));
     const box = document.querySelector('#rpkVentana .modal-box').getBoundingClientRect(); o.cabe = box.left >= 0 && box.right <= innerWidth && box.bottom <= innerHeight + 1;
     const d = document.documentElement; o.sw = d.scrollWidth - d.clientWidth;
-    if (window.__soloFoto) return o;
+    if (window.__soloFoto) { if (window.__modoFoto) document.getElementById('rpkLista').scrollTop = 99999; return o; }
     // sin técnico no aplica
     const sel = document.querySelector('#rpkLista .rpk-tec'); const antes = sel.value; sel.value = ''; sel.dispatchEvent(new Event('change', { bubbles: true }));
     document.getElementById('rpkAplicar').click(); await w(150); o.frenaSinTec = window.__avisos.some(a => /Falta el técnico/.test(a)) && E.every(e => !(e.id === 'e9' && e.estado_evaluacion !== 'evaluado'));
@@ -54,11 +54,12 @@ const PUERTO = process.env.PUERTO || 8788;
     const dsp = document.getElementById('rssDespacho'); o.despAbierto = !!dsp;
     if (dsp) { o.marcados = [...dsp.querySelectorAll('.rss-chk[data-id]')].filter(x => x.checked).map(x => x.getAttribute('data-id')).sort(); o.contador = dsp.querySelector('[data-n]').textContent; dsp.remove(); }
     return o; });
-  if (SHOTS) { await p.evaluate(() => { window.__soloFoto = 1; }); await correr(); await p.screenshot({ path: `${SHOTS}/pistola-${W}.png` }); await p.evaluate(() => { window.__soloFoto = 0; }); await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(3500); }
+  if (SHOTS) { await p.evaluate(() => { window.__soloFoto = 1; }); await correr(); await p.screenshot({ path: `${SHOTS}/pistola-${W}.png` }); await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(3500); await p.evaluate(() => { window.__soloFoto = 1; window.__modoFoto = 'completo'; }); await correr(); await p.screenshot({ path: `${SHOTS}/pistola-completo-${W}.png` }); await p.evaluate(() => { window.__soloFoto = 0; }); await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(3500); }
   const r = await correr();
   c(`[${W}] la capa cargó`, r.hay === true);
   c(`[${W}] botón «Pasar con pistola» en el tablero (44 px)`, r.botonTablero === true);
   c(`[${W}] paso según estado`, JSON.stringify(r.pasos) === JSON.stringify(['asignar', 'listo', 'listo', 'listo', 'despachar', 'despachar', 'evaluar', 'nada', 'asignar']), r.pasos);
+  c(`[${W}] modo completo no salta pasos`, JSON.stringify(r.pasosCompleto) === JSON.stringify(['asignar', 'recibio', 'calidad', 'aprobar', 'despachar', 'despachar', 'evaluar', 'nada', 'asignar']), r.pasosCompleto);
   c(`[${W}] busca por los últimos 5 y avisa lo que no encuentra`, r.buscaCorto === 'e1' && /No está/.test(r.buscaNada) && /al menos 5/.test(r.buscaPoco), [r.buscaCorto, r.buscaNada, r.buscaPoco]);
   c(`[${W}] campo: foco, 48 px y 16 px`, r.foco && r.altoIn >= 48 && r.fuente === '16px', [r.foco, r.altoIn, r.fuente]);
   c(`[${W}] 9 escaneados, sin repetir, y avisa el que no está`, r.nFilas === 9 && r.repetido && r.noEsta, [r.nFilas, r.repetido, r.noEsta]);
