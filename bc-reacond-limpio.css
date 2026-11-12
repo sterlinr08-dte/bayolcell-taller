@@ -7,35 +7,35 @@
 html.bc-rlim { --rl-ink:#0f172a; --rl-mut:#64748b; --rl-line:rgba(15,23,42,.09); --rl-acc:#e4572e; --rl-acc2:#ff6b35; --rl-blue:#1d4ed8; }
 
 /* ---------- 1 · Cabecera ---------- */
-html.bc-rlim #reacondListaLotes .reacond-overview-card > div:first-child .btn { min-height:44px; border-radius:12px; font-weight:700; box-shadow:none !important; }
-html.bc-rlim #reacondListaLotes .reacond-overview-card > div:first-child .btn-success,
-html.bc-rlim #reacondListaLotes .reacond-overview-card > div:first-child #btnRegistrarExistente { background:#fff !important; color:var(--rl-ink) !important; border:1px solid var(--rl-line) !important; }
-html.bc-rlim #reacondListaLotes .reacond-overview-card > div:first-child .btn-success i,
-html.bc-rlim #reacondListaLotes .reacond-overview-card > div:first-child #btnRegistrarExistente i { color:var(--rl-mut); }
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn { min-height:44px; border-radius:12px; font-weight:700; box-shadow:none !important; }
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn-success,
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child #btnRegistrarExistente { background:#fff !important; color:var(--rl-ink) !important; border:1px solid var(--rl-line) !important; }
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn-success i,
+html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child #btnRegistrarExistente i { color:var(--rl-mut); }
 
 /* ---------- 2 · Tablero «Lo que está parado» ---------- */
-html.bc-rlim #rssTablero .rpk-btn { background:linear-gradient(135deg,var(--rl-acc2),var(--rl-acc)); border-color:transparent; border-radius:12px; box-shadow:0 6px 16px rgba(228,87,46,.22); }
-html.bc-rlim #rssTablero .rss-card { border-radius:14px; background:#fff; box-shadow:none; border:1px solid var(--rl-line); }
-html.bc-rlim #rssTablero .rss-card .rss-n { color:var(--rl-ink); font-variant-numeric:tabular-nums; }
-html.bc-rlim #rssTablero .rss-card .rss-acc { color:var(--rl-blue) !important; font-weight:700; }
-html.bc-rlim #rssTablero .rss-card.ambar .rss-acc i, html.bc-rlim #rssTablero .rss-card.rojo .rss-acc i { color:inherit; }
-html.bc-rlim #rssTablero .rss-card .rss-det { color:var(--rl-mut); }
+html.bc-rlim #app #v-refurb #rssTablero .rpk-btn { background:linear-gradient(135deg,var(--rl-acc2),var(--rl-acc)); border-color:transparent; border-radius:12px; box-shadow:0 6px 16px rgba(228,87,46,.22); }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card { border-radius:14px; background:#fff; box-shadow:none; border:1px solid var(--rl-line); }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card .rss-n { color:var(--rl-ink); font-variant-numeric:tabular-nums; }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card .rss-acc { color:var(--rl-blue) !important; font-weight:700; }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card.ambar .rss-acc i, html.bc-rlim #app #v-refurb #rssTablero .rss-card.rojo .rss-acc i { color:inherit; }
+html.bc-rlim #app #v-refurb #rssTablero .rss-card .rss-det { color:var(--rl-mut); }
 
 /* ---------- 3 · Lista de lotes ---------- */
-html.bc-rlim #lotesReacondContainer .reacond-lote-card { border-radius:14px !important; border:1px solid var(--rl-line) !important; padding:12px 14px !important; box-shadow:none; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-name { color:var(--rl-ink) !important; font-size:16px !important; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stages { display:flex !important; flex-wrap:wrap; gap:6px !important; margin-top:10px !important; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage { background:#fff !important; border:1px solid var(--rl-line); border-radius:999px !important; padding:4px 10px !important; font-size:12px !important; color:var(--rl-mut); display:inline-flex; align-items:center; gap:6px; text-align:left !important; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage br { display:none; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage b { font-size:13px !important; order:2; font-variant-numeric:tabular-nums; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage:nth-child(1)::before { background:#f59e0b; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage:nth-child(2)::before { background:#3b82f6; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage:nth-child(3)::before { background:#f97316; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage:nth-child(4)::before { background:#a855f7; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage:nth-child(5)::before { background:#22c55e; }
-html.bc-rlim #lotesReacondContainer .reacond-lote-stage:nth-child(6)::before { background:#14b8a6; }
-html.bc-rlim #lotesReacondContainer .rlc-btn { background:#fff !important; color:var(--rl-blue) !important; border:1px solid var(--rl-line) !important; border-radius:12px !important; min-height:44px; box-shadow:none !important; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-card { border-radius:14px !important; border:1px solid var(--rl-line) !important; padding:12px 14px !important; box-shadow:none; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-name { color:var(--rl-ink) !important; font-size:16px !important; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stages { display:flex !important; flex-wrap:wrap; gap:6px !important; margin-top:10px !important; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc .reacond-lote-stage { background:#fff !important; color:#475569 !important; border:1px solid var(--rl-line); border-radius:999px !important; padding:4px 10px !important; font-size:12px !important; color:var(--rl-mut); display:inline-flex; align-items:center; gap:6px; text-align:left !important; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage br { display:none; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-card.rlc .reacond-lote-stage b { color:#0f172a !important; font-size:13px !important; order:2; font-variant-numeric:tabular-nums; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(1)::before { background:#f59e0b; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(2)::before { background:#3b82f6; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(3)::before { background:#f97316; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(4)::before { background:#a855f7; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(5)::before { background:#22c55e; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .reacond-lote-stage:nth-child(6)::before { background:#14b8a6; }
+html.bc-rlim #app #v-refurb #lotesReacondContainer .rlc-btn { background:#fff !important; color:var(--rl-blue) !important; border:1px solid var(--rl-line) !important; border-radius:12px !important; min-height:44px; box-shadow:none !important; }
 
 /* ---------- 4 · Dentro del lote: herramientas ---------- */
 html.bc-rlim #app #v-refurb #reacondDetalleLote .rcu-barra .btn.btn-dark { background:#fff !important; color:var(--rl-ink) !important; border:1px solid var(--rl-line) !important; box-shadow:none !important; }
@@ -93,7 +93,9 @@ html.bc-rlim #reacondEquiposLista .bcf-card > :not(.bcf-h):not(.bcf-sub):not(.bc
   html.bc-rlim #reacondEquiposLista .bcf-acc { justify-content:flex-end; }
   html.bc-rlim #reacondEquiposLista .bcf-acc .bcf-ib { display:none; }
   html.bc-rlim #reacondEquiposLista .bcf-card > :not(.bcf-h):not(.bcf-sub):not(.bcf-media):not(.bcf-per):not(.rcu-res):not(.bcf-prog):not(.bcf-f):not(.bcf-acc) { grid-column:1 / -1; }
-  html.bc-rlim #reacondListaLotes .reacond-overview-card > div:first-child > div { display:flex; gap:8px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  html.bc-rlim #reacondListaLotes .reacond-overview-card > div:first-child .btn { white-space:nowrap; flex:none; }
+  html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child > div { display:flex !important; gap:8px; flex-wrap:nowrap !important; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; scrollbar-width:none; padding-bottom:2px; }
+  html.bc-rlim #app #v-refurb #rssTablero .rss-head { gap:6px; }
+  html.bc-rlim #app #v-refurb #rssTablero .rss-sub { display:none; }
+  html.bc-rlim #app #v-refurb #reacondListaLotes .reacond-overview-card > div:first-child .btn { white-space:nowrap; flex:none; }
 }
 @media (prefers-reduced-motion: reduce) { html.bc-rlim #reacondEquiposLista .bcf-card { transition:none; } }
