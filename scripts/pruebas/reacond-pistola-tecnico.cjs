@@ -1,4 +1,5 @@
 // 12-nov-2026 · «Pasar con pistola»: primero se elige el técnico del grupo y todos los «Entregar a técnico» van a él.
+// Y al aplicar se ofrece la HOJA DE ENTREGA con las fallas del diagnóstico de cada equipo.
 // Correr: PUERTO=8788 node scripts/pruebas/servidor.cjs &  y luego  node scripts/pruebas/reacond-pistola-tecnico.cjs [carpeta-capturas]
 const { chromium } = require('playwright'); const fs = require('fs'); const B = __dirname; const SHOTS = process.argv[2] || '';
 const PUERTO = process.env.PUERTO || 8788;
@@ -19,6 +20,11 @@ const PUERTO = process.env.PUERTO || 8788;
     cache.refurb = E; cache.lotes = [{ id: 'L1', codigo_lote: 'C00002071', enviado_reacond: true }];
     cache.tecnicos = [{ id: 't1', nombre: 'LUIS MIGUEL BRETON', activo: true, tipo_empleado: 'tecnico' }, { id: 't2', nombre: 'FRANCIS PEREZ', activo: true, tipo_empleado: 'tecnico' }, { id: 't3', nombre: 'JOSE RAMON', activo: true, tipo_empleado: 'tecnico' }];
     __BD.tablas.equipos_refurbish = E; __BD.tablas.equipo_historial = []; __BD.tablas.equipo_piezas_pedidas = []; __BD.tablas.tareas_trabajo = [];
+    E[0].notas_diagnostico = 'Pantalla con mancha en la esquina';
+    __BD.tablas.equipo_fallas = [{ equipo_id: 'e1', falla_nombre: 'Cambio de pantalla', falla_corto: 'PANTALLA', creado_en: '2026-11-10T10:00:00Z' }, { equipo_id: 'e1', falla_nombre: 'Cambio de batería', falla_corto: 'BATERIA', creado_en: '2026-11-10T10:01:00Z', nota: 'Condición 79 %' },
+      { equipo_id: 'e2', falla_nombre: 'Face ID', falla_corto: 'FACE ID', creado_en: '2026-11-10T10:02:00Z', adicional: true }];
+    window.__hoja = null; window.open = () => { const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;width:816px;height:1056px'; document.body.appendChild(f);
+      const cw = f.contentWindow; cw.print = () => { window.__impreso = (window.__impreso || 0) + 1; }; setTimeout(() => { window.__hoja = f.contentDocument.documentElement.outerHTML; }, 900); return cw; };
     window.BC_REACOND_PISTOLA_MODO = '';
     BayolReacondPistola.abrir();
   });
@@ -46,6 +52,15 @@ const PUERTO = process.env.PUERTO || 8788;
   await p.locator('#rpkAplicar').click(); await p.waitForTimeout(600);
   const fin = await p.evaluate(() => ({ eq: __BD.tablas.equipos_refurbish.filter(e => ['e1', 'e2', 'e3', 'e5'].includes(e.id)).map(e => e.estado_evaluacion + ':' + e.tecnico_asignado_id), hist: __BD.tablas.equipo_historial.map(h => h.accion), av: window.__avisos }));
   c(`${t} «Aplicar»: los 4 quedan en reparación con FRANCIS y con historial`, fin.eq.every(x => x === 'en_proceso:t2') && fin.hist.filter(h => /Asignado a FRANCIS/.test(h)).length === 4, fin);
+  const of = await p.evaluate(() => { const b = document.getElementById('rpkHoja'); return b ? { txt: b.innerText.replace(/\s+/g, ' '), h: Math.round(b.querySelector('[data-imp]').getBoundingClientRect().height) } : null; });
+  c(`${t} al aplicar se ofrece «Imprimir hoja» (4 equipos a FRANCIS)`, of && /4 equipos entregados a FRANCIS/.test(of.txt) && of.h >= 54, of);
+  await p.locator('#rpkHoja [data-imp]').click(); await p.waitForTimeout(1500);
+  const hoja = await p.evaluate(() => ({ html: window.__hoja || '', impreso: window.__impreso || 0, abierta: !!document.getElementById('rpkHoja') }));
+  const txt = hoja.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  c(`${t} la hoja trae técnico, los 4 IMEI y el resumen por modelo`, /FRANCIS PEREZ/.test(txt) && ['353776390128674', '358497891713485', '354506124750025', '353011095998945'].every(i => txt.includes(i)) && /4 × CELULAR IPHONE 12 PRO MAX 128GB /.test(txt) && !/128GB 128GB/.test(txt) && txt.indexOf('353776390128674') < txt.indexOf('358497891713485'), txt.slice(0, 300));
+  c(`${t} la hoja trae las fallas del diagnóstico, con nota y «agregada»`, /Cambio de pantalla/.test(txt) && /Cambio de batería/.test(txt) && /Condición 79 %/.test(txt) && /Face ID \(agregada\)/.test(txt) && /Pantalla con mancha/.test(txt) && /Fallas a reparar 3/.test(txt), txt.match(/Fallas a reparar \d+/));
+  c(`${t} el equipo sin fallas dice «Sin fallas anotadas»; firmas y se manda a imprimir`, (txt.match(/Sin fallas anotadas/g) || []).length === 2 && /Recibido por \(FRANCIS PEREZ\)/.test(txt) && hoja.impreso === 1 && !hoja.abierta, [(txt.match(/Sin fallas anotadas/g) || []).length, hoja.impreso]);
+  if (SHOTS && W >= 1280) { const q = await b.newPage({ viewport: { width: 816, height: 1056 }, deviceScaleFactor: 2 }); await q.setContent(hoja.html.replace(/<script[\s\S]*?<\/script>/, '')); await q.screenshot({ path: `${SHOTS}/hoja-entrega.png`, fullPage: true }); await q.close(); }
   c(`${t} sin errores`, errs.length === 0, errs);
   await ctx.close(); }
  await b.close(); console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK'); process.exit(fallos ? 1 : 0);
