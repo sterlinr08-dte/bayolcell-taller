@@ -26,3 +26,6 @@ Dije «Tareas del equipo: 0 registros». Miré la tabla equivocada (`equipo_tare
 
 ## Pendiente
 Publicar (falta el OK). Decisiones del dueño sobre los 117 parados.
+
+## Decisión del dueño (12-nov-2026, después de ver ambas formas): «Vamos con la A»
+La pistola queda **por defecto en modo completo**: no salta pasos (Evaluado → En reparación → Técnico recibió → Control de calidad → Listo para venta → Despachar). El flujo corto queda hecho pero apagado (`bc_reacond_pistola_modo='corto'`). La prueba cubre los dos modos: el completo por los pasos y las capturas, el corto de punta a punta.

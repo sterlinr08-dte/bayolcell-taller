@@ -43,10 +43,10 @@ function soloNum(s){ return String(s == null ? '' : s).replace(/\D/g, ''); }
 /* Dos modos (12-nov-2026, el dueño pidió ver ambos):
    · 'corto'    → Evaluado → En reparación → Listo para venta → Despachado (salta «Técnico recibió» y «Calidad»).
    · 'completo' → no salta nada: En reparación → Técnico recibió → Control de calidad → Listo para venta.
-   Se elige con window.BC_REACOND_PISTOLA_MODO o localStorage.bc_reacond_pistola_modo. */
+   Por defecto 'completo' (decisión del dueño). Para el corto: window.BC_REACOND_PISTOLA_MODO='corto' o localStorage.bc_reacond_pistola_modo='corto'. */
 function modo(){
   var m = ''; try { m = window.BC_REACOND_PISTOLA_MODO || localStorage.getItem('bc_reacond_pistola_modo') || ''; } catch(_){}
-  return m === 'completo' ? 'completo' : 'corto';
+  return m === 'corto' ? 'corto' : 'completo'; // el dueño eligió «la A» (12-nov-2026): por defecto no se salta ningún paso
 }
 var DESTINO = { listo: 'listo_venta', recibio: 'tecnico_recibio', calidad: 'listo_revision', aprobar: 'listo_venta' };
 var HIST = { listo: 'Terminado → Listo para venta (pistola, flujo corto)', recibio: 'Técnico recibió el equipo (pistola)', calidad: 'Enviado a control de calidad (pistola)', aprobar: 'Aprobado en control de calidad → Listo para venta (pistola)' };
