@@ -16,7 +16,8 @@
 (function(){'use strict';
 if (window.BayolReacondCostado) return;
 try { if (window.BC_REACOND_COSTADO === false || localStorage.getItem('bc_reacond_costado_off') === '1') return; } catch(_){}
-var VERSION = '20261112c2';
+var VERSION = '20261112c3';
+var pintado = '';        // estado del equipo cuando se pintó el panel (para repintar si cambia por fuera)
 var ocupado = false;     // hay una acción en curso (no cerrar ni repetir)
 var abierto = null;      // id del equipo abierto
 var filaFoco = null;     // fila desde la que se abrió (para devolver el foco)
@@ -70,6 +71,12 @@ function estilos(){
   '.rcs-seg{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 10px;border-radius:12px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;white-space:nowrap;}' +
   '#rcsPanel .rcs-seg input{width:22px !important;height:22px !important;min-width:0 !important;min-height:0 !important;flex:none;accent-color:#e4572e;margin:0;border-radius:6px;}' +
   '#rcsAcs:empty,#rcsAsig:empty{display:none;}' +
+  '#rcsPanel button,#rcsPanel label{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}' +
+  '#rcsPanel button:focus-visible,#rcsPanel .rcs-seg:focus-within{outline:3px solid #2563eb;outline-offset:2px;}' +
+  '.rcs-b{overscroll-behavior:contain;}#rcsPanel .ti{pointer-events:none;}' +
+  '@media (hover:hover){.rcs-ib:not([disabled]):hover{background:#e2e8f0;}.rcs-ac:not([disabled]):hover,.rcs-abrir:not([disabled]):hover{background:#f8fafc;border-color:rgba(15,23,42,.24);}.rcs-paso:not([disabled]):hover{filter:brightness(1.05);}button.rcs-tag:not([disabled]):hover{filter:brightness(.96);}}' +
+  '@media (min-width:1100px){html.rcs-abierto .toast{right:432px !important;}}' +
+  '@media (max-width:1099.98px){html.rcs-abierto .toast{bottom:auto !important;top:calc(12px + env(safe-area-inset-top,0px)) !important;}}' +
   '.rcs-acs{display:flex;flex-wrap:wrap;gap:8px;}' +
   '.rcs-ac{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid rgba(15,23,42,.12);background:#fff;color:#0f172a;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}' +
   '.rcs-ac b{font-weight:700;}.rcs-ac em{font-style:normal;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:999px;padding:2px 7px;}' +
@@ -91,11 +98,11 @@ function panel(){
   estilos();
   var f = document.createElement('div'); f.id = 'rcsFondo'; f.onclick = cerrar; document.body.appendChild(f);
   p = document.createElement('aside'); p.id = 'rcsPanel'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Ficha del equipo'); p.tabIndex = -1;
-  p.innerHTML = '<div class="rcs-h"><b id="rcsTit"></b><button type="button" class="rcs-ib" data-ant aria-label="Anterior"><i class="ti ti-chevron-up"></i></button><button type="button" class="rcs-ib" data-sig aria-label="Siguiente"><i class="ti ti-chevron-down"></i></button><button type="button" class="rcs-ib" data-x aria-label="Cerrar"><i class="ti ti-x"></i></button></div>' +
+  p.innerHTML = '<div class="rcs-h"><b id="rcsTit"></b><button type="button" class="rcs-ib" data-ant aria-label="Anterior"><i aria-hidden="true" class="ti ti-chevron-up"></i></button><button type="button" class="rcs-ib" data-sig aria-label="Siguiente"><i aria-hidden="true" class="ti ti-chevron-down"></i></button><button type="button" class="rcs-ib" data-x aria-label="Cerrar"><i aria-hidden="true" class="ti ti-x"></i></button></div>' +
     '<div class="rcs-b" id="rcsCuerpo"></div>' +
-    '<div class="rcs-f"><p class="rcs-aviso" id="rcsAviso" hidden></p><button type="button" class="rcs-paso" id="rcsPaso" hidden></button>' +
+    '<div class="rcs-f"><p class="rcs-aviso" id="rcsAviso" role="status" aria-live="polite" hidden></p><button type="button" class="rcs-paso" id="rcsPaso" hidden></button>' +
     '<div class="rcs-f2"><button type="button" class="rcs-abrir" id="rcsAbrir">Abrir equipo</button><label class="rcs-seg" title="Al terminar un paso, pasa al siguiente teléfono"><input type="checkbox" id="rcsSeguir"> Seguir</label><span class="rcs-tecla">↑ ↓ · Esc</span></div></div>';
-  document.body.appendChild(p);
+  document.body.appendChild(p); try { p.inert = true; } catch(_){}
   p.querySelector('[data-x]').onclick = cerrar;
   p.querySelector('[data-ant]').onclick = function(){ mover(-1); };
   p.querySelector('[data-sig]').onclick = function(){ mover(1); };
@@ -119,7 +126,7 @@ function filaDe(id){ return filas().find(function(c){ return idDe(c) === id; }) 
 
 function abrir(card){
   var id = idDe(card); if (!id) return false;
-  var p = panel();
+  var p = panel(); var e0 = eq(id); pintado = e0 ? (e0.estado_evaluacion || 'pendiente') : '';
   filas().forEach(function(c){ c.classList.toggle('rcs-act', c === card); });
   if (!abierto) filaFoco = card;
   abierto = id;
@@ -134,7 +141,7 @@ function abrir(card){
   Array.prototype.slice.call(card.querySelectorAll('.rcu-res > div')).forEach(function(d){ var v = txt(d.querySelector('b')); if (v) kv.push([txt(d.querySelector('small')) || 'Dato', v]); });
   pie.forEach(function(t, k){ kv.push([['Capacidad', 'Color', 'En este paso'][k] || 'Dato', t]); });
   document.getElementById('rcsCuerpo').innerHTML =
-    '<div class="rcs-top"><div class="rcs-img">' + (med && med.innerHTML.trim() ? med.innerHTML : '<i class="ti ti-device-mobile"></i>') + '</div><div style="min-width:0"><div class="rcs-sub">' + esc(txt(card.querySelector('.bcf-sub'))) + '</div></div></div>' +
+    '<div class="rcs-top"><div class="rcs-img">' + (med && med.innerHTML.trim() ? med.innerHTML : '<i aria-hidden="true" class="ti ti-device-mobile"></i>') + '</div><div style="min-width:0"><div class="rcs-sub">' + esc(txt(card.querySelector('.bcf-sub'))) + '</div></div></div>' +
     '<div class="rcs-acs" id="rcsAcs"></div><div id="rcsAsig"></div>' +
     '<div class="rcs-kv">' + kv.map(function(x){ return '<div><small>' + esc(x[0]) + '</small><span>' + esc(x[1]) + '</span></div>'; }).join('') + '</div>' +
     (chips.length ? '<div class="rcs-tags">' + chips.map(function(t){ return '<span class="rcs-tag pe">' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
@@ -144,6 +151,7 @@ function abrir(card){
     '<div><p class="rcs-t">Tareas</p><div class="rcs-tags" id="rcsTareas"></div></div>' +
     '<div><div class="rcs-th"><p class="rcs-t">Últimos movimientos</p><button type="button" class="rcs-ac" data-ac="historial">Ver todo</button></div><div class="rcs-hist" id="rcsHist"><span class="rcs-vacio">Cargando…</span></div></div>';
   pintarLocal(id);
+  try { p.inert = false; } catch(_){}
   document.documentElement.classList.add('rcs-abierto');
   requestAnimationFrame(function(){ p.classList.add('on'); });
   try { card.scrollIntoView({ block: 'nearest' }); } catch(_){}
@@ -157,24 +165,32 @@ function pintarLocal(id){
   var P = document.getElementById('rcsPiezas'), T = document.getElementById('rcsTareas');
   if (P) P.innerHTML = pz.length ? pz.map(function(x){ return '<span class="rcs-tag pz">' + esc(x.pieza_nombre || 'Pieza') + (Number(x.cantidad) > 1 ? ' ×' + x.cantidad : '') + '</span>'; }).join('') : '<span class="rcs-vacio">Ninguna</span>';
   var e = eq(id), st = e ? (e.estado_evaluacion || 'pendiente') : '', fijo = !e || st === 'listo_venta' || st === 'vendido';
-  if (T) T.innerHTML = ta.length ? ta.map(function(x){ var h = x.estado === 'hecha', c = 'rcs-tag ' + (h ? 'ok' : 'pe'), t = (h ? '<i class="ti ti-check"></i>' : '<i class="ti ti-circle"></i>') + esc(x.descripcion || 'Tarea');
-    return fijo ? '<span class="' + c + '">' + t + '</span>' : '<button type="button" class="' + c + '" data-tarea="' + esc(x.id) + '" aria-pressed="' + h + '" title="' + (h ? 'Tocar para reabrir' : 'Tocar para marcar hecha') + '">' + t + '</button>'; }).join('') : '<span class="rcs-vacio">Ninguna</span>';
+  if (T) T.innerHTML = ta.length ? ta.map(function(x){ var h = x.estado === 'hecha', c = 'rcs-tag ' + (h ? 'ok' : 'pe'), t = (h ? '<i aria-hidden="true" class="ti ti-check"></i>' : '<i aria-hidden="true" class="ti ti-circle"></i>') + esc(x.descripcion || 'Tarea');
+    return (fijo || !puedeTarea(x)) ? '<span class="' + c + '">' + t + '</span>' : '<button type="button" class="' + c + '" data-tarea="' + esc(x.id) + '" aria-pressed="' + h + '" title="' + (h ? 'Tocar para reabrir' : 'Tocar para marcar hecha') + '">' + t + '</button>'; }).join('') : '<span class="rcs-vacio">Ninguna</span>';
   pintarAcciones(id, ta);
 }
 /* ───────── Funciones desde el panel ───────── */
 function eq(id){ try { return (cache.refurb || []).find(function(r){ return r.id === id; }) || null; } catch(_) { return null; } }
 function G(n){ try { return typeof window[n] === 'function' ? window[n] : null; } catch(_) { return null; } }
 function aviso(m, t){ try { toast(m, t); } catch(_){} }
+function admin(){ try { return !!isAdminUser(); } catch(_) { return false; } }
+function perm(k){ try { return admin() || !!tienePermiso(k); } catch(_) { return false; } }
+function yo(){ try { return (sessionUser && sessionUser.id) || ''; } catch(_) { return ''; } }
+function puedeTarea(t){ return admin() || (!!t && !!t.tecnico_id && t.tecnico_id === yo()); } // igual que la ventana del proceso
+function dialogo(){ return !!(document.getElementById('modalConfirm') || document.getElementById('modalPrompt') || document.querySelector('.modal-backdrop.active')); }
 function seguir(){ try { return localStorage.getItem('bc_reacond_costado_seguir') !== '0'; } catch(_) { return true; } }
 function pasoDe(e){
   var s = (e && e.estado_evaluacion) || 'pendiente';
   if (s === 'pendiente') return { k: 'evaluar', txt: 'Empezar diagnóstico', ico: 'ti-stethoscope' };
   if (s === 'en_evaluacion') return { k: 'evaluar', txt: 'Seguir diagnóstico', ico: 'ti-stethoscope' };
   if (s === 'evaluado') return { k: 'asignar', txt: 'Asignar técnico', ico: 'ti-user-check' };
-  if (s === 'en_proceso' || s === 'reasignado') return { k: 'recibio', txt: 'Técnico recibió', ico: 'ti-package' };
-  if (s === 'tecnico_recibio' || s === 'espera_pieza' || s === 'reparacion_externa') return { k: 'calidad', txt: 'Enviar a calidad', ico: 'ti-shield-check' };
-  if (s === 'listo_revision') return { k: 'aprobar', txt: 'Aprobar calidad', ico: 'ti-circle-check' };
-  if (s === 'listo_venta') return { k: 'despachar', txt: 'Registrar salida', ico: 'ti-truck-delivery' };
+  if (s === 'en_proceso') return { k: 'recibio', txt: 'Técnico recibió', ico: 'ti-package' };
+  // Reasignado: lo recibe solo el técnico nuevo, con decisión de piezas (recibirEquipoReasignado). Aquí no hay atajo: «Abrir equipo».
+  if (s === 'reasignado') return null;
+  if (s === 'reparacion_externa') return { k: 'recibio', txt: 'Volvió de reparación externa', ico: 'ti-rotate' };
+  if (s === 'tecnico_recibio' || s === 'espera_pieza') return { k: 'calidad', txt: 'Enviar a calidad', ico: 'ti-shield-check' };
+  if (s === 'listo_revision') return perm('piezas_aprobar_extra') ? { k: 'aprobar', txt: 'Aprobar calidad', ico: 'ti-circle-check' } : null;
+  if (s === 'listo_venta') return perm('estado_despachar') ? { k: 'despachar', txt: 'Registrar salida', ico: 'ti-truck-delivery' } : null;
   return null;
 }
 function tecnicosAct(){ try { return (cache.tecnicos || []).filter(function(t){ return t.activo; }); } catch(_) { return []; } }
@@ -187,19 +203,19 @@ function pintarAcciones(id, ta){
   if (e && G('abrirColoresLote')) ac.push(['color', 'ti-palette', 'Color']);
   if (e && (st === 'listo_venta' || st === 'vendido') && G('imprimirLabelEquipo')) ac.push(['label', 'ti-printer', 'Label']);
   if (e && st === 'evaluado' && G('continuarEvaluacion')) ac.push(['evaluacion', 'ti-pencil', 'Editar evaluación']);
-  A.innerHTML = ac.map(function(x){ return '<button type="button" class="rcs-ac" data-ac="' + x[0] + '"><i class="ti ' + x[1] + '"></i>' + x[2] + '</button>'; }).join('');
+  A.innerHTML = ac.map(function(x){ return '<button type="button" class="rcs-ac" data-ac="' + x[0] + '"><i aria-hidden="true" class="ti ' + x[1] + '"></i>' + x[2] + '</button>'; }).join('');
   var p = e ? pasoDe(e) : null, txtB = p ? p.txt : '', sug = '';
   if (S) S.innerHTML = '';
   if (p && p.k === 'asignar') {
     var T = tecnicosAct(); sug = sugerido(e); var ts = T.find(function(t){ return t.id === sug; });
     if (ts) txtB = 'Asignar a ' + String(ts.nombre || '').split(' ').slice(0, 2).join(' ');
     var otros = T.filter(function(t){ return t.id !== sug; });
-    if (S && otros.length) S.innerHTML = '<p class="rcs-t">' + (ts ? 'O asignar a' : 'Asignar a') + '</p><div class="rcs-acs">' + otros.map(function(t){ return '<button type="button" class="rcs-ac" data-tec="' + esc(t.id) + '"><i class="ti ti-user"></i>' + esc(t.nombre) + '</button>'; }).join('') + '</div>';
+    if (S && otros.length) S.innerHTML = '<p class="rcs-t">' + (ts ? 'O asignar a' : 'Asignar a') + '</p><div class="rcs-acs">' + otros.map(function(t){ return '<button type="button" class="rcs-ac" data-tec="' + esc(t.id) + '"><i aria-hidden="true" class="ti ti-user"></i>' + esc(t.nombre) + '</button>'; }).join('') + '</div>';
     if (!ts && !otros.length) p = null;
     else if (!ts) { B.hidden = true; B.removeAttribute('data-tec'); if (V) V.hidden = true; return; }
   }
   B.hidden = !p; if (!p) { if (V) V.hidden = true; return; }
-  B.innerHTML = '<i class="ti ' + p.ico + '"></i><span>' + esc(txtB) + '</span>';
+  B.innerHTML = '<i aria-hidden="true" class="ti ' + p.ico + '"></i><span>' + esc(txtB) + '</span>';
   B.setAttribute('data-k', p.k); if (sug) B.setAttribute('data-tec', sug); else B.removeAttribute('data-tec');
   var pend = (ta || []).filter(function(x){ return x.estado !== 'hecha'; }).length;
   if (V) { V.hidden = !(p.k === 'calidad' && pend > 0); V.textContent = pend === 1 ? 'Falta 1 tarea' : 'Faltan ' + pend + ' tareas'; }
@@ -208,24 +224,35 @@ function pintarAcciones(id, ta){
 async function hacer(id, f){
   if (ocupado) return; ocupado = true;
   var e0 = eq(id), antes = e0 ? e0.estado_evaluacion : null, F = filas(), i = F.indexOf(filaDe(id)), sigId = F[i + 1] ? idDe(F[i + 1]) : '';
-  var P = document.getElementById('rcsPanel'), bts = P ? P.querySelectorAll('.rcs-paso, .rcs-ac, button.rcs-tag') : [];
+  var P = document.getElementById('rcsPanel'), bts = P ? P.querySelectorAll('.rcs-paso, .rcs-ac, button.rcs-tag, .rcs-ib, .rcs-abrir') : [];
   Array.prototype.forEach.call(bts, function(b){ b.disabled = true; });
-  // cambiarEstadoProceso vuelve a abrir la ventana del proceso al terminar: aquí no hace falta, el panel ya lo muestra.
-  var orig = null; try { orig = window.abrirPanelProceso; if (orig) window.abrirPanelProceso = function(){ return Promise.resolve(); }; } catch(_){}
   try { await f(); } catch(err) { aviso('No se pudo completar', 'error'); try { console.error('[costado]', err); } catch(_){} }
-  finally { try { if (orig) window.abrirPanelProceso = orig; } catch(_){} ocupado = false; Array.prototype.forEach.call(bts, function(b){ b.disabled = false; }); }
+  finally { ocupado = false; Array.prototype.forEach.call(bts, function(b){ b.disabled = false; }); }
   delete memo[id];
   if (abierto !== id) return;
-  var e1 = eq(id), cambio = !!e1 && e1.estado_evaluacion !== antes;
-  var dest = (cambio && seguir() && sigId && filaDe(sigId)) || filaDe(id) || (sigId && filaDe(sigId)) || null;
-  if (dest) abrir(dest); else cerrar(true);
+  var e1 = eq(id), cambio = !!e1 && e1.estado_evaluacion !== antes, sg = seguir();
+  var dest = (cambio && sg && sigId && filaDe(sigId)) || filaDe(id) || (sg && sigId && filaDe(sigId)) || null;
+  if (!dest) return cerrar(true);
+  var otro = idDe(dest) !== id;
+  abrir(dest);
+  // Cambió de teléfono: el botón principal descansa un momento para que un segundo toque (o el Enter de la pistola) no caiga en el siguiente.
+  if (otro) { var B = document.getElementById('rcsPaso'); if (B) { B.disabled = true; try { B.blur(); } catch(_){} setTimeout(function(){ B.disabled = false; }, 700); } }
+}
+/* cambiarEstadoProceso reabre la ventana del proceso al terminar. Desde el panel no hace falta: se evita SOLO para este equipo
+   y solo mientras dura ese cambio; cualquier otra llamada (otro equipo, buscador, avisos) pasa igual que siempre. */
+async function cambiar(id, estado){
+  var f = G('cambiarEstadoProceso'); if (!f) return;
+  var orig = null; try { orig = window.abrirPanelProceso; if (orig) window.abrirPanelProceso = function(x){ return x === id ? Promise.resolve() : orig.apply(this, arguments); }; } catch(_){}
+  try { await f(id, estado); } finally { try { if (orig) window.abrirPanelProceso = orig; } catch(_){} }
 }
 function darPaso(id){
-  var e = eq(id), p = e ? pasoDe(e) : null, B = document.getElementById('rcsPaso'); if (!p) return;
+  var e = eq(id), p = e ? pasoDe(e) : null, B = document.getElementById('rcsPaso'); if (ocupado) return;
+  // El equipo cambió por fuera (otra sesión, botones de la fila): se repinta y NO se ejecuta un paso distinto al que decía el botón.
+  if (!p || !B || B.hidden || B.getAttribute('data-k') !== p.k) { var c0 = filaDe(id); if (c0) abrir(c0); return aviso('El equipo cambió. Revise el paso.', 'error'); }
   if (p.k === 'evaluar') { var f = G(e.estado_evaluacion === 'en_evaluacion' ? 'continuarEvaluacion' : 'empezarEvaluacion'); cerrar(true); if (f) f(id); return; }
   if (p.k === 'asignar') { var tec = B && B.getAttribute('data-tec'); if (!tec) return; return hacer(id, function(){ return asignar(id, tec); }); }
-  if (p.k === 'recibio') return hacer(id, function(){ return G('cambiarEstadoProceso')(id, 'tecnico_recibio'); });
-  if (p.k === 'calidad') return hacer(id, function(){ return G('cambiarEstadoProceso')(id, 'listo_revision'); });
+  if (p.k === 'recibio') return hacer(id, function(){ return cambiar(id, 'tecnico_recibio'); });
+  if (p.k === 'calidad') return hacer(id, function(){ return cambiar(id, 'listo_revision'); });
   if (p.k === 'aprobar') return hacer(id, function(){ return G('aprobarTerminado')(id); });
   if (p.k === 'despachar') return hacer(id, function(){ return G('marcarDespachado')(id); });
 }
@@ -239,13 +266,19 @@ async function asignar(id, tecId){
   if (get('ss-asign-tecnico') !== tecId) return aviso('No se pudo asignar', 'error');
   await ok();
 }
-/* Un toque marca la tarea hecha; otro la reabre. Mismos datos que completarTarea / reabrirTarea. */
+/* Un toque marca la tarea hecha; otro la reabre. Mismo permiso que la ventana del proceso (su técnico o el admin) y los mismos
+   campos de estado; a diferencia de completarTarea, no pide nota ni pregunta «¿finalizar?» (para eso está «Abrir equipo»). */
 function tarea(id, tid){
   return hacer(id, async function(){
     var t = (cache.tareas || []).find(function(x){ return x.id === tid; }); if (!t || !sb()) return;
+    if (!puedeTarea(t)) return aviso('Solo su técnico o el administrador', 'error');
+    var e = eq(id), st = e ? e.estado_evaluacion : ''; if (!e || st === 'listo_venta' || st === 'vendido') return aviso('Equipo ya terminado', 'error');
     var h = t.estado === 'hecha';
-    var r = await sb().from('tareas_trabajo').update(h ? { estado: 'pendiente', fecha_completada: null } : { estado: 'hecha', fecha_completada: new Date().toISOString() }).eq('id', tid);
+    // Solo cambia si sigue como se ve en pantalla; si no cambió ninguna fila (otra sesión, permisos), no dice «hecha».
+    var r = await sb().from('tareas_trabajo').update(h ? { estado: 'pendiente', fecha_completada: null } : { estado: 'hecha', fecha_completada: new Date().toISOString() }).eq('id', tid).eq('estado', t.estado).select('id');
     if (r && r.error) throw r.error;
+    var la0 = G('loadAll');
+    if (!r || !r.data || !r.data.length) { aviso('No se cambió. Actualizando…', 'error'); if (la0) await la0(); return; }
     aviso(h ? 'Tarea reabierta' : 'Tarea hecha');
     var la = G('loadAll'); if (la) await la();
     try { if (reacondLoteAbiertoId && G('renderDetalleLoteReacond')) renderDetalleLoteReacond(); } catch(_){}
@@ -281,14 +314,14 @@ async function cargar(id){
   if (H) H.innerHTML = m.hist === null ? '<span class="rcs-vacio">No se pudo cargar</span>' : (m.hist.length ? m.hist.map(function(h){ return '<div><time>' + esc(fecha(h.fecha)) + '</time><span>' + esc(h.accion || '') + (h.usuario ? ' · ' + esc(String(h.usuario).split(' ')[0]) : '') + '</span></div>'; }).join('') : '<span class="rcs-vacio">Sin movimientos</span>');
 }
 function mover(d){
-  if (!abierto) return;
+  if (!abierto || ocupado || dialogo()) return;
   var F = filas(), i = F.indexOf(filaDe(abierto)), n = F[i + d];
   if (n) abrir(n);
 }
 function cerrar(sinFoco){
-  var p = document.getElementById('rcsPanel'); if (!abierto) return;
+  var p = document.getElementById('rcsPanel'); if (!abierto || ocupado) return;
   abierto = null;
-  if (p) p.classList.remove('on');
+  if (p) { p.classList.remove('on'); try { p.inert = true; } catch(_){} } // cerrado: fuera del foco y del lector de pantalla
   document.documentElement.classList.remove('rcs-abierto');
   filas().forEach(function(c){ c.classList.remove('rcs-act'); });
   if (sinFoco !== true && filaFoco && document.body.contains(filaFoco)) { try { filaFoco.focus({ preventScroll: true }); } catch(_){} }
@@ -301,20 +334,21 @@ document.addEventListener('click', function(ev){
   var l = lista(); if (!l || !l.contains(ev.target)) return;
   var card = ev.target.closest && ev.target.closest('.bcf-card'); if (!card) return;
   if (ev.target.closest('button, a, input, label, select, .bcf-acc, .bcf-chk-wrap')) return;
-  try { if (document.documentElement.classList.contains('bc-lote-arrastrando')) return; } catch(_){}
-  if (abrir(card)) { ev.preventDefault(); ev.stopPropagation(); }
+  // No se corta el clic a las demás capas (menús que se cierran al tocar fuera): solo se apaga el onclick de la fila para este toque.
+  var oc = card.onclick; card.onclick = null; setTimeout(function(){ if (document.body.contains(card)) card.onclick = oc; }, 0);
+  if (!ocupado && !abrir(card)) card.onclick = oc;
 }, true);
 document.addEventListener('keydown', function(ev){
   if (!abierto) return;
   var t = ev.target, enCampo = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
-  if (ev.key === 'Escape') { if (document.querySelector('.modal-backdrop.active')) return; ev.preventDefault(); cerrar(); return; }
-  if (enCampo || ev.ctrlKey || ev.metaKey || ev.altKey) return;
-  if (document.querySelector('.modal-backdrop.active')) return;
+  if (ocupado || dialogo()) return;
+  if (ev.key === 'Escape') { ev.preventDefault(); cerrar(); return; }
+  if (enCampo || (t && t.isContentEditable) || ev.ctrlKey || ev.metaKey || ev.altKey) return;
   if (ev.key === 'ArrowDown' || ev.key === 'j' || ev.key === 'J') { ev.preventDefault(); mover(1); }
   else if (ev.key === 'ArrowUp' || ev.key === 'k' || ev.key === 'K') { ev.preventDefault(); mover(-1); }
 });
 /* Si la lista se vuelve a pintar (otra página, otro lote, salir del módulo) y el equipo ya no está, se cierra solo. */
-try { new MutationObserver(function(){ if (!abierto || ocupado) return; var c = filaDe(abierto); if (!c || !c.offsetParent) cerrar(true); else c.classList.add('rcs-act'); }).observe(document.body, { childList: true, subtree: true }); } catch(_){}
+try { new MutationObserver(function(){ if (!abierto || ocupado) return; var c = filaDe(abierto); if (!c || !c.offsetParent) return cerrar(true); var e = eq(abierto), st = e ? (e.estado_evaluacion || 'pendiente') : ''; if (st !== pintado) abrir(c); else if (!c.classList.contains('rcs-act')) c.classList.add('rcs-act'); }).observe(document.body, { childList: true, subtree: true }); } catch(_){}
 
 window.BayolReacondCostado = { version: VERSION, paso: darPaso, tarea: tarea, asignar: function(id, tec){ return hacer(id, function(){ return asignar(id, tec); }); }, abrir: function(id){ var c = filaDe(id); return c ? abrir(c) : false; }, cerrar: cerrar, abierto: function(){ return abierto; } };
 })();

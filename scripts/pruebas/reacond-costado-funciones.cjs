@@ -79,6 +79,29 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   c(`${t} «Editar evaluación» abre la evaluación`, r.ll === 'continuarEvaluacion:L9', r.ll);
   await abrir(0); r = await ver(); const p0 = r.paso; await paso(); r = await ver();
   c(`${t} recibido: «Empezar diagnóstico» abre el diagnóstico y cierra el panel`, p0 === 'Empezar diagnóstico' && r.ll === 'empezarEvaluacion:L0' && r.id === null, [p0, r.ll, r.id]);
+  // ── Candados (revisión del 12-nov): quien no es administrador ──
+  await p.evaluate(() => { const T = window.__BD.tablas; BayolReacondCostado.cerrar(true);
+    isAdminUser = () => false; tienePermiso = () => false; sessionUser = { id: 't1', nombre: 'LUIS MIGUEL', _tipo: 'tecnico' };
+    T.equipos_refurbish[3].estado_evaluacion = 'tecnico_recibio'; T.equipos_refurbish[5].estado_evaluacion = 'listo_revision'; T.equipos_refurbish[6].estado_evaluacion = 'listo_venta';
+    T.equipos_refurbish[7].estado_evaluacion = 'reasignado'; T.equipos_refurbish[8].estado_evaluacion = 'reparacion_externa';
+    T.tareas_trabajo = [{ id: 'm1', tipo: 'equipo', ref_id: 'L3', descripcion: 'Mía', estado: 'pendiente', tecnico_id: 't1' }, { id: 'm2', tipo: 'equipo', ref_id: 'L3', descripcion: 'De otro', estado: 'pendiente', tecnico_id: 't2' }, { id: 'm3', tipo: 'equipo', ref_id: 'L3', descripcion: 'Sin dueño', estado: 'pendiente' }];
+    return loadAll().then(() => renderDetalleLoteReacond()); });
+  await p.waitForTimeout(500); await abrir(3);
+  const tk = await p.evaluate(() => [...document.querySelectorAll('#rcsTareas [data-tarea]')].map(x => x.getAttribute('data-tarea')));
+  await p.evaluate(() => BayolReacondCostado.tarea('L3', 'm2')); await p.waitForTimeout(400); r = await ver();
+  c(`${t} técnico: solo puede tocar SU tarea; la de otro no cambia ni por fuera del botón`, tk.join() === 'm1' && r.tareas.m2 === 'pendiente' && r.av.some(x => /Solo su técnico/.test(x)), [tk, r.tareas.m2, r.av]);
+  await abrir(5); const q5 = (await ver()).paso; await abrir(6); const q6 = (await ver()).paso; await abrir(7); const q7 = (await ver()).paso; await abrir(8); const q8 = (await ver()).paso;
+  c(`${t} sin permiso no sale «Aprobar» ni «Registrar salida»; reasignado no tiene atajo; externa dice «Volvió»`, q5 === null && q6 === null && q7 === null && q8 === 'Volvió de reparación externa', [q5, q6, q7, q8]);
+  // El equipo cambia por fuera: el botón no ejecuta un paso distinto al que decía
+  await abrir(3); const antesTxt = (await ver()).paso;
+  await p.evaluate(() => { const T = window.__BD.tablas; T.equipos_refurbish[3].estado_evaluacion = 'en_proceso'; cache.refurb.find(x => x.id === 'L3').estado_evaluacion = 'en_proceso'; BayolReacondCostado.paso('L3'); });
+  await p.waitForTimeout(300); r = await ver();
+  c(`${t} si el equipo cambió por fuera, no ejecuta y avisa`, antesTxt === 'Enviar a calidad' && r.est.L3 === 'en_proceso' && r.av.some(x => /El equipo cambió/.test(x)), [antesTxt, r.est.L3, r.av]);
+  // Con una pregunta abierta, las flechas no cambian de teléfono
+  if (W >= 1100) { await p.evaluate(() => { const d = document.createElement('div'); d.id = 'modalConfirm'; document.body.appendChild(d); }); await p.keyboard.press('ArrowDown'); await p.waitForTimeout(150); const k1 = (await ver()).id; await p.evaluate(() => document.getElementById('modalConfirm').remove());
+    c(`${t} con una confirmación abierta, ↓ no cambia de teléfono`, k1 === 'L3', k1); }
+  const a11y = await p.evaluate(() => { const P = document.getElementById('rcsPanel'); const sin = [...P.querySelectorAll('i.ti')].filter(x => x.getAttribute('aria-hidden') !== 'true').length; BayolReacondCostado.cerrar(true); return new Promise(r => setTimeout(() => r({ sin, vis: P.inert ? 'hidden' : 'visible', vivo: document.getElementById('rcsAviso').getAttribute('aria-live') }), 400)); });
+  c(`${t} accesibilidad: iconos ocultos al lector, aviso vivo, panel cerrado sin foco`, a11y.sin === 0 && a11y.vis === 'hidden' && a11y.vivo === 'polite', a11y);
   c(`${t} sin errores de JS`, errs.length === 0, errs);
   await ctx.close(); }
  await b.close(); console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK'); process.exit(fallos ? 1 : 0);
