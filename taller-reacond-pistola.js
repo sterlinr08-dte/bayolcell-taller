@@ -17,12 +17,14 @@
  * 12-nov-2026 (dueño: «en la hoja que se va a imprimir salgan los diagnósticos que tiene cada equipo, así el técnico ve el
  * listado con sus fallas»): al aplicar, si hubo «Entregar a técnico», se ofrece la HOJA DE ENTREGA por técnico: equipo, IMEI,
  * lote, fallas del diagnóstico (equipo_fallas) con casilla para marcar y nota, y firmas. Solo lee para imprimir.
+ * 12-nov-2026 (dueño): el botón y la ventana se llaman «Asignar equipo»; el técnico se elige con «Seleccionar técnico»,
+ * que despliega la lista al tocarlo y se recoge al elegir.
  * Apagar: localStorage.bc_reacond_pistola_off = '1'  ·  window.BC_REACOND_PISTOLA = false
  */
 (function(){'use strict';
 if (window.BayolReacondPistola) return;
 try { if (window.BC_REACOND_PISTOLA === false || localStorage.getItem('bc_reacond_pistola_off') === '1') return; } catch(_){}
-var VERSION = '20261112k3';
+var VERSION = '20261112k4';
 var REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
 var TXT = { pendiente:'Recibido', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En reparación', tecnico_recibio:'En reparación',
   espera_pieza:'Esperando pieza', reasignado:'En reparación', reparacion_externa:'Reparación externa', listo_revision:'Control de calidad',
@@ -105,7 +107,11 @@ function estilos(){
   '.rpk-x{width:44px;height:44px;border:0;background:transparent;color:#64748b;font-size:18px;cursor:pointer;border-radius:8px;}' +
   '.rpk-tec{height:44px;font-size:14px;border:1px solid #cbd5e1;border-radius:8px;padding:0 8px;max-width:150px;}' +
   '.rpk-grupo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;}' +
-  '.rpk-grupo>span{font-size:13px;font-weight:700;color:#334155;margin-right:2px;}' +
+  '#rpkVentana .rpk-sel{width:100%;height:48px !important;min-height:48px !important;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:10px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;font-size:15px;font-weight:700;cursor:pointer;text-align:left;touch-action:manipulation;}' +
+  '.rpk-sel span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.rpk-sel small{font-weight:600;color:#64748b;font-size:12.5px;}' +
+  '.rpk-sel.on{border-color:#1d4ed8;background:#eff6ff;color:#1e3a8a;}.rpk-sel .ti-chevron-down{transition:transform 160ms ease;}.rpk-sel[aria-expanded="true"] .ti-chevron-down{transform:rotate(180deg);}' +
+  '.rpk-sel:focus-visible{outline:3px solid #93c5fd;outline-offset:2px;}' +
+  '.rpk-op{display:flex;flex-wrap:wrap;gap:8px;width:100%;}.rpk-op[hidden]{display:none;}' +
   '.rpk-chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;touch-action:manipulation;}' +
   '.rpk-chip small{font-size:11.5px;font-weight:600;color:#64748b;}' +
   '.rpk-chip.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}.rpk-chip.on small{color:#dbeafe;}' +
@@ -123,11 +129,11 @@ function abrir(){
   if (!puede()) return mal('Sin permiso');
   estilos();
   var prev = document.getElementById('rpkVentana'); if (prev) prev.remove();
-  S = { filas: [], pend: {}, tecGrupo: '' };
+  S = { filas: [], pend: {}, tecGrupo: '', abierta: false };
   var box = document.createElement('div');
   box.className = 'modal-backdrop active'; box.id = 'rpkVentana'; box.style.zIndex = '600';
-  box.innerHTML = '<div class="modal-box rpk-box"><div class="modal-header"><h3 style="margin:0;"><i class="ti ti-scan"></i> Pasar con pistola</h3><button class="modal-close" type="button" aria-label="Cerrar">✕</button></div>' +
-    '<div class="modal-body"><div class="rpk-grupo" id="rpkGrupo" role="group" aria-label="Técnico del grupo"></div><input id="rpkIn" class="rpk-in" inputmode="numeric" autocomplete="off" placeholder="QR del label o IMEI" aria-label="IMEI">' +
+  box.innerHTML = '<div class="modal-box rpk-box"><div class="modal-header"><h3 style="margin:0;"><i class="ti ti-scan"></i> Asignar equipo</h3><button class="modal-close" type="button" aria-label="Cerrar">✕</button></div>' +
+    '<div class="modal-body"><div class="rpk-grupo" id="rpkGrupo"></div><input id="rpkIn" class="rpk-in" inputmode="numeric" autocomplete="off" placeholder="QR del label o IMEI" aria-label="IMEI">' +
     '<div class="rpk-ayuda">Cada equipo avanza a su paso siguiente' + (modo() === 'completo' ? ', sin saltar ninguno' : '') + '. Sirven también los últimos 5 números.</div>' +
     '<div id="rpkLista" class="rpk-lista"></div></div>' +
     '<div class="modal-footer"><span class="rpk-res" id="rpkRes"></span><button class="btn btn-light" type="button" data-cerrar style="min-height:44px;">Cerrar</button><button class="btn btn-blue rpk-ok" type="button" id="rpkAplicar" disabled>Aplicar</button></div></div>';
@@ -151,13 +157,18 @@ function pintarGrupo(){
   var G = document.getElementById('rpkGrupo'); if (!G || !S) return;
   var T = tecnicos(), c = cargaDe();
   if (!T.length) { G.innerHTML = ''; return; }
-  G.innerHTML = '<span>Técnico del grupo:</span>' + T.map(function(t){
+  var elegido = T.find(function(t){ return t.id === S.tecGrupo; });
+  G.innerHTML = '<button type="button" class="rpk-sel' + (elegido ? ' on' : '') + '" id="rpkSel" aria-expanded="' + !!S.abierta + '" aria-controls="rpkOp"><i class="ti ti-user" aria-hidden="true"></i><span>' +
+    (elegido ? 'Técnico: ' + esc(elegido.nombre || 'Técnico') : 'Seleccionar técnico') + '</span>' + '<i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
+    '<div class="rpk-op" id="rpkOp" role="group" aria-label="Técnicos"' + (S.abierta ? '' : ' hidden') + '>' + T.map(function(t){
     var on = t.id === S.tecGrupo, n = c[t.id] || 0;
     return '<button type="button" class="rpk-chip' + (on ? ' on' : '') + '" data-grupo="' + esc(t.id) + '" aria-pressed="' + on + '">' + (on ? '<i class="ti ti-check" aria-hidden="true"></i>' : '') +
       esc((t.nombre || 'Técnico').split(' ').slice(0, 2).join(' ')) + ' <small>' + n + ' en reparación</small></button>';
-  }).join('');
+  }).join('') + '</div>';
+  G.querySelector('#rpkSel').onclick = function(){ S.abierta = !S.abierta; pintarGrupo(); if (S.abierta) { var on = G.querySelector('.rpk-chip.on') || G.querySelector('.rpk-chip'); if (on) try { on.focus(); } catch(_){} } };
   G.querySelectorAll('[data-grupo]').forEach(function(b){ b.onclick = function(){
     var id = b.getAttribute('data-grupo'); S.tecGrupo = S.tecGrupo === id ? '' : id;
+    S.abierta = !S.tecGrupo; // al elegir se recoge; si lo quitó, queda abierta para elegir otro
     if (S.tecGrupo) S.filas.forEach(function(f){ if (f.paso.k === 'asignar') f.tec = S.tecGrupo; });
     else S.filas.forEach(function(f){ if (f.paso.k === 'asignar') f.tec = sugeridoDe(f.e); });
     pintarGrupo(); pintar(); enfocar();
@@ -213,7 +224,7 @@ function pintar(){
       (av.length ? ' · <span class="rpk-av">' + esc(av.join(' · ')) + '</span>' : '') + '</div></div>' +
       '<div class="rpk-der">' + sel + '<span class="rpk-paso ' + p.k + '">' + esc(p.txt) + '</span></div>' +
       '<button type="button" class="rpk-x" data-quitar="' + i + '" aria-label="Quitar">✕</button></div>';
-  }).join('') : '<div class="rpk-vacio">' + (S.tecGrupo ? 'Escanee el primer equipo para ' + esc((nomTec(S.tecGrupo) || '').split(' ')[0] || 'el técnico') + '.' : 'Elija el técnico arriba y escanee los equipos.') + '</div>';
+  }).join('') : '<div class="rpk-vacio">' + (S.tecGrupo ? 'Escanee el primer equipo para ' + esc((nomTec(S.tecGrupo) || '').split(' ')[0] || 'el técnico') + '.' : 'Toque «Seleccionar técnico» y pase los equipos.') + '</div>';
   L.querySelectorAll('[data-quitar]').forEach(function(b){ b.onclick = function(){ S.filas.splice(Number(b.getAttribute('data-quitar')), 1); pintar(); enfocar(); }; });
   L.querySelectorAll('[data-tec]').forEach(function(s){ s.onchange = function(){ S.filas[Number(s.getAttribute('data-tec'))].tec = s.value; resumen(); }; });
   resumen();
@@ -388,7 +399,7 @@ function ponerBoton(){
   var head = document.querySelector('#rssTablero .rss-head'); if (!head || head.querySelector('.rpk-btn')) return;
   estilos();
   var b = document.createElement('button'); b.type = 'button'; b.className = 'rpk-btn';
-  b.innerHTML = '<i class="ti ti-scan"></i> Pasar con pistola';
+  b.innerHTML = '<i class="ti ti-scan"></i> Asignar equipo';
   b.onclick = abrir;
   head.style.display = 'flex'; head.style.alignItems = 'center'; head.style.flexWrap = 'wrap'; head.style.gap = '8px';
   head.appendChild(b);
