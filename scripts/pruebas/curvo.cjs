@@ -14,7 +14,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
     const r = e => getComputedStyle(e).borderTopLeftRadius, o = {};
     o.card = r(mk('div', 'card')); o.btn = r(mk('button', 'btn')); o.input = r(mk('input', '')); o.kpi = r(mk('div', 'kpi-box')); const mb = mk('div', 'modal-box'); o.modal = r(mb);
     o.inline8 = r(mk('div', '', 'border-radius:8px;height:20px')); o.inlineFin = r(mk('div', '', 'height:20px;border-radius: 12px')); const dos = mk('div', '', 'border-radius:12px 12px 0 0;height:20px'); o.dos = getComputedStyle(dos).borderRadius;
-    o.pildora = r(mk('div', '', 'border-radius:999px;height:20px')); o.ck = r(mk('input', 'ck')); o.clase = document.documentElement.classList.contains('bc-curvo'); o.api = !!window.BayolCurvo;
+    o.pildora = r(mk('div', '', 'border-radius:999px;height:20px')); o.ck = r(mk('input', 'ck')); o.clase = document.documentElement.classList.contains('bc-curvo'); const sb = document.querySelector('aside.sidebar'), q = sb.getBoundingClientRect(); o.barra = [Math.round(q.left), Math.round(q.top), Math.round(innerHeight - q.bottom), getComputedStyle(sb).borderTopLeftRadius]; o.api = !!window.BayolCurvo;
     // Una capa que agrega estilos después también se redondea
     const st = document.createElement('style'); st.textContent = '.zz-tarde{border-radius:10px}'; document.head.appendChild(st); const t = mk('div', 'zz-tarde');
     return new Promise(res => setTimeout(() => { o.tarde = r(t); const d = document.documentElement; o.sw = d.scrollWidth - d.clientWidth; res(o); }, 600)); });
@@ -24,6 +24,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const B = 
   else { c(`${t} tarjeta, botón, campo, cifra y ventana suben según la tabla`, m.clase && ['card', 'btn', 'input', 'kpi', 'modal'].every(k => m[k] === nuevo(a[k]) && parseFloat(m[k]) > parseFloat(a[k])), ['card', 'btn', 'input', 'kpi', 'modal'].map(k => a[k] + '→' + m[k]));
     c(`${t} estilos dentro de la etiqueta: 8→14 y 12→18; «12px 12px 0 0» no se toca`, m.inline8 === '14px' && m.inlineFin === '18px' && m.dos === '12px 12px 0px 0px', [m.inline8, m.inlineFin, m.dos]);
     c(`${t} píldoras y casillas quedan igual; lo agregado después también se curva (10→18)`, m.pildora === '999px' && m.ck === med['antes' + W].ck && m.tarde === '18px', [m.pildora, m.ck, m.tarde]);
+    c(`${t} barra lateral curva y flotando` , m.barra[3] === '28px' && (W < 500 ? m.barra[1] === 10 && m.barra[2] === 10 : m.barra[0] === 12 && m.barra[1] === 12 && m.barra[2] === 12), m.barra);
     c(`${t} sin barra de lado`, m.sw <= 0, m.sw); }
   c(`${t} sin errores`, errs.length === 0, errs); await ctx.close(); }
  await b.close(); console.log(fallos ? `\n${fallos} FALLO(S)` : '\nTodo OK'); process.exit(fallos ? 1 : 0);

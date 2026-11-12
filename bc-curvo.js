@@ -6,12 +6,14 @@
  * las etiquetas (style="…") se cubren con reglas por atributo. Se carga en el <head>, después de los estilos, para que
  * la página se pinte ya curva (sin salto). Las capas que agregan estilos después también se redondean (observador).
  * No toca lo que se imprime (@media print) ni las ventanas de impresión (son otros documentos).
+ * Barra lateral (dueño, 12-nov: «la barra lateral ponla curva como en el video»): flota separada del borde, con las cuatro
+ * esquinas curvas; igual compacta, abierta, fijada y en el celular. Mismos botones y mismo comportamiento.
  * Apagar: localStorage.bc_curvo_off = '1'  ·  window.BC_CURVO = false
  */
 (function(){'use strict';
 if (window.BayolCurvo) return;
 try { if (window.BC_CURVO === false || localStorage.getItem('bc_curvo_off') === '1') return; } catch(_){}
-var VERSION = '20261112a';
+var VERSION = '20261112b';
 var hechas = typeof WeakSet === 'function' ? new WeakSet() : null, cambiadas = 0;
 /* Tabla: radio de hoy → radio curvo. Menos de 4 px (líneas, casillas) y 100 px o más (píldoras) quedan igual. */
 function nuevo(px){
@@ -50,7 +52,7 @@ function recorrer(lista){
   }
 }
 function hoja(s){
-  if (!s || (s.ownerNode && s.ownerNode.id === 'bcCurvoInline')) return;
+  if (!s || (s.ownerNode && /^bcCurvo/.test(s.ownerNode.id || ''))) return;
   var m = ''; try { m = (s.media && s.media.mediaText) || ''; } catch(_){}
   if (/print/i.test(m) && !/screen|all/i.test(m)) return;
   try { recorrer(s.cssRules); } catch(_){} // hojas de otro dominio (fuentes, iconos): no se pueden leer, se saltan
@@ -71,8 +73,28 @@ function inline(){
   (document.head || document.documentElement).appendChild(st);
 }
 
+/* Barra lateral flotante y curva */
+function barra(){
+  if (document.getElementById('bcCurvoBarra')) return;
+  var B = 'html.bc-curvo body #app aside.sidebar', M = 'html.bc-curvo.bcm-mini body #app aside.sidebar';
+  var st = document.createElement('style'); st.id = 'bcCurvoBarra'; st.media = 'screen'; st.textContent =
+  B + '{border-radius:28px !important;border:1px solid rgba(255,255,255,.10) !important;box-shadow:0 18px 44px -18px rgba(8,13,24,.65),inset 0 1px 0 rgba(255,255,255,.08) !important;}' +
+  '@media (min-width:1025px){' +
+    B + '{margin:12px 0 12px 12px !important;height:calc(100vh - 24px) !important;align-self:flex-start;position:sticky;top:12px;}' +
+    // alto en vh (no top+bottom): la barra fija se mide contra #app, igual que antes de esta capa
+    M + '{position:fixed !important;margin:0 !important;left:12px !important;top:12px !important;bottom:auto !important;height:calc(100vh - 24px) !important;}' +
+    'html.bc-curvo.bcm-mini body #app .main{margin-left:100px !important;}' +
+    'html.bc-curvo.bcm-mini body #bcAmbientOrbSafe{left:100px !important;}' +
+  '}' +
+  '@media (max-width:1024px){' +
+    B + '{top:10px !important;bottom:10px !important;height:auto !important;max-height:calc(100vh - 20px);}' +
+    B + '.open{left:10px !important;}' +
+  '}';
+  (document.head || document.documentElement).appendChild(st);
+}
+
 document.documentElement.classList.add('bc-curvo');
-inline(); todo();
+inline(); barra(); todo();
 document.addEventListener('DOMContentLoaded', todo);
 window.addEventListener('load', todo);
 /* Capas que agregan <style> o <link> después */
