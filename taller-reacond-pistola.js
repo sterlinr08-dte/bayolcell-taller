@@ -19,12 +19,15 @@
  * lote, fallas del diagnóstico (equipo_fallas) con casilla para marcar y nota, y firmas. Solo lee para imprimir.
  * 12-nov-2026 (dueño): el botón y la ventana se llaman «Asignar equipo»; el técnico se elige con «Seleccionar técnico»,
  * que despliega la lista al tocarlo y se recoge al elegir.
+ * 12-nov-2026 (dueño: «las 4»): (1) pitido y vibración al pasar cada equipo (uno si entró, dos graves si no; se apaga con el
+ * botón de la bocina); (2) «Qué hacer»: se elige un solo paso y lo que no esté en ese paso se rechaza con aviso; (3) resumen
+ * por modelo arriba de la lista; (4) la lista se guarda en este equipo y vuelve al abrir otra vez (12 h); «Vaciar» la borra.
  * Apagar: localStorage.bc_reacond_pistola_off = '1'  ·  window.BC_REACOND_PISTOLA = false
  */
 (function(){'use strict';
 if (window.BayolReacondPistola) return;
 try { if (window.BC_REACOND_PISTOLA === false || localStorage.getItem('bc_reacond_pistola_off') === '1') return; } catch(_){}
-var VERSION = '20261112k4';
+var VERSION = '20261112k5';
 var REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
 var TXT = { pendiente:'Recibido', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En reparación', tecnico_recibio:'En reparación',
   espera_pieza:'Esperando pieza', reasignado:'En reparación', reparacion_externa:'Reparación externa', listo_revision:'Control de calidad',
@@ -111,6 +114,16 @@ function estilos(){
   '.rpk-sel span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.rpk-sel small{font-weight:600;color:#64748b;font-size:12.5px;}' +
   '.rpk-sel.on{border-color:#1d4ed8;background:#eff6ff;color:#1e3a8a;}.rpk-sel .ti-chevron-down{transition:transform 160ms ease;}.rpk-sel[aria-expanded="true"] .ti-chevron-down{transform:rotate(180deg);}' +
   '.rpk-sel:focus-visible{outline:3px solid #93c5fd;outline-offset:2px;}' +
+  '.rpk-fila2{display:flex;gap:8px;margin:0 0 10px;align-items:stretch;}.rpk-fila2 .rpk-grupo{flex:1;min-width:0;margin:0;}' +
+  '#rpkVentana .rpk-que{height:48px;font-size:15px;font-weight:700;border:1.5px solid #cbd5e1;border-radius:10px;padding:0 10px;background:#fff;color:#0f172a;min-width:0;width:100%;}' +
+  '#rpkVentana .rpk-que.on{border-color:#7c3aed;background:#f5f3ff;color:#4c1d95;}' +
+  '.rpk-son{width:48px;height:48px;flex:none;border-radius:10px;border:1.5px solid #cbd5e1;background:#fff;color:#334155;font-size:20px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}' +
+  '.rpk-son[aria-pressed="false"]{color:#94a3b8;background:#f8fafc;}' +
+  '.rpk-mods{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px;}.rpk-mods:empty{display:none;}' +
+  '.rpk-mod{font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a;}.rpk-mod b{color:#1d4ed8;}' +
+  '.rpk-rec{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:6px 6px 6px 10px;margin:0 0 8px;}.rpk-rec[hidden]{display:none;}' +
+  '.rpk-rec span{flex:1;min-width:150px;}.rpk-rec button{min-height:44px;padding:0 12px;border-radius:8px;border:1px solid #fcd34d;background:#fff;color:#92400e;font-weight:700;cursor:pointer;}' +
+  '.rpk-in.ok{border-color:#16a34a !important;box-shadow:0 0 0 4px rgba(22,163,74,.18);}.rpk-in.no{border-color:#dc2626 !important;box-shadow:0 0 0 4px rgba(220,38,38,.18);}' +
   '.rpk-op{display:flex;flex-wrap:wrap;gap:8px;width:100%;}.rpk-op[hidden]{display:none;}' +
   '.rpk-chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;touch-action:manipulation;}' +
   '.rpk-chip small{font-size:11.5px;font-weight:600;color:#64748b;}' +
@@ -129,13 +142,16 @@ function abrir(){
   if (!puede()) return mal('Sin permiso');
   estilos();
   var prev = document.getElementById('rpkVentana'); if (prev) prev.remove();
-  S = { filas: [], pend: {}, tecGrupo: '', abierta: false };
+  S = { filas: [], pend: {}, tecGrupo: '', abierta: false, que: '' };
   var box = document.createElement('div');
   box.className = 'modal-backdrop active'; box.id = 'rpkVentana'; box.style.zIndex = '600';
   box.innerHTML = '<div class="modal-box rpk-box"><div class="modal-header"><h3 style="margin:0;"><i class="ti ti-scan"></i> Asignar equipo</h3><button class="modal-close" type="button" aria-label="Cerrar">✕</button></div>' +
-    '<div class="modal-body"><div class="rpk-grupo" id="rpkGrupo"></div><input id="rpkIn" class="rpk-in" inputmode="numeric" autocomplete="off" placeholder="QR del label o IMEI" aria-label="IMEI">' +
+    '<div class="modal-body"><div class="rpk-rec" id="rpkRec" hidden><span></span><button type="button" data-vaciar>Vaciar lista</button></div>' +
+    '<div class="rpk-fila2"><select id="rpkQue" class="rpk-que" aria-label="Qué hacer">' + opcionesQue() + '</select>' +
+    '<button type="button" class="rpk-son" id="rpkSon" aria-label="Sonido al pasar" aria-pressed="' + sonidoOn() + '"><i class="ti ti-volume' + (sonidoOn() ? '' : '-off') + '" aria-hidden="true"></i></button></div>' +
+    '<div class="rpk-grupo" id="rpkGrupo"></div><input id="rpkIn" class="rpk-in" inputmode="numeric" autocomplete="off" placeholder="QR del label o IMEI" aria-label="IMEI">' +
     '<div class="rpk-ayuda">Cada equipo avanza a su paso siguiente' + (modo() === 'completo' ? ', sin saltar ninguno' : '') + '. Sirven también los últimos 5 números.</div>' +
-    '<div id="rpkLista" class="rpk-lista"></div></div>' +
+    '<div id="rpkMods" class="rpk-mods" aria-live="polite"></div><div id="rpkLista" class="rpk-lista"></div></div>' +
     '<div class="modal-footer"><span class="rpk-res" id="rpkRes"></span><button class="btn btn-light" type="button" data-cerrar style="min-height:44px;">Cerrar</button><button class="btn btn-blue rpk-ok" type="button" id="rpkAplicar" disabled>Aplicar</button></div></div>';
   document.body.appendChild(box);
   box.querySelector('.modal-close').onclick = cerrar; box.querySelector('[data-cerrar]').onclick = cerrar;
@@ -146,7 +162,64 @@ function abrir(){
     ev.preventDefault(); t.split(/[\s,;]+/).forEach(function(x){ if (soloNum(x).length >= 5) leer(x, true); }); pintar();
   });
   box.querySelector('#rpkAplicar').onclick = aplicar;
+  var Q = box.querySelector('#rpkQue');
+  Q.onchange = function(){ S.que = Q.value; Q.classList.toggle('on', !!S.que); pintarGrupo(); pintar(); enfocar(); };
+  box.querySelector('#rpkSon').onclick = function(){ var on = !sonidoOn(); try { localStorage.setItem('bc_asignar_sonido_off', on ? '0' : '1'); } catch(_){} this.setAttribute('aria-pressed', on); this.innerHTML = '<i class="ti ti-volume' + (on ? '' : '-off') + '" aria-hidden="true"></i>'; if (on) pitar(true); enfocar(); };
+  box.querySelector('[data-vaciar]').onclick = function(){ S.filas = []; S.pend = {}; borrarBorrador(); document.getElementById('rpkRec').hidden = true; pintar(); enfocar(); };
+  recuperar();
   pintarGrupo(); pintar(); setTimeout(function(){ try { inp.focus(); } catch(_){} }, 60);
+}
+/* ── (2) Qué hacer: un solo paso por vez (opcional) ── */
+function pasosDelModo(){
+  return modo() === 'completo'
+    ? [['asignar', 'Entregar a técnico'], ['recibio', 'Técnico recibió'], ['calidad', 'Enviar a calidad'], ['aprobar', 'Aprobar calidad'], ['despachar', 'Despachar']]
+    : [['asignar', 'Entregar a técnico'], ['listo', 'Terminado'], ['despachar', 'Despachar']];
+}
+function opcionesQue(){ return '<option value="">Qué hacer: todos los pasos</option>' + pasosDelModo().map(function(x){ return '<option value="' + x[0] + '">Solo: ' + esc(x[1]) + '</option>'; }).join(''); }
+function nombrePaso(k){ var x = pasosDelModo().find(function(p){ return p[0] === k; }); return x ? x[1] : k; }
+/* ── (1) Pitido y vibración ── */
+var _ac = null;
+function sonidoOn(){ try { return localStorage.getItem('bc_asignar_sonido_off') !== '1'; } catch(_) { return true; } }
+function pitar(bien){
+  window.__rpkPitidos = (window.__rpkPitidos || []).concat(bien ? 'ok' : 'no'); // registro para las pruebas
+  try { if (navigator.vibrate) navigator.vibrate(bien ? 40 : [90, 60, 90]); } catch(_){}
+  if (!sonidoOn()) return;
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    _ac = _ac || new AC(); if (_ac.state === 'suspended') _ac.resume();
+    var t = _ac.currentTime, tonos = bien ? [[1046, 0, .09]] : [[220, 0, .13], [196, .18, .16]];
+    tonos.forEach(function(x){ var o = _ac.createOscillator(), g = _ac.createGain(); o.type = bien ? 'sine' : 'square'; o.frequency.value = x[0];
+      g.gain.setValueAtTime(.0001, t + x[1]); g.gain.exponentialRampToValueAtTime(bien ? .25 : .12, t + x[1] + .01); g.gain.exponentialRampToValueAtTime(.0001, t + x[1] + x[2]);
+      o.connect(g); g.connect(_ac.destination); o.start(t + x[1]); o.stop(t + x[1] + x[2] + .02); });
+  } catch(_){}
+}
+function marcarCampo(bien){ var i = document.getElementById('rpkIn'); if (!i) return; i.classList.remove('ok', 'no'); void i.offsetWidth; i.classList.add(bien ? 'ok' : 'no'); clearTimeout(i._t); i._t = setTimeout(function(){ i.classList.remove('ok', 'no'); }, 600); }
+/* ── (4) No perder la lista: se guarda en este equipo y vuelve al abrir ── */
+var CLAVE = 'bc_asignar_borrador';
+function guardarBorrador(){ if (!S) return; try { if (!S.filas.length) return localStorage.removeItem(CLAVE); localStorage.setItem(CLAVE, JSON.stringify({ t: Date.now(), ids: S.filas.map(function(f){ return f.e.id; }), tecs: S.filas.map(function(f){ return f.tec || ''; }), tecGrupo: S.tecGrupo, que: S.que })); } catch(_){} }
+function borrarBorrador(){ try { localStorage.removeItem(CLAVE); } catch(_){} }
+function recuperar(){
+  var b = null; try { b = JSON.parse(localStorage.getItem(CLAVE) || 'null'); } catch(_){}
+  if (!b || !b.ids || !b.ids.length || Date.now() - (b.t || 0) > 12 * 3600 * 1000) { borrarBorrador(); return; }
+  var R = refurb(), n = 0;
+  S.tecGrupo = b.tecGrupo || ''; S.que = b.que || '';
+  for (var i = b.ids.length - 1; i >= 0; i--) {
+    var e = R.find(function(x){ return x.id === b.ids[i]; }); if (!e) continue;
+    var p = paso(e); if (S.que && p.k !== S.que) continue;
+    S.filas.unshift({ e: e, paso: p, tec: p.k === 'asignar' ? (b.tecs[i] || S.tecGrupo || sugeridoDe(e)) : '', repetido: false }); n++;
+  }
+  var Q = document.getElementById('rpkQue'); if (Q) { Q.value = S.que; Q.classList.toggle('on', !!S.que); }
+  var ids = S.filas.filter(function(f){ return ['listo', 'calidad', 'aprobar'].indexOf(f.paso.k) >= 0; }).map(function(f){ return f.e.id; }); if (ids.length) cargarPendientes(ids);
+  var Rc = document.getElementById('rpkRec');
+  if (n && Rc) { Rc.hidden = false; Rc.querySelector('span').textContent = 'Se recuperó la lista que dejó sin aplicar (' + n + ' equipo' + (n > 1 ? 's' : '') + ').'; }
+  if (!n) borrarBorrador();
+}
+/* ── (3) Resumen por modelo ── */
+function pintarModelos(){
+  var M = document.getElementById('rpkMods'); if (!M || !S) return;
+  var c = {}, orden = [];
+  S.filas.forEach(function(f){ if (f.paso.k === 'nada' || f.paso.k === 'evaluar') return; var m = String(modelo(f.e)).replace(/^CELULAR\s+/i, '') + (f.e.capacidad && String(modelo(f.e)).toUpperCase().indexOf(String(f.e.capacidad).toUpperCase()) < 0 ? ' ' + f.e.capacidad : ''); if (!c[m]) { c[m] = 0; orden.push(m); } c[m]++; });
+  M.innerHTML = orden.length > 0 ? orden.map(function(m){ return '<span class="rpk-mod"><b>' + c[m] + ' ×</b> ' + esc(m) + '</span>'; }).join('') : '';
 }
 /* Técnico del grupo: un toque lo elige (y lo pone en todos los «Entregar a técnico»); otro toque lo quita. */
 function cargaDe(){
@@ -156,7 +229,8 @@ function cargaDe(){
 function pintarGrupo(){
   var G = document.getElementById('rpkGrupo'); if (!G || !S) return;
   var T = tecnicos(), c = cargaDe();
-  if (!T.length) { G.innerHTML = ''; return; }
+  if (!T.length || (S.que && S.que !== 'asignar')) { G.innerHTML = ''; G.hidden = true; return; }
+  G.hidden = false;
   var elegido = T.find(function(t){ return t.id === S.tecGrupo; });
   G.innerHTML = '<button type="button" class="rpk-sel' + (elegido ? ' on' : '') + '" id="rpkSel" aria-expanded="' + !!S.abierta + '" aria-controls="rpkOp"><i class="ti ti-user" aria-hidden="true"></i><span>' +
     (elegido ? 'Técnico: ' + esc(elegido.nombre || 'Técnico') : 'Seleccionar técnico') + '</span>' + '<i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
@@ -173,6 +247,7 @@ function pintarGrupo(){
     else S.filas.forEach(function(f){ if (f.paso.k === 'asignar') f.tec = sugeridoDe(f.e); });
     pintarGrupo(); pintar(); enfocar();
   }; });
+  guardarBorrador();
 }
 function sugeridoDe(e){
   var t = e.tecnico_asignado_id || '';
@@ -184,9 +259,11 @@ function cerrar(){ var b = document.getElementById('rpkVentana'); if (b) b.remov
 function leer(texto, sinPintar){
   if (!S || !String(texto || '').trim()) return;
   var r = buscar(texto);
-  if (r.error) { mal(r.error + (soloNum(texto) ? ' · ' + soloNum(texto).slice(-6) : '')); return; }
-  if (S.filas.some(function(f){ return f.e.id === r.e.id; })) { ok('Ya está en la lista'); return; }
+  if (r.error) { pitar(false); marcarCampo(false); mal(r.error + (soloNum(texto) ? ' · ' + soloNum(texto).slice(-6) : '')); return; }
+  if (S.filas.some(function(f){ return f.e.id === r.e.id; })) { pitar(false); marcarCampo(false); ok('Ya está en la lista'); return; }
   var p = paso(r.e), fila = { e: r.e, paso: p, tec: '', repetido: !!r.repetido };
+  if (S.que && p.k !== S.que) { pitar(false); marcarCampo(false); mal('No es para «' + nombrePaso(S.que) + '»: ' + (p.txt || 'otro paso') + ' · ' + soloNum(r.e.imei).slice(-6)); return; }
+  pitar(true); marcarCampo(true);
   if (p.k === 'asignar') fila.tec = S.tecGrupo || sugeridoDe(r.e);
   S.filas.unshift(fila);
   if (p.k === 'listo' || p.k === 'calidad' || p.k === 'aprobar') cargarPendientes([r.e.id]);
@@ -226,8 +303,8 @@ function pintar(){
       '<button type="button" class="rpk-x" data-quitar="' + i + '" aria-label="Quitar">✕</button></div>';
   }).join('') : '<div class="rpk-vacio">' + (S.tecGrupo ? 'Escanee el primer equipo para ' + esc((nomTec(S.tecGrupo) || '').split(' ')[0] || 'el técnico') + '.' : 'Toque «Seleccionar técnico» y pase los equipos.') + '</div>';
   L.querySelectorAll('[data-quitar]').forEach(function(b){ b.onclick = function(){ S.filas.splice(Number(b.getAttribute('data-quitar')), 1); pintar(); enfocar(); }; });
-  L.querySelectorAll('[data-tec]').forEach(function(s){ s.onchange = function(){ S.filas[Number(s.getAttribute('data-tec'))].tec = s.value; resumen(); }; });
-  resumen();
+  L.querySelectorAll('[data-tec]').forEach(function(s){ s.onchange = function(){ S.filas[Number(s.getAttribute('data-tec'))].tec = s.value; resumen(); guardarBorrador(); }; });
+  resumen(); pintarModelos(); guardarBorrador();
 }
 function enfocar(){ var i = document.getElementById('rpkIn'); if (i) try { i.focus(); } catch(_){} }
 function grupos(){
@@ -290,6 +367,7 @@ async function aplicar(){
   if (hechos.l) msg.push(hechos.l + (modo() === 'completo' ? ' avanzaron' : ' listos'));
   if (msg.length) ok(msg.join(' · '));
   if (fallo) mal(fallo);
+  borrarBorrador(); // la lista ya se procesó (lo que el servidor frenó se avisa arriba)
   var entregados = {}; if (hechos.a) g.asignar.slice().reverse().forEach(function(f){ (entregados[f.tec] = entregados[f.tec] || []).push(f.e.id); });
   cerrar();
   if (hechos.a || hechos.l) await refrescar();
