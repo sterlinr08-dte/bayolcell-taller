@@ -27568,7 +27568,7 @@ function abrirModalNuevaSolicitud() {
         <div class="form-row"><label>IMEI / Serie (opcional)</label>
             <div style="display:flex; gap:6px;">
                 <input type="text" id="solImei" oninput="document.getElementById('solImeiVerif').innerHTML=''" style="flex:1;">
-                <button type="button" class="btn btn-light" onclick="verificarImeiSolicitud(this)" style="font-size:12px; white-space:nowrap; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-shield-search"></i> Verificar en Hexnode</button>
+                <button type="button" class="btn btn-light" onclick="verificarImeiSolicitud(this)" style="font-size:13px; min-height:44px; white-space:nowrap; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-shield-search"></i> Verificar equipo</button>
             </div>
             <div id="solImeiVerif" style="margin-top:6px;"></div>
         </div>
@@ -27736,18 +27736,18 @@ async function verificarImeiSolicitud(btn) {
         if(!d) {
             // No esta en Hexnode todavia. Revisamos si al menos ya esta en Apple Business Manager
             // (pre-enrolado con Configurator) para poder asignarlo a Hexnode con un clic.
-            cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-loader"></i> No esta en Hexnode. Revisando en Apple Business Manager…</div>`;
+            cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-loader"></i> No está inscrito en Hexnode. Revisando en Apple Business Manager…</div>`;
             try {
                 const { data: dab, error: eab } = await supabaseClient.functions.invoke('abm-accion', { body: { accion: 'buscar', serial: val } });
                 if(!eab && dab && dab.ok && dab.encontrado) {
                     const dev = dab.device;
                     const detalleAbm = [dev.modelo, dev.capacidad, dev.color, dev.imei ? ('IMEI ' + dev.imei) : ''].filter(Boolean).join(' · ');
-                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> Esta en Apple Business Manager pero NO en Hexnode.</b><br>${escapeHtml(detalleAbm)}<br><button type="button" class="btn btn-blue" style="margin-top:6px; min-height:44px; font-size:13px;" onclick="_abmElegirServidor(this, '${escapeHtml(val).replace(/'/g,"\\'")}')"><i class="ti ti-link"></i> Asignar a un MDM…</button><div id="solMdmServidores"></div></div>`;
+                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> Está en Apple Business Manager, sin inscribir todavía.</b><br>${escapeHtml(detalleAbm)}<br><button type="button" class="btn btn-blue" style="margin-top:6px; min-height:44px; font-size:13px;" onclick="_abmElegirServidor(this, '${escapeHtml(val).replace(/'/g,"\\'")}')"><i class="ti ti-link"></i> Asignar a un MDM…</button><div id="solMdmServidores"></div></div>`;
                 } else {
-                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode ni en Apple Business Manager.</b><br>Puede seguir con la solicitud, pero el equipo debe pre-enrolarse (Apple Configurator) antes de entregarlo al cliente.</div>`;
+                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece en Apple Business Manager ni en Hexnode.</b><br>Puede seguir con la solicitud, pero el equipo debe agregarse a Apple Business Manager (Apple Configurator) antes de entregarlo al cliente.</div>`;
                 }
             } catch(_e) {
-                cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode.</b><br>Puede seguir con la solicitud, pero el equipo debe enrolarse antes de entregarlo al cliente.</div>`;
+                cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece inscrito en Hexnode y no se pudo revisar Apple Business Manager.</b><br>Puede seguir con la solicitud; vuelva a verificar antes de entregar el equipo.</div>`;
             }
             return;
         }
@@ -27758,7 +27758,7 @@ async function verificarImeiSolicitud(btn) {
         if(dueno) {
             cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-x"></i> Este equipo YA está asignado a otro cliente.</b><br>${escapeHtml(dueno)}<br>${escapeHtml(detalle)}<br>Seleccione otro equipo o libere primero ese financiamiento.</div>`;
         } else {
-            cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Enrolado en Hexnode y DISPONIBLE.</b><br>${escapeHtml(detalle)}</div>`;
+            cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Inscrito en Hexnode y disponible.</b><br>${escapeHtml(detalle)}</div>`;
         }
     } catch(e) {
         cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Error al verificar: ${escapeHtml(e.message || String(e))}</div>`;
@@ -27805,7 +27805,7 @@ async function _abmAsignarDesdeSolicitud(btn, serial, servidor) {
         toast('Equipo asignado a ' + servidor + '. Puede tardar unos minutos en sincronizar.');
         const esHex = /hexnode/i.test(servidor);
         if(cont) cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Asignado a ${escapeHtml(servidor)}.</b><br>` +
-            (esHex ? 'Puede tardar unos minutos en aparecer enrolado. Toque de nuevo «Verificar en Hexnode» en unos minutos.' : 'El equipo queda en el MDM de ese servidor. Bórrelo y configúrelo con WiFi: debe salir «Gestión remota» con ese nombre.') + `</div>`;
+            (esHex ? 'Puede tardar unos minutos en aparecer enrolado. Toque de nuevo «Verificar equipo» en unos minutos.' : 'El equipo queda en el MDM de ese servidor. Bórrelo y configúrelo con WiFi: debe salir «Gestión remota» con ese nombre.') + `</div>`;
     } catch(e) {
         if(cont) cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Error al asignar: ${escapeHtml(e.message || String(e))}</div>`;
         if(btn){ btn.disabled = false; btn.innerHTML = orig; }
