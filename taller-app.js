@@ -27742,7 +27742,7 @@ async function verificarImeiSolicitud(btn) {
                 if(!eab && dab && dab.ok && dab.encontrado) {
                     const dev = dab.device;
                     const detalleAbm = [dev.modelo, dev.capacidad, dev.color, dev.imei ? ('IMEI ' + dev.imei) : ''].filter(Boolean).join(' · ');
-                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> Esta en Apple Business Manager pero NO en Hexnode.</b><br>${escapeHtml(detalleAbm)}<br><button type="button" class="btn btn-blue btn-sm" style="margin-top:6px; font-size:12px;" onclick="_abmAsignarDesdeSolicitud(this, '${escapeHtml(val).replace(/'/g,"\\'")}')"><i class="ti ti-link"></i> Asignar a Hexnode ahora</button></div>`;
+                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> Esta en Apple Business Manager pero NO en Hexnode.</b><br>${escapeHtml(detalleAbm)}<br><button type="button" class="btn btn-blue" style="margin-top:6px; min-height:44px; font-size:13px;" onclick="_abmElegirServidor(this, '${escapeHtml(val).replace(/'/g,"\\'")}')"><i class="ti ti-link"></i> Asignar a un MDM…</button><div id="solMdmServidores"></div></div>`;
                 } else {
                     cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode ni en Apple Business Manager.</b><br>Puede seguir con la solicitud, pero el equipo debe pre-enrolarse (Apple Configurator) antes de entregarlo al cliente.</div>`;
                 }
@@ -27765,16 +27765,47 @@ async function verificarImeiSolicitud(btn) {
     } finally { if(btn){ btn.disabled = false; btn.innerHTML = orig; } }
 }
 // Asigna un equipo ya pre-enrolado en Apple Business Manager al servidor MDM de Hexnode, con un clic.
-async function _abmAsignarDesdeSolicitud(btn, serial) {
+// 14-nov-2026 (dueño): el equipo puede ir a Hexnode o al MDM de una financiera. La lista de servidores sale de
+// Apple Business Manager (abm-accion «servidores»), así que un servidor nuevo aparece solo. Se recuerda el último elegido.
+async function _abmElegirServidor(btn, serial) {
+    const box = document.getElementById('solMdmServidores'); if(!box) return;
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Buscando servidores…'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('abm-accion', { body: { accion: 'servidores' } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(!data || !data.ok) throw new Error((data && data.error) || 'No se pudo leer la lista de servidores.');
+        // «Devices Added by Apple Configurator 2» es el servidor provisional de Apple, no un MDM real.
+        let lista = (data.servidores || []).map(x => x.nombre).filter(n => n && !/apple configurator/i.test(n));
+        if(!lista.length) throw new Error('Apple Business Manager no tiene servidores MDM.');
+        let ult = ''; try { ult = localStorage.getItem('bc_mdm_servidor') || ''; } catch(_){}
+        lista.sort((a, b) => (b === ult) - (a === ult));
+        const esc = n => escapeHtml(n).replace(/'/g, "\\'");
+        box.innerHTML = `<div style="margin-top:8px; font-size:13px; color:var(--text-main);">Elija a qué MDM va el equipo:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">` +
+            lista.map(n => `<button type="button" class="btn ${n === ult ? 'btn-blue' : 'btn-light'}" style="min-height:44px; font-size:13px;" onclick="_abmAsignarDesdeSolicitud(this, '${esc(serial)}', '${esc(n)}')"><i class="ti ti-server"></i> ${escapeHtml(n)}${n === ult ? ' (último usado)' : ''}</button>`).join('') +
+            `</div>`;
+        if(btn) btn.style.display = 'none';
+    } catch(e) {
+        box.innerHTML = `<div style="margin-top:6px; color:var(--fin-danger); font-size:12.5px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(e.message || String(e))}</div>`;
+        if(btn){ btn.disabled = false; btn.innerHTML = orig; }
+    }
+}
+async function _abmAsignarDesdeSolicitud(btn, serial, servidor) {
     const cont = document.getElementById('solImeiVerif');
     const orig = btn ? btn.innerHTML : '';
+    servidor = servidor || 'HEXNODE';
+    if(!await confirmar('¿Asignar el equipo ' + serial + ' a «' + servidor + '»?\n\nEse MDM es el que podrá bloquearlo y ubicarlo.')) return;
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Asignando…'; }
     try {
-        const { data, error } = await supabaseClient.functions.invoke('abm-accion', { body: { accion: 'asignar', serial, servidor: 'HEXNODE' } });
+        const { data, error } = await supabaseClient.functions.invoke('abm-accion', { body: { accion: 'asignar', serial, servidor } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(!data || !data.ok) throw new Error((data && data.error) || 'No se pudo asignar.');
-        toast('Equipo asignado a Hexnode. Puede tardar unos minutos en sincronizar.');
-        if(cont) cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Asignado a Hexnode.</b><br>Puede tardar unos minutos en aparecer enrolado. Toque de nuevo «Verificar en Hexnode» en unos minutos.</div>`;
+        try { localStorage.setItem('bc_mdm_servidor', servidor); } catch(_){}
+        toast('Equipo asignado a ' + servidor + '. Puede tardar unos minutos en sincronizar.');
+        const esHex = /hexnode/i.test(servidor);
+        if(cont) cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Asignado a ${escapeHtml(servidor)}.</b><br>` +
+            (esHex ? 'Puede tardar unos minutos en aparecer enrolado. Toque de nuevo «Verificar en Hexnode» en unos minutos.' : 'El equipo queda en el MDM de ese servidor. Bórrelo y configúrelo con WiFi: debe salir «Gestión remota» con ese nombre.') + `</div>`;
     } catch(e) {
         if(cont) cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Error al asignar: ${escapeHtml(e.message || String(e))}</div>`;
         if(btn){ btn.disabled = false; btn.innerHTML = orig; }
