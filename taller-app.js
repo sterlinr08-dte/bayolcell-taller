@@ -30971,8 +30971,11 @@ function _waPintarAvisoLineas() {
     const wrap = document.getElementById('waWrap');
     if(!wrap) return;
     let aviso = document.getElementById('waAvisoLineas');
-    if(!_waLineasCaidas.length) { if(aviso) { aviso.remove(); _waActualizarAltoVisual(); } return; }
-    const filas = _waLineasCaidas.map(l => {
+    // 14-nov-2026 (dueño: «el rojo estaba saliendo para todos»): el aviso sale solo a quien tiene abierta la línea
+    // caída. Antes salía en todas las sucursales y áreas, y parecía que la línea en uso era la dañada.
+    const caidas = _waLineasCaidas.filter(l => l && _crmLineaActualId && String(l.id) === String(_crmLineaActualId));
+    if(!caidas.length) { if(aviso) { aviso.remove(); _waActualizarAltoVisual(); } return; }
+    const filas = caidas.map(l => {
         const desde = l.conexion_cambio_en ? new Date(l.conexion_cambio_en).toLocaleString('es-DO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
         const quien = [l.nombre, l.whatsapp_numero].filter(Boolean).join(' · ');
         return `<div><b>${escapeHtml(quien || 'Una línea')}</b> está desconectada${desde ? ' desde el ' + escapeHtml(desde) : ''}. No entran ni salen mensajes por esa línea hasta reconectarla en Zernio.</div>`;
