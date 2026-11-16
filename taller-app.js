@@ -16491,6 +16491,7 @@ function _despTelCod(e) { return (e.articulo_codigo != null && String(e.articulo
 function _despTelLote(e) { const l = (cache.lotes || []).find(x => x.id === e.lote_id); return l ? (l.codigo_lote || '') : ''; }
 function _despTelNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 function despacharTelefonosSeleccionados() {
+    _despDesdeFicha = null;
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     _despTelCtx = { sel: new Set([...(_reacondSel || [])].filter(id => (cache.refurb || []).some(r => r.id === id))), q: '', lista: [], sinCodigo: 0 };
     const borr = _despTelBorradorLeer();
@@ -16536,6 +16537,19 @@ function despacharTelefonosSeleccionados() {
     const d = document.getElementById('despTelDestino'); if(d) d.value = (_despTelCtx.borr && _despTelCtx.borr.destino) || '1';
     _despTelRender();
     setTimeout(() => document.getElementById('dtBuscar')?.focus(), 60);
+}
+// Despachar un solo teléfono desde la Ficha del Equipo: abre la misma ventana de despacho con ese equipo ya marcado.
+let _despDesdeFicha = null;
+function despacharEquipoDesdeFicha(equipoId) {
+    despacharTelefonosSeleccionados();
+    _despDesdeFicha = equipoId;
+    if(!_despTelCtx || !document.getElementById('modalDespTel')) return;
+    _despTelCtx.sel = new Set([equipoId]);
+    _despTelCtx.borr = null;
+    const av = document.getElementById('dtBorrAviso'); if(av) av.innerHTML = '';
+    const o = document.getElementById('despTelOrigen'); if(o) o.value = '6';
+    const d = document.getElementById('despTelDestino'); if(d) { d.value = '1'; setTimeout(() => d.focus(), 80); }
+    _despTelRender();
 }
 function _despTelFiltrados() {
     const q = _despTelNorm(_despTelCtx.q).trim();
@@ -16999,6 +17013,7 @@ async function _despTelConfirmar() {
         _despReporteAbrir(_despInfoDesdeLista(documento, origen, destino, lista), saved ? saved.id : null);
         // Recargar la vista del taller (igual que marcarDespachado); si falla, la caché local ya quedó al día
         try { await loadAll(); if(reacondLoteAbiertoId) renderDetalleLoteReacond(); } catch(e) { logError('Recargar tras despacho', e); }
+        if(_despDesdeFicha && document.getElementById('modalFichaEquipo')) { try { verFichaDespacho(_despDesdeFicha); } catch(e) {} }
         return { ok: true, documento, ids: ids.filter(id => !sinCerrar.some(e => e.id === id)), sinCerrar: sinCerrar.map(e => e.id) };
     } finally {
         _despEnCurso = false;
@@ -18280,6 +18295,7 @@ async function verFichaDespacho(equipoId) {
           <button class="fe-btn red" onclick="imprimirLabelEquipo('${equipoId}')"><i class="ti ti-printer"></i> Imprimir Label</button>
           <button class="fe-btn" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
           <button class="fe-btn" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-file-text"></i> Formato Info Plus</button>
+          ${(isAdminUser() && eq.estado_evaluacion === 'listo_venta' && !eq.completado) ? `<button class="fe-btn" onclick="despacharEquipoDesdeFicha('${equipoId}')" title="Mover este teléfono a otro almacén en Info Plus"><i class="ti ti-truck-delivery"></i> Despachar a almacén</button>` : ''}
           <div class="fe-menuwrap">
             <button class="fe-btn" onclick="var m=this.nextElementSibling;m.style.display=(m.style.display==='block'?'none':'block');event.stopPropagation();"><i class="ti ti-dots"></i> Más acciones <i class="ti ti-chevron-down"></i></button>
             <div class="fe-menu">
