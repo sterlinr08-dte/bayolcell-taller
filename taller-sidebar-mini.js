@@ -11,6 +11,7 @@
   if(window.BayolMenuMini) return;
   var VERSION='20261009m1', CLAVE='bc_menu_fijo';
   var html=document.documentElement;
+  try{ if(localStorage.getItem('bc_menu5_off')==='1') html.classList.add('bcm5-off'); }catch(e){} // 19-nov-2026: apaga el pulido estilo 5
   var escritorio=window.matchMedia ? window.matchMedia('(min-width:1025px)') : {matches:true};
   var tAbrir=0, tCerrar=0, bloqueadoHastaSalir=false;
 
