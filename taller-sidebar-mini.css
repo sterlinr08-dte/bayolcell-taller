@@ -64,3 +64,30 @@ body #app aside.sidebar:hover::-webkit-scrollbar-thumb, body #app aside.sidebar 
   html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav{ scrollbar-color:transparent transparent; }
   html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav::-webkit-scrollbar-thumb{ background:transparent; }
 }
+
+/* 19-nov-2026 (dueño: estilo 5 «Expanding» del reel Df5TYQDoAQ3 para el taller, «Pulir PC»). Solo computadora.
+   La opción elegida deja el bloque naranja lleno y pasa a una píldora suave con un filo naranja a la izquierda;
+   el ícono queda en naranja y el nombre en blanco. Al abrirse la barra, los nombres aparecen con un desvanecido
+   corto. Celular y tableta: sin cambios. Apagar en un equipo: localStorage bc_menu5_off='1' (lo lee taller-sidebar-mini.js). */
+@media (min-width:1025px){
+  html:not(.bcm5-off) body #app aside#sidebar .nav.bc-motion-host > .bc-motion-pill{
+    background:rgba(255,255,255,.10) !important;
+    box-shadow:inset 3px 0 0 #FF6B35, inset 0 0 0 1px rgba(255,255,255,.08) !important;
+    border-radius:12px !important;
+  }
+  html:not(.bcm5-off) body #app aside#sidebar .nav button.active,
+  html:not(.bcm5-off) body #app aside#sidebar .nav button.active > span{color:#fff !important;font-weight:700 !important;}
+  html:not(.bcm5-off) body #app aside#sidebar .nav button.active > i:first-child{color:#FF8D69 !important;text-shadow:none !important;}
+  html:not(.bcm5-off) body #app aside#sidebar .nav button:not(.active):hover{background:rgba(255,255,255,.06) !important;}
+  html.bcm-mini:not(.bcm5-off) body #app aside#sidebar.bcm-abierta .nav button > span,
+  html.bcm-mini:not(.bcm5-off) body #app aside#sidebar.bcm-abierta .nav-section,
+  html.bcm-mini:not(.bcm5-off) body #app aside#sidebar.bcm-abierta .brand-text,
+  html.bcm-mini:not(.bcm5-off) body #app aside#sidebar.bcm-abierta .side-user .profile-info{animation:bcm5Entra .2s cubic-bezier(.2,.8,.2,1) both;}
+}
+@keyframes bcm5Entra{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  html.bcm-mini body #app aside#sidebar.bcm-abierta .nav button > span,
+  html.bcm-mini body #app aside#sidebar.bcm-abierta .nav-section,
+  html.bcm-mini body #app aside#sidebar.bcm-abierta .brand-text,
+  html.bcm-mini body #app aside#sidebar.bcm-abierta .side-user .profile-info{animation:none !important;}
+}
