@@ -94,7 +94,7 @@
     // Paso 3 · Documentos del lote: Info Plus y reportes en menús
     var g3 = grupo('Lote');
     var mIP = menu('Info Plus', 'ti-building-warehouse'), mRep = menu('Reportes', 'ti-file-text');
-    ['btnRegistrarCompraIP', 'btnRegManualIP', 'btnFormatoIP', 'btnFormatoIPExcel'].forEach(function (id) { var b = porId(id); if (b) mIP.lastChild.appendChild(b); });
+    ['btnTraerTaller', 'btnRegistrarCompraIP', 'btnRegManualIP', 'btnFormatoIP', 'btnFormatoIPExcel'].forEach(function (id) { var b = porId(id); if (b) mIP.lastChild.appendChild(b); });
     ['btnReporteCostosLote', 'btnPdfCostosLote', 'btnExcelCostosLote'].forEach(function (id) { var b = porId(id); if (b) mRep.lastChild.appendChild(b); });
     g3.appendChild(mIP); g3.appendChild(mRep);
     barra.appendChild(g1); barra.appendChild(g2); barra.appendChild(g3);

@@ -7405,6 +7405,98 @@ async function guardarDatosLote() {
     } catch(e) { logError('Guardar lote', e); toastError(getFriendlyError(e)); }
 }
 
+// ===== 19-nov-2026 · «Traer del almacén Taller» (dueño: «si en Info Plus se hace un despacho para taller, no veo ese equipo
+// en Bayol Taller» → «Arma el botón»). Dentro de un lote: pregunta a Info Plus EN VIVO qué IMEI hay en el almacén 6 (Taller)
+// y muestra los que todavía no están en ningún lote del taller (ni en uno ya despachado). Los marcados entran al lote abierto
+// como «Recibido», igual que «Agregar equipo». El costo sale del costo del artículo en Info Plus (el admin lo corrige luego);
+// para quien no es admin queda en 0, como al agregarlo a mano. Solo lee de Info Plus (Edge infoplus-imei-almacen, modo almacen_todo).
+let _traerTallerItems = [], _traerTallerLote = null;
+async function traerDelTaller(loteId) {
+    _traerTallerLote = loteId || (typeof reacondLoteAbiertoId !== 'undefined' && reacondLoteAbiertoId) || loteActualId || null;
+    if(!_traerTallerLote) return toast('Abra primero un lote.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
+    abrirModalGenerico('Traer del almacén Taller', '<div style="padding:26px 6px;text-align:center;color:#475569;font-size:15px;"><i class="ti ti-loader-2" style="font-size:22px;display:inline-block;animation:spin 1s linear infinite;"></i><br>Consultando Info Plus…</div>', { ancho: '640px' });
+    let r = null;
+    try { const res = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { modo: 'almacen_todo', codalmacen: '6' } }); r = res && res.data; if(res && res.error) throw res.error; }
+    catch(e) { logError('Traer del almacén Taller', e); r = null; }
+    const cont = document.getElementById('modalGenericoContenido'); if(!cont) return;
+    if(!r || !r.ok) {
+        cont.innerHTML = '<div role="alert" style="padding:18px;text-align:center;color:#991b1b;font-size:15px;">No se pudo consultar Info Plus.<br><button type="button" class="btn btn-light" style="margin-top:12px;min-height:44px;" onclick="traerDelTaller(_traerTallerLote)"><i class="ti ti-refresh"></i> Reintentar</button></div>';
+        return;
+    }
+    try { if(typeof _ensureInfoplusArticulos === 'function') await _ensureInfoplusArticulos(); } catch(e) {} // el catálogo puede no estar cargado aún
+    const ya = new Set((cache.refurb || []).map(e => String(e.imei || '').replace(/\s+/g, '').toLowerCase()).filter(Boolean));
+    // La lista en memoria puede venir cortada (tope de filas): se confirma en la base por los IMEI de Info Plus.
+    try {
+        const todos = (r.items || []).map(it => String(it.imei).trim()).filter(Boolean);
+        for(let i = 0; i < todos.length; i += 150) {
+            const { data: hay } = await supabaseClient.from('equipos_refurbish').select('imei').in('imei', todos.slice(i, i + 150));
+            (hay || []).forEach(h => ya.add(String(h.imei || '').replace(/\s+/g, '').toLowerCase()));
+        }
+    } catch(e) { logError('Traer del almacén Taller: revisar IMEI', e); }
+    _traerTallerItems = (r.items || []).filter(it => !ya.has(String(it.imei).replace(/\s+/g, '').toLowerCase())).map(it => {
+        const art = it.codigo ? _findInfoplusArt(it.codigo) : null;
+        return Object.assign({}, it, { art, costo: art && Number(art.costo) > 0 ? Number(art.costo) : 0 });
+    });
+    const total = (r.items || []).length;
+    if(!_traerTallerItems.length) {
+        cont.innerHTML = `<div style="padding:18px;text-align:center;color:#334155;font-size:15px;"><i class="ti ti-circle-check" style="font-size:24px;color:#16a34a;"></i><br>No hay equipos nuevos en el almacén Taller.<br><small style="color:#64748b;">Info Plus tiene ${total} IMEI allí; todos ya están en algún lote.</small></div>`;
+        return;
+    }
+    const admin = isAdminUser();
+    const filas = _traerTallerItems.map((it, i) => {
+        const sinArt = !it.art;
+        return `<label style="display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #eef2f7;min-height:44px;cursor:${sinArt ? 'not-allowed' : 'pointer'};opacity:${sinArt ? .6 : 1};">
+            <input type="checkbox" class="trtSel" data-i="${i}" ${sinArt ? 'disabled' : 'checked'} style="width:20px;height:20px;flex:none;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;color:#0f172a;font-size:14px;">${escapeHtml(it.art ? (it.art.descripcion || it.descripcion) : it.descripcion)}</div>
+                <div style="font-size:13px;color:#475569;font-variant-numeric:tabular-nums;">IMEI ${escapeHtml(it.imei)}${it.art ? ' · Código ' + escapeHtml(String(it.art.codigo)) : ''}${admin && it.costo ? ' · Costo ' + escapeHtml(money(it.costo)) : ''}</div>
+                ${sinArt ? `<div style="font-size:12.5px;color:#b45309;">${it.candidatos && it.candidatos.length ? 'Varios artículos con ese nombre (' + escapeHtml(it.candidatos.join(', ')) + '): agréguelo a mano.' : 'No se encontró el artículo en el catálogo: sincronice o agréguelo a mano.'}</div>` : ''}
+            </div>
+        </label>`;
+    }).join('');
+    const nLote = ((cache.lotes || []).find(l => l.id === _traerTallerLote) || {}).codigo_lote || '';
+    cont.innerHTML = `<div style="font-size:14px;color:#334155;margin-bottom:8px;">Están en el almacén Taller de Info Plus y no en ningún lote: <b>${_traerTallerItems.length}</b>. Entran al lote <b>${escapeHtml(nLote)}</b> como «Recibido».</div>
+        <div style="max-height:52vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:0 10px;">${filas}</div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-light" style="min-height:44px;" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
+            <button type="button" id="trtAgregar" class="btn btn-blue" style="min-height:54px;font-weight:700;" onclick="traerDelTallerAgregar(this)"><i class="ti ti-plus"></i> Agregar al lote</button>
+        </div>`;
+}
+async function traerDelTallerAgregar(btn) {
+    if(btn && btn.disabled) return; // candado contra el doble toque
+    if(!_traerTallerLote) return toast('Sin lote activo.', 'error');
+    if(!isAdminUser()) return toast('Solo administrador', 'error');
+    const sel = [...document.querySelectorAll('#modalGenerico .trtSel:checked')].map(c => _traerTallerItems[Number(c.dataset.i)]).filter(it => it && it.art);
+    if(!sel.length) return toast('Marque al menos un equipo.', 'error');
+    const admin = isAdminUser();
+    const orig = btn ? btn.innerHTML : '';
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Agregando…'; }
+    let ok = 0; const fallos = [];
+    for(const it of sel) {
+        const art = it.art;
+        const desc = (art.descripcion || '').trim();
+        try {
+            const { error } = await supabaseClient.from('equipos_refurbish').insert([{
+                articulo_id: null, articulo_codigo: art.codigo, lote_id: _traerTallerLote,
+                modelo: [art.marca, desc].filter(x => x).join(' ').trim() || String(art.codigo),
+                marca: art.marca || null, capacidad: art.referencia || null, color: null,
+                imei: String(it.imei).trim(), costo_compra: admin ? (it.costo || 0) : 0, costo_repuestos: 0,
+                estado: 'Recibido', es_garantia: false,
+                notas_diagnostico: 'Traído del almacén Taller (Info Plus)'
+            }]);
+            if(error) throw error;
+            ok++;
+        } catch(e) { logError('Traer del almacén Taller: agregar', e); fallos.push(it.imei); }
+    }
+    if(btn) { btn.disabled = false; btn.innerHTML = orig; }
+    if(ok) toast(ok === 1 ? '1 equipo agregado al lote' : ok + ' equipos agregados al lote');
+    if(fallos.length) toastError('No se pudieron agregar: ' + fallos.join(', '));
+    if(!fallos.length) document.getElementById('modalGenerico')?.remove();
+    await loadAll();
+    try { if(typeof renderDetalleLoteReacond === 'function' && typeof reacondLoteAbiertoId !== 'undefined' && reacondLoteAbiertoId === _traerTallerLote) renderDetalleLoteReacond(); } catch(e) {}
+}
+
 // ===== Colores por IMEI (Agregar equipo, importar de Info Plus y dentro del lote) =====
 // Colores genéricos para marcas que no son iPhone.
 const _EQ_COLORES = [['Negro','#111827'],['Blanco','#f1f5f9'],['Azul','#3b82f6'],['Rojo','#ef4444'],['Verde','#22c55e'],['Rosa','#ec4899'],['Morado','#a855f7'],['Dorado','#eab308'],['Gris','#6b7280']];
@@ -12164,6 +12256,7 @@ function renderDetalleLoteReacond() {
     const _bf = document.getElementById('btnFormatoIP'); if(_bf) _bf.style.display = isAdminUser() ? '' : 'none';
     const _bfx = document.getElementById('btnFormatoIPExcel'); if(_bfx) _bfx.style.display = isAdminUser() ? '' : 'none';
     const _brc = document.getElementById('btnRegistrarCompraIP'); if(_brc) _brc.style.display = isAdminUser() ? '' : 'none';
+    const _btt = document.getElementById('btnTraerTaller'); if(_btt) _btt.style.display = isAdminUser() ? '' : 'none';
     const _brm = document.getElementById('btnRegManualIP'); if(_brm) _brm.style.display = isAdminUser() ? '' : 'none';
     const _bdt = document.getElementById('btnDespacharTel'); if(_bdt) _bdt.style.display = isAdminUser() ? '' : 'none';
 

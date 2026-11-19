@@ -41,6 +41,8 @@ Deno.serve(async (req: Request) => {
   const a = String(body.codalmacen ?? '').replace(/\D/g, '');
   const imei = String(body.imei ?? '').replace(/\D/g, '');
   if (imei && ALMACENES[a]) return await buscarPorImei(imei, a, URL_SB);
+  // 19-nov-2026 (dueño): «Traer del almacén Taller» en Reacondicionados: TODAS las series de un almacén con su artículo.
+  if (String(body.modo ?? '') === 'almacen_todo' && ALMACENES[a]) return await todoElAlmacen(a, URL_SB);
   // 22-oct-2026 (noche) · ¿Este artículo lleva IMEI/serie? Lo decide Info Plus, no la palabra «celular» del nombre.
   if (String(body.pregunta ?? '') === 'serial' && c) return await esSerializado(c, URL_SB);
   if (!c || !ALMACENES[a]) return new Response(JSON.stringify({ ok: false, error: 'faltan artículo o almacén' }), { status: 400, headers: cors });
@@ -177,4 +179,50 @@ async function buscarPorImei(imei: string, a: string, URL_SB: string): Promise<R
   }
   if (cand.length === 1) return resp({ codigo: cand[0].codigo, descripcion: cand[0].descripcion, fuente: 'listaserie', localidad: normDesc(fila.localidad), en_otro_almacen: localidadOtra || undefined, en_catalogo: true });
   return resp({ encontrado: cand.length > 0, descripcion: String(fila.descripcion || '').trim(), candidatos: cand, fuente: 'listaserie', localidad: normDesc(fila.localidad), en_otro_almacen: localidadOtra || undefined });
+}
+
+// 19-nov-2026 · Todas las series (IMEI) que Info Plus tiene en un almacén, con el artículo de cada una.
+// Uso: Reacondicionados → «Traer del almacén Taller»: muestra los IMEI que llegaron (por ejemplo, por un despacho hecho en
+// Info Plus) y que todavía no están en ningún lote del taller. Solo LEE de Info Plus; nunca escribe allá ni devuelve la clave.
+// El artículo sale, en este orden: 1) infoplus_seriales (compras sincronizadas, código exacto); 2) la descripción de la serie
+// igual a la de infoplus_articulos (si hay varios códigos con el mismo nombre, se devuelven como candidatos).
+async function todoElAlmacen(a: string, URL_SB: string): Promise<Response> {
+  const sb = createClient(URL_SB, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const BASE = (Deno.env.get('INFOPLUS_BASE') || 'bayol').trim();
+  const CLAVE = (Deno.env.get('INFOPLUS_CLAVE') || '').trim();
+  let lista: any[] = [], fallo = false;
+  try {
+    const r = await fetch(`https://apicliente.infoplusplatinum.com/api/ListaArticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&tipo=listaserie&codalmacen=${a}`);
+    const j = JSON.parse(await r.text()); lista = Array.isArray(j?.data) ? j.data : [];
+    if (!r.ok) fallo = true;
+  } catch (_e) { fallo = true; }
+  if (fallo && !lista.length) return new Response(JSON.stringify({ ok: false, error: 'No se pudo consultar Info Plus' }), { status: 502, headers: cors });
+  const nombres = ALMACENES[a];
+  const series = new Map<string, any>();
+  for (const x of lista) {
+    const imei = String(x?.serie ?? '').trim(); if (!imei) continue;
+    if (!nombres.includes(norm(x?.localidad))) continue;
+    if (!series.has(imei)) series.set(imei, x);
+  }
+  const imeis = [...series.keys()];
+  // 1) Código exacto por compras sincronizadas.
+  const porImei = new Map<string, string>();
+  for (let i = 0; i < imeis.length; i += 200) {
+    const { data } = await sb.from('infoplus_seriales').select('imei, codproducto').in('imei', imeis.slice(i, i + 200));
+    (data || []).forEach((d: any) => { const c = String(d.codproducto ?? '').replace(/\D/g, ''); if (c) porImei.set(String(d.imei), c); });
+  }
+  // 2) Por descripción.
+  const descs = [...new Set(imeis.map((k) => normDesc(series.get(k)?.descripcion)).filter(Boolean))];
+  const porDesc = new Map<string, string[]>();
+  for (const d of descs) {
+    const { data } = await sb.from('infoplus_articulos').select('codigo, descripcion').ilike('descripcion', '%' + d.split(' ').join('%') + '%').limit(50);
+    porDesc.set(d, (data || []).filter((x: any) => normDesc(x.descripcion) === d).map((x: any) => String(x.codigo)));
+  }
+  const items = imeis.map((k) => {
+    const x = series.get(k); const d = normDesc(x?.descripcion);
+    const exacto = porImei.get(k) || porImei.get(k.replace(/\D/g, ''));
+    const cand = porDesc.get(d) || [];
+    return { imei: k, descripcion: String(x?.descripcion || '').trim(), codigo: exacto || (cand.length === 1 ? cand[0] : null), candidatos: exacto ? [] : (cand.length > 1 ? cand : []) };
+  });
+  return new Response(JSON.stringify({ ok: true, almacen: a, total: items.length, items }), { headers: cors });
 }

@@ -3906,6 +3906,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
                                 <button id="btnDiagLoteExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#7c2d12; border-color:#fdba74;" onclick="exportarDiagnosticosLoteExcel()" title="Excel con el diagnóstico de cada equipo del lote: nota, fallas pendientes y hechas, y piezas (sin costos). Siempre el lote completo, sin importar el filtro de estado."><i class="ti ti-stethoscope"></i> Diagnósticos (Excel)</button>
                                 <button id="btnFormatoIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
+                                <button id="btnTraerTaller" type="button" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0f766e;" onclick="traerDelTaller(reacondLoteAbiertoId)" title="Equipos que llegaron al almacén Taller en Info Plus y no están en ningún lote"><i class="ti ti-building-warehouse"></i> Traer del almacén Taller</button>
                                 <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar/actualizar en Info Plus la compra del lote (1 artículo por modelo + sus IMEI + costo promedio). La primera vez la crea; después la ACTUALIZA con TODOS los equipos del lote (el API reemplaza la compra, por eso van todos). Misma compra, sin duplicar."><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
                                 <button id="btnRegManualIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0e7490; border-color:#67e8f9; display:none;" onclick="abrirRegistroManualIP()" title="Ver/marcar los equipos listos para registrarlos a mano en Info Plus, con el promedio actualizado"><i class="ti ti-clipboard-check"></i> Registro manual IP</button>
                                 <button class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#c2410c; border-color:#fdba74;" onclick="abrirColoresLote()" title="Poner el color de cada IMEI (los iPhone muestran sus colores oficiales)"><i class="ti ti-palette"></i> Poner colores</button>
@@ -5766,7 +5767,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
 <script defer src="crm-ortografia.js?v=20261102-or1"></script>
-<script defer src="taller-app.min.js?v=20261119-dsp1"></script>
+<script defer src="taller-app.min.js?v=20261119-trt1"></script>
 <script defer src="crm-estilos.js?v=20261110-c1"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
 <script defer src="conta-base.js?v=20261108-cb2"></script>
@@ -5789,7 +5790,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 <script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
 <script defer src="taller-ui-finanzas.js?v=20261026-f1"></script>
 <script defer src="taller-ui-global.js?v=20261026-u1"></script>
-<script defer src="taller-ui-reacond.js?v=20261026-rcu1"></script>
+<script defer src="taller-ui-reacond.js?v=20261119-trt1"></script>
 <script defer src="bc-reacond-lotes.js?v=20261030-rlc1"></script>
 <script defer src="bc-pistola-imei.js?v=20261103-pi1"></script>
 <script defer src="bc-buscador-motion.js?v=20261031-bmo2"></script>
