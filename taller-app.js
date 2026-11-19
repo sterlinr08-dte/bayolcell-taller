@@ -16199,7 +16199,7 @@ async function _despGuardarHistorial({ origen, destino, items, nota, r }) {
             usuario: sessionUser?.nombre || 'Admin', nota: nota || null, estado, detalle,
             despacho_numero: r.numero, items: items
         }]).select().single();
-        if(error) fallo = error; else return data;
+        if(error) fallo = error; else { try { if(data) _despHistRows.unshift(data); } catch(_) {} return data; } // 19-nov-2026: así «Imprimir conduce» lo encuentra al momento
     } catch(e) { fallo = e; }
     logError('Guardar despacho', fallo);
     const ref = r.ok ? `El despacho Nº ${r.numero || '?'} SÍ quedó hecho en Info Plus, pero` : 'El intento fallido de despacho';
@@ -16244,9 +16244,21 @@ function _despImeisItem(it) {
         return { imei: im, color: col };
     }).filter(Boolean);
 }
-function imprimirDespacho(id) {
-    const r = _despHistRows.find(x => x.id === id);
-    if(!r) return toast('No se encontró el despacho para imprimir.', 'error');
+// 19-nov-2026 (dueño, captura): desde la ventana «Despacho … · reporte» recién hecho, el despacho todavía no estaba
+// en el historial cargado y salía «No se encontró el despacho para imprimir». Ahora, si no está, se busca por su id.
+// La ventana se abre antes de la consulta para que el navegador no la bloquee.
+async function imprimirDespacho(id) {
+    let r = _despHistRows.find(x => x.id === id);
+    let w0 = null;
+    if(!r) {
+        w0 = window.open('', '_blank');
+        try { if(w0) w0.document.write('<p style="font:16px -apple-system,Segoe UI,Arial,sans-serif;padding:24px;color:#334155">Preparando el conduce…</p>'); } catch(e) {}
+        try {
+            const { data, error } = await supabaseClient.from('despachos_almacen').select('*').eq('id', id).maybeSingle();
+            if(!error && data) { r = data; _despHistRows.unshift(data); }
+        } catch(e) {}
+        if(!r) { try { if(w0) w0.close(); } catch(e) {} return toast('No se encontró el despacho para imprimir.', 'error'); }
+    }
     const conf = (cache.configTaller) || {};
     const items = Array.isArray(r.items) && r.items.length ? r.items
         : [{ codigo: r.codarticulo || '', descripcion: r.articulo_nombre || '', cantidad: r.cantidad || 0, costo: 0 }];
@@ -16258,7 +16270,8 @@ function imprimirDespacho(id) {
         <td>${escapeHtml(it.descripcion || '')}${_despImeisItem(it).length ? `<div style="font-size:11px;color:#475569;margin-top:3px;line-height:1.45;">${_despImeisItem(it).map(x => `IMEI ${escapeHtml(x.imei)}${x.color ? ' · <b style="color:#0f172a;">' + escapeHtml(x.color) + '</b>' : ''}`).join('<br>')}</div>` : ''}</td>
         <td style="text-align:center; font-weight:700;">${it.cantidad}</td>
     </tr>`).join('');
-    const w = window.open('', '_blank');
+    const w = w0 || window.open('', '_blank');
+    if(w0) { try { w0.document.open(); } catch(e) {} }
     w.document.write(`<html><head><meta charset="utf-8"><title>Despacho ${escapeHtml(r.despacho_numero || '')}</title>
     <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:26px;color:#0f172a;}
     .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0891b2;padding-bottom:10px;}
