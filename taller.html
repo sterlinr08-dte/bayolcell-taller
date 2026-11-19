@@ -3794,6 +3794,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
                                 <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                     <button class="btn btn-success" onclick="abrirModalConsumoTaller()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-tool"></i> Registrar pieza usada</button>
+                                    <button id="btnTraerTaller" type="button" class="btn btn-dark" onclick="traerDelTaller()" style="padding:6px 12px; font-size:13px; min-height:44px; background:#0f766e;" title="Crea un lote nuevo con los equipos que llegaron al almacén Taller en Info Plus y no están en ningún lote"><i class="ti ti-building-warehouse"></i> Traer del Taller</button>
                                     <button class="btn btn-blue" id="btnRegistrarExistente" onclick="abrirModalRegistrarExistente()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-archive"></i> Registrar equipo existente</button>
                                     <button class="btn btn-light" onclick="refrescarVista(cargarLotesReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                                 </div>
@@ -5766,7 +5767,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
 <script defer src="crm-ortografia.js?v=20261102-or1"></script>
-<script defer src="taller-app.min.js?v=20261119-dsp1"></script>
+<script defer src="taller-app.min.js?v=20261119-trt1"></script>
 <script defer src="crm-estilos.js?v=20261110-c1"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
 <script defer src="conta-base.js?v=20261108-cb2"></script>
@@ -5789,7 +5790,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 <script defer src="taller-ui-inventario.js?v=20261026-a1"></script>
 <script defer src="taller-ui-finanzas.js?v=20261026-f1"></script>
 <script defer src="taller-ui-global.js?v=20261026-u1"></script>
-<script defer src="taller-ui-reacond.js?v=20261026-rcu1"></script>
+<script defer src="taller-ui-reacond.js?v=20261119-trt1"></script>
 <script defer src="bc-reacond-lotes.js?v=20261030-rlc1"></script>
 <script defer src="bc-pistola-imei.js?v=20261103-pi1"></script>
 <script defer src="bc-buscador-motion.js?v=20261031-bmo2"></script>
