@@ -1305,6 +1305,8 @@ function applyAccessControls() {
     // Registrar equipo existente (carga de equipos previos al sistema): solo admin
     const btnRegEx = document.getElementById('btnRegistrarExistente');
     if(btnRegEx) btnRegEx.style.display = isAdminUser() ? '' : 'none';
+    const btnTrt = document.getElementById('btnTraerTaller'); // 19-nov-2026: «Traer del almacén Taller», solo admin
+    if(btnTrt) btnTrt.style.display = isAdminUser() ? '' : 'none';
 
     // Si el dashboard está oculto, llevar al técnico a reacondicionado por defecto
     if(!tienePermiso('ver_dashboard') && tienePermiso('reacond_ver')) {
@@ -7406,14 +7408,12 @@ async function guardarDatosLote() {
 }
 
 // ===== 19-nov-2026 · «Traer del almacén Taller» (dueño: «si en Info Plus se hace un despacho para taller, no veo ese equipo
-// en Bayol Taller» → «Arma el botón»). Dentro de un lote: pregunta a Info Plus EN VIVO qué IMEI hay en el almacén 6 (Taller)
-// y muestra los que todavía no están en ningún lote del taller (ni en uno ya despachado). Los marcados entran al lote abierto
-// como «Recibido», igual que «Agregar equipo». El costo sale del costo del artículo en Info Plus (el admin lo corrige luego);
-// para quien no es admin queda en 0, como al agregarlo a mano. Solo lee de Info Plus (Edge infoplus-imei-almacen, modo almacen_todo).
-let _traerTallerItems = [], _traerTallerLote = null;
-async function traerDelTaller(loteId) {
-    _traerTallerLote = loteId || (typeof reacondLoteAbiertoId !== 'undefined' && reacondLoteAbiertoId) || loteActualId || null;
-    if(!_traerTallerLote) return toast('Abra primero un lote.', 'error');
+// en Bayol Taller» → «Arma el botón» → «al lote no, sino crear un lote y poner comentario»). En la lista de Reacondicionados:
+// pregunta a Info Plus EN VIVO qué IMEI hay en el almacén 6 (Taller), muestra los que no están en ningún lote y, con los
+// marcados, CREA UN LOTE NUEVO con el comentario que escriba el admin (rpc reacond_crear_lote: lote + equipos en una sola
+// transacción; si un IMEI ya existe no se crea nada). Costo = costo del artículo en Info Plus. Solo lee de Info Plus.
+let _traerTallerItems = [];
+async function traerDelTaller() {
     if(!isAdminUser()) return toast('Solo administrador', 'error');
     abrirModalGenerico('Traer del almacén Taller', '<div style="padding:26px 6px;text-align:center;color:#475569;font-size:15px;"><i class="ti ti-loader-2" style="font-size:22px;display:inline-block;animation:spin 1s linear infinite;"></i><br>Consultando Info Plus…</div>', { ancho: '640px' });
     let r = null;
@@ -7421,7 +7421,7 @@ async function traerDelTaller(loteId) {
     catch(e) { logError('Traer del almacén Taller', e); r = null; }
     const cont = document.getElementById('modalGenericoContenido'); if(!cont) return;
     if(!r || !r.ok) {
-        cont.innerHTML = '<div role="alert" style="padding:18px;text-align:center;color:#991b1b;font-size:15px;">No se pudo consultar Info Plus.<br><button type="button" class="btn btn-light" style="margin-top:12px;min-height:44px;" onclick="traerDelTaller(_traerTallerLote)"><i class="ti ti-refresh"></i> Reintentar</button></div>';
+        cont.innerHTML = '<div role="alert" style="padding:18px;text-align:center;color:#991b1b;font-size:15px;">No se pudo consultar Info Plus.<br><button type="button" class="btn btn-light" style="margin-top:12px;min-height:44px;" onclick="traerDelTaller()"><i class="ti ti-refresh"></i> Reintentar</button></div>';
         return;
     }
     try { if(typeof _ensureInfoplusArticulos === 'function') await _ensureInfoplusArticulos(); } catch(e) {} // el catálogo puede no estar cargado aún
@@ -7443,58 +7443,63 @@ async function traerDelTaller(loteId) {
         cont.innerHTML = `<div style="padding:18px;text-align:center;color:#334155;font-size:15px;"><i class="ti ti-circle-check" style="font-size:24px;color:#16a34a;"></i><br>No hay equipos nuevos en el almacén Taller.<br><small style="color:#64748b;">Info Plus tiene ${total} IMEI allí; todos ya están en algún lote.</small></div>`;
         return;
     }
-    const admin = isAdminUser();
     const filas = _traerTallerItems.map((it, i) => {
         const sinArt = !it.art;
         return `<label style="display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #eef2f7;min-height:44px;cursor:${sinArt ? 'not-allowed' : 'pointer'};opacity:${sinArt ? .6 : 1};">
             <input type="checkbox" class="trtSel" data-i="${i}" ${sinArt ? 'disabled' : 'checked'} style="width:20px;height:20px;flex:none;">
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:700;color:#0f172a;font-size:14px;">${escapeHtml(it.art ? (it.art.descripcion || it.descripcion) : it.descripcion)}</div>
-                <div style="font-size:13px;color:#475569;font-variant-numeric:tabular-nums;">IMEI ${escapeHtml(it.imei)}${it.art ? ' · Código ' + escapeHtml(String(it.art.codigo)) : ''}${admin && it.costo ? ' · Costo ' + escapeHtml(money(it.costo)) : ''}</div>
+                <div style="font-size:13px;color:#475569;font-variant-numeric:tabular-nums;">IMEI ${escapeHtml(it.imei)}${it.art ? ' · Código ' + escapeHtml(String(it.art.codigo)) : ''}${it.costo ? ' · Costo ' + escapeHtml(money(it.costo)) : ''}</div>
                 ${sinArt ? `<div style="font-size:12.5px;color:#b45309;">${it.candidatos && it.candidatos.length ? 'Varios artículos con ese nombre (' + escapeHtml(it.candidatos.join(', ')) + '): agréguelo a mano.' : 'No se encontró el artículo en el catálogo: sincronice o agréguelo a mano.'}</div>` : ''}
             </div>
         </label>`;
     }).join('');
-    const nLote = ((cache.lotes || []).find(l => l.id === _traerTallerLote) || {}).codigo_lote || '';
-    cont.innerHTML = `<div style="font-size:14px;color:#334155;margin-bottom:8px;">Están en el almacén Taller de Info Plus y no en ningún lote: <b>${_traerTallerItems.length}</b>. Entran al lote <b>${escapeHtml(nLote)}</b> como «Recibido».</div>
-        <div style="max-height:52vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:0 10px;">${filas}</div>
+    const codigo = calcularSiguienteCodigoLote();
+    const hoy = new Date().toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    cont.innerHTML = `<div style="font-size:14px;color:#334155;margin-bottom:8px;">Están en el almacén Taller de Info Plus y no en ningún lote: <b>${_traerTallerItems.length}</b>. Con los marcados se crea el lote nuevo <b>${escapeHtml(codigo)}</b>.</div>
+        <div style="max-height:42vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:0 10px;">${filas}</div>
+        <label for="trtComentario" style="display:block;font-size:13px;font-weight:700;color:#334155;margin:14px 0 6px;">Comentario del lote</label>
+        <textarea id="trtComentario" rows="2" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;resize:vertical;">Traído del almacén Taller (Info Plus) · ${escapeHtml(hoy)}</textarea>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;">
             <button type="button" class="btn btn-light" style="min-height:44px;" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
-            <button type="button" id="trtAgregar" class="btn btn-blue" style="min-height:54px;font-weight:700;" onclick="traerDelTallerAgregar(this)"><i class="ti ti-plus"></i> Agregar al lote</button>
+            <button type="button" id="trtCrear" class="btn btn-blue" style="min-height:54px;font-weight:700;" onclick="traerDelTallerCrearLote(this)"><i class="ti ti-package"></i> Crear lote</button>
         </div>`;
 }
-async function traerDelTallerAgregar(btn) {
+async function traerDelTallerCrearLote(btn) {
     if(btn && btn.disabled) return; // candado contra el doble toque
-    if(!_traerTallerLote) return toast('Sin lote activo.', 'error');
     if(!isAdminUser()) return toast('Solo administrador', 'error');
     const sel = [...document.querySelectorAll('#modalGenerico .trtSel:checked')].map(c => _traerTallerItems[Number(c.dataset.i)]).filter(it => it && it.art);
     if(!sel.length) return toast('Marque al menos un equipo.', 'error');
-    const admin = isAdminUser();
+    const comentario = (document.getElementById('trtComentario')?.value || '').trim();
+    if(!comentario) return toast('Escriba un comentario para el lote.', 'error');
     const orig = btn ? btn.innerHTML : '';
-    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Agregando…'; }
-    let ok = 0; const fallos = [];
-    for(const it of sel) {
-        const art = it.art;
-        const desc = (art.descripcion || '').trim();
-        try {
-            const { error } = await supabaseClient.from('equipos_refurbish').insert([{
-                articulo_id: null, articulo_codigo: art.codigo, lote_id: _traerTallerLote,
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Creando lote…'; }
+    try {
+        const hoyISO = new Date().toISOString().slice(0, 10);
+        const codigo = calcularSiguienteCodigoLote();
+        const equipos = sel.map(it => {
+            const art = it.art; const desc = (art.descripcion || '').trim();
+            return {
                 modelo: [art.marca, desc].filter(x => x).join(' ').trim() || String(art.codigo),
+                articulo_codigo: String(art.codigo), imei: String(it.imei).trim(),
                 marca: art.marca || null, capacidad: art.referencia || null, color: null,
-                imei: String(it.imei).trim(), costo_compra: admin ? (it.costo || 0) : 0, costo_repuestos: 0,
-                estado: 'Recibido', es_garantia: false,
-                notas_diagnostico: 'Traído del almacén Taller (Info Plus)'
-            }]);
-            if(error) throw error;
-            ok++;
-        } catch(e) { logError('Traer del almacén Taller: agregar', e); fallos.push(it.imei); }
+                costo_compra: Number(it.costo) || 0, costo_origen: 'infoplus_taller', fecha_compra: hoyISO
+            };
+        });
+        const costoTotal = equipos.reduce((s, e) => s + (Number(e.costo_compra) || 0), 0);
+        const lote = await _rpcReacond('reacond_crear_lote', { p_lote: {
+            codigo_lote: codigo, proveedor_id: null, fecha_compra: hoyISO,
+            costo_total_lote: Math.round(costoTotal * 100) / 100, cantidad_equipos: equipos.length,
+            estado: 'Abierto', notas: comentario, creado_por: _uuidONull(sessionUser?.id)
+        }, p_equipos: equipos });
+        toast(`Lote ${codigo} creado con ${lote.equipos || equipos.length} equipo(s).`);
+        document.getElementById('modalGenerico')?.remove();
+        await loadAll();
+        if(typeof abrirLoteReacond === 'function') abrirLoteReacond(lote.lote_id);
+    } catch(e) {
+        logError('Traer del almacén Taller: crear lote', e); toastError(getFriendlyError(e));
+        if(btn) { btn.disabled = false; btn.innerHTML = orig; }
     }
-    if(btn) { btn.disabled = false; btn.innerHTML = orig; }
-    if(ok) toast(ok === 1 ? '1 equipo agregado al lote' : ok + ' equipos agregados al lote');
-    if(fallos.length) toastError('No se pudieron agregar: ' + fallos.join(', '));
-    if(!fallos.length) document.getElementById('modalGenerico')?.remove();
-    await loadAll();
-    try { if(typeof renderDetalleLoteReacond === 'function' && typeof reacondLoteAbiertoId !== 'undefined' && reacondLoteAbiertoId === _traerTallerLote) renderDetalleLoteReacond(); } catch(e) {}
 }
 
 // ===== Colores por IMEI (Agregar equipo, importar de Info Plus y dentro del lote) =====
@@ -12256,7 +12261,6 @@ function renderDetalleLoteReacond() {
     const _bf = document.getElementById('btnFormatoIP'); if(_bf) _bf.style.display = isAdminUser() ? '' : 'none';
     const _bfx = document.getElementById('btnFormatoIPExcel'); if(_bfx) _bfx.style.display = isAdminUser() ? '' : 'none';
     const _brc = document.getElementById('btnRegistrarCompraIP'); if(_brc) _brc.style.display = isAdminUser() ? '' : 'none';
-    const _btt = document.getElementById('btnTraerTaller'); if(_btt) _btt.style.display = isAdminUser() ? '' : 'none';
     const _brm = document.getElementById('btnRegManualIP'); if(_brm) _brm.style.display = isAdminUser() ? '' : 'none';
     const _bdt = document.getElementById('btnDespacharTel'); if(_bdt) _bdt.style.display = isAdminUser() ? '' : 'none';
 
