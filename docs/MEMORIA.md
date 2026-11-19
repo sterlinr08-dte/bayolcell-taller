@@ -35,6 +35,8 @@ manda lo más nuevo. Ante la duda, volver a leer (nunca suponer).
 - **Todo «smart» (dueño, 30-oct-2026):** cada pantalla que se toque debe (1) pensar por el usuario (valores puestos, autocompletar, formatos solos, avisos antes de fallar), (2) verse elegante y moderna y (3) funcionar igual en iPhone y PC. Detalle en `DESIGN.md`.
 
 ## 3. Qué tenemos funcionando (por módulo)
+- **Menú lateral estilo 5 «Expanding» (19-nov-2026, PR #329):** en la PC el menú es una columna de iconos que se abre con los nombres al pasar el ratón (desde el 9-oct). La opción elegida va en píldora suave con filo naranja a la izquierda. La chincheta lo deja fijo abierto. Celular: cajón ☰ sin cambios. Apagar el pulido: `bc_menu5_off='1'`.
+- **Imprimir conduce (19-nov-2026, PR #327):** busca el despacho recién hecho por su id (antes «No se encontró el despacho para imprimir»).
 - **Reacondicionados (27-oct):** candados en el servidor aplicados (`20261027000000`, pegado por el dueño), traza del precio de venta (fuente/por/en) y Atención sin órdenes repetidas (PR #127). Pendiente con OK: cerrar 209 tareas abiertas en 96 equipos terminados; descontar 3 piezas «recibida» en Info Plus (otras 16 confirmar en físico). Botón «Diagnósticos (Excel)» por lote: una fila por equipo con nota, fallas pendientes y hechas, y piezas, sin costos (28-oct, PR sin publicar).
 - **Cuentas de pago por WhatsApp (26-oct):** plantilla `bayolcell_cuentas_pago_v2` (cuentas fijas en el texto, una por bloque; APPROVED en 5/6 líneas, +18094899145 pendiente). El texto libre (<24 h) es idéntico (`_rpTextoCuentas`). Si cambia una cuenta: cambiar `_RP_CUENTAS_TEXTO` y someter v3.
 **Prefactura** (antes «Recepción»; id interno `recepcion`, tabla `recepcion_prefacturas`; capa `taller-prefactura.js/.css`,
