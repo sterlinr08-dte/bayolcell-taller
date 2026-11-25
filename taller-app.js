@@ -15501,6 +15501,10 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
             const rp = data.respuesta; let codajuste = null;
             if(rp && typeof rp === 'object') codajuste = rp.codajuste || rp.codigo || rp.id || null;
             else if(rp !== undefined && rp !== null && String(rp).length <= 60) codajuste = String(rp);
+            // 25-nov-2026 (Historial del IMEI): cada IMEI movido queda anotado en imei_movimientos. Nunca bloquea.
+            if(listaImei.length) _imeiAnotar(listaImei.map(n => ({ imei: n, tipo: entrada ? 'entrada' : 'salida', codarticulo: String(codNum),
+                articulo: (_findInfoplusArt(codNum) || {}).descripcion || null, almacen: _nombreAlmacen(codloc),
+                documento: codajuste != null ? String(codajuste).slice(0, 60) : null, nota: (comentario || '').slice(0, 200) })));
             return { ok: true, codajuste: codajuste != null ? String(codajuste) : null };
         }
         return { ok: false, error: (data && (data.respuesta?.message || JSON.stringify(data.respuesta))) || 'Info Plus rechazó el ajuste' };
@@ -15800,7 +15804,7 @@ function _ajrRender() {
             else if(!lista) filas = '<div style="color:#64748b;font-size:13px;padding:10px 0;"><i class="ti ti-loader-2"></i> Cargando IMEI…</div>';
             else if(!lista.length) filas = '<div style="color:#64748b;font-size:13px;padding:10px 0;">Sin IMEI en esta localidad</div>';
             else filas = lista.map(n => { const s = a.salen.includes(n); return `<div class="ajrImeiFila" data-imei="${n}" style="display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid #eef2f7;">
-                <span style="flex:1;font-size:14px;font-variant-numeric:tabular-nums;${s ? 'color:#b91c1c;text-decoration:line-through;' : 'color:#0f172a;'}">${n}</span>${s ? '<span style="color:#b91c1c;font-weight:700;font-size:13px;">Sale</span>' : ''}
+                <button type="button" onclick="abrirHistorialImei('${n}')" title="Historial del IMEI" style="flex:1;min-height:44px;text-align:left;background:none;border:0;padding:0;cursor:pointer;font-size:14px;font-variant-numeric:tabular-nums;${s ? 'color:#b91c1c;text-decoration:line-through;' : 'color:#0f172a;'}">${n}</button>${s ? '<span style="color:#b91c1c;font-weight:700;font-size:13px;">Sale</span>' : ''}
                 <button class="btn btn-light" aria-label="${s ? 'Deshacer' : 'Sacar'} ${n}" title="${s ? 'Deshacer' : 'Sacar'}" onclick="_ajrSale(${i},'${n}')" style="${btn44}${s ? '' : 'color:#b91c1c;'}"><i class="ti ${s ? 'ti-arrow-back-up' : 'ti-minus'}"></i></button></div>`; }).join('');
             const nuevos = a.entran.map(n => `<div class="ajrImeiFila" data-imei="${n}" style="display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid #eef2f7;">
                 <span style="flex:1;font-size:14px;font-variant-numeric:tabular-nums;color:#15803d;font-weight:600;">${n}</span><span style="color:#15803d;font-weight:700;font-size:13px;">Entra</span>
@@ -18539,6 +18543,82 @@ async function enviarRefurbExterno(equipoId) {
     } catch(e) { logError('Refurb reparación externa', e); toastError(getFriendlyError(e)); }
 }
 
+// ===================== HISTORIAL DEL IMEI (25-nov-2026) =====================
+// Dueño: «que en el historial del IMEI aparezcan todas las novedades… todo el histórico de todos los movimientos».
+// Opción A: una línea de tiempo con lo que guarda el taller (compra, lote y etapas, órdenes, despachos, prefacturas,
+// financiamiento, diagnóstico, batería, pantalla, conteo y los ajustes con IMEI) — rpc imei_historial — y arriba dónde
+// está HOY en Info Plus (consulta en vivo). Las ventas de Info Plus no traen IMEI: no salen (se explica en la ⓘ).
+async function _imeiAnotar(filas) {
+    try {
+        const usuario = (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || null;
+        const f = (filas || []).filter(x => x && x.imei).map(x => ({ ...x, usuario }));
+        if(f.length) await supabaseClient.from('imei_movimientos').insert(f);
+    } catch(e) { /* el registro nunca frena el ajuste */ }
+}
+Object.assign(AYUDAS, {
+    historialImei: { titulo: 'Historial del IMEI', html: `
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Junta en orden todo lo que el sistema sabe de ese IMEI: <b>compra</b> (proveedor y factura), <b>lote</b> y cada paso del reacondicionado, <b>órdenes</b> de servicio, <b>despachos</b> entre almacenes, <b>prefacturas</b>, <b>financiamiento</b>, <b>diagnóstico</b>, <b>batería</b>, <b>pantalla</b>, <b>conteo físico</b> y los <b>ajustes</b> en Info Plus.</li>
+          <li><b>Ahora</b>: dónde lo tiene Info Plus en este momento.</li>
+          <li>Los ajustes con IMEI se anotan desde el 25-nov-2026.</li>
+          <li>No salen las <b>ventas</b> de Info Plus (Info Plus no manda el IMEI de cada venta) ni lo que se mueva directo en Info Plus, fuera del taller.</li>
+        </ul>` }
+});
+const _HIMEI_ICONO = { compra:'ti-shopping-cart', lote:'ti-package', reacond:'ti-tool', orden:'ti-clipboard-list', despacho:'ti-truck-delivery',
+    prefactura:'ti-file-invoice', financiamiento:'ti-credit-card', diagnostico:'ti-stethoscope', bateria:'ti-battery-2', pantalla:'ti-device-mobile',
+    conteo:'ti-list-check', movimiento:'ti-arrows-exchange' };
+const _HIMEI_ESTADOS = { en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', tecnico_recibio:'Técnico recibió',
+    espera_pieza:'Espera pieza', listo_revision:'Listo revisión', listo_venta:'Listo venta', vendido:'Despachado', reparacion_externa:'Reparación externa',
+    reasignado:'Reasignado', completado:'Completado', recibido:'Recibido', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado',
+    no_reparado:'No reparado', espera_repuesto:'Espera repuesto', pendiente_cliente:'Esperando cliente', despacho_infoplus:'Despacho Info Plus' };
+function _himeiLegible(t) {
+    return String(t || '').replace(/\b[a-z]+(?:_[a-z]+)+\b/g, m => _HIMEI_ESTADOS[m] || m)
+        .replace(/(^|→ )([a-z]+)(?= →| ·|$)|([a-z]+)(?= →)/g, (m, a, b, c) => { const w = b || c; return _HIMEI_ESTADOS[w] ? (a || '') + _HIMEI_ESTADOS[w] : m; });
+}
+function abrirHistorialImei(imei) {
+    const prev = document.getElementById('modalHistImei'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalHistImei'; box.style.zIndex = '830';
+    box.innerHTML = `<div class="modal-box" style="max-width:620px;">
+        <div class="modal-header"><h3 style="margin:0;display:flex;align-items:center;gap:8px;"><i class="ti ti-history"></i> Historial del IMEI ${_iAyuda('historialImei')}</h3><button class="modal-close" aria-label="Cerrar" onclick="document.getElementById('modalHistImei').remove()">✕</button></div>
+        <div class="modal-body" style="display:grid;gap:12px;">
+          <div style="display:flex;gap:8px;"><input id="himeiTxt" inputmode="numeric" autocomplete="off" placeholder="IMEI" aria-label="IMEI" value="${escapeHtml(String(imei || '').replace(/\D/g, ''))}"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();_himeiBuscar()}" style="flex:1;min-width:0;min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font-variant-numeric:tabular-nums;">
+            <button class="btn btn-blue" onclick="_himeiBuscar()" style="min-height:48px;flex:0 0 auto;"><i class="ti ti-search"></i> Buscar</button></div>
+          <div id="himeiRes"></div>
+        </div></div>`;
+    document.body.appendChild(box);
+    if(String(imei || '').replace(/\D/g, '').length >= 8) _himeiBuscar(); else setTimeout(() => document.getElementById('himeiTxt')?.focus(), 60);
+}
+async function _himeiBuscar() {
+    const v = (document.getElementById('himeiTxt')?.value || '').replace(/\D/g, '');
+    const res = document.getElementById('himeiRes'); if(!res) return;
+    if(v.length < 8) { res.innerHTML = '<div style="color:#b45309;font-size:14px;">IMEI incompleto</div>'; return; }
+    res.innerHTML = '<div style="color:#64748b;font-size:14px;padding:10px 0;"><i class="ti ti-loader-2"></i> Buscando…</div>';
+    const [h, q] = await Promise.all([
+        supabaseClient.rpc('imei_historial', { p_imei: v }).then(r => r, e => ({ error: e })),
+        (v.length >= 14 ? _ipDondeEstanImei([v]).catch(() => null) : Promise.resolve(null))
+    ]);
+    if(document.getElementById('himeiTxt')?.value.replace(/\D/g, '') !== v) return;   // se buscó otro mientras tanto
+    if(h.error) { res.innerHTML = `<div style="color:#b91c1c;font-size:14px;display:flex;align-items:center;gap:8px;">No se pudo leer <button class="btn btn-light" onclick="_himeiBuscar()" style="min-height:44px;"><i class="ti ti-refresh"></i> Reintentar</button></div>`; return; }
+    const ev = Array.isArray(h.data) ? h.data : [];
+    const ahora = !q ? '' : !q.ok ? '<span style="color:#64748b;">Info Plus no respondió</span>'
+        : q.donde[v] ? `<b>${escapeHtml(_nombreAlmacen(q.donde[v]))}</b>` : '<span style="color:#b45309;">No está en ningún almacén</span>';
+    const fmt = f => { if(!f) return ''; const d = new Date(f); return isNaN(d) ? '' : d.toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: '2-digit' }) + (/T00:00:00/.test(f) ? '' : ' · ' + d.toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' })); };
+    const modelo = (ev.find(e => e.tipo === 'lote' || e.tipo === 'compra') || {}).d || '';
+    res.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-size:14px;color:#334155;margin-bottom:4px;">
+          <span style="font-variant-numeric:tabular-nums;font-weight:800;font-size:15px;color:#0f172a;">${escapeHtml(v)}</span>
+          ${ahora ? `<span>Ahora: ${ahora}</span>` : ''}<span style="color:#64748b;">${ev.length} ${ev.length === 1 ? 'movimiento' : 'movimientos'}</span></div>
+        ${modelo ? `<div style="font-size:13px;color:#475569;margin-bottom:8px;">${escapeHtml(modelo.split(' · ')[0])}</div>` : ''}
+        ${ev.length ? `<ol class="himeiLista" style="list-style:none;margin:0;padding:0;max-height:58vh;overflow:auto;">${ev.slice().reverse().map(e => `
+          <li style="display:flex;gap:10px;padding:10px 0;border-top:1px solid #eef2f7;">
+            <span style="flex:0 0 36px;height:36px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#334155;"><i class="ti ${_HIMEI_ICONO[e.tipo] || 'ti-point'}"></i></span>
+            <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;color:#0f172a;">${escapeHtml(_himeiLegible(e.t))}</div>
+              ${e.d ? `<div style="font-size:13px;color:#475569;overflow-wrap:anywhere;">${escapeHtml(_himeiLegible(e.d))}</div>` : ''}
+              <div style="font-size:12px;color:#94a3b8;margin-top:2px;">${escapeHtml(fmt(e.f))}</div></div></li>`).join('')}</ol>`
+          : '<div style="padding:16px;text-align:center;color:#64748b;font-size:14px;border:1px dashed #cbd5e1;border-radius:12px;">Sin movimientos en el taller</div>'}`;
+}
+
 // ===================== GARANTÍA CHINA (25-nov-2026) =====================
 // Dueño (opción «Mover y marcar»): un botón mueve ESE IMEI en Info Plus al almacén Garantía China (despacho con su
 // serial, con número y conduce) y el equipo queda «Reparación externa · Garantía China» hasta que regrese. Al volver,
@@ -18913,6 +18993,7 @@ async function verFichaDespacho(equipoId) {
             <button class="fe-btn" onclick="var m=this.nextElementSibling;m.style.display=(m.style.display==='block'?'none':'block');event.stopPropagation();"><i class="ti ti-dots"></i> Más acciones <i class="ti ti-chevron-down"></i></button>
             <div class="fe-menu">
               <a onclick="_feCerrar();verHistorialEquipoReacond('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
+              ${eq.imei ? `<a onclick="abrirHistorialImei('${escapeHtml(String(eq.imei))}')"><i class="ti ti-timeline"></i> Historial del IMEI</a>` : ''}
               ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-lock-check"></i> Cerrar salida</a>` : ''}
               ${isAdminUser() ? (_esGarantiaChina(eq) ? `<a onclick="volvioGarantiaChina('${equipoId}')"><i class="ti ti-rotate"></i> Volvió de Garantía China</a>` : `<a onclick="enviarGarantiaChina('${equipoId}')"><i class="ti ti-shield-share"></i> Enviar a Garantía China</a>`) : ''}
             </div>
