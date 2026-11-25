@@ -7445,8 +7445,9 @@ async function traerDelTaller() {
     }
     const filas = _traerTallerItems.map((it, i) => {
         const sinArt = !it.art;
-        return `<label style="display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #eef2f7;min-height:44px;cursor:${sinArt ? 'not-allowed' : 'pointer'};opacity:${sinArt ? .6 : 1};">
-            <input type="checkbox" class="trtSel" data-i="${i}" ${sinArt ? 'disabled' : 'checked'} style="width:20px;height:20px;flex:none;">
+        const buscar = [it.art ? it.art.descripcion : '', it.descripcion, it.imei, it.art ? it.art.codigo : '', it.art ? it.art.marca : ''].filter(Boolean).join(' ').toLowerCase();
+        return `<label class="trtFila" data-buscar="${escapeHtml(buscar)}" style="display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #eef2f7;min-height:44px;cursor:${sinArt ? 'not-allowed' : 'pointer'};opacity:${sinArt ? .6 : 1};">
+            <input type="checkbox" class="trtSel" data-i="${i}" ${sinArt ? 'disabled' : 'checked'} onchange="_trtContar()" style="width:20px;height:20px;flex:none;">
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:700;color:#0f172a;font-size:14px;">${escapeHtml(it.art ? (it.art.descripcion || it.descripcion) : it.descripcion)}</div>
                 <div style="font-size:13px;color:#475569;font-variant-numeric:tabular-nums;">IMEI ${escapeHtml(it.imei)}${it.art ? ' · Código ' + escapeHtml(String(it.art.codigo)) : ''}${it.costo ? ' · Costo ' + escapeHtml(money(it.costo)) : ''}</div>
@@ -7457,13 +7458,54 @@ async function traerDelTaller() {
     const codigo = calcularSiguienteCodigoLote();
     const hoy = new Date().toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' });
     cont.innerHTML = `<div style="font-size:14px;color:#334155;margin-bottom:8px;">Están en el almacén Taller de Info Plus y no en ningún lote: <b>${_traerTallerItems.length}</b>. Con los marcados se crea el lote nuevo <b>${escapeHtml(codigo)}</b>.</div>
-        <div style="max-height:42vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:0 10px;">${filas}</div>
+        <!-- 25-nov-2026 (dueño: «ponle un buscador cuando ande buscando un equipo específico») -->
+        <div style="position:relative;margin-bottom:8px;">
+            <i class="ti ti-search" aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:18px;"></i>
+            <input id="trtBuscar" type="search" autocomplete="off" placeholder="Buscar por IMEI, modelo o código" aria-label="Buscar equipo" oninput="_trtFiltrar(this.value)" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px 12px 10px 38px;border:1px solid #cbd5e1;border-radius:10px;">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+            <button type="button" class="btn btn-light" style="min-height:44px;font-size:13px;" onclick="_trtMarcar(true)"><i class="ti ti-checks"></i> Marcar los que se ven</button>
+            <button type="button" class="btn btn-light" style="min-height:44px;font-size:13px;" onclick="_trtMarcar(false)"><i class="ti ti-square"></i> Desmarcar todos</button>
+            <span id="trtCuenta" style="font-size:13px;color:#475569;margin-left:auto;"></span>
+        </div>
+        <style>#modalGenerico .trtFila[hidden],#modalGenerico #trtNada[hidden]{display:none!important}</style><div style="max-height:42vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:0 10px;">${filas}<div id="trtNada" hidden style="padding:16px;text-align:center;color:#64748b;font-size:14px;">Ningún equipo coincide con la búsqueda.</div></div>
         <label for="trtComentario" style="display:block;font-size:13px;font-weight:700;color:#334155;margin:14px 0 6px;">Comentario del lote</label>
         <textarea id="trtComentario" rows="2" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;resize:vertical;">Traído del almacén Taller (Info Plus) · ${escapeHtml(hoy)}</textarea>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;">
             <button type="button" class="btn btn-light" style="min-height:44px;" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
             <button type="button" id="trtCrear" class="btn btn-blue" style="min-height:54px;font-weight:700;" onclick="traerDelTallerCrearLote(this)"><i class="ti ti-package"></i> Crear lote</button>
         </div>`;
+    _trtContar();
+}
+// Buscador de «Traer del Taller»: filtra la lista sin tocar lo marcado. Los IMEI se buscan también sin espacios.
+function _trtFiltrar(q) {
+    const t = String(q || '').toLowerCase().trim(), dig = t.replace(/\D/g, '');
+    const palabras = t.split(/\s+/).filter(Boolean);
+    let vis = 0;
+    document.querySelectorAll('#modalGenerico .trtFila').forEach(f => {
+        const b = f.dataset.buscar || '';
+        const ok = !t || palabras.every(p => b.includes(p)) || (dig.length >= 4 && b.replace(/\s+/g, '').includes(dig));
+        f.hidden = !ok; if(ok) vis++;
+    });
+    const nada = document.getElementById('trtNada'); if(nada) nada.hidden = vis > 0;
+    _trtContar();
+}
+function _trtMarcar(si) {
+    document.querySelectorAll('#modalGenerico .trtFila').forEach(f => {
+        const c = f.querySelector('.trtSel'); if(!c || c.disabled) return;
+        if(!si) c.checked = false; else if(!f.hidden) c.checked = true;
+    });
+    _trtContar();
+}
+// Cuántos van al lote (también los marcados que la búsqueda esconde, para que nunca se cuele uno sin verlo).
+function _trtContar() {
+    const todos = [...document.querySelectorAll('#modalGenerico .trtSel:checked')];
+    const ocultos = todos.filter(c => c.closest('.trtFila')?.hidden).length;
+    const n = todos.length;
+    const cu = document.getElementById('trtCuenta');
+    if(cu) cu.innerHTML = `Marcados: <b>${n}</b>` + (ocultos ? ` <span style="color:#b45309;">(${ocultos} no se ven por la búsqueda)</span>` : '');
+    const b = document.getElementById('trtCrear');
+    if(b && !b.disabled) b.innerHTML = `<i class="ti ti-package"></i> Crear lote (${n})`;
 }
 async function traerDelTallerCrearLote(btn) {
     if(btn && btn.disabled) return; // candado contra el doble toque
