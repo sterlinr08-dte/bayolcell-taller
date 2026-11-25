@@ -19,10 +19,13 @@ create table if not exists public.imei_movimientos (
 );
 alter table public.imei_movimientos enable row level security;
 create index if not exists imei_movimientos_imei on public.imei_movimientos (imei, creado_en);
-drop policy if exists imei_movimientos_auth on public.imei_movimientos;
-create policy imei_movimientos_auth on public.imei_movimientos for all to authenticated
-  using ((select app_is_admin()) or (select app_actor_es_tecnico_activo()))
-  with check ((select app_is_admin()) or (select app_actor_es_tecnico_activo()));
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'imei_movimientos' and policyname = 'imei_movimientos_auth') then
+    create policy imei_movimientos_auth on public.imei_movimientos for all to authenticated
+      using ((select app_is_admin()) or (select app_actor_es_tecnico_activo()))
+      with check ((select app_is_admin()) or (select app_actor_es_tecnico_activo()));
+  end if;
+end $$;
 
 create or replace function public.imei_alm_nombre(p int)
 returns text language sql immutable as $$
