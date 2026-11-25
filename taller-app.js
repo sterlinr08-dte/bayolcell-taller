@@ -14899,12 +14899,13 @@ async function abrirPanelProceso(equipoId) {
                     <div style="background:#e0e7ff; border:2px solid #6366f1; padding:14px; border-radius:12px; margin-top:14px;">
                         <b style="color:#3730a3;"><i class="ti ti-external-link"></i> EN REPARACIÓN EXTERNA</b>
                         <p style="font-size:12px; color:#3730a3; margin:6px 0;">Enviado a: <b>${escapeHtml(eq.taller_externo || '—')}</b></p>
-                        <button class="btn btn-blue" style="font-size:12px; padding:7px 12px;" onclick="cambiarEstadoProceso('${equipoId}','tecnico_recibio')"><i class="ti ti-rotate"></i> Volvió de reparación externa</button>
+                        ${_esGarantiaChina(eq) ? `<button class="btn btn-blue" style="font-size:13px; padding:7px 12px; min-height:44px;" onclick="volvioGarantiaChina('${equipoId}')"><i class="ti ti-rotate"></i> Volvió de Garantía China</button>` : `<button class="btn btn-blue" style="font-size:12px; padding:7px 12px;" onclick="cambiarEstadoProceso('${equipoId}','tecnico_recibio')"><i class="ti ti-rotate"></i> Volvió de reparación externa</button>`}
                     </div>
                 ` : `
                     <button class="btn btn-light" onclick="enviarRefurbExterno('${equipoId}')" style="margin-top:10px; margin-left:8px; padding:8px 14px; font-size:12px; color:#3730a3; border-color:#c7d2fe;">
                         <i class="ti ti-external-link"></i> Enviar a reparación externa
                     </button>
+                    ${isAdminUser() || tienePermiso('estado_despachar') ? `<button class="btn btn-light" onclick="enviarGarantiaChina('${equipoId}')" style="margin-top:10px; margin-left:8px; padding:8px 14px; font-size:13px; min-height:44px; color:#0369a1; border-color:#bae6fd;"><i class="ti ti-shield-share"></i> Enviar a Garantía China</button>` : ''}
                 `}
 
                 ${estaReasignado ? `
@@ -18538,6 +18539,95 @@ async function enviarRefurbExterno(equipoId) {
     } catch(e) { logError('Refurb reparación externa', e); toastError(getFriendlyError(e)); }
 }
 
+// ===================== GARANTÍA CHINA (25-nov-2026) =====================
+// Dueño (opción «Mover y marcar»): un botón mueve ESE IMEI en Info Plus al almacén Garantía China (despacho con su
+// serial, con número y conduce) y el equipo queda «Reparación externa · Garantía China» hasta que regrese. Al volver,
+// otro despacho lo trae de Garantía China al Taller y el equipo vuelve a «Técnico recibió», como la reparación externa.
+// Antes se revisa en Info Plus dónde está el IMEI; si Info Plus no hace el despacho, el equipo no cambia de estado.
+const GARANTIA_CHINA_ALM = 3;
+let _garEnCurso = false;
+function _esGarantiaChina(eq) { return !!eq && eq.estado_evaluacion === 'reparacion_externa' && /^Garantía China/i.test(eq.taller_externo || ''); }
+async function _garDespachar(eq, origen, destino, nota) {
+    const imei = String(eq.imei || '').replace(/\D/g, ''), cod = parseInt(String(eq.articulo_codigo || '').replace(/\D/g, ''), 10);
+    const items = [{ codigo: String(cod), descripcion: eq.modelo || String(cod), cantidad: 1, costo: Number(eq.costo_compra) || 0 }];
+    const r = await _ejecutarDespachoReal({ origen, destino, items, seriales: [{ numero: imei, codarticulo: cod }], nota });
+    try { await _despGuardarHistorial({ origen, destino, items: [{ ...items[0], imeis: [{ imei, color: _eqColorReal(eq) || '' }] }], nota, r }); } catch(_e) {}
+    return r;
+}
+async function enviarGarantiaChina(equipoId) {
+    if(!isAdminUser() && !tienePermiso('estado_despachar')) return toast('Solo administrador', 'error');
+    if(_garEnCurso) return;
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return toast('Equipo no encontrado', 'error');
+    if(_esGarantiaChina(eq)) return toast('Ya está en Garantía China');
+    const imei = String(eq.imei || '').replace(/\D/g, '');
+    if(imei.length < 14 || imei.length > 17) return toast('Falta el IMEI', 'error');
+    if(!String(eq.articulo_codigo || '').replace(/\D/g, '')) return toast('Falta el código del artículo', 'error');
+    _garEnCurso = true;
+    try {
+        toast('Revisando IMEI…');
+        const q = await _ipDondeEstanImei([imei]);
+        if(!q.ok) return toast(q.motivo, 'error');
+        const origen = q.donde[imei];
+        if(!origen) return toast('No está en Info Plus', 'error');
+        if(Number(origen) === GARANTIA_CHINA_ALM) return toast('Ya está en Garantía China en Info Plus', 'error');
+        const motivo = await pedirTexto('Motivo', { placeholder: 'Pantalla con rayas' });
+        if(motivo === null) return;
+        if(!await confirmar(`Enviar a Garantía China\n\n${eq.modelo || 'Equipo'}\n${imei}\n${_nombreAlmacen(origen)} → Garantía China`, { ok: 'Enviar' })) return;
+        toast('Enviando en Info Plus…');
+        const nota = 'Garantía China' + (motivo.trim() ? ' · ' + motivo.trim() : '');
+        const r = await _garDespachar(eq, Number(origen), GARANTIA_CHINA_ALM, nota);
+        if(!r.ok) return toast('Info Plus no lo movió: ' + (r.error || 'error'), 'error');
+        const doc = r.numero || '';
+        const { error } = await supabaseClient.from('equipos_refurbish').update({
+            estado_evaluacion: 'reparacion_externa',
+            taller_externo: 'Garantía China' + (doc ? ' · Nº ' + doc : '') + (motivo.trim() ? ' · ' + motivo.trim() : '')
+        }).eq('id', equipoId);
+        if(error) { logError('Garantía China: estado', error); return toastError(`Info Plus ya tiene el despacho Nº ${doc || '?'}, pero el equipo no cambió de estado. ${getFriendlyError(error)}`); }
+        try { await _histInsert([{ equipo_id: equipoId, estado_anterior: eq.estado_evaluacion || null, estado_nuevo: 'reparacion_externa',
+            accion: '🛡️ Enviado a Garantía China' + (doc ? ' · Info Plus Nº ' + doc : ''), notas: motivo.trim() || null, usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        const q2 = await _ipDondeEstanImei([imei], [String(GARANTIA_CHINA_ALM)]);
+        if(q2.ok && q2.donde[imei] !== String(GARANTIA_CHINA_ALM)) toastError(`Despacho Nº ${doc || '?'} hecho, pero Info Plus no muestra el IMEI en Garantía China. Revíselo allá.`);
+        else toast('🛡️ En Garantía China' + (doc ? ' · Nº ' + doc : ''));
+        const mf = document.getElementById('modalFichaEquipo'); if(mf) mf.remove();
+        await loadAll();
+        if(typeof _panelProcesoEquipoId !== 'undefined' && _panelProcesoEquipoId === equipoId && typeof abrirPanelProceso === 'function') abrirPanelProceso(equipoId);
+        if(typeof reacondLoteAbiertoId !== 'undefined' && reacondLoteAbiertoId && typeof renderDetalleLoteReacond === 'function') renderDetalleLoteReacond();
+    } catch(e) { logError('enviarGarantiaChina', e); toastError(getFriendlyError(e)); }
+    finally { _garEnCurso = false; }
+}
+async function volvioGarantiaChina(equipoId) {
+    if(!isAdminUser() && !tienePermiso('estado_despachar')) return toast('Solo administrador', 'error');
+    if(_garEnCurso) return;
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq || !_esGarantiaChina(eq)) return toast('Equipo no encontrado', 'error');
+    const imei = String(eq.imei || '').replace(/\D/g, '');
+    _garEnCurso = true;
+    try {
+        toast('Revisando IMEI…');
+        const q = imei ? await _ipDondeEstanImei([imei]) : { ok: false, motivo: 'Falta el IMEI', donde: {} };
+        if(!q.ok) return toast(q.motivo, 'error');
+        const en = q.donde[imei];
+        let doc = '';
+        if(Number(en) === GARANTIA_CHINA_ALM) {
+            if(!await confirmar(`Volvió de Garantía China\n\n${eq.modelo || 'Equipo'}\n${imei}\nGarantía China → Taller`, { ok: 'Regresar', peligro: false })) return;
+            toast('Moviendo en Info Plus…');
+            const r = await _garDespachar(eq, GARANTIA_CHINA_ALM, 6, 'Regresó de Garantía China');
+            if(!r.ok) return toast('Info Plus no lo movió: ' + (r.error || 'error'), 'error');
+            doc = r.numero || '';
+        } else if(!await confirmar(`El IMEI no está en Garantía China en Info Plus${en ? ' (está en ' + _nombreAlmacen(en) + ')' : ''}.\n\n¿Marcarlo como regresado sin moverlo?`, { ok: 'Marcar', peligro: false })) return;
+        const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'tecnico_recibio' }).eq('id', equipoId);
+        if(error) { logError('Garantía China: regreso', error); return toastError(getFriendlyError(error)); }
+        try { await _histInsert([{ equipo_id: equipoId, estado_anterior: 'reparacion_externa', estado_nuevo: 'tecnico_recibio',
+            accion: '🛡️ Volvió de Garantía China' + (doc ? ' · Info Plus Nº ' + doc : ''), usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        toast('✅ De vuelta en el Taller' + (doc ? ' · Nº ' + doc : ''));
+        const mf = document.getElementById('modalFichaEquipo'); if(mf) mf.remove();
+        await loadAll();
+        if(typeof _panelProcesoEquipoId !== 'undefined' && _panelProcesoEquipoId === equipoId && typeof abrirPanelProceso === 'function') abrirPanelProceso(equipoId);
+    } catch(e) { logError('volvioGarantiaChina', e); toastError(getFriendlyError(e)); }
+    finally { _garEnCurso = false; }
+}
+
 // El técnico solicita una pieza para reacondicionados SIN equipo/lote seleccionado.
 // Queda 'pendiente' para que el admin la entregue, igual que las demás.
 async function solicitarPiezaReacondLibre() {
@@ -18824,6 +18914,7 @@ async function verFichaDespacho(equipoId) {
             <div class="fe-menu">
               <a onclick="_feCerrar();verHistorialEquipoReacond('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
               ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-lock-check"></i> Cerrar salida</a>` : ''}
+              ${isAdminUser() ? (_esGarantiaChina(eq) ? `<a onclick="volvioGarantiaChina('${equipoId}')"><i class="ti ti-rotate"></i> Volvió de Garantía China</a>` : `<a onclick="enviarGarantiaChina('${equipoId}')"><i class="ti ti-shield-share"></i> Enviar a Garantía China</a>`) : ''}
             </div>
           </div>
           <button class="fe-x modal-close" onclick="_feCerrar()">✕</button>
