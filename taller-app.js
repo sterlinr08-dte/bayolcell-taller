@@ -7440,7 +7440,7 @@ async function traerDelTaller() {
     });
     const total = (r.items || []).length;
     if(!_traerTallerItems.length) {
-        cont.innerHTML = `<div style="padding:18px;text-align:center;color:#334155;font-size:15px;"><i class="ti ti-circle-check" style="font-size:24px;color:#16a34a;"></i><br>No hay equipos nuevos en el almacén Taller.<br><small style="color:#64748b;">Info Plus tiene ${total} IMEI allí; todos ya están en algún lote.</small></div>`;
+        cont.innerHTML = `<div style="padding:18px;text-align:center;color:#334155;font-size:15px;"><i class="ti ti-circle-check" style="font-size:24px;color:#16a34a;"></i><br>Todo el Taller ya está en lotes<br><small style="color:#64748b;">${total} IMEI en Info Plus</small></div>`;
         return;
     }
     const filas = _traerTallerItems.map((it, i) => {
@@ -7451,25 +7451,25 @@ async function traerDelTaller() {
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:700;color:#0f172a;font-size:14px;">${escapeHtml(it.art ? (it.art.descripcion || it.descripcion) : it.descripcion)}</div>
                 <div style="font-size:13px;color:#475569;font-variant-numeric:tabular-nums;">IMEI ${escapeHtml(it.imei)}${it.art ? ' · Código ' + escapeHtml(String(it.art.codigo)) : ''}${it.costo ? ' · Costo ' + escapeHtml(money(it.costo)) : ''}</div>
-                ${sinArt ? `<div style="font-size:12.5px;color:#b45309;">${it.candidatos && it.candidatos.length ? 'Varios artículos con ese nombre (' + escapeHtml(it.candidatos.join(', ')) + '): agréguelo a mano.' : 'No se encontró el artículo en el catálogo: sincronice o agréguelo a mano.'}</div>` : ''}
+                ${sinArt ? `<div style="font-size:12.5px;color:#b45309;">${it.candidatos && it.candidatos.length ? 'Varios códigos: ' + escapeHtml(it.candidatos.join(', ')) : 'Sin artículo en el catálogo'}</div>` : ''}
             </div>
         </label>`;
     }).join('');
     const codigo = calcularSiguienteCodigoLote();
     const hoy = new Date().toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    cont.innerHTML = `<div style="font-size:14px;color:#334155;margin-bottom:8px;">Están en el almacén Taller de Info Plus y no en ningún lote: <b>${_traerTallerItems.length}</b>. Con los marcados se crea el lote nuevo <b>${escapeHtml(codigo)}</b>.</div>
+    cont.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:15px;color:#334155;margin-bottom:8px;"><span style="flex:1;">Sin lote <b>${_traerTallerItems.length}</b> · Lote nuevo <b>${escapeHtml(codigo)}</b></span>${_iAyuda('traerTaller')}</div>
         <!-- 25-nov-2026 (dueño: «ponle un buscador cuando ande buscando un equipo específico») -->
         <div style="position:relative;margin-bottom:8px;">
             <i class="ti ti-search" aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:18px;"></i>
-            <input id="trtBuscar" type="search" autocomplete="off" placeholder="Buscar por IMEI, modelo o código" aria-label="Buscar equipo" oninput="_trtFiltrar(this.value)" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px 12px 10px 38px;border:1px solid #cbd5e1;border-radius:10px;">
+            <input id="trtBuscar" type="search" autocomplete="off" placeholder="IMEI, modelo o código" aria-label="Buscar equipo" oninput="_trtFiltrar(this.value)" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px 12px 10px 38px;border:1px solid #cbd5e1;border-radius:10px;">
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-            <button type="button" class="btn btn-light" style="min-height:44px;font-size:13px;" onclick="_trtMarcar(true)"><i class="ti ti-checks"></i> Marcar los que se ven</button>
-            <button type="button" class="btn btn-light" style="min-height:44px;font-size:13px;" onclick="_trtMarcar(false)"><i class="ti ti-square"></i> Desmarcar todos</button>
+            <button type="button" class="btn btn-light" style="min-height:44px;font-size:13px;" onclick="_trtMarcar(true)"><i class="ti ti-checks"></i> Marcar visibles</button>
+            <button type="button" class="btn btn-light" style="min-height:44px;font-size:13px;" onclick="_trtMarcar(false)"><i class="ti ti-square"></i> Desmarcar</button>
             <span id="trtCuenta" style="font-size:13px;color:#475569;margin-left:auto;"></span>
         </div>
-        <style>#modalGenerico .trtFila[hidden],#modalGenerico #trtNada[hidden]{display:none!important}</style><div style="max-height:42vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:0 10px;">${filas}<div id="trtNada" hidden style="padding:16px;text-align:center;color:#64748b;font-size:14px;">Ningún equipo coincide con la búsqueda.</div></div>
-        <label for="trtComentario" style="display:block;font-size:13px;font-weight:700;color:#334155;margin:14px 0 6px;">Comentario del lote</label>
+        <style>#modalGenerico .trtFila[hidden],#modalGenerico #trtNada[hidden]{display:none!important}</style><div style="max-height:42vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;padding:0 10px;">${filas}<div id="trtNada" hidden style="padding:16px;text-align:center;color:#64748b;font-size:14px;">Sin resultados</div></div>
+        <label for="trtComentario" style="display:block;font-size:13px;font-weight:700;color:#334155;margin:14px 0 6px;">Comentario</label>
         <textarea id="trtComentario" rows="2" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;resize:vertical;">Traído del almacén Taller (Info Plus) · ${escapeHtml(hoy)}</textarea>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;">
             <button type="button" class="btn btn-light" style="min-height:44px;" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
@@ -7503,7 +7503,7 @@ function _trtContar() {
     const ocultos = todos.filter(c => c.closest('.trtFila')?.hidden).length;
     const n = todos.length;
     const cu = document.getElementById('trtCuenta');
-    if(cu) cu.innerHTML = `Marcados: <b>${n}</b>` + (ocultos ? ` <span style="color:#b45309;">(${ocultos} no se ven por la búsqueda)</span>` : '');
+    if(cu) cu.innerHTML = `<b>${n}</b> ${n === 1 ? 'marcado' : 'marcados'}` + (ocultos ? ` · <span style="color:#b45309;">${ocultos} ocultos</span>` : '');
     const b = document.getElementById('trtCrear');
     if(b && !b.disabled) b.innerHTML = `<i class="ti ti-package"></i> Crear lote (${n})`;
 }
@@ -7511,9 +7511,9 @@ async function traerDelTallerCrearLote(btn) {
     if(btn && btn.disabled) return; // candado contra el doble toque
     if(!isAdminUser()) return toast('Solo administrador', 'error');
     const sel = [...document.querySelectorAll('#modalGenerico .trtSel:checked')].map(c => _traerTallerItems[Number(c.dataset.i)]).filter(it => it && it.art);
-    if(!sel.length) return toast('Marque al menos un equipo.', 'error');
+    if(!sel.length) return toast('Marque un equipo', 'error');
     const comentario = (document.getElementById('trtComentario')?.value || '').trim();
-    if(!comentario) return toast('Escriba un comentario para el lote.', 'error');
+    if(!comentario) return toast('Falta el comentario', 'error');
     const orig = btn ? btn.innerHTML : '';
     if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Creando lote…'; }
     try {
@@ -7534,7 +7534,7 @@ async function traerDelTallerCrearLote(btn) {
             costo_total_lote: Math.round(costoTotal * 100) / 100, cantidad_equipos: equipos.length,
             estado: 'Abierto', notas: comentario, creado_por: _uuidONull(sessionUser?.id)
         }, p_equipos: equipos });
-        toast(`Lote ${codigo} creado con ${lote.equipos || equipos.length} equipo(s).`);
+        toast(`✅ Lote ${codigo} · ${lote.equipos || equipos.length} equipos`);
         document.getElementById('modalGenerico')?.remove();
         await loadAll();
         if(typeof abrirLoteReacond === 'function') abrirLoteReacond(lote.lote_id);
@@ -8039,7 +8039,7 @@ async function eliminarLote(loteId) {
     const equiposLote = cache.refurb.filter(r => r.lote_id === loteId).length;
     let msg = `¿Eliminar el lote ${lote.codigo_lote}?`;
     if(equiposLote > 0) msg += `\n\n⚠️ Este lote tiene ${equiposLote} equipo(s) que también serán eliminados.`;
-    if(!await confirmar(msg)) return;
+    if(!await confirmar(msg, { ok: 'Corregir' })) return;
     try {
         await supabaseClient.from('equipos_refurbish').delete().eq('lote_id', loteId);
         const { error } = await supabaseClient.from('refurb_lotes').delete().eq('id', loteId);
@@ -9445,12 +9445,12 @@ async function guardarEquipoExistente(btn) {
     const darEntradaIP = !!document.getElementById('rex_ip')?.checked;
     const imeiIP = v('rex_imei').replace(/\D/g, '');
     if(darEntradaIP) {
-        if(!_esArticuloCelular(art)) return toast('La entrada con IMEI es solo para celulares. Quite la casilla o elija el celular.', 'error');
-        if(imeiIP.length < 14 || imeiIP.length > 17) return toast('Para darle entrada en Info Plus escriba el IMEI completo.', 'error');
+        if(!_esArticuloCelular(art)) return toast('Solo celulares. Quite la casilla.', 'error');
+        if(imeiIP.length < 14 || imeiIP.length > 17) return toast('IMEI incompleto', 'error');
         const q = await _ipDondeEstanImei([imeiIP]);
         if(!q.ok) return toast(q.motivo.replace('No se hizo nada', 'No se guardó nada'), 'error');
-        if(q.donde[imeiIP]) return toast(`Ese IMEI ya está en Info Plus (${_nombreAlmacen(q.donde[imeiIP])}). Quite la casilla: no hace falta darle entrada.`, 'error');
-        if(!await confirmar(`Se registrará el equipo y se le dará ENTRADA en Info Plus (almacén Taller):\n\n${art.codigo} · ${modelo}\nIMEI ${imeiIP}\n\nEsto modifica el inventario real.`)) return;
+        if(q.donde[imeiIP]) return toast(`Ya está en ${_nombreAlmacen(q.donde[imeiIP])}. Quite la casilla.`, 'error');
+        if(!await confirmar(`Registrar y dar entrada en Info Plus · Taller\n\n${art.codigo} · ${modelo}\n${imeiIP}`, { ok: 'Registrar' })) return;
     }
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
@@ -15640,134 +15640,243 @@ function _leerImeis(texto) {
 }
 function _esArticuloCelular(a) { return /^\s*CELULAR/i.test((a && a.descripcion) || ''); }
 
-// ===================== AJUSTE RÁPIDO (entrada / salida de inventario en Info Plus) =====================
-// Para corregir mercancía mal registrada: sacar de un código y entrar a otro, en una localidad, en un solo paso.
-// Cada línea es un ajuste de Info Plus (codminventario 1 = entrada, 2 = salida). Solo administrador.
-let _ajr = { alm: '4', nota: '', items: [] };
+// ===================== AJUSTE DE INVENTARIO (entrada / salida en Info Plus) =====================
+// 25-nov-2026 (dueño, opción A): igual que en Info Plus. Se busca el artículo y se abre su ventana. En celulares se ven los
+// IMEI que Info Plus tiene en esa localidad: «−» lo saca, «+» agrega un IMEI nuevo. En lo demás, «− cantidad +».
+// Un solo botón «Ajustar»: primero las salidas (codminventario 2) y luego las entradas (1). Solo administrador.
+// Antes se revisa en Info Plus dónde está cada IMEI; después se confirma que de verdad se movió (en junio respondía
+// «creado» y no guardaba). Las marcas hechas se borran y la lista se vuelve a leer, así otro toque no repite el ajuste.
+let _ajr = { alm: '4', nota: '', arts: [], porAlm: {}, corriendo: false };
+function _iAyuda(clave) {
+    return `<button type="button" class="btn btn-light" title="Ayuda" aria-label="Ayuda" onclick="ayudaModulo('${clave}')" style="min-width:44px;min-height:44px;width:44px;height:44px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:0 0 auto;"><i class="ti ti-info-circle" style="font-size:20px;"></i></button>`;
+}
+Object.assign(AYUDAS, {
+    traerTaller: { titulo: 'Traer del almacén Taller', html: `
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Muestra los IMEI que Info Plus tiene en el almacén <b>Taller</b> y que todavía no están en ningún lote.</li>
+          <li>Con los marcados se crea un <b>lote nuevo</b> (el número se ve arriba). El comentario queda en el lote.</li>
+          <li>La lupa busca por IMEI, modelo, código o marca. <b>Marcar visibles</b> marca solo lo que deja la búsqueda.</li>
+          <li><b>Ocultos</b>: equipos marcados que la búsqueda no deja ver; también entran al lote.</li>
+          <li><b>Sin artículo en el catálogo</b> o <b>Varios códigos</b>: no se sabe a qué artículo va. Sincronice el catálogo o agréguelo a mano.</li>
+        </ul>` },
+    rexIp: { titulo: 'Entrada en Info Plus', html: `
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Para equipos que <b>no están en Info Plus</b>: al guardar se les da entrada en el almacén <b>Taller</b> con este IMEI.</li>
+          <li>Antes se revisa que el IMEI no esté ya en ningún almacén. Si ya está, no se hace nada.</li>
+          <li>Solo celulares.</li>
+        </ul>` },
+    corregirImei: { titulo: 'Corregir IMEI', html: `
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Sirve para <b>corregir un IMEI mal escrito</b>, para <b>pasar un teléfono a otro artículo</b> (por ejemplo, de «para reparar» a «reacondicionado») o para las dos cosas a la vez.</li>
+          <li>Elija el <b>almacén</b>, escriba el <b>IMEI actual</b> y toque <b>Buscar</b>: se revisa en Info Plus en vivo.</li>
+          <li><b>IMEI correcto</b>: déjelo igual si el IMEI está bien. <b>Artículo</b>: toque <b>Cambiar</b> para pasarlo a otro código.</li>
+          <li>Se hacen dos ajustes en Info Plus, una salida y una entrada, en el orden que no deja el teléfono en cero. Si el segundo falla, aparece <b>Reintentar</b>.</li>
+          <li>Si el teléfono está en Reacondicionados, también se corrige allí.</li>
+          <li>El <b>motivo</b> sale en el ajuste de Info Plus.</li>
+        </ul>` },
+    ajuste: { titulo: 'Ajuste de inventario', html: `
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Elija la <b>localidad</b> y busque el artículo.</li>
+          <li><b>Celulares:</b> salen los IMEI que Info Plus tiene en esa localidad. <b>−</b> saca uno (toque ↩ para deshacer). <b>+</b> agrega un IMEI nuevo; puede pegar varios.</li>
+          <li><b>Otros artículos:</b> <b>−</b> y <b>+</b> cambian la cantidad. Al lado se ve la existencia y cómo queda.</li>
+          <li><b>Ajustar</b> hace primero las salidas y después las entradas en Info Plus, y revisa que cada IMEI se movió.</li>
+          <li>El <b>motivo</b> sale en el ajuste de Info Plus.</li>
+          <li>Para cambiar el IMEI o el artículo de un teléfono, use <b>Corregir IMEI</b>.</li>
+        </ul>` }
+});
 function abrirAjusteRapido() {
-    if(!isAdminUser()) { toast('🔒 Solo un administrador puede ajustar inventario.', 'error'); return; }
-    _ajr = { alm: '4', nota: '', items: [] };
+    if(!isAdminUser()) { toast('🔒 Solo administrador', 'error'); return; }
+    _ajr = { alm: '4', nota: '', arts: [], porAlm: {}, corriendo: false };
     _ensureInfoplusArticulos();
     const prev = document.getElementById('modalAjusteRapido'); if(prev) prev.remove();
     const box = document.createElement('div');
     box.className = 'modal-backdrop active'; box.id = 'modalAjusteRapido'; box.style.zIndex = '790';
+    const lbl = 'font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:4px;';
     box.innerHTML = `<div class="modal-box" style="max-width:640px;">
-        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-adjustments-alt"></i> Ajuste rápido de inventario</h3><button class="modal-close" onclick="document.getElementById('modalAjusteRapido').remove()">✕</button></div>
+        <div class="modal-header"><h3 style="margin:0;display:flex;align-items:center;gap:8px;"><i class="ti ti-adjustments-alt"></i> Ajuste de inventario ${_iAyuda('ajuste')}</h3><button class="modal-close" aria-label="Cerrar" onclick="document.getElementById('modalAjusteRapido').remove()">✕</button></div>
         <div class="modal-body" style="display:grid;gap:12px;">
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
-            <div style="flex:1;min-width:180px;"><label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Localidad</label>
-              <select id="ajrAlm" onchange="_ajr.alm=this.value;_ajrRender()" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;font-weight:600;">${ALMACENES_IP.map(a => `<option value="${a.c}"${String(a.c)===_ajr.alm?' selected':''}>${a.n}</option>`).join('')}</select></div>
-            <button class="btn btn-light" onclick="_ajrAgregar('salida')"><i class="ti ti-minus"></i> Agregar salida</button>
-            <button class="btn btn-light" onclick="_ajrAgregar('entrada')"><i class="ti ti-plus"></i> Agregar entrada</button>
+            <div style="flex:1;min-width:180px;"><label for="ajrAlm" style="${lbl}">Localidad</label>
+              <select id="ajrAlm" onchange="_ajrCambiarAlm(this.value)" style="width:100%;min-height:48px;font-size:16px;padding:9px;border:1px solid #cbd5e1;border-radius:10px;font-weight:600;">${ALMACENES_IP.map(a => `<option value="${a.c}"${String(a.c)===_ajr.alm?' selected':''}>${a.n}</option>`).join('')}</select></div>
+            <button class="btn btn-blue" onclick="_ajrBuscar()" style="min-height:48px;flex:0 0 auto;"><i class="ti ti-search"></i> Buscar artículo</button>
           </div>
           <div id="ajrLista"></div>
-          <div><label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Motivo (sale en el ajuste de Info Plus)</label>
-            <input id="ajrNota" oninput="_ajr.nota=this.value" placeholder="Ej: corrección de código, pantalla mal registrada" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;"></div>
+          <div><label for="ajrNota" style="${lbl}">Motivo</label>
+            <input id="ajrNota" oninput="_ajr.nota=this.value" placeholder="Corrección de código" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px;border:1px solid #cbd5e1;border-radius:10px;"></div>
         </div>
-        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalAjusteRapido').remove()">Cancelar</button><button class="btn btn-blue" id="ajrBtn" onclick="_ajrEjecutar()"><i class="ti ti-check"></i> Hacer ajuste</button></div></div>`;
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalAjusteRapido').remove()" style="min-height:48px;">Cancelar</button><button class="btn btn-blue" id="ajrBtn" onclick="_ajrEjecutar()" style="min-height:54px;"><i class="ti ti-check"></i> <span id="ajrBtnTxt">Ajustar</span></button></div></div>`;
     document.body.appendChild(box);
     _ajrRender();
 }
-function _ajrAgregar(tipo) {
+function _ajrBuscar() {
     abrirBuscadorArticulos(null, (a) => {
         if(!a) return;
-        // 25-nov-2026: los celulares ya se pueden ajustar, con su IMEI (formato confirmado por Dagoberto).
+        const cod = String(a.codigo);
+        if(_ajr.arts.some(x => x.codigo === cod)) { toast('Ya está en la lista'); return; }
         const cel = _esArticuloCelular(a);
-        _ajr.items.push({ codigo: String(a.codigo), descripcion: a.descripcion || String(a.codigo), costo: Number(a.costo) || 0, tipo, cantidad: cel ? 0 : 1, estado: '', cel, imeiTxt: '' });
+        _ajr.arts.unshift({ codigo: cod, descripcion: a.descripcion || cod, costo: Number(a.costo) || 0, cel, salen: [], entran: [], delta: 0, msg: '', estado: '', aviso: '' });
         _ajrRender();
-        _refrescarExistenciaLive(a.codigo).then(_ajrRender);
+        _refrescarExistenciaLive(cod).then(_ajrRender);
+        if(cel) _ajrCargarImeis(_ajr.alm);
     });
 }
-function _ajrImeis(i, texto) {
-    const it = _ajr.items[i]; if(!it) return;
-    it.imeiTxt = texto;
-    const r = _leerImeis(texto);
-    it.cantidad = r.imeis.length;
-    it.imeiMsg = r.malos.length ? ('No parece IMEI: ' + r.malos.join(', ')) : (r.repetidos.length ? ('Repetido: ' + r.repetidos.join(', ')) : '');
-    const msg = document.getElementById('ajrImeiMsg' + i); if(msg) msg.textContent = it.imeiMsg;
-    const fila = document.getElementById('ajrImei' + i)?.closest('div')?.previousElementSibling;
-    const cant = fila && fila.querySelector('span[title^="En celulares"]'); if(cant) cant.textContent = it.cantidad;
+function _ajrCambiarAlm(v) {
+    _ajr.alm = String(v);
+    let habia = 0;
+    _ajr.arts.forEach(a => { habia += a.salen.length; a.salen = []; a.estado = ''; a.aviso = ''; });
+    if(habia) toast('Salidas desmarcadas');
+    _ajrRender();
+    if(_ajr.arts.some(a => a.cel)) _ajrCargarImeis(_ajr.alm);
 }
+async function _ajrCargarImeis(alm, forzar) {
+    const k = String(alm), p = _ajr.porAlm[k];
+    if(p && !forzar && (p.cargando || p.items)) return;
+    _ajr.porAlm[k] = { cargando: true }; _ajrRender();
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { modo: 'almacen_todo', codalmacen: k } });
+        if(error || !data || !data.ok) throw new Error('sin datos');
+        _ajr.porAlm[k] = { items: data.items || [] };
+    } catch(e) { _ajr.porAlm[k] = { error: true }; }
+    _ajrRender();
+}
+// IMEI de este artículo en la localidad elegida (null mientras carga o si falló).
+function _ajrImeisDe(a) {
+    const p = _ajr.porAlm[String(_ajr.alm)] || {};
+    if(!p.items) return null;
+    const nd = s => String(s || '').toUpperCase().replace(/\s+/g, ' ').trim(), d = nd(a.descripcion);
+    return [...new Set(p.items.filter(x => String(x.codigo || '') === a.codigo || (!x.codigo && ((x.candidatos || []).map(String).includes(a.codigo) || nd(x.descripcion) === d)))
+        .map(x => String(x.imei || '').replace(/\D/g, '')).filter(Boolean))].sort();
+}
+function _ajrSale(i, n) {
+    const a = _ajr.arts[i]; if(!a || _ajr.corriendo) return;
+    a.salen = a.salen.includes(n) ? a.salen.filter(x => x !== n) : a.salen.concat(n);
+    a.estado = ''; a.aviso = ''; _ajrRender();
+}
+function _ajrEntra(i) {
+    const a = _ajr.arts[i]; if(!a || _ajr.corriendo) return;
+    const inp = document.getElementById('ajrNuevo' + i); if(!inp) return;
+    const r = _leerImeis(inp.value);
+    const aqui = _ajrImeisDe(a) || [];
+    const yaEnLista = new Set(_ajr.arts.flatMap(x => x.entran));
+    const malos = r.malos.slice(), repetidos = [];
+    r.imeis.forEach(n => { if(aqui.includes(n) || yaEnLista.has(n)) repetidos.push(n); else { a.entran.push(n); yaEnLista.add(n); } });
+    a.msg = malos.length ? ('No parece IMEI: ' + malos.join(', ')) : (repetidos.length ? ('Ya está: ' + repetidos.join(', ')) : '');
+    a.estado = ''; a.aviso = '';
+    _ajrRender();
+    const otra = document.getElementById('ajrNuevo' + i); if(otra) { otra.value = malos.concat(repetidos).length && !r.imeis.length ? inp.value : ''; otra.focus(); }
+}
+function _ajrQuitarEntra(i, n) { const a = _ajr.arts[i]; if(!a || _ajr.corriendo) return; a.entran = a.entran.filter(x => x !== n); _ajrRender(); }
+function _ajrDelta(i, d) {
+    const a = _ajr.arts[i]; if(!a || _ajr.corriendo) return;
+    a.delta = Math.max(-_ajrExist(a.codigo), a.delta + d); a.estado = ''; a.aviso = ''; _ajrRender();
+}
+function _ajrQuitarArt(i) { if(_ajr.corriendo) return; _ajr.arts.splice(i, 1); _ajrRender(); }
 function _ajrExist(cod) { const a = _findInfoplusArt(cod) || {}; return Number((a.existencias || {})[_ajr.alm] || 0); }
+function _ajrTotales() {
+    let sal = 0, ent = 0;
+    _ajr.arts.forEach(a => { if(a.cel) { sal += a.salen.length; ent += a.entran.length; } else if(a.delta < 0) sal -= a.delta; else ent += a.delta; });
+    return { sal, ent };
+}
 function _ajrRender() {
+    const t = _ajrTotales();
+    const bt = document.getElementById('ajrBtnTxt'); if(bt) bt.textContent = _ajr.enviando ? 'Ajustando…' : ('Ajustar' + (t.sal ? '  −' + t.sal : '') + (t.ent ? '  +' + t.ent : ''));
+    const b = document.getElementById('ajrBtn'); if(b) b.disabled = _ajr.corriendo || !(t.sal + t.ent);
     const cont = document.getElementById('ajrLista'); if(!cont) return;
-    if(!_ajr.items.length) { cont.innerHTML = '<div style="padding:16px;text-align:center;color:#475569;font-size:13px;border:1px dashed #cbd5e1;border-radius:10px;">Agregue la salida y/o la entrada.</div>'; return; }
-    cont.innerHTML = _ajr.items.map((it, i) => {
-        const ex = _ajrExist(it.codigo), sal = it.tipo === 'salida';
-        const despues = sal ? ex - it.cantidad : ex + it.cantidad;
-        const est = (it.estado === 'ok' ? (it.aviso ? `<span style="color:#b45309;font-weight:700;">⚠ ${escapeHtml(it.aviso)}</span>` : '<span style="color:#15803d;font-weight:700;">✓ Hecho</span>') : it.estado ? `<span style="color:#b91c1c;font-weight:700;">${escapeHtml(it.estado)}</span>` : '')
-            + (it.cel && it.estado === 'ok' && it.imeis ? `<div style="font-size:12px;color:#475569;">IMEI: ${escapeHtml(it.imeis.join(', '))}</div>` : '');
-        return `<div style="display:flex;gap:10px;align-items:center;padding:10px;border:1px solid ${sal?'#fecaca':'#bbf7d0'};background:${sal?'#fef2f2':'#f0fdf4'};border-radius:10px;margin-bottom:8px;">
-          <span style="font-weight:800;font-size:12px;color:${sal?'#b91c1c':'#15803d'};min-width:62px;">${sal?'SALIDA':'ENTRADA'}</span>
-          <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">${escapeHtml(it.codigo)} · ${escapeHtml(it.descripcion)}</div>
-            <div style="font-size:12px;color:#475569;">${it.estado === 'ok' ? `Ahora en esta localidad: <b>${ex}</b>` : `En esta localidad: <b>${ex}</b> → queda <b style="color:${despues<0?'#b91c1c':'#0f172a'}">${despues}</b>`} ${est}</div></div>
-          ${it.cel ? `<span title="En celulares la cantidad es el número de IMEI" style="min-width:64px;text-align:center;font-weight:800;">${it.cantidad}</span><input type="hidden" value="${it.cantidad}"` : `<input type="number" min="1" value="${it.cantidad}" onchange="_ajr.items[${i}].cantidad=Math.max(1,parseInt(this.value,10)||1);_ajrRender()" style="width:64px;padding:7px;border:1px solid #cbd5e1;border-radius:8px;text-align:center;">`}
-          <button class="btn btn-light" title="Quitar" onclick="_ajr.items.splice(${i},1);_ajrRender()" style="min-width:44px;min-height:44px;"><i class="ti ti-trash"></i></button></div>${it.cel && it.estado !== 'ok' ? `
-          <div style="margin:-4px 0 10px;padding:10px;border:1px solid ${sal?'#fecaca':'#bbf7d0'};border-top:0;border-radius:0 0 10px 10px;">
-            <label for="ajrImei${i}" style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">IMEI (uno por línea) · la cantidad sale de aquí</label>
-            <textarea id="ajrImei${i}" rows="2" inputmode="numeric" placeholder="351829689413208" oninput="_ajrImeis(${i},this.value)" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-variant-numeric:tabular-nums;">${escapeHtml(it.imeiTxt || '')}</textarea>
-            <div id="ajrImeiMsg${i}" style="font-size:12.5px;color:#b45309;margin-top:4px;">${escapeHtml(it.imeiMsg || '')}</div>
-          </div>` : ''}`;
+    if(!_ajr.arts.length) { cont.innerHTML = '<div style="padding:18px;text-align:center;color:#64748b;font-size:14px;border:1px dashed #cbd5e1;border-radius:12px;"><i class="ti ti-search"></i> Busque un artículo</div>'; return; }
+    const btn44 = 'min-width:44px;min-height:44px;width:44px;height:44px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;flex:0 0 auto;';
+    cont.innerHTML = _ajr.arts.map((a, i) => {
+        const ex = _ajrExist(a.codigo);
+        const sal = a.cel ? a.salen.length : Math.max(0, -a.delta), ent = a.cel ? a.entran.length : Math.max(0, a.delta);
+        const queda = ex - sal + ent;
+        const est = a.estado === 'ok' && !a.aviso ? '<span style="color:#15803d;font-weight:700;">✓ Hecho</span>'
+            : a.estado && a.estado !== 'ok' ? `<span style="color:#b91c1c;font-weight:700;">${escapeHtml(a.estado)}</span>` : '';
+        const aviso = a.aviso ? `<div style="font-size:13px;color:#b45309;font-weight:600;margin-top:4px;">⚠ ${escapeHtml(a.aviso)}</div>` : '';
+        let cuerpo = '';
+        if(a.cel) {
+            const p = _ajr.porAlm[String(_ajr.alm)] || {}, lista = _ajrImeisDe(a);
+            let filas;
+            if(p.error) filas = `<div style="display:flex;align-items:center;gap:8px;color:#b91c1c;font-size:13px;padding:6px 0;">No se pudo leer Info Plus <button class="btn btn-light" onclick="_ajrCargarImeis(_ajr.alm,true)" style="min-height:44px;"><i class="ti ti-refresh"></i> Reintentar</button></div>`;
+            else if(!lista) filas = '<div style="color:#64748b;font-size:13px;padding:10px 0;"><i class="ti ti-loader-2"></i> Cargando IMEI…</div>';
+            else if(!lista.length) filas = '<div style="color:#64748b;font-size:13px;padding:10px 0;">Sin IMEI en esta localidad</div>';
+            else filas = lista.map(n => { const s = a.salen.includes(n); return `<div class="ajrImeiFila" data-imei="${n}" style="display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid #eef2f7;">
+                <span style="flex:1;font-size:14px;font-variant-numeric:tabular-nums;${s ? 'color:#b91c1c;text-decoration:line-through;' : 'color:#0f172a;'}">${n}</span>${s ? '<span style="color:#b91c1c;font-weight:700;font-size:13px;">Sale</span>' : ''}
+                <button class="btn btn-light" aria-label="${s ? 'Deshacer' : 'Sacar'} ${n}" title="${s ? 'Deshacer' : 'Sacar'}" onclick="_ajrSale(${i},'${n}')" style="${btn44}${s ? '' : 'color:#b91c1c;'}"><i class="ti ${s ? 'ti-arrow-back-up' : 'ti-minus'}"></i></button></div>`; }).join('');
+            const nuevos = a.entran.map(n => `<div class="ajrImeiFila" data-imei="${n}" style="display:flex;align-items:center;gap:8px;min-height:44px;border-top:1px solid #eef2f7;">
+                <span style="flex:1;font-size:14px;font-variant-numeric:tabular-nums;color:#15803d;font-weight:600;">${n}</span><span style="color:#15803d;font-weight:700;font-size:13px;">Entra</span>
+                <button class="btn btn-light" aria-label="Quitar ${n}" title="Quitar" onclick="_ajrQuitarEntra(${i},'${n}')" style="${btn44}"><i class="ti ti-x"></i></button></div>`).join('');
+            cuerpo = `<div style="max-height:264px;overflow:auto;margin-top:6px;">${filas}${nuevos}</div>
+              <div style="display:flex;gap:8px;margin-top:8px;"><input id="ajrNuevo${i}" inputmode="numeric" autocomplete="off" placeholder="IMEI nuevo" aria-label="IMEI nuevo" onkeydown="if(event.key==='Enter'){event.preventDefault();_ajrEntra(${i})}" style="flex:1;min-width:0;min-height:48px;font-size:16px;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-variant-numeric:tabular-nums;">
+                <button class="btn btn-green" aria-label="Agregar IMEI" title="Agregar" onclick="_ajrEntra(${i})" style="${btn44}min-width:48px;min-height:48px;width:48px;height:48px;background:#16a34a;color:#fff;border:0;"><i class="ti ti-plus" style="font-size:20px;"></i></button></div>
+              ${a.msg ? `<div style="font-size:13px;color:#b45309;margin-top:4px;">${escapeHtml(a.msg)}</div>` : ''}`;
+        } else {
+            cuerpo = `<div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+                <button class="btn btn-light" aria-label="Menos" onclick="_ajrDelta(${i},-1)" style="${btn44}color:#b91c1c;"><i class="ti ti-minus"></i></button>
+                <span style="min-width:56px;text-align:center;font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;color:${a.delta < 0 ? '#b91c1c' : a.delta > 0 ? '#15803d' : '#0f172a'};">${a.delta > 0 ? '+' : ''}${a.delta}</span>
+                <button class="btn btn-light" aria-label="Más" onclick="_ajrDelta(${i},1)" style="${btn44}color:#15803d;"><i class="ti ti-plus"></i></button></div>`;
+        }
+        return `<div class="ajrArt" style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;background:#fff;">
+          <div style="display:flex;align-items:center;gap:10px;"><div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:14px;color:#0f172a;">${escapeHtml(a.descripcion)}</div>
+            <div style="font-size:13px;color:#475569;">${escapeHtml(a.codigo)} · <b>${ex}</b> → <b style="color:${queda < 0 ? '#b91c1c' : '#0f172a'}">${queda}</b> ${est}</div></div>
+            <button class="btn btn-light" aria-label="Quitar artículo" title="Quitar" onclick="_ajrQuitarArt(${i})" style="${btn44}"><i class="ti ti-trash"></i></button></div>${aviso}${cuerpo}</div>`;
     }).join('');
 }
 async function _ajrEjecutar() {
-    const items = _ajr.items.filter(it => it.estado !== 'ok');
-    if(!items.length) return toast('Agregue al menos un artículo.', 'error');
-    // Celulares: IMEI bien escritos, la cantidad sale de los IMEI y se confirma en Info Plus dónde está cada uno.
-    for(const it of items.filter(x => x.cel)) {
-        const r = _leerImeis(it.imeiTxt);
-        if(!r.imeis.length) return toast(`Escriba el IMEI del ${it.codigo}.`, 'error');
-        if(r.malos.length || r.repetidos.length) return toast(`Revise los IMEI del ${it.codigo}: ${(r.malos.concat(r.repetidos)).join(', ')}`, 'error');
-        it.imeis = r.imeis; it.cantidad = r.imeis.length;
-    }
-    const todosImei = items.filter(x => x.cel).flatMap(x => x.imeis);
-    if(new Set(todosImei).size !== todosImei.length) return toast('Hay un IMEI repetido entre las líneas.', 'error');
-    if(todosImei.length) {
-        toast('Consultando en Info Plus dónde está cada IMEI…');
-        const q = await _ipDondeEstanImei(todosImei);
+    if(_ajr.corriendo) return;   // candado: un segundo toque no abre otra pregunta ni repite el ajuste
+    _ajr.corriendo = true;
+    try { await _ajrEjecutarPasos(); } finally { _ajr.corriendo = false; _ajr.enviando = false; _ajrRender(); }
+}
+async function _ajrEjecutarPasos() {
+    const items = [];
+    _ajr.arts.forEach(a => {
+        if(a.cel) {
+            if(a.salen.length) items.push({ art: a, tipo: 'salida', imeis: a.salen.slice(), cantidad: a.salen.length });
+            if(a.entran.length) items.push({ art: a, tipo: 'entrada', imeis: a.entran.slice(), cantidad: a.entran.length });
+        } else if(a.delta) items.push({ art: a, tipo: a.delta < 0 ? 'salida' : 'entrada', imeis: null, cantidad: Math.abs(a.delta) });
+    });
+    if(!items.length) return toast('Nada que ajustar', 'error');
+    const alm = String(_ajr.alm), almN = _nombreAlmacen(alm);
+    const todos = items.filter(x => x.imeis).flatMap(x => x.imeis);
+    if(new Set(todos).size !== todos.length) return toast('IMEI repetido. Para cambiar de artículo use Corregir IMEI.', 'error');
+    const neg = items.find(it => !it.imeis && it.tipo === 'salida' && _ajrExist(it.art.codigo) - it.cantidad < 0);
+    if(neg) return toast(`Solo hay ${_ajrExist(neg.art.codigo)} del ${neg.art.codigo}`, 'error');
+    if(todos.length) {
+        toast('Revisando IMEI…');
+        const q = await _ipDondeEstanImei(todos);
         if(!q.ok) return toast(q.motivo, 'error');
-        for(const it of items.filter(x => x.cel)) {
-            for(const n of it.imeis) {
-                const en = q.donde[n];
-                if(it.tipo === 'entrada' && en) return toast(`El IMEI ${n} ya está en Info Plus (${_nombreAlmacen(en)}). No se puede dar entrada otra vez.`, 'error');
-                if(it.tipo === 'salida' && String(en || '') !== String(_ajr.alm)) return toast(`El IMEI ${n} no está en ${_nombreAlmacen(_ajr.alm)}${en ? ' (está en ' + _nombreAlmacen(en) + ')' : ''}. No se puede sacar de aquí.`, 'error');
-            }
+        for(const it of items.filter(x => x.imeis)) for(const n of it.imeis) {
+            const en = q.donde[n];
+            if(it.tipo === 'entrada' && en) return toast(`${n} ya está en ${_nombreAlmacen(en)}`, 'error');
+            if(it.tipo === 'salida' && String(en || '') !== alm) return toast(`${n} no está en ${almN}${en ? ' (está en ' + _nombreAlmacen(en) + ')' : ''}`, 'error');
         }
     }
-    const neg = items.find(it => it.tipo === 'salida' && _ajrExist(it.codigo) - it.cantidad < 0);
-    if(neg) return toast(`No hay suficiente del ${neg.codigo} en esta localidad para sacar ${neg.cantidad}.`, 'error');
-    const alm = _ajr.alm, almN = (ALMACENES_IP.find(a => String(a.c) === String(alm)) || {}).n || ('Almacén ' + alm);
-    let msg = `¿Hacer este ajuste en Info Plus (${almN})?\n\n` + items.map(it => `• ${it.tipo === 'salida' ? 'SALIDA' : 'ENTRADA'} ${it.cantidad} — ${it.codigo} ${it.descripcion}` + (it.cel ? `\n   IMEI: ${it.imeis.join(', ')}` : '')).join('\n') + '\n\nEsto modifica el inventario real.';
-    if(!await confirmar(msg)) return;
-    const btn = document.getElementById('ajrBtn'); if(btn) btn.disabled = true;
+    const msg = `Ajustar en Info Plus · ${almN}\n\n` + items.map(it => `${it.tipo === 'salida' ? '−' : '+'}${it.cantidad}  ${it.art.descripcion}` + (it.imeis ? '\n' + it.imeis.join('\n') : '')).join('\n\n');
+    if(!await confirmar(msg, { ok: 'Ajustar' })) return;
+    _ajr.enviando = true; _ajrRender();
     const com = (_ajr.nota || '').trim() || 'Ajuste rápido';
-    let ok = 0, err = 0;
-    for(const it of items) {   // primero las salidas, luego las entradas
-        if(it.tipo !== 'salida') continue;
-        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, false, com, alm, it.cel ? it.imeis : null);
-        it.estado = r.ok ? 'ok' : (r.error || 'Error'); r.ok ? ok++ : err++;
+    for(const tipo of ['salida', 'entrada']) for(const it of items.filter(x => x.tipo === tipo)) {   // primero las salidas
+        const r = await _infoplusAjustePieza(it.art.codigo, it.cantidad, it.art.costo, tipo === 'entrada', com, alm, it.imeis);
+        it.ok = !!(r && r.ok); it.error = it.ok ? '' : ((r && r.error) || 'Error');
     }
-    for(const it of items) {
-        if(it.tipo !== 'entrada') continue;
-        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, true, com, alm, it.cel ? it.imeis : null);
-        it.estado = r.ok ? 'ok' : (r.error || 'Error'); r.ok ? ok++ : err++;
-    }
-    await Promise.all(items.map(it => _refrescarExistenciaLive(it.codigo)));
-    // Celulares: se confirma que Info Plus de verdad movió el IMEI (en junio respondía «creado» y no guardaba).
-    const celHechos = items.filter(it => it.cel && it.estado === 'ok');
+    await Promise.all([...new Set(items.map(it => it.art.codigo))].map(c => _refrescarExistenciaLive(c)));
+    const celHechos = items.filter(it => it.imeis && it.ok);
     if(celHechos.length) {
-        const q = await _ipDondeEstanImei(celHechos.flatMap(it => it.imeis), [String(alm)]);
+        const q = await _ipDondeEstanImei(celHechos.flatMap(it => it.imeis), [alm]);
         celHechos.forEach(it => {
-            const malos = it.imeis.filter(n => it.tipo === 'entrada' ? q.donde[n] !== String(alm) : q.donde[n] === String(alm));
-            // La línea queda «hecha» (no se reenvía con otro clic, para no duplicar); el aviso dice qué revisar en Info Plus.
-            if(!q.ok) it.aviso = 'No se pudo confirmar el IMEI en Info Plus; revíselo allá.';
-            else if(malos.length) { it.aviso = 'Info Plus dijo «creado» pero el IMEI no se movió: ' + malos.join(', ') + '. Revíselo en Info Plus antes de repetir.'; ok--; err++; }
+            const malos = it.imeis.filter(n => it.tipo === 'entrada' ? q.donde[n] !== alm : q.donde[n] === alm);
+            if(!q.ok) it.aviso = 'No se pudo confirmar en Info Plus. Revíselo allá.';
+            else if(malos.length) it.aviso = 'Info Plus no movió: ' + malos.join(', ') + '. Revíselo antes de repetir.';
         });
     }
-    _ajrRender();
-    if(btn) btn.disabled = false;
-    if(err) toast(`Ajuste: ${ok} hecho(s), ${err} con error. Revise las líneas en rojo.`, 'error');
-    else toast(`✅ Ajuste hecho en Info Plus (${ok}).`);
+    // Lo hecho se desmarca (aunque Info Plus no lo haya movido: se revisa allá, no se reenvía solo).
+    _ajr.arts.forEach(a => { const suyos = items.filter(it => it.art === a); if(!suyos.length) return;
+        suyos.forEach(it => { if(!it.ok) return; if(!it.imeis) a.delta = 0; else if(it.tipo === 'salida') a.salen = []; else a.entran = []; });
+        const err = suyos.find(it => !it.ok), av = suyos.find(it => it.aviso);
+        a.estado = err ? err.error : 'ok'; a.aviso = av ? av.aviso : ''; a.msg = '';
+    });
+    _ajr.enviando = false;
+    if(items.some(it => it.imeis)) await _ajrCargarImeis(alm, true);
+    const nErr = items.filter(it => !it.ok).length, nAv = items.filter(it => it.aviso).length;
+    if(nErr) toast(`${nErr} con error`, 'error'); else if(nAv) toast('Revise el aviso', 'error'); else toast('✅ Ajuste hecho');
 }
 // ===================== CORREGIR IMEI O ARTÍCULO (25-nov-2026) =====================
 // Dueño: «el 1 y 2 me gusta». (1) Corregir un IMEI mal escrito: sale el IMEI equivocado y entra el correcto, mismo
@@ -15780,14 +15889,14 @@ async function _ajrEjecutar() {
 // Antes y después se revisa en Info Plus dónde está cada IMEI. Si el segundo paso falla, queda un botón para reintentarlo.
 let _cim = null;
 function abrirCorregirImei() {
-    if(!isAdminUser()) { toast('🔒 Solo un administrador puede corregir inventario.', 'error'); return; }
+    if(!isAdminUser()) { toast('🔒 Solo administrador', 'error'); return; }
     _ensureInfoplusArticulos();
     _cim = { alm: '6', imeiViejo: '', artViejo: null, imeiNuevo: '', artNuevo: null, revisado: false, pasos: [], nota: '' };
     const prev = document.getElementById('modalCorregirImei'); if(prev) prev.remove();
     const box = document.createElement('div');
     box.className = 'modal-backdrop active'; box.id = 'modalCorregirImei'; box.style.zIndex = '790';
     box.innerHTML = `<div class="modal-box" style="max-width:600px;">
-        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-replace"></i> Corregir IMEI o artículo</h3><button class="modal-close" onclick="document.getElementById('modalCorregirImei').remove()" aria-label="Cerrar">✕</button></div>
+        <div class="modal-header"><h3 style="margin:0;display:flex;align-items:center;gap:8px;"><i class="ti ti-replace"></i> Corregir IMEI ${_iAyuda('corregirImei')}</h3><button class="modal-close" onclick="document.getElementById('modalCorregirImei').remove()" aria-label="Cerrar">✕</button></div>
         <div class="modal-body" id="cimCuerpo" style="display:grid;gap:12px;"></div>
         <div class="modal-footer" id="cimPie"></div></div>`;
     document.body.appendChild(box);
@@ -15800,30 +15909,29 @@ function _cimPintar() {
     const lab = 'font-size:12.5px;font-weight:700;color:#475569;display:block;margin-bottom:4px;';
     const pasos = _cim.pasos.length ? `<div style="display:grid;gap:6px;">${_cim.pasos.map(p => `<div style="padding:10px 12px;border-radius:10px;font-size:14px;background:${p.ok ? '#f0fdf4' : p.ok === false ? '#fef2f2' : '#f8fafc'};color:${p.ok ? '#14532d' : p.ok === false ? '#991b1b' : '#334155'};">${p.ok ? '✓' : p.ok === false ? '✕' : '…'} ${escapeHtml(p.txt)}</div>`).join('')}</div>` : '';
     c.innerHTML = `
-      <div style="font-size:14px;color:#334155;">Para <b>corregir un IMEI mal escrito</b>, para <b>pasar un teléfono a otro artículo</b>, o las dos cosas a la vez.</div>
-      <div><label for="cimAlm" style="${lab}">Almacén donde está el teléfono</label>
+      <div><label for="cimAlm" style="${lab}">Almacén</label>
         <select id="cimAlm" onchange="_cim.alm=this.value;_cim.revisado=false;_cimPintar()" style="${inp}">${ALMACENES_IP.map(a => `<option value="${a.c}"${String(a.c) === _cim.alm ? ' selected' : ''}>${escapeHtml(a.n)}</option>`).join('')}</select></div>
-      <div><label for="cimViejo" style="${lab}">IMEI que está hoy en Info Plus</label>
+      <div><label for="cimViejo" style="${lab}">IMEI actual</label>
         <div style="display:flex;gap:8px;"><input id="cimViejo" inputmode="numeric" value="${escapeHtml(_cim.imeiViejo)}" oninput="_cim.imeiViejo=this.value.replace(/\\D/g,'');_cim.revisado=false;_cim.artViejo=null" placeholder="351829689413208" style="${inp}flex:1;">
         <button type="button" class="btn btn-light" style="min-height:48px;min-width:96px;" onclick="_cimBuscar(this)"><i class="ti ti-search"></i> Buscar</button></div>
-        <div style="font-size:13px;margin-top:6px;color:${_cim.artViejo ? '#14532d' : '#64748b'};">${_cim.artViejo ? `Está en <b>${escapeHtml(_nombreAlmacen(_cim.alm))}</b> como <b>${escapeHtml(_cimNombreArt(_cim.artViejo))}</b>` : 'Escriba el IMEI y toque Buscar: se revisa en Info Plus en vivo.'}</div></div>
+        <div style="font-size:13px;margin-top:6px;color:${_cim.artViejo ? '#14532d' : '#64748b'};">${_cim.artViejo ? `<i class="ti ti-circle-check"></i> ${escapeHtml(_nombreAlmacen(_cim.alm))} · <b>${escapeHtml(_cimNombreArt(_cim.artViejo))}</b>` : ''}</div></div>
       ${_cim.artViejo ? `
-      <div><label for="cimNuevo" style="${lab}">IMEI correcto (déjelo igual si el IMEI está bien)</label>
+      <div><label for="cimNuevo" style="${lab}">IMEI correcto</label>
         <input id="cimNuevo" inputmode="numeric" value="${escapeHtml(_cim.imeiNuevo)}" oninput="_cim.imeiNuevo=this.value.replace(/\\D/g,'')" style="${inp}"></div>
-      <div><span style="${lab}">Artículo (cámbielo para pasar el teléfono a otro código)</span>
+      <div><span style="${lab}">Artículo</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><div style="flex:1;min-width:200px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;font-weight:600;">${escapeHtml(_cimNombreArt(_cim.artNuevo || _cim.artViejo))}</div>
-        <button type="button" class="btn btn-light" style="min-height:48px;" onclick="_cimElegirArt()"><i class="ti ti-switch-horizontal"></i> Cambiar artículo</button></div></div>
-      <div><label for="cimNota" style="${lab}">Motivo (sale en el ajuste de Info Plus)</label>
-        <input id="cimNota" value="${escapeHtml(_cim.nota)}" oninput="_cim.nota=this.value" placeholder="Ej: IMEI mal digitado / reacondicionado listo" style="${inp}"></div>` : ''}
+        <button type="button" class="btn btn-light" style="min-height:48px;" onclick="_cimElegirArt()"><i class="ti ti-switch-horizontal"></i> Cambiar</button></div></div>
+      <div><label for="cimNota" style="${lab}">Motivo</label>
+        <input id="cimNota" value="${escapeHtml(_cim.nota)}" oninput="_cim.nota=this.value" placeholder="IMEI mal digitado" style="${inp}"></div>` : ''}
       ${pasos}`;
     const reintento = _cim.pasos.find(p => p.ok === false && p.reintentar);
     pie.innerHTML = `<button class="btn btn-light" style="min-height:44px;" onclick="document.getElementById('modalCorregirImei').remove()">Cerrar</button>` +
-        (reintento ? `<button class="btn btn-blue" id="cimBtn" style="min-height:54px;font-weight:700;" onclick="_cimReintentar(this)"><i class="ti ti-refresh"></i> Reintentar el paso que falta</button>`
-            : _cim.artViejo && !_cim.pasos.some(p => p.ok) ? `<button class="btn btn-blue" id="cimBtn" style="min-height:54px;font-weight:700;" onclick="_cimEjecutar(this)"><i class="ti ti-check"></i> Corregir en Info Plus</button>` : '');
+        (reintento ? `<button class="btn btn-blue" id="cimBtn" style="min-height:54px;font-weight:700;" onclick="_cimReintentar(this)"><i class="ti ti-refresh"></i> Reintentar</button>`
+            : _cim.artViejo && !_cim.pasos.some(p => p.ok) ? `<button class="btn btn-blue" id="cimBtn" style="min-height:54px;font-weight:700;" onclick="_cimEjecutar(this)"><i class="ti ti-check"></i> Corregir</button>` : '');
 }
 async function _cimBuscar(btn) {
     const imei = (_cim.imeiViejo || '').replace(/\D/g, '');
-    if(imei.length < 14 || imei.length > 17) return toast('Escriba el IMEI completo.', 'error');
+    if(imei.length < 14 || imei.length > 17) return toast('IMEI incompleto', 'error');
     if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Buscando'; }
     try {
         const { data, error } = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { modo: 'almacen_todo', codalmacen: String(_cim.alm) } });
@@ -15832,11 +15940,11 @@ async function _cimBuscar(btn) {
         if(!it) {
             const q = await _ipDondeEstanImei([imei]);
             const en = q.donde[imei];
-            toast(en ? `Ese IMEI no está en ${_nombreAlmacen(_cim.alm)}: está en ${_nombreAlmacen(en)}. Cambie el almacén.` : 'Ese IMEI no está en Info Plus.', 'error');
+            toast(en ? `Está en ${_nombreAlmacen(en)}. Cambie el almacén.` : 'No está en Info Plus', 'error');
             _cim.artViejo = null; _cimPintar(); return;
         }
         const art = it.codigo ? _findInfoplusArt(it.codigo) : null;
-        if(!art) { toast(it.candidatos && it.candidatos.length ? `Hay varios artículos con ese nombre (${it.candidatos.join(', ')}). Corríjalo en Info Plus.` : 'No se encontró el artículo de ese IMEI en el catálogo. Sincronice el catálogo.', 'error'); return; }
+        if(!art) { toast(it.candidatos && it.candidatos.length ? `Varios códigos: ${it.candidatos.join(', ')}. Corríjalo en Info Plus.` : 'Sin artículo en el catálogo. Sincronícelo.', 'error'); return; }
         _cim.artViejo = art; _cim.artNuevo = null; _cim.imeiNuevo = imei; _cim.revisado = true; _cim.pasos = [];
         _cimPintar();
     } finally { if(btn) { btn.disabled = false; } }
@@ -15868,18 +15976,18 @@ async function _cimEjecutar(btn) {
     const viejo = _cim.imeiViejo, nuevo = (_cim.imeiNuevo || '').replace(/\D/g, '') || viejo;
     const artV = _cim.artViejo, artN = _cim.artNuevo || _cim.artViejo;
     const cambiaImei = nuevo !== viejo, cambiaArt = String(artN.codigo) !== String(artV.codigo);
-    if(!cambiaImei && !cambiaArt) return toast('No hay nada que corregir: cambie el IMEI o el artículo.', 'error');
-    if(nuevo.length < 14 || nuevo.length > 17) return toast('El IMEI correcto no está completo.', 'error');
+    if(!cambiaImei && !cambiaArt) return toast('Sin cambios', 'error');
+    if(nuevo.length < 14 || nuevo.length > 17) return toast('IMEI correcto incompleto', 'error');
     if(btn) btn.disabled = true;
     try {
         if(cambiaImei) {
             const q = await _ipDondeEstanImei([nuevo]);
             if(!q.ok) return toast(q.motivo, 'error');
-            if(q.donde[nuevo]) return toast(`El IMEI correcto ${nuevo} ya está en Info Plus (${_nombreAlmacen(q.donde[nuevo])}). No se hizo nada.`, 'error');
+            if(q.donde[nuevo]) return toast(`${nuevo} ya está en ${_nombreAlmacen(q.donde[nuevo])}`, 'error');
         }
         const almN = _nombreAlmacen(_cim.alm);
-        const msg = `¿Corregir en Info Plus (${almN})?\n\nAhora: IMEI ${viejo} · ${_cimNombreArt(artV)}\nQueda: IMEI ${nuevo} · ${_cimNombreArt(artN)}\n\nSe hacen dos ajustes (una salida y una entrada). Esto modifica el inventario real.`;
-        if(!await confirmar(msg)) return;
+        const msg = `Corregir en Info Plus · ${almN}\n\nAntes: ${viejo} · ${_cimNombreArt(artV)}\nQueda: ${nuevo} · ${_cimNombreArt(artN)}`;
+        if(!await confirmar(msg, { ok: 'Corregir' })) return;
         const com = ((_cim.nota || '').trim() || (cambiaImei && cambiaArt ? 'Corrección de IMEI y artículo' : cambiaImei ? 'Corrección de IMEI' : 'Cambio de artículo')) + ` · ${viejo}${cambiaImei ? ' → ' + nuevo : ''}`;
         _cim.pasos = [];
         let ok;
@@ -15891,18 +15999,18 @@ async function _cimEjecutar(btn) {
             if(ok) ok = await _cimPaso('entrada', artN, nuevo, com, true);
         }
         await Promise.all([_refrescarExistenciaLive(artV.codigo), cambiaArt ? _refrescarExistenciaLive(artN.codigo) : null]);
-        if(ok) { toast('✅ Corregido en Info Plus.'); await _cimActualizarTaller(viejo, nuevo, artN, com); }
-        else toastError('La corrección quedó a medias o no se hizo. Revise los pasos.');
+        if(ok) { toast('✅ Corregido'); await _cimActualizarTaller(viejo, nuevo, artN, com); }
+        else toastError('Quedó a medias. Revise los pasos.');
     } finally { if(btn) btn.disabled = false; _cimPintar(); }
 }
 async function _cimReintentar(btn) {
     if(btn && btn.disabled) return;
     const p = _cim && _cim.pasos.find(x => x.ok === false && x.reintentar); if(!p) return;
-    if(!await confirmar(`¿Reintentar en Info Plus?\n\n${p.tipo === 'entrada' ? 'Entrada' : 'Salida'} del IMEI ${p.imei} · ${_cimNombreArt(p.art)}`)) return;
+    if(!await confirmar(`Reintentar en Info Plus\n\n${p.tipo === 'entrada' ? 'Entrada' : 'Salida'} ${p.imei} · ${_cimNombreArt(p.art)}`, { ok: 'Reintentar' })) return;
     if(btn) btn.disabled = true;
     _cim.pasos = _cim.pasos.filter(x => x !== p);
     const ok = await _cimPaso(p.tipo, p.art, p.imei, p.com, true);
-    if(ok) { toast('✅ Corregido en Info Plus.'); const viejo = _cim.imeiViejo, nuevo = (_cim.imeiNuevo || '') || viejo; await _cimActualizarTaller(viejo, nuevo, _cim.artNuevo || _cim.artViejo, p.com); }
+    if(ok) { toast('✅ Corregido'); const viejo = _cim.imeiViejo, nuevo = (_cim.imeiNuevo || '') || viejo; await _cimActualizarTaller(viejo, nuevo, _cim.artNuevo || _cim.artViejo, p.com); }
     if(btn) btn.disabled = false; _cimPintar();
 }
 // Si el teléfono también está en Reacondicionados, se le pone el IMEI y el artículo corregidos y se anota en su historial.
@@ -15917,9 +16025,9 @@ async function _cimActualizarTaller(viejo, nuevo, artN, com) {
         const { error } = await supabaseClient.from('equipos_refurbish').update(cambios).eq('id', e.id);
         if(error) throw error;
         try { await _histInsert([{ equipo_id: e.id, estado_anterior: null, estado_nuevo: null, accion: '🔁 ' + com + ' (corregido en Info Plus)', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
-        toast('También se corrigió en Reacondicionados.');
+        toast('✅ También en Reacondicionados');
         await loadAll();
-    } catch(e) { logError('Corregir IMEI: actualizar taller', e); toastError('Info Plus quedó corregido, pero no se pudo corregir el equipo en Reacondicionados.'); }
+    } catch(e) { logError('Corregir IMEI: actualizar taller', e); toastError('Info Plus listo; Reacondicionados no. Corríjalo a mano.'); }
 }
 
 // ===================== CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) =====================
@@ -17808,7 +17916,7 @@ async function _invCuadrar() {
     msg += `• ${ent} entrada(s) por sobrante = ${money(sobrRD)}\n`;
     if(cero.length) msg += `• ${cero.length} artículo(s) que cuadran (sin cambio)\n`;
     msg += `\n\nEsto modifica el inventario real en Info Plus.`;
-    if(!await confirmar(msg)) return;
+    if(!await confirmar(msg, { ok: 'Corregir' })) return;
     toast('Cuadrando en Info Plus…');
     let okN = 0, errN = 0;
     // Los que cuadran (delta 0): marcar cuadrado sin mandar nada
@@ -17836,7 +17944,7 @@ async function _invCerrar() {
     const sinCuadrar = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) !== 0 && !l.serial).length;
     let msg = '¿Cerrar este conteo?';
     if(sinCuadrar) msg += `\n\n⚠️ Tienes ${sinCuadrar} diferencia(s) sin cuadrar en Info Plus. Si cierras, quedan solo en el reporte (no se ajustan).`;
-    if(!await confirmar(msg)) return;
+    if(!await confirmar(msg, { ok: 'Corregir' })) return;
     try {
         await supabaseClient.from('inv_fisico_sesiones').update({ estado: 'cerrada', cerrado_en: new Date().toISOString() }).eq('id', _invSesion.id);
         toast('✅ Conteo cerrado. Queda guardado en el historial.');
@@ -23444,7 +23552,7 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         if(piezasOrden.length > 0) {
             msg = `⚠️ Esta orden tiene ${piezasOrden.length} pieza(s) solicitada(s)/en proceso.\n\nRevise si debe devolverlas antes de cancelar.\n\n¿Cancelar de todos modos?`;
         }
-        if(!await confirmar(msg)) return;
+        if(!await confirmar(msg, { ok: 'Corregir' })) return;
     }
     // No permitir finalizar si quedan fallas/tareas pendientes
     if(nuevoEstado === 'finalizado') {

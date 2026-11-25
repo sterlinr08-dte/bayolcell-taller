@@ -4011,9 +4011,8 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
             <div id="v-despachos" class="view">
                 <div class="card" style="margin-bottom:15px; border-left:4px solid #0891b2;">
                     <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén <button onclick="ayudaModulo('despachos')" title="Ayuda del módulo" style="background:none; border:none; cursor:pointer; color:#475569; font-size:16px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h2>
-                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Traspasa mercancía de una localidad a otra en Info Plus como un <b>documento único de despacho</b> (Nº DA...). Agregue varios artículos, hágalo en un solo paso e imprima el conduce.</p>
-                    <button class="btn btn-light" onclick="abrirAjusteRapido()" style="margin-top:10px;"><i class="ti ti-adjustments-alt"></i> Ajuste rápido (entrada / salida)</button>
-                    <button class="btn btn-light" onclick="abrirCorregirImei()" style="margin-top:10px;" title="Corregir un IMEI mal escrito o pasar un teléfono a otro artículo en Info Plus"><i class="ti ti-replace"></i> Corregir IMEI o artículo</button>
+                    <button class="btn btn-light" onclick="abrirAjusteRapido()" style="margin-top:10px;"><i class="ti ti-adjustments-alt"></i> Ajuste de inventario</button>
+                    <button class="btn btn-light" onclick="abrirCorregirImei()" style="margin-top:10px;"><i class="ti ti-replace"></i> Corregir IMEI</button>
                 </div>
                 <div class="card" style="margin-bottom:15px;">
                     <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-arrows-exchange"></i> Nuevo despacho</h3>
@@ -5364,7 +5363,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
             <!-- 25-nov-2026: entrada en Info Plus con el IMEI (formato confirmado por Dagoberto). Solo celulares. -->
             <label for="rex_ip" style="display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:10px 12px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:10px;cursor:pointer;margin:4px 0 10px;">
                 <input type="checkbox" id="rex_ip" style="width:20px;height:20px;flex:none;margin-top:2px;">
-                <span style="font-size:14px;color:#14532d;"><b>Darle entrada en Info Plus</b> (almacén Taller) con este IMEI<br><small style="color:#3f6212;">Para equipos que no están en Info Plus. Antes se revisa que el IMEI no esté ya en ningún almacén.</small></span>
+                <span style="flex:1;font-size:15px;color:#14532d;align-self:center;"><b>Entrada en Info Plus</b> · Taller</span><button type="button" class="btn btn-light" aria-label="Ayuda" title="Ayuda" onclick="event.preventDefault();ayudaModulo('rexIp')" style="min-width:44px;min-height:44px;width:44px;height:44px;padding:0;border-radius:50%;flex:0 0 auto;margin:-6px -4px -6px 0;"><i class="ti ti-info-circle" style="font-size:20px;"></i></button>
             </label>
             <div class="form-row"><label>Técnico que lo tiene *</label>
                 <select id="rex_tecnico"><option value="">— Seleccione el técnico —</option></select>
@@ -5773,7 +5772,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
 <script defer src="crm-ortografia.js?v=20261102-or1"></script>
-<script defer src="taller-app.min.js?v=20261125-trtb1"></script>
+<script defer src="taller-app.min.js?v=20261125-ajv1"></script>
 <script defer src="crm-estilos.js?v=20261110-c1"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
 <script defer src="conta-base.js?v=20261108-cb2"></script>
