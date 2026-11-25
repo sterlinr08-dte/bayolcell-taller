@@ -6,6 +6,14 @@
 
 ---
 
+## ⏳ Cuadre de IMEI (conteo físico) — para más adelante (dueño, 25-nov-2026)
+Idea 4 del menú de usos del ajuste con IMEI: escanear los teléfonos que hay de verdad en un almacén, compararlos con
+`listaserie` de Info Plus (Edge `infoplus-imei-almacen`, modo `almacen_todo`) y mostrar los que sobran y los que faltan;
+con el OK del dueño, ajustarlos (entrada/salida con `seriales [{numero, codarticulo}]`). Ya hechas: Ajuste rápido con
+IMEI, entrada al registrar equipo existente (PR #334) y «Corregir IMEI o artículo».
+
+---
+
 ## ✅ 1. Política de Android (Hexnode) — HECHA (16 jun 2026)
 Política "FINANCIAMIENTO BAYOL CELL ANDROID" creada, asociada al equipo y probada:
 - ✅ **FRP** activado con cuenta `admin@bayolcell.com` (ID Google `104664341594312054855`). Si resetean por recovery, pide ESA cuenta.

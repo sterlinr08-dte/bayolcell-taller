@@ -15720,6 +15720,159 @@ async function _ajrEjecutar() {
     if(err) toast(`Ajuste: ${ok} hecho(s), ${err} con error. Revise las líneas en rojo.`, 'error');
     else toast(`✅ Ajuste hecho en Info Plus (${ok}).`);
 }
+// ===================== CORREGIR IMEI O ARTÍCULO (25-nov-2026) =====================
+// Dueño: «el 1 y 2 me gusta». (1) Corregir un IMEI mal escrito: sale el IMEI equivocado y entra el correcto, mismo
+// artículo. (2) Pasar un teléfono a otro artículo (ej. de «para reparar» a «reacondicionado», Clase A → B): sale del
+// código viejo y entra al nuevo con el mismo IMEI. Se pueden hacer las dos cosas a la vez.
+// Formato de Info Plus confirmado por Dagoberto: seriales [{numero, codarticulo}]. Solo administrador.
+// Orden de los dos pasos, para no perder el teléfono si el segundo falla:
+//   · si cambia el IMEI → primero ENTRA el correcto y después SALE el equivocado (nunca queda en cero);
+//   · si solo cambia el artículo → primero SALE (Info Plus no acepta el mismo IMEI dos veces) y después ENTRA.
+// Antes y después se revisa en Info Plus dónde está cada IMEI. Si el segundo paso falla, queda un botón para reintentarlo.
+let _cim = null;
+function abrirCorregirImei() {
+    if(!isAdminUser()) { toast('🔒 Solo un administrador puede corregir inventario.', 'error'); return; }
+    _ensureInfoplusArticulos();
+    _cim = { alm: '6', imeiViejo: '', artViejo: null, imeiNuevo: '', artNuevo: null, revisado: false, pasos: [], nota: '' };
+    const prev = document.getElementById('modalCorregirImei'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalCorregirImei'; box.style.zIndex = '790';
+    box.innerHTML = `<div class="modal-box" style="max-width:600px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-replace"></i> Corregir IMEI o artículo</h3><button class="modal-close" onclick="document.getElementById('modalCorregirImei').remove()" aria-label="Cerrar">✕</button></div>
+        <div class="modal-body" id="cimCuerpo" style="display:grid;gap:12px;"></div>
+        <div class="modal-footer" id="cimPie"></div></div>`;
+    document.body.appendChild(box);
+    _cimPintar();
+}
+function _cimNombreArt(a) { return a ? `${a.codigo} · ${(a.descripcion || '').trim()}` : '—'; }
+function _cimPintar() {
+    const c = document.getElementById('cimCuerpo'), pie = document.getElementById('cimPie'); if(!c || !_cim) return;
+    const inp = 'width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font-variant-numeric:tabular-nums;';
+    const lab = 'font-size:12.5px;font-weight:700;color:#475569;display:block;margin-bottom:4px;';
+    const pasos = _cim.pasos.length ? `<div style="display:grid;gap:6px;">${_cim.pasos.map(p => `<div style="padding:10px 12px;border-radius:10px;font-size:14px;background:${p.ok ? '#f0fdf4' : p.ok === false ? '#fef2f2' : '#f8fafc'};color:${p.ok ? '#14532d' : p.ok === false ? '#991b1b' : '#334155'};">${p.ok ? '✓' : p.ok === false ? '✕' : '…'} ${escapeHtml(p.txt)}</div>`).join('')}</div>` : '';
+    c.innerHTML = `
+      <div style="font-size:14px;color:#334155;">Para <b>corregir un IMEI mal escrito</b>, para <b>pasar un teléfono a otro artículo</b>, o las dos cosas a la vez.</div>
+      <div><label for="cimAlm" style="${lab}">Almacén donde está el teléfono</label>
+        <select id="cimAlm" onchange="_cim.alm=this.value;_cim.revisado=false;_cimPintar()" style="${inp}">${ALMACENES_IP.map(a => `<option value="${a.c}"${String(a.c) === _cim.alm ? ' selected' : ''}>${escapeHtml(a.n)}</option>`).join('')}</select></div>
+      <div><label for="cimViejo" style="${lab}">IMEI que está hoy en Info Plus</label>
+        <div style="display:flex;gap:8px;"><input id="cimViejo" inputmode="numeric" value="${escapeHtml(_cim.imeiViejo)}" oninput="_cim.imeiViejo=this.value.replace(/\\D/g,'');_cim.revisado=false;_cim.artViejo=null" placeholder="351829689413208" style="${inp}flex:1;">
+        <button type="button" class="btn btn-light" style="min-height:48px;min-width:96px;" onclick="_cimBuscar(this)"><i class="ti ti-search"></i> Buscar</button></div>
+        <div style="font-size:13px;margin-top:6px;color:${_cim.artViejo ? '#14532d' : '#64748b'};">${_cim.artViejo ? `Está en <b>${escapeHtml(_nombreAlmacen(_cim.alm))}</b> como <b>${escapeHtml(_cimNombreArt(_cim.artViejo))}</b>` : 'Escriba el IMEI y toque Buscar: se revisa en Info Plus en vivo.'}</div></div>
+      ${_cim.artViejo ? `
+      <div><label for="cimNuevo" style="${lab}">IMEI correcto (déjelo igual si el IMEI está bien)</label>
+        <input id="cimNuevo" inputmode="numeric" value="${escapeHtml(_cim.imeiNuevo)}" oninput="_cim.imeiNuevo=this.value.replace(/\\D/g,'')" style="${inp}"></div>
+      <div><span style="${lab}">Artículo (cámbielo para pasar el teléfono a otro código)</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><div style="flex:1;min-width:200px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;font-weight:600;">${escapeHtml(_cimNombreArt(_cim.artNuevo || _cim.artViejo))}</div>
+        <button type="button" class="btn btn-light" style="min-height:48px;" onclick="_cimElegirArt()"><i class="ti ti-switch-horizontal"></i> Cambiar artículo</button></div></div>
+      <div><label for="cimNota" style="${lab}">Motivo (sale en el ajuste de Info Plus)</label>
+        <input id="cimNota" value="${escapeHtml(_cim.nota)}" oninput="_cim.nota=this.value" placeholder="Ej: IMEI mal digitado / reacondicionado listo" style="${inp}"></div>` : ''}
+      ${pasos}`;
+    const reintento = _cim.pasos.find(p => p.ok === false && p.reintentar);
+    pie.innerHTML = `<button class="btn btn-light" style="min-height:44px;" onclick="document.getElementById('modalCorregirImei').remove()">Cerrar</button>` +
+        (reintento ? `<button class="btn btn-blue" id="cimBtn" style="min-height:54px;font-weight:700;" onclick="_cimReintentar(this)"><i class="ti ti-refresh"></i> Reintentar el paso que falta</button>`
+            : _cim.artViejo && !_cim.pasos.some(p => p.ok) ? `<button class="btn btn-blue" id="cimBtn" style="min-height:54px;font-weight:700;" onclick="_cimEjecutar(this)"><i class="ti ti-check"></i> Corregir en Info Plus</button>` : '');
+}
+async function _cimBuscar(btn) {
+    const imei = (_cim.imeiViejo || '').replace(/\D/g, '');
+    if(imei.length < 14 || imei.length > 17) return toast('Escriba el IMEI completo.', 'error');
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Buscando'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { modo: 'almacen_todo', codalmacen: String(_cim.alm) } });
+        if(error || !data || !data.ok) { toast('No se pudo consultar Info Plus. Intente de nuevo.', 'error'); return; }
+        const it = (data.items || []).find(x => String(x.imei || '').replace(/\D/g, '') === imei);
+        if(!it) {
+            const q = await _ipDondeEstanImei([imei]);
+            const en = q.donde[imei];
+            toast(en ? `Ese IMEI no está en ${_nombreAlmacen(_cim.alm)}: está en ${_nombreAlmacen(en)}. Cambie el almacén.` : 'Ese IMEI no está en Info Plus.', 'error');
+            _cim.artViejo = null; _cimPintar(); return;
+        }
+        const art = it.codigo ? _findInfoplusArt(it.codigo) : null;
+        if(!art) { toast(it.candidatos && it.candidatos.length ? `Hay varios artículos con ese nombre (${it.candidatos.join(', ')}). Corríjalo en Info Plus.` : 'No se encontró el artículo de ese IMEI en el catálogo. Sincronice el catálogo.', 'error'); return; }
+        _cim.artViejo = art; _cim.artNuevo = null; _cim.imeiNuevo = imei; _cim.revisado = true; _cim.pasos = [];
+        _cimPintar();
+    } finally { if(btn) { btn.disabled = false; } }
+}
+function _cimElegirArt() {
+    abrirBuscadorArticulos(null, (a) => {
+        if(!a) return;
+        if(!_esArticuloCelular(a)) return toast('Elija un artículo de celular (los que llevan IMEI).', 'error');
+        _cim.artNuevo = _findInfoplusArt(a.codigo) || a; _cimPintar();
+    });
+}
+// Un paso = un ajuste de un IMEI. Devuelve true/false y lo anota en la lista de pasos.
+async function _cimPaso(tipo, art, imei, com, reintentar) {
+    const entrada = tipo === 'entrada';
+    const paso = { txt: `${entrada ? 'Entrada' : 'Salida'} del IMEI ${imei} en ${_nombreAlmacen(_cim.alm)} · ${_cimNombreArt(art)}`, ok: null, tipo, art, imei, com };
+    _cim.pasos.push(paso); _cimPintar();
+    const r = await _infoplusAjustePieza(art.codigo, 1, Number(_cim.artViejo.costo) || 0, entrada, com, _cim.alm, [imei]);
+    if(!r.ok) { paso.ok = false; paso.txt += ' — Info Plus no lo hizo: ' + (r.error || 'error'); paso.reintentar = reintentar; _cimPintar(); return false; }
+    const q = await _ipDondeEstanImei([imei], [String(_cim.alm)]);
+    const bien = q.ok && (entrada ? q.donde[imei] === String(_cim.alm) : !q.donde[imei]);
+    paso.ok = bien || !q.ok;
+    paso.txt += bien ? ' — hecho' + (r.codajuste ? ' (' + r.codajuste + ')' : '') : !q.ok ? ' — enviado; no se pudo confirmar en Info Plus' : ' — Info Plus dijo «creado» pero el IMEI no se movió';
+    if(!paso.ok) paso.reintentar = reintentar;
+    _cimPintar(); return paso.ok;
+}
+async function _cimEjecutar(btn) {
+    if(btn && btn.disabled) return; // candado contra el doble toque
+    if(!_cim || !_cim.artViejo) return;
+    const viejo = _cim.imeiViejo, nuevo = (_cim.imeiNuevo || '').replace(/\D/g, '') || viejo;
+    const artV = _cim.artViejo, artN = _cim.artNuevo || _cim.artViejo;
+    const cambiaImei = nuevo !== viejo, cambiaArt = String(artN.codigo) !== String(artV.codigo);
+    if(!cambiaImei && !cambiaArt) return toast('No hay nada que corregir: cambie el IMEI o el artículo.', 'error');
+    if(nuevo.length < 14 || nuevo.length > 17) return toast('El IMEI correcto no está completo.', 'error');
+    if(btn) btn.disabled = true;
+    try {
+        if(cambiaImei) {
+            const q = await _ipDondeEstanImei([nuevo]);
+            if(!q.ok) return toast('No se pudo consultar Info Plus para revisar el IMEI correcto. No se hizo nada.', 'error');
+            if(q.donde[nuevo]) return toast(`El IMEI correcto ${nuevo} ya está en Info Plus (${_nombreAlmacen(q.donde[nuevo])}). No se hizo nada.`, 'error');
+        }
+        const almN = _nombreAlmacen(_cim.alm);
+        const msg = `¿Corregir en Info Plus (${almN})?\n\nAhora: IMEI ${viejo} · ${_cimNombreArt(artV)}\nQueda: IMEI ${nuevo} · ${_cimNombreArt(artN)}\n\nSe hacen dos ajustes (una salida y una entrada). Esto modifica el inventario real.`;
+        if(!await confirmar(msg)) return;
+        const com = ((_cim.nota || '').trim() || (cambiaImei && cambiaArt ? 'Corrección de IMEI y artículo' : cambiaImei ? 'Corrección de IMEI' : 'Cambio de artículo')) + ` · ${viejo}${cambiaImei ? ' → ' + nuevo : ''}`;
+        _cim.pasos = [];
+        let ok;
+        if(cambiaImei) { // primero entra el correcto, después sale el equivocado
+            ok = await _cimPaso('entrada', artN, nuevo, com, false);
+            if(ok) ok = await _cimPaso('salida', artV, viejo, com, true);
+        } else {          // mismo IMEI, otro artículo: primero sale, después entra
+            ok = await _cimPaso('salida', artV, viejo, com, false);
+            if(ok) ok = await _cimPaso('entrada', artN, nuevo, com, true);
+        }
+        await Promise.all([_refrescarExistenciaLive(artV.codigo), cambiaArt ? _refrescarExistenciaLive(artN.codigo) : null]);
+        if(ok) { toast('✅ Corregido en Info Plus.'); await _cimActualizarTaller(viejo, nuevo, artN, com); }
+        else toastError('La corrección quedó a medias o no se hizo. Revise los pasos.');
+    } finally { if(btn) btn.disabled = false; _cimPintar(); }
+}
+async function _cimReintentar(btn) {
+    if(btn && btn.disabled) return;
+    const p = _cim && _cim.pasos.find(x => x.ok === false && x.reintentar); if(!p) return;
+    if(!await confirmar(`¿Reintentar en Info Plus?\n\n${p.tipo === 'entrada' ? 'Entrada' : 'Salida'} del IMEI ${p.imei} · ${_cimNombreArt(p.art)}`)) return;
+    if(btn) btn.disabled = true;
+    _cim.pasos = _cim.pasos.filter(x => x !== p);
+    const ok = await _cimPaso(p.tipo, p.art, p.imei, p.com, true);
+    if(ok) { toast('✅ Corregido en Info Plus.'); const viejo = _cim.imeiViejo, nuevo = (_cim.imeiNuevo || '') || viejo; await _cimActualizarTaller(viejo, nuevo, _cim.artNuevo || _cim.artViejo, p.com); }
+    if(btn) btn.disabled = false; _cimPintar();
+}
+// Si el teléfono también está en Reacondicionados, se le pone el IMEI y el artículo corregidos y se anota en su historial.
+async function _cimActualizarTaller(viejo, nuevo, artN, com) {
+    try {
+        const { data } = await supabaseClient.from('equipos_refurbish').select('id, imei, articulo_codigo').eq('imei', viejo).limit(1);
+        const e = data && data[0]; if(!e) return;
+        const cambios = {};
+        if(nuevo !== viejo) cambios.imei = nuevo;
+        if(String(e.articulo_codigo || '') !== String(artN.codigo)) { cambios.articulo_codigo = String(artN.codigo); cambios.modelo = [artN.marca, (artN.descripcion || '').trim()].filter(Boolean).join(' ').trim() || String(artN.codigo); }
+        if(!Object.keys(cambios).length) return;
+        const { error } = await supabaseClient.from('equipos_refurbish').update(cambios).eq('id', e.id);
+        if(error) throw error;
+        try { await _histInsert([{ equipo_id: e.id, estado_anterior: null, estado_nuevo: null, accion: '🔁 ' + com + ' (corregido en Info Plus)', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        toast('También se corrigió en Reacondicionados.');
+        await loadAll();
+    } catch(e) { logError('Corregir IMEI: actualizar taller', e); toastError('Info Plus quedó corregido, pero no se pudo corregir el equipo en Reacondicionados.'); }
+}
+
 // ===================== CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) =====================
 let _cxpData = { deudas: [], abonos: {} };
 let _cxpFiltro = { prov: '', estado: '' };
