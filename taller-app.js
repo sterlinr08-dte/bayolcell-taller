@@ -9406,7 +9406,7 @@ async function guardarEquipoExistente(btn) {
         if(!_esArticuloCelular(art)) return toast('La entrada con IMEI es solo para celulares. Quite la casilla o elija el celular.', 'error');
         if(imeiIP.length < 14 || imeiIP.length > 17) return toast('Para darle entrada en Info Plus escriba el IMEI completo.', 'error');
         const q = await _ipDondeEstanImei([imeiIP]);
-        if(!q.ok) return toast('No se pudo consultar Info Plus para revisar el IMEI. No se guardó nada; intente de nuevo.', 'error');
+        if(!q.ok) return toast(q.motivo.replace('No se hizo nada', 'No se guardó nada'), 'error');
         if(q.donde[imeiIP]) return toast(`Ese IMEI ya está en Info Plus (${_nombreAlmacen(q.donde[imeiIP])}). Quite la casilla: no hace falta darle entrada.`, 'error');
         if(!await confirmar(`Se registrará el equipo y se le dará ENTRADA en Info Plus (almacén Taller):\n\n${art.codigo} · ${modelo}\nIMEI ${imeiIP}\n\nEsto modifica el inventario real.`)) return;
     }
@@ -15572,15 +15572,22 @@ function _despachoLlenarSelects() {
 const _ALM_IMEI = ['1', '3', '4', '5', '6', '7'];
 async function _ipDondeEstanImei(imeis, almacenes) {
     const buscar = new Set((imeis || []).map(x => String(x).replace(/\D/g, '')).filter(Boolean));
-    const donde = {}; let ok = true;
-    await Promise.all((almacenes || _ALM_IMEI).map(async a => {
+    const donde = {}; let ok = true, total = 0;
+    const lista = almacenes || _ALM_IMEI;
+    await Promise.all(lista.map(async a => {
         try {
             const { data, error } = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { modo: 'almacen_todo', codalmacen: String(a) } });
             if(error || !data || !data.ok) { ok = false; return; }
+            total += (data.items || []).length;
             (data.items || []).forEach(it => { const n = String(it.imei || '').replace(/\D/g, ''); if(buscar.has(n)) donde[n] = String(a); });
         } catch(e) { ok = false; }
     }));
-    return { ok, donde };
+    // 25-nov-2026 (prueba de Muse): si Info Plus no devuelve NINGÚN IMEI en todos los almacenes consultados, no se puede
+    // saber si un IMEI ya existe: se trata como «no se pudo revisar» y no se mueve nada. (Al revisar un solo almacén
+    // después de un ajuste, un almacén vacío sí puede ser real, por eso solo aplica cuando se consultan todos.)
+    let motivo = ok ? '' : 'No se pudo consultar Info Plus para revisar los IMEI. No se hizo nada; intente de nuevo.';
+    if(ok && !almacenes && total === 0) { ok = false; motivo = 'Info Plus no está mostrando IMEI en ningún almacén, así que no se puede revisar si ya existe. No se hizo nada.'; }
+    return { ok, donde, total, motivo };
 }
 // Lee IMEI de un texto (uno por línea, o separados por espacio o coma). Devuelve { imeis, malos, repetidos }.
 function _leerImeis(texto) {
@@ -15676,7 +15683,7 @@ async function _ajrEjecutar() {
     if(todosImei.length) {
         toast('Consultando en Info Plus dónde está cada IMEI…');
         const q = await _ipDondeEstanImei(todosImei);
-        if(!q.ok) return toast('No se pudo consultar Info Plus para revisar los IMEI. No se hizo nada; intente de nuevo.', 'error');
+        if(!q.ok) return toast(q.motivo, 'error');
         for(const it of items.filter(x => x.cel)) {
             for(const n of it.imeis) {
                 const en = q.donde[n];
@@ -15825,7 +15832,7 @@ async function _cimEjecutar(btn) {
     try {
         if(cambiaImei) {
             const q = await _ipDondeEstanImei([nuevo]);
-            if(!q.ok) return toast('No se pudo consultar Info Plus para revisar el IMEI correcto. No se hizo nada.', 'error');
+            if(!q.ok) return toast(q.motivo, 'error');
             if(q.donde[nuevo]) return toast(`El IMEI correcto ${nuevo} ya está en Info Plus (${_nombreAlmacen(q.donde[nuevo])}). No se hizo nada.`, 'error');
         }
         const almN = _nombreAlmacen(_cim.alm);

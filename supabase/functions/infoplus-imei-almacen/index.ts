@@ -190,10 +190,11 @@ async function todoElAlmacen(a: string, URL_SB: string): Promise<Response> {
   const sb = createClient(URL_SB, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const BASE = (Deno.env.get('INFOPLUS_BASE') || 'bayol').trim();
   const CLAVE = (Deno.env.get('INFOPLUS_CLAVE') || '').trim();
-  let lista: any[] = [], fallo = false;
+  let lista: any[] = [], fallo = false, status = 0, txt = '';
   try {
     const r = await fetch(`https://apicliente.infoplusplatinum.com/api/ListaArticulos?basedatos=${encodeURIComponent(BASE)}&clave=${encodeURIComponent(CLAVE)}&tipo=listaserie&codalmacen=${a}`);
-    const j = JSON.parse(await r.text()); lista = Array.isArray(j?.data) ? j.data : [];
+    status = r.status; txt = await r.text();
+    const j = JSON.parse(txt); lista = Array.isArray(j?.data) ? j.data : [];
     if (!r.ok) fallo = true;
   } catch (_e) { fallo = true; }
   if (fallo && !lista.length) return new Response(JSON.stringify({ ok: false, error: 'No se pudo consultar Info Plus' }), { status: 502, headers: cors });
@@ -205,6 +206,20 @@ async function todoElAlmacen(a: string, URL_SB: string): Promise<Response> {
     if (!series.has(imei)) series.set(imei, x);
   }
   const imeis = [...series.keys()];
+  // 25-nov-2026 (prueba de Muse: «Info Plus tiene 0 IMEI en el Taller»): si el almacén sale vacío se anota qué contestó
+  // Info Plus (cuántas series venían y con qué localidades), sin la clave, una vez cada 10 min por almacén. Solo lectura.
+  const localidades = [...new Set(lista.map((x) => norm(x?.localidad)).filter(Boolean))].slice(0, 12);
+  if (!imeis.length) {
+    try {
+      const consulta = `alm=${a}`;
+      const { data: ult } = await sb.from('infoplus_diagnostico').select('creado_en').eq('ruta', 'listaserie_almacen').eq('consulta', consulta).order('creado_en', { ascending: false }).limit(1);
+      if (!(ult && ult[0] && Date.now() - new Date(ult[0].creado_en).getTime() < 10 * 60 * 1000)) {
+        const limpio = CLAVE ? txt.split(CLAVE).join('***') : txt;
+        await sb.from('infoplus_diagnostico').insert({ imeis_detectados: 0, ruta: 'listaserie_almacen', consulta, status, largo: txt.length,
+          campos: `series_crudas=${lista.length} localidades=${localidades.join(' | ')}`.slice(0, 400), muestra: limpio.slice(0, 600) });
+      }
+    } catch (_e) { /* el diagnóstico nunca debe romper la consulta */ }
+  }
   // 1) Código exacto por compras sincronizadas.
   const porImei = new Map<string, string>();
   for (let i = 0; i < imeis.length; i += 200) {
@@ -224,5 +239,5 @@ async function todoElAlmacen(a: string, URL_SB: string): Promise<Response> {
     const cand = porDesc.get(d) || [];
     return { imei: k, descripcion: String(x?.descripcion || '').trim(), codigo: exacto || (cand.length === 1 ? cand[0] : null), candidatos: exacto ? [] : (cand.length > 1 ? cand : []) };
   });
-  return new Response(JSON.stringify({ ok: true, almacen: a, total: items.length, items }), { headers: cors });
+  return new Response(JSON.stringify({ ok: true, almacen: a, total: items.length, series_crudas: lista.length, localidades, items }), { headers: cors });
 }
