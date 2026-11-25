@@ -28,6 +28,12 @@ const ALMACENES: Record<string, string[]> = {
 };
 const norm = (s: unknown) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
   .replace(/\b(LOCALIDAD|ALMACEN)\b/g, ' ').replace(/\s+/g, ' ').trim();
+// 25-nov-2026: Info Plus cambió los nombres de las localidades (el Taller ahora viene como «TALLER BAYOL»). Una localidad
+// es de un almacén si contiene, como palabras completas, alguno de sus nombres («TALLER BAYOL» contiene «TALLER»).
+const enAlmacen = (loc: unknown, a: string) => {
+  const n = ' ' + norm(loc) + ' ';
+  return (ALMACENES[a] || []).some((nom) => n.includes(' ' + nom + ' '));
+};
 const normDesc = (s: unknown) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
 
 Deno.serve(async (req: Request) => {
@@ -78,7 +84,7 @@ Deno.serve(async (req: Request) => {
 
   const nombres = ALMACENES[a];
   const delArticulo = lista.filter((x) => normDesc(x?.descripcion) === desc && String(x?.serie ?? '').trim());
-  const imeis = [...new Set(delArticulo.filter((x) => nombres.includes(norm(x?.localidad))).map((x) => String(x.serie).trim()))];
+  const imeis = [...new Set(delArticulo.filter((x) => enAlmacen(x?.localidad, a)).map((x) => String(x.serie).trim()))];
 
   // «Lista prudente» (dueño, 22-oct-2026, opción B): los IMEI se muestran solo si la cantidad de series que Info Plus lista
   // para este artículo en este almacén es exactamente su existencia en vivo (ListaArticulos?codarticulo&codalmacen).
@@ -94,8 +100,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: true, imeis: [], fuente: true, prudente: 'no_cuadra', modo, listadas: imeis.length, existencia }), { headers: cors });
   }
   // Localidades que no se reconocen: se anotan (una vez cada 10 min) para agregarlas al mapa de arriba.
-  const conocidas = new Set(Object.values(ALMACENES).flat());
-  const raras = [...new Set(lista.map((x) => norm(x?.localidad)).filter((n) => n && !conocidas.has(n)))];
+  const raras = [...new Set(lista.map((x) => norm(x?.localidad)).filter((n) => n && !Object.keys(ALMACENES).some((k) => enAlmacen(n, k))))];
   if (raras.length) await anotar(sb, { ruta: 'listaserie', consulta: `art=${c} alm=${a}`, status, largo: txt.length, campos: 'localidades sin almacén: ' + raras.join(' | ').slice(0, 300), muestra: '' });
   return new Response(JSON.stringify({ ok: true, imeis, fuente: true, modo, del_articulo: delArticulo.length }), { headers: cors });
 });
@@ -202,7 +207,7 @@ async function todoElAlmacen(a: string, URL_SB: string): Promise<Response> {
   const series = new Map<string, any>();
   for (const x of lista) {
     const imei = String(x?.serie ?? '').trim(); if (!imei) continue;
-    if (!nombres.includes(norm(x?.localidad))) continue;
+    if (!enAlmacen(x?.localidad, a)) continue;
     if (!series.has(imei)) series.set(imei, x);
   }
   const imeis = [...series.keys()];
