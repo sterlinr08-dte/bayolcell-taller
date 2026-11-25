@@ -9336,6 +9336,7 @@ async function abrirModalRegistrarExistente() {
     if(!isAdminUser()) return toast('Solo administrador', 'error');
     // Limpiar campos
     ['rex_costo','rex_imei','rex_serial','rex_nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    { const ck = document.getElementById('rex_ip'); if(ck) ck.checked = false; }
     document.getElementById('rex_estado').value = 'en_proceso';
     // Poblar técnicos
     const sel = document.getElementById('rex_tecnico');
@@ -9398,6 +9399,17 @@ async function guardarEquipoExistente(btn) {
     const estado = v('rex_estado') || 'en_proceso';
     if(!modelo) return toast('Seleccione el equipo del inventario Info Plus.', 'error');
     if(!tecnicoId) return toast('Falta el técnico', 'error');
+    // 25-nov-2026: entrada en Info Plus con el IMEI (opcional). Se revisa ANTES de guardar nada.
+    const darEntradaIP = !!document.getElementById('rex_ip')?.checked;
+    const imeiIP = v('rex_imei').replace(/\D/g, '');
+    if(darEntradaIP) {
+        if(!_esArticuloCelular(art)) return toast('La entrada con IMEI es solo para celulares. Quite la casilla o elija el celular.', 'error');
+        if(imeiIP.length < 14 || imeiIP.length > 17) return toast('Para darle entrada en Info Plus escriba el IMEI completo.', 'error');
+        const q = await _ipDondeEstanImei([imeiIP]);
+        if(!q.ok) return toast('No se pudo consultar Info Plus para revisar el IMEI. No se guardó nada; intente de nuevo.', 'error');
+        if(q.donde[imeiIP]) return toast(`Ese IMEI ya está en Info Plus (${_nombreAlmacen(q.donde[imeiIP])}). Quite la casilla: no hace falta darle entrada.`, 'error');
+        if(!await confirmar(`Se registrará el equipo y se le dará ENTRADA en Info Plus (almacén Taller):\n\n${art.codigo} · ${modelo}\nIMEI ${imeiIP}\n\nEsto modifica el inventario real.`)) return;
+    }
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
     try {
@@ -9429,7 +9441,20 @@ async function guardarEquipoExistente(btn) {
                 usuario: sessionUser?.nombre || 'Admin'
             }]);
         } catch(_e) {}
-        toast('Registrado · asignado');
+        if(darEntradaIP) {
+            const pu = (costo === '' ? Number(art.costo) : Number(costo)) || 0;
+            const r = await _infoplusAjustePieza(art.codigo, 1, pu, true, `REACOND · Entrada equipo existente → ${modelo} IMEI ${imeiIP}`, 6, [imeiIP]);
+            let nota;
+            if(!r.ok) nota = '⚠️ Entrada en Info Plus NO hecha: ' + (r.error || 'error');
+            else {
+                const q2 = await _ipDondeEstanImei([imeiIP], ['6']);
+                nota = !q2.ok ? '📥 Entrada en Info Plus enviada (no se pudo confirmar el IMEI)'
+                    : q2.donde[imeiIP] === '6' ? ('📥 Entrada en Info Plus, almacén Taller' + (r.codajuste ? ' · ' + r.codajuste : ''))
+                    : '⚠️ Info Plus dijo «creado» pero el IMEI no aparece en el Taller';
+            }
+            try { await _histInsert([{ equipo_id: ins.id, estado_anterior: estado, estado_nuevo: estado, accion: nota, usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+            if(nota.startsWith('⚠️')) toastError('Equipo registrado. ' + nota.replace('⚠️ ', '')); else toast('Registrado · ' + nota.replace('📥 ', ''));
+        } else toast('Registrado · asignado');
         cerrarModalRegistrarExistente();
         await loadAll();
         if(typeof cargarLotesReacond === 'function') cargarLotesReacond();
@@ -15403,10 +15428,14 @@ function _comentarioPieza(accion, piezaNombre, equipoId) {
     const pz = (piezaNombre || 'pieza').toString().trim();
     return `REACOND · ${accion} ${pz} → ${_equipoComentarioRef(equipoId)}`;
 }
-async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, comentario, almacen) {
+// imeis (opcional, 25-nov-2026, formato confirmado por Dagoberto): lista de IMEI del artículo; van en «seriales» como
+// [{numero, codarticulo}] y la cantidad tiene que ser igual al número de IMEI.
+async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, comentario, almacen, imeis) {
     const codNum = parseInt(String(codarticulo == null ? '' : codarticulo).replace(/[^0-9]/g, ''), 10);
     const cant = parseInt(cantidad, 10) || 0;
     if(!codNum || cant <= 0) return { ok: false, error: 'Sin código de Info Plus o cantidad inválida' };
+    const listaImei = Array.isArray(imeis) ? imeis.map(x => String(x).replace(/\D/g, '')).filter(Boolean) : [];
+    if(listaImei.length && listaImei.length !== cant) return { ok: false, error: 'La cantidad no coincide con los IMEI' };
     const codloc = parseInt(almacen, 10) || 6; // almacén destino del movimiento (default 6 = Taller)
     const d = new Date();
     const fecha = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
@@ -15418,7 +15447,7 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
         codminventario: entrada ? 1 : 2, codlocalidad: codloc, codcatalogo: "62809",
         subsidio: false, esmaterialgastable: false, codcentrocosto: null, codactivofijo: null, codotrascompras: null,
         detallesajuste: [{ codarticulo: codNum, precio: pu, cantidad: cant, codunidad: 1, movimiento: 1, fvencimiento: fecha, caracteristicas: "" }],
-        detallesajuste2: [], seriales: []
+        detallesajuste2: [], seriales: listaImei.map(n => ({ numero: n, codarticulo: codNum }))
     };
     try {
         const { data, error } = await supabaseClient.functions.invoke('infoplus-ajuste-crear', { body: ajuste });
@@ -15537,6 +15566,31 @@ function _despachoLlenarSelects() {
     o.innerHTML = opts; d.innerHTML = opts;
     o.value = '1'; d.value = '6';
 }
+// ===== 25-nov-2026 · IMEI en Info Plus: dónde está cada uno (solo lectura, en vivo) =====
+// Pregunta a Info Plus la lista de IMEI de cada almacén (Edge infoplus-imei-almacen, modo almacen_todo) y devuelve
+// { ok, donde: { '<imei>': '<codalmacen>' } }. Si un almacén no responde, ok=false: nunca se mueve inventario a ciegas.
+const _ALM_IMEI = ['1', '3', '4', '5', '6', '7'];
+async function _ipDondeEstanImei(imeis, almacenes) {
+    const buscar = new Set((imeis || []).map(x => String(x).replace(/\D/g, '')).filter(Boolean));
+    const donde = {}; let ok = true;
+    await Promise.all((almacenes || _ALM_IMEI).map(async a => {
+        try {
+            const { data, error } = await supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { modo: 'almacen_todo', codalmacen: String(a) } });
+            if(error || !data || !data.ok) { ok = false; return; }
+            (data.items || []).forEach(it => { const n = String(it.imei || '').replace(/\D/g, ''); if(buscar.has(n)) donde[n] = String(a); });
+        } catch(e) { ok = false; }
+    }));
+    return { ok, donde };
+}
+// Lee IMEI de un texto (uno por línea, o separados por espacio o coma). Devuelve { imeis, malos, repetidos }.
+function _leerImeis(texto) {
+    const partes = String(texto || '').split(/[\s,;]+/).map(x => x.replace(/\D/g, '')).filter(Boolean);
+    const imeis = [], malos = [], repetidos = [];
+    partes.forEach(n => { if(n.length < 14 || n.length > 17) malos.push(n); else if(imeis.includes(n)) repetidos.push(n); else imeis.push(n); });
+    return { imeis, malos, repetidos };
+}
+function _esArticuloCelular(a) { return /^\s*CELULAR/i.test((a && a.descripcion) || ''); }
+
 // ===================== AJUSTE RÁPIDO (entrada / salida de inventario en Info Plus) =====================
 // Para corregir mercancía mal registrada: sacar de un código y entrar a otro, en una localidad, en un solo paso.
 // Cada línea es un ajuste de Info Plus (codminventario 1 = entrada, 2 = salida). Solo administrador.
@@ -15568,11 +15622,22 @@ function abrirAjusteRapido() {
 function _ajrAgregar(tipo) {
     abrirBuscadorArticulos(null, (a) => {
         if(!a) return;
-        if(/^\s*CELULAR/i.test(a.descripcion || '')) { toast('Los celulares llevan IMEI: úselos con Despacho o Compra, no con ajuste.', 'error'); return; }
-        _ajr.items.push({ codigo: String(a.codigo), descripcion: a.descripcion || String(a.codigo), costo: Number(a.costo) || 0, tipo, cantidad: 1, estado: '' });
+        // 25-nov-2026: los celulares ya se pueden ajustar, con su IMEI (formato confirmado por Dagoberto).
+        const cel = _esArticuloCelular(a);
+        _ajr.items.push({ codigo: String(a.codigo), descripcion: a.descripcion || String(a.codigo), costo: Number(a.costo) || 0, tipo, cantidad: cel ? 0 : 1, estado: '', cel, imeiTxt: '' });
         _ajrRender();
         _refrescarExistenciaLive(a.codigo).then(_ajrRender);
     });
+}
+function _ajrImeis(i, texto) {
+    const it = _ajr.items[i]; if(!it) return;
+    it.imeiTxt = texto;
+    const r = _leerImeis(texto);
+    it.cantidad = r.imeis.length;
+    it.imeiMsg = r.malos.length ? ('No parece IMEI: ' + r.malos.join(', ')) : (r.repetidos.length ? ('Repetido: ' + r.repetidos.join(', ')) : '');
+    const msg = document.getElementById('ajrImeiMsg' + i); if(msg) msg.textContent = it.imeiMsg;
+    const fila = document.getElementById('ajrImei' + i)?.closest('div')?.previousElementSibling;
+    const cant = fila && fila.querySelector('span[title^="En celulares"]'); if(cant) cant.textContent = it.cantidad;
 }
 function _ajrExist(cod) { const a = _findInfoplusArt(cod) || {}; return Number((a.existencias || {})[_ajr.alm] || 0); }
 function _ajrRender() {
@@ -15581,37 +15646,75 @@ function _ajrRender() {
     cont.innerHTML = _ajr.items.map((it, i) => {
         const ex = _ajrExist(it.codigo), sal = it.tipo === 'salida';
         const despues = sal ? ex - it.cantidad : ex + it.cantidad;
-        const est = it.estado === 'ok' ? '<span style="color:#15803d;font-weight:700;">✓ Hecho</span>' : it.estado ? `<span style="color:#b91c1c;font-weight:700;">${escapeHtml(it.estado)}</span>` : '';
+        const est = (it.estado === 'ok' ? (it.aviso ? `<span style="color:#b45309;font-weight:700;">⚠ ${escapeHtml(it.aviso)}</span>` : '<span style="color:#15803d;font-weight:700;">✓ Hecho</span>') : it.estado ? `<span style="color:#b91c1c;font-weight:700;">${escapeHtml(it.estado)}</span>` : '')
+            + (it.cel && it.estado === 'ok' && it.imeis ? `<div style="font-size:12px;color:#475569;">IMEI: ${escapeHtml(it.imeis.join(', '))}</div>` : '');
         return `<div style="display:flex;gap:10px;align-items:center;padding:10px;border:1px solid ${sal?'#fecaca':'#bbf7d0'};background:${sal?'#fef2f2':'#f0fdf4'};border-radius:10px;margin-bottom:8px;">
           <span style="font-weight:800;font-size:12px;color:${sal?'#b91c1c':'#15803d'};min-width:62px;">${sal?'SALIDA':'ENTRADA'}</span>
           <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">${escapeHtml(it.codigo)} · ${escapeHtml(it.descripcion)}</div>
             <div style="font-size:12px;color:#475569;">${it.estado === 'ok' ? `Ahora en esta localidad: <b>${ex}</b>` : `En esta localidad: <b>${ex}</b> → queda <b style="color:${despues<0?'#b91c1c':'#0f172a'}">${despues}</b>`} ${est}</div></div>
-          <input type="number" min="1" value="${it.cantidad}" onchange="_ajr.items[${i}].cantidad=Math.max(1,parseInt(this.value,10)||1);_ajrRender()" style="width:64px;padding:7px;border:1px solid #cbd5e1;border-radius:8px;text-align:center;">
-          <button class="btn btn-light" title="Quitar" onclick="_ajr.items.splice(${i},1);_ajrRender()"><i class="ti ti-trash"></i></button></div>`;
+          ${it.cel ? `<span title="En celulares la cantidad es el número de IMEI" style="min-width:64px;text-align:center;font-weight:800;">${it.cantidad}</span><input type="hidden" value="${it.cantidad}"` : `<input type="number" min="1" value="${it.cantidad}" onchange="_ajr.items[${i}].cantidad=Math.max(1,parseInt(this.value,10)||1);_ajrRender()" style="width:64px;padding:7px;border:1px solid #cbd5e1;border-radius:8px;text-align:center;">`}
+          <button class="btn btn-light" title="Quitar" onclick="_ajr.items.splice(${i},1);_ajrRender()" style="min-width:44px;min-height:44px;"><i class="ti ti-trash"></i></button></div>${it.cel && it.estado !== 'ok' ? `
+          <div style="margin:-4px 0 10px;padding:10px;border:1px solid ${sal?'#fecaca':'#bbf7d0'};border-top:0;border-radius:0 0 10px 10px;">
+            <label for="ajrImei${i}" style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">IMEI (uno por línea) · la cantidad sale de aquí</label>
+            <textarea id="ajrImei${i}" rows="2" inputmode="numeric" placeholder="351829689413208" oninput="_ajrImeis(${i},this.value)" style="width:100%;box-sizing:border-box;min-height:48px;font-size:16px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-variant-numeric:tabular-nums;">${escapeHtml(it.imeiTxt || '')}</textarea>
+            <div id="ajrImeiMsg${i}" style="font-size:12.5px;color:#b45309;margin-top:4px;">${escapeHtml(it.imeiMsg || '')}</div>
+          </div>` : ''}`;
     }).join('');
 }
 async function _ajrEjecutar() {
     const items = _ajr.items.filter(it => it.estado !== 'ok');
     if(!items.length) return toast('Agregue al menos un artículo.', 'error');
+    // Celulares: IMEI bien escritos, la cantidad sale de los IMEI y se confirma en Info Plus dónde está cada uno.
+    for(const it of items.filter(x => x.cel)) {
+        const r = _leerImeis(it.imeiTxt);
+        if(!r.imeis.length) return toast(`Escriba el IMEI del ${it.codigo}.`, 'error');
+        if(r.malos.length || r.repetidos.length) return toast(`Revise los IMEI del ${it.codigo}: ${(r.malos.concat(r.repetidos)).join(', ')}`, 'error');
+        it.imeis = r.imeis; it.cantidad = r.imeis.length;
+    }
+    const todosImei = items.filter(x => x.cel).flatMap(x => x.imeis);
+    if(new Set(todosImei).size !== todosImei.length) return toast('Hay un IMEI repetido entre las líneas.', 'error');
+    if(todosImei.length) {
+        toast('Consultando en Info Plus dónde está cada IMEI…');
+        const q = await _ipDondeEstanImei(todosImei);
+        if(!q.ok) return toast('No se pudo consultar Info Plus para revisar los IMEI. No se hizo nada; intente de nuevo.', 'error');
+        for(const it of items.filter(x => x.cel)) {
+            for(const n of it.imeis) {
+                const en = q.donde[n];
+                if(it.tipo === 'entrada' && en) return toast(`El IMEI ${n} ya está en Info Plus (${_nombreAlmacen(en)}). No se puede dar entrada otra vez.`, 'error');
+                if(it.tipo === 'salida' && String(en || '') !== String(_ajr.alm)) return toast(`El IMEI ${n} no está en ${_nombreAlmacen(_ajr.alm)}${en ? ' (está en ' + _nombreAlmacen(en) + ')' : ''}. No se puede sacar de aquí.`, 'error');
+            }
+        }
+    }
     const neg = items.find(it => it.tipo === 'salida' && _ajrExist(it.codigo) - it.cantidad < 0);
     if(neg) return toast(`No hay suficiente del ${neg.codigo} en esta localidad para sacar ${neg.cantidad}.`, 'error');
     const alm = _ajr.alm, almN = (ALMACENES_IP.find(a => String(a.c) === String(alm)) || {}).n || ('Almacén ' + alm);
-    let msg = `¿Hacer este ajuste en Info Plus (${almN})?\n\n` + items.map(it => `• ${it.tipo === 'salida' ? 'SALIDA' : 'ENTRADA'} ${it.cantidad} — ${it.codigo} ${it.descripcion}`).join('\n') + '\n\nEsto modifica el inventario real.';
+    let msg = `¿Hacer este ajuste en Info Plus (${almN})?\n\n` + items.map(it => `• ${it.tipo === 'salida' ? 'SALIDA' : 'ENTRADA'} ${it.cantidad} — ${it.codigo} ${it.descripcion}` + (it.cel ? `\n   IMEI: ${it.imeis.join(', ')}` : '')).join('\n') + '\n\nEsto modifica el inventario real.';
     if(!await confirmar(msg)) return;
     const btn = document.getElementById('ajrBtn'); if(btn) btn.disabled = true;
     const com = (_ajr.nota || '').trim() || 'Ajuste rápido';
     let ok = 0, err = 0;
     for(const it of items) {   // primero las salidas, luego las entradas
         if(it.tipo !== 'salida') continue;
-        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, false, com, alm);
+        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, false, com, alm, it.cel ? it.imeis : null);
         it.estado = r.ok ? 'ok' : (r.error || 'Error'); r.ok ? ok++ : err++;
     }
     for(const it of items) {
         if(it.tipo !== 'entrada') continue;
-        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, true, com, alm);
+        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, true, com, alm, it.cel ? it.imeis : null);
         it.estado = r.ok ? 'ok' : (r.error || 'Error'); r.ok ? ok++ : err++;
     }
     await Promise.all(items.map(it => _refrescarExistenciaLive(it.codigo)));
+    // Celulares: se confirma que Info Plus de verdad movió el IMEI (en junio respondía «creado» y no guardaba).
+    const celHechos = items.filter(it => it.cel && it.estado === 'ok');
+    if(celHechos.length) {
+        const q = await _ipDondeEstanImei(celHechos.flatMap(it => it.imeis), [String(alm)]);
+        celHechos.forEach(it => {
+            const malos = it.imeis.filter(n => it.tipo === 'entrada' ? q.donde[n] !== String(alm) : q.donde[n] === String(alm));
+            // La línea queda «hecha» (no se reenvía con otro clic, para no duplicar); el aviso dice qué revisar en Info Plus.
+            if(!q.ok) it.aviso = 'No se pudo confirmar el IMEI en Info Plus; revíselo allá.';
+            else if(malos.length) { it.aviso = 'Info Plus dijo «creado» pero el IMEI no se movió: ' + malos.join(', ') + '. Revíselo en Info Plus antes de repetir.'; ok--; err++; }
+        });
+    }
     _ajrRender();
     if(btn) btn.disabled = false;
     if(err) toast(`Ajuste: ${ok} hecho(s), ${err} con error. Revise las líneas en rojo.`, 'error');
