@@ -5360,6 +5360,11 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
                 <div class="form-row"><label>IMEI</label><input id="rex_imei" placeholder="IMEI / opcional"></div>
                 <div class="form-row"><label>Serial</label><input id="rex_serial" placeholder="Serial / opcional"></div>
             </div>
+            <!-- 25-nov-2026: entrada en Info Plus con el IMEI (formato confirmado por Dagoberto). Solo celulares. -->
+            <label for="rex_ip" style="display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:10px 12px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:10px;cursor:pointer;margin:4px 0 10px;">
+                <input type="checkbox" id="rex_ip" style="width:20px;height:20px;flex:none;margin-top:2px;">
+                <span style="font-size:14px;color:#14532d;"><b>Darle entrada en Info Plus</b> (almacén Taller) con este IMEI<br><small style="color:#3f6212;">Para equipos que no están en Info Plus. Antes se revisa que el IMEI no esté ya en ningún almacén.</small></span>
+            </label>
             <div class="form-row"><label>Técnico que lo tiene *</label>
                 <select id="rex_tecnico"><option value="">— Seleccione el técnico —</option></select>
             </div>
@@ -5767,7 +5772,7 @@ if(document.body)arrancar();else document.addEventListener('DOMContentLoaded',ar
 
 <!-- taller-app.min.js la genera scripts/minificar.sh (robot de GitHub al cambiar taller-app.js). El código fuente sigue en taller-app.js. -->
 <script defer src="crm-ortografia.js?v=20261102-or1"></script>
-<script defer src="taller-app.min.js?v=20261119-trt1"></script>
+<script defer src="taller-app.min.js?v=20261125-imei1"></script>
 <script defer src="crm-estilos.js?v=20261110-c1"></script>
 <script defer src="taller-app-movil.js?v=20261027-m3"></script>
 <script defer src="conta-base.js?v=20261108-cb2"></script>
