@@ -100,6 +100,18 @@ listas y sincronización.
 - **Ajuste con IMEI en Info Plus (Dagoberto, 25-nov-2026): YA FUNCIONA** con `seriales: [{"numero":"<IMEI>","codarticulo":<código>}]` (no lista de textos) y `fvencimiento` = fecha del ajuste. Supera la nota de CLAUDE.md del 25-jun («no guarda»). **Publicado 25-nov (PR #334):** Ajuste rápido acepta celulares con IMEI y «Registrar equipo existente» tiene la casilla «Darle entrada en Info Plus (Taller)». Revisa con `_ipDondeEstanImei` antes (entrada: el IMEI no puede existir; salida: tiene que estar en esa localidad) y después (que de verdad se movió). Falta la primera prueba real del dueño. **«Corregir IMEI o artículo» (PR #336, publicado 25-nov):** al lado de Ajuste rápido; corrige un IMEI mal escrito (entra el correcto y luego sale el viejo) o pasa un teléfono a otro artículo (sale y luego entra); reintento del paso que falte; actualiza Reacondicionados. Cuadre de IMEI (idea 4) queda en PENDIENTES.md. **25-nov (Muse):** hoy Info Plus devuelve 0 IMEI en todos los almacenes (en junio eran 72 en el Taller). Desde PR #338 las tres pantallas NO mueven nada si eso pasa, y la Edge v12 anota qué contesta Info Plus en `infoplus_diagnostico` (ruta `listaserie_almacen`). **Causa encontrada:** Info Plus ahora llama al Taller «TALLER BAYOL» (26 series); la Edge exigía «TALLER» exacto. Edge v13 (PR #340) acepta nombres que contengan el del almacén (`enAlmacen`). Arreglaba también la ventana IMEI de la Prefactura.
 - **IMEI por almacén:** `listaserie` filtra por `codalmacen`; Edge v9 lo usa (lista prudente por almacén) y con `{imei}` devuelve el artículo (compras → listaserie). Falta prueba real; rama `claude/imei-busca-articulo` sin publicar: IMEI → artículo, serie la decide Info Plus, IMEI a mano comprobado, tope % y descuento RD$, `REGLAMENTOS.md` (bit. 1740, 1830, 1825).
 - **Muse e Info Plus (dueño, 25-nov-2026):** Muse (asistente/IA del dueño) también entra a Info Plus con la sesión del dueño. Sirve para revisar en Info Plus lo que hace el sistema (IMEI movidos, ajustes, despachos) y para buscar el «Domain» y si se puede crear un usuario solo para la API móvil (`api.infoplusplatinum.com`, bit. 2026-11-25-2100). Muse nunca pasa claves al chat de Claude; el usuario de la API lo guarda el dueño como secreto de Supabase.
+- **Reponer y quieto (PUBLICADO 26-nov-2026, PR #358, `taller-reponer.js?v=20261126-rep2`):**
+  - Dónde: botón en Despacho de Almacén.
+  - Pestañas:
+    - **Se agota**: vendido en 30 días; no alcanza para 2 semanas; lo urgente arriba.
+    - **Traer**: despacho por ruta, con revisión en vivo de Info Plus antes de confirmar y candado.
+    - **Quieto**: 60 días sin venta ni compra, valor a costo.
+  - Extras: filtro «Para comprar» con último proveedor y «Copiar pedido» agrupado por proveedor.
+  - Servidor:
+    - RPC `inv_reponer`;
+    - aviso **cada lunes 7:47 a. m.** solo a administradores (cron `inv-reponer-lunes` → `push-enviar` v2, `{aviso:'reponer_semanal'}`; sw.js abre `?abrir=reponer`).
+  - **Ojo:** `niveles_min` de `infoplus_articulos` es el **precio** mínimo por nivel, no la existencia mínima.
+  - La tabla `articulos` está vacía. «Lleva IMEI» = aparece en `infoplus_seriales`.
 - **Esperando a Dagoberto:** Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`; crédito/mínimo por nivel y `porcentaje`.
 - **WA 22-oct:** publicado «Transferido», historial en el chat, «A un empleado», respuestas rápidas, álbum y «Eliminar para todos» (falta prueba real, bit. 1700). Llamadas: sin rastro (coexistencia).
 - Prefactura impresa con el Nº de Info Plus (ticket/carta, «COPIA»): rama sin publicar (bit. 21-oct 1200). IA v32 desplegada (código no en `main`).
