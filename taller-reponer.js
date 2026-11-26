@@ -9,7 +9,11 @@
   if (window.__bcReponer) return;
   window.__bcReponer = true;
 
-  var C = { datos: null, tab: 'agota', suc: 0, q: '', alm: 0, sel: {}, cant: {}, desde: {}, hecho: {}, ocupado: false };
+  var C = { datos: null, tab: 'agota', suc: 0, q: '', alm: 0, comprar: false, sel: {}, cant: {}, desde: {}, hecho: {}, ocupado: false };
+  // «Hazlo smart»: recuerda la pestaña y el filtro que usó la última vez (solo en este equipo).
+  try { var pf = JSON.parse(localStorage.getItem('bc_rep_pref') || '{}'); ['tab', 'suc', 'alm', 'comprar'].forEach(function (k) { if (pf[k] != null) C[k] = pf[k]; }); } catch (e) {}
+  function guardarPref() { try { localStorage.setItem('bc_rep_pref', JSON.stringify({ tab: C.tab, suc: C.suc, alm: C.alm, comprar: C.comprar })); } catch (e) {} }
+  function aComprar(r) { return !C.hecho[clave(r)] && (r.imei || !(r.fuentes || []).length); }
   var esc = function (s) { return (typeof escapeHtml === 'function') ? escapeHtml(String(s == null ? '' : s)) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var rd = function (n) { return 'RD$ ' + Math.round(Number(n || 0)).toLocaleString('es-DO'); };
   var nu = function (n) { return Number(n || 0).toLocaleString('es-DO', { maximumFractionDigits: 0 }); };
@@ -24,6 +28,8 @@
       <ul style="padding-left:18px; margin:6px 0;">\
         <li><b>Se agota:</b> se vendió en los últimos 30 días en esa sucursal y lo que hay no alcanza para 2 semanas. <b>Sugerido</b> = un mes de venta menos lo que hay.</li>\
         <li><b>Traer:</b> lo que se agota y sobra en otro almacén (2do Nivel y Oficina primero; de una sucursal, solo lo que le sobra tras su propio mes). Nunca de Garantía China ni del Taller. Se hace un despacho en Info Plus por cada ruta, después de confirmar.</li>\
+        <li>Antes de despachar se revisa Info Plus <b>en vivo</b>: si en el origen hay menos, se trae lo que hay; si no hay, se salta.</li>\
+        <li><b>Para comprar:</b> lo que no sobra en ningún almacén. Dice a quién se le compró la última vez y a qué costo. <b>Copiar pedido</b> lo agrupa por proveedor para pegarlo en WhatsApp.</li>\
         <li>Los celulares con IMEI se mueven con <b>Despachar teléfonos</b>.</li>\
         <li><b>Quieto:</b> hay existencia y no se vendió ni se compró en 60 días. El valor es a costo. Garantía China no cuenta.</li>\
         <li>Existencias de Info Plus: se actualizan cada 30 minutos. Ventas: cada hora.</li>\
@@ -72,7 +78,7 @@
     '@media (max-width:600px){#bcRep .modal-box{width:100vw;max-height:100dvh;border-radius:0}#bcRep .rp-num{min-width:72px}' +
     '#bcRep .rp-tabs{flex-wrap:nowrap;padding-top:8px}#bcRep .rp-tab{flex:1 1 0;justify-content:center;padding:0 6px;font-size:13px;gap:4px}#bcRep .rp-tab b{padding:2px 5px}' +
     '#bcRep .rp-fil{flex-direction:column;align-items:stretch}#bcRep .rp-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}' +
-    '#bcRep .rp-chips::-webkit-scrollbar{display:none}#bcRep .rp-chip{flex:0 0 auto}#bcRep .rp-busca{min-width:0}}';
+    '#bcRep .rp-chips::-webkit-scrollbar{display:none}#bcRep .rp-chip{flex:0 0 auto}#bcRep .rp-busca{flex:none;width:100%;min-width:0}#bcRep .rp-chips{min-width:0;max-width:calc(100% + 32px)}}';
   (document.head || document.documentElement).appendChild(css);
 
   function lista() { var d = C.datos || {}; return C.tab === 'quieto' ? (d.quieto || []) : (d.agota || []); }
@@ -84,6 +90,7 @@
     if (C.tab === 'quieto') return (C.datos.quieto || []).filter(function (r) { return okQ(r) && (!C.alm || Number((r.por_alm || {})[C.alm] || 0) > 0); });
     return (C.datos.agota || []).filter(function (r) {
       if (C.suc && r.alm !== C.suc) return false;
+      if (C.tab === 'agota' && C.comprar && !aComprar(r)) return false;
       if (C.tab === 'traer' && !((r.fuentes || []).length && !r.imei) && !C.hecho[clave(r)]) return false;
       return okQ(r);
     });
@@ -102,15 +109,18 @@
     var fil = filtrar(), html = '';
     var chips = C.tab === 'quieto'
       ? [[0, 'Todos'], [1, 'Santiago'], [4, 'Moca'], [7, 'Navarrete'], [5, '2do Nivel'], [6, 'Taller']].map(function (s) { return '<button type="button" class="rp-chip' + (C.alm === s[0] ? ' on' : '') + '" onclick="bcRepAlm(' + s[0] + ')">' + s[1] + '</button>'; }).join('')
-      : SUC.map(function (s) { return '<button type="button" class="rp-chip' + (C.suc === s[0] ? ' on' : '') + '" onclick="bcRepSuc(' + s[0] + ')">' + s[1] + '</button>'; }).join('');
+      : SUC.map(function (s) { return '<button type="button" class="rp-chip' + (C.suc === s[0] ? ' on' : '') + '" onclick="bcRepSuc(' + s[0] + ')">' + s[1] + '</button>'; }).join('') +
+        (C.tab === 'agota' ? '<button type="button" class="rp-chip' + (C.comprar ? ' on' : '') + '" onclick="bcRepComprar()"><i class="ti ti-shopping-cart"></i> Para comprar</button>' : '');
     html += '<div class="rp-fil"><div class="rp-chips">' + chips + '</div><div class="rp-busca"><i class="ti ti-search"></i><input id="bcRepQ" data-bcbp-no autocomplete="off" placeholder="Buscar artículo o código" value="' + esc(C.q) + '" oninput="bcRepBuscar(this.value)"></div></div>';
     if (C.tab === 'quieto') {
       var val = fil.reduce(function (s, r) { return s + (C.alm ? Number((r.por_alm || {})[C.alm] || 0) * (r.costo || 0) : Number(r.valor || 0)); }, 0);
       html += '<div class="rp-res"><b>' + nu(fil.length) + '</b> artículos · <b>' + rd(val) + '</b> a costo · sin venta ni compra en ' + d.dias + ' días</div>';
     } else if (C.tab === 'traer') {
-      html += '<div class="rp-res">Marque lo que quiere traer. Se hace un despacho por ruta.</div>';
+      var libres = fil.filter(puedeTraer), todos = libres.length && libres.every(function (r) { return C.sel[clave(r)]; });
+      html += '<div class="rp-res" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="flex:1;min-width:180px">Se hace un despacho por ruta. Antes se revisa Info Plus en vivo.</span>' +
+        (libres.length ? '<button type="button" class="rp-chip" onclick="bcRepTodos(' + (todos ? 'false' : 'true') + ')">' + (todos ? 'Quitar todos' : 'Marcar todo (' + nu(libres.length) + ')') + '</button>' : '') + '</div>';
     } else {
-      html += '<div class="rp-res"><b>' + nu(fil.length) + '</b> artículos no alcanzan para 2 semanas</div>';
+      html += '<div class="rp-res"><b>' + nu(fil.length) + '</b> ' + (C.comprar ? 'para comprar (no sobra en otro almacén)' : 'no alcanzan para 2 semanas · lo más urgente arriba') + '</div>';
     }
     if (!fil.length) html += '<div class="rp-vacio">' + (C.q ? 'Nada con esa búsqueda.' : 'Nada por aquí.') + '</div>';
     fil.slice(0, verMas).forEach(function (r) { html += C.tab === 'quieto' ? filaQuieto(r) : filaAgota(r); });
@@ -119,8 +129,10 @@
     cuerpo.innerHTML = html;
     if (foco) { var inp = document.getElementById('bcRepQ'); if (inp) { inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (e) {} } }
     var nSel = Object.keys(C.sel).filter(function (k) { return C.sel[k]; }).length;
+    var nCompra = C.tab === 'agota' ? fil.filter(aComprar).length : 0;
     pie.innerHTML = '<button type="button" class="btn btn-light" onclick="bcRepCerrar()">Cerrar</button><span style="flex:1"></span>' +
-      (C.tab === 'quieto' ? '' : '<button type="button" class="btn btn-blue" id="bcRepTraer" onclick="bcRepTraer()"' + (nSel && !C.ocupado ? '' : ' disabled') + '><i class="ti ti-truck-delivery"></i> ' + (C.ocupado ? 'Despachando…' : 'Traer' + (nSel ? ' (' + nSel + ')' : '')) + '</button>');
+      (C.tab === 'quieto' ? '' : C.tab === 'agota'
+        ? '<button type="button" class="btn btn-blue" onclick="bcRepCopiarPedido()"' + (nCompra ? '' : ' disabled') + '><i class="ti ti-copy"></i> Copiar pedido' + (nCompra ? ' (' + nCompra + ')' : '') + '</button>' : '<button type="button" class="btn btn-blue" id="bcRepTraer" onclick="bcRepTraer()"' + (nSel && !C.ocupado ? '' : ' disabled') + '><i class="ti ti-truck-delivery"></i> ' + (C.ocupado ? 'Despachando…' : 'Traer' + (nSel ? ' (' + nSel + ')' : '')) + '</button>');
   }
   function tab(k, ic, t, n) { return '<button type="button" class="rp-tab' + (C.tab === k ? ' on' : '') + '" onclick="bcRepTab(\'' + k + '\')"><i class="ti ' + ic + '"></i>' + t + ' <b>' + nu(n) + '</b></button>'; }
 
@@ -130,7 +142,9 @@
     var s = '<span class="rp-pill a">' + esc(corto(r.alm)) + '</span><span class="rp-pill' + (r.hay > 0 ? '' : ' r') + '">Hay ' + nu(r.hay) + '</span>' +
       '<span class="rp-pill">Vendió ' + nu(r.vendidas) + ' en 30 días</span>' + (dias != null && r.hay > 0 ? '<span class="rp-pill">≈ ' + dias + ' días</span>' : '');
     var fu = (r.fuentes || []).map(function (f) { return corto(f.alm) + ' ' + nu(f.sobra); }).join(' · ');
-    var sub = r.imei ? 'Con IMEI · use Despachar teléfonos' : (fu ? 'Sobra en: ' + esc(fu) : 'No sobra en otro almacén: comprar');
+    var compra = r.prov ? 'Comprar a ' + esc(r.prov) + (r.prov_costo ? ' · último ' + rd(r.prov_costo) : '') + (r.prov_fecha ? ' · ' + fecha(r.prov_fecha) : '') : 'Comprar · sin proveedor anterior';
+    var sub = r.imei ? (fu ? 'Con IMEI · sobra en ' + esc(fu) + ' · use Despachar teléfonos' : '<i class="ti ti-shopping-cart"></i> ' + compra)
+      : (fu ? '<i class="ti ti-truck-delivery"></i> Traer de ' + esc(fu) : '<i class="ti ti-shopping-cart"></i> ' + compra);
     var chk = '', ctl = '';
     if (h) chk = '<div class="rp-chk"><i class="ti ti-circle-check" style="color:#16a34a;font-size:24px"></i></div>';
     else if (puedeTraer(r)) {
@@ -158,9 +172,53 @@
   function desdeDe(r) { var k = clave(r), a = Number(C.desde[k] || 0); return (r.fuentes || []).find(function (f) { return f.alm === a; }) || (r.fuentes || [])[0]; }
   function cantDe(r) { var k = clave(r), f = desdeDe(r), max = Math.max(1, Math.floor(f ? f.sobra : 1)); var c = Number(C.cant[k] || Math.min(r.sugerido, max)); return Math.max(1, Math.min(c, max)); }
 
-  window.bcRepTab = function (t) { C.tab = t; verMas = LIM; pintar(); var b = document.querySelector('#bcRep .rp-body'); if (b) b.scrollTop = 0; };
-  window.bcRepSuc = function (s) { C.suc = s; verMas = LIM; pintar(); };
-  window.bcRepAlm = function (a) { C.alm = a; verMas = LIM; pintar(); };
+  window.bcRepTab = function (t) { C.tab = t; verMas = LIM; guardarPref(); pintar(); var b = document.querySelector('#bcRep .rp-body'); if (b) b.scrollTop = 0; };
+  window.bcRepSuc = function (s) { C.suc = s; verMas = LIM; guardarPref(); pintar(); };
+  window.bcRepAlm = function (a) { C.alm = a; verMas = LIM; guardarPref(); pintar(); };
+  window.bcRepComprar = function () { C.comprar = !C.comprar; verMas = LIM; guardarPref(); pintar(); };
+  window.bcRepTodos = function (on) { filtrar().filter(puedeTraer).forEach(function (r) { C.sel[clave(r)] = !!on; }); pintar(); };
+
+  // «Copiar pedido»: lo que hay que comprar, agrupado por el último proveedor, listo para pegar en WhatsApp.
+  window.bcRepCopiarPedido = async function () {
+    var porCod = {};
+    filtrar().filter(aComprar).forEach(function (r) {
+      var x = porCod[r.cod] || (porCod[r.cod] = { r: r, cant: 0, suc: [] });
+      x.cant += Number(r.sugerido) || 0; x.suc.push(corto(r.alm));
+    });
+    var grupos = {};
+    Object.keys(porCod).forEach(function (k) { var x = porCod[k], p = x.r.prov || 'Sin proveedor anterior'; (grupos[p] = grupos[p] || []).push(x); });
+    var nombres = Object.keys(grupos).sort(function (a, b) { return a === 'Sin proveedor anterior' ? 1 : b === 'Sin proveedor anterior' ? -1 : grupos[b].length - grupos[a].length; });
+    if (!nombres.length) return;
+    var hoy = new Date().toLocaleDateString('es-DO', { day: 'numeric', month: 'short' });
+    var txt = 'Pedido Bayol Cell · ' + hoy + '\n' + nombres.map(function (p) {
+      return '\n*' + p + '*\n' + grupos[p].map(function (x) { return '• ' + x.cant + ' × ' + (x.r.desc || x.r.cod).trim() + ' (' + x.r.cod + ')'; }).join('\n');
+    }).join('\n');
+    var ok = false;
+    try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {
+      try { var ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (x) {}
+    }
+    window.__bcRepPedido = txt;
+    aviso(ok ? '📋 Pedido copiado · ' + Object.keys(porCod).length + ' artículos, ' + nombres.length + ' proveedor(es)' : 'No se pudo copiar', ok ? undefined : 'error');
+  };
+
+  // Antes de despachar se pregunta a Info Plus cuánto hay de verdad en el origen (las existencias guardadas pueden
+  // tener hasta 30 min). Si hay menos, se ajusta la cantidad; si no hay, se salta y se avisa.
+  async function revisarEnVivo(lst) {
+    var notas = [];
+    await Promise.all(lst.map(function (x) {
+      return Promise.all(x.items.map(async function (it) {
+        try {
+          var res = await supabaseClient.functions.invoke('infoplus-existencia-art', { body: { codarticulo: Number(it.r.cod) } });
+          var ex = res && res.data && res.data.ok && res.data.existencias;
+          if (!ex) return;
+          var hay = Math.floor(Number(ex[String(x.origen)] || 0));
+          if (hay < it.cant) { notas.push((it.r.desc || it.r.cod).trim() + ': en ' + corto(x.origen) + ' hay ' + hay + (hay > 0 ? ', se traen ' + hay : ', se salta')); it.cant = hay; }
+        } catch (e) {}
+      }));
+    }));
+    lst.forEach(function (x) { x.items = x.items.filter(function (it) { return it.cant > 0; }); });
+    return { lst: lst.filter(function (x) { return x.items.length; }), notas: notas };
+  }
   window.bcRepMas = function () { verMas += LIM; pintar(); };
   var tq = null;
   window.bcRepBuscar = function (v) { C.q = v; clearTimeout(tq); tq = setTimeout(function () { verMas = LIM; pintar(); }, 120); };
@@ -188,10 +246,13 @@
     var rutas = {};
     elegidos.forEach(function (r) { var f = desdeDe(r); if (!f) return; var key = f.alm + '>' + r.alm; (rutas[key] = rutas[key] || { origen: f.alm, destino: r.alm, items: [] }).items.push({ r: r, cant: cantDe(r) }); });
     var lst = Object.keys(rutas).map(function (k) { return rutas[k]; });
-    var txt = lst.map(function (x) { return '• ' + corto(x.origen) + ' → ' + corto(x.destino) + ': ' + x.items.length + ' artículo(s), ' + x.items.reduce(function (s, i) { return s + i.cant; }, 0) + ' u.'; }).join('\n');
     C.ocupado = true; pintar();
     try {
-      if (!await confirmar('¿Hacer ' + (lst.length === 1 ? 'este despacho' : 'estos ' + lst.length + ' despachos') + ' en Info Plus?\n\n' + txt, { ok: 'Despachar', peligro: false })) return;
+      var rev = await revisarEnVivo(lst); lst = rev.lst;
+      var aj = rev.notas.length ? '\n\nRevisado en Info Plus:\n' + rev.notas.map(function (n) { return '• ' + n; }).join('\n') : '';
+      if (!lst.length) { aviso('Ya no hay existencia en el origen. No se despachó nada.' + aj, 'error'); return; }
+      var txt = lst.map(function (x) { return '• ' + corto(x.origen) + ' → ' + corto(x.destino) + ': ' + x.items.length + ' artículo(s), ' + x.items.reduce(function (s, i) { return s + i.cant; }, 0) + ' u.'; }).join('\n');
+      if (!await confirmar('¿Hacer ' + (lst.length === 1 ? 'este despacho' : 'estos ' + lst.length + ' despachos') + ' en Info Plus?\n\n' + txt + aj, { ok: 'Despachar', peligro: false })) return;
       var bien = 0, mal = [];
       for (var i = 0; i < lst.length; i++) {
         var x = lst[i];

@@ -40,8 +40,13 @@ begin
   agota2 as (
     select g.*, (select jsonb_agg(jsonb_build_object('alm', f.desde, 'nombre', imei_alm_nombre(f.desde), 'sobra', floor(f.sobra))
                    order by (f.desde = 5) desc, (f.desde = 1) desc, f.sobra desc)
-                  from fuente f where f.alm = g.alm and f.cod = g.cod and floor(f.sobra) >= 1) fuentes
-      from agota g),
+                  from fuente f where f.alm = g.alm and f.cod = g.cod and floor(f.sobra) >= 1) fuentes,
+           pv.proveedor prov, pv.ultima_fecha prov_fecha,
+           case when coalesce(pv.cantidad, 0) > 0 then round(pv.monto / pv.cantidad) end prov_costo
+      from agota g
+      -- «Hazlo smart»: a quién se le compró la última vez (para «Comprar» y «Copiar pedido»).
+      left join lateral (select p.proveedor, p.ultima_fecha, p.monto, p.cantidad from infoplus_art_prov p
+                          where p.codproducto::text = g.cod order by p.ultima_fecha desc nulls last limit 1) pv on true),
   quieto as (
     select e.cod, max(e.descripcion) descripcion, max(e.costo) costo, sum(e.hay) unidades, sum(e.hay * e.costo) valor,
            jsonb_object_agg(e.alm, e.hay) por_alm, max(vd.ult) ult_venta, max(p.ultima_fecha) ult_compra,
@@ -56,8 +61,9 @@ begin
     'dias', d, 'hoy', hoy,
     'agota', coalesce((select jsonb_agg(jsonb_build_object('alm', alm, 'nombre', imei_alm_nombre(alm), 'cod', cod, 'desc', descripcion,
                'costo', costo, 'vendidas', vendidas, 'hay', hay, 'sugerido', sugerido, 'imei', lleva_imei,
-               'dias', case when vendidas > 0 then floor(hay * 30 / vendidas) else null end, 'fuentes', coalesce(fuentes, '[]'::jsonb))
-               order by alm, (fuentes is not null) desc, vendidas desc) from agota2), '[]'::jsonb),
+               'dias', case when vendidas > 0 then floor(hay * 30 / vendidas) else null end, 'fuentes', coalesce(fuentes, '[]'::jsonb),
+               'prov', prov, 'prov_fecha', prov_fecha, 'prov_costo', prov_costo)
+               order by (hay <= 0) desc, hay * 30 / nullif(vendidas, 0) nulls first, vendidas desc) from agota2), '[]'::jsonb),
     'quieto', coalesce((select jsonb_agg(jsonb_build_object('cod', cod, 'desc', descripcion, 'costo', costo, 'unidades', unidades,
                'valor', round(valor), 'por_alm', por_alm, 'ult_venta', ult_venta, 'ult_compra', ult_compra, 'imei', lleva_imei)
                order by valor desc) from quieto), '[]'::jsonb),
