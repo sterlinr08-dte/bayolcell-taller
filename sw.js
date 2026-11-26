@@ -9,23 +9,25 @@ self.addEventListener('push', function (e) {
   var titulo = d.t || 'Mensaje nuevo';
   e.waitUntil(self.registration.showNotification(titulo, {
     body: d.b || '',
-    tag: d.h ? 'hilo-' + d.h : undefined,
+    tag: d.h ? 'hilo-' + d.h : (d.u ? 'u-' + d.u : undefined),
     renotify: !!d.h,
     icon: 'assets/taller/taller-icon-192.png',
     badge: 'assets/taller/taller-icon-192.png',
-    data: { h: d.h || null }
+    data: { h: d.h || null, u: d.u || null }
   }));
 });
 
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
   var h = e.notification.data && e.notification.data.h;
-  var url = new URL('taller.html' + (h ? '?hilo=' + encodeURIComponent(h) : ''), self.registration.scope).href;
+  var u = e.notification.data && e.notification.data.u; // 26-nov-2026: avisos que abren una ventana (u = 'reponer')
+  var url = new URL('taller.html' + (h ? '?hilo=' + encodeURIComponent(h) : (u ? '?abrir=' + encodeURIComponent(u) : '')), self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (lista) {
     for (var i = 0; i < lista.length; i++) {
       var c = lista[i];
       if (c.url.indexOf('taller.html') >= 0) {
         if (h) c.postMessage({ tipo: 'abrir-hilo', h: h });
+        else if (u) c.postMessage({ tipo: 'abrir-ventana', u: u });
         return c.focus();
       }
     }

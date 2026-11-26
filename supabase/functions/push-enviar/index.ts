@@ -28,6 +28,32 @@ Deno.serve(async (req) => {
   if (!k?.publica) return json({ ok: false, error: "Sin claves." }, 500);
   // { preparar: true } solo crea las claves (primera vez); no envía nada.
   if (body?.preparar === true) return json({ ok: true, preparado: true });
+  // 26-nov-2026 · Aviso de cada lunes «Qué reponer y qué está quieto» (cron inv-reponer-lunes → inv_reponer_aviso_semanal).
+  // Solo a administradores (push_destinatarios_admin). Al tocarlo abre la ventana Reponer (u: 'reponer' en sw.js).
+  if (body?.aviso === "reponer_semanal") {
+    webpush.setVapidDetails("mailto:sterlinr08@gmail.com", k.publica, k.privada);
+    const { data: rs, error: e1 } = await db.rpc("inv_reponer_resumen");
+    if (e1) return json({ ok: false, error: e1.message }, 500);
+    const ag = Object.entries((rs?.agota || {}) as Record<string, number>).filter(([, n]) => Number(n) > 0);
+    const fmt = (n: number) => Math.round(Number(n || 0)).toLocaleString("es-DO");
+    const cuerpo = [ag.length ? "Se agota: " + ag.map(([s, n]) => `${s} ${n}`).join(" · ") : "Nada por agotarse",
+      `Quieto 60 días: ${fmt(rs?.quieto_n)} artículos · RD$ ${fmt(rs?.quieto_valor)}`].join("\n");
+    const { data: dest, error: e2 } = await db.rpc("push_destinatarios_admin");
+    if (e2) return json({ ok: false, error: e2.message }, 500);
+    let enviados = 0;
+    await Promise.all((dest || []).map(async (d: any) => {
+      try {
+        await webpush.sendNotification({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } },
+          JSON.stringify({ t: "📦 Inventario de la semana", b: cuerpo, u: "reponer" }), { TTL: 86400, urgency: "normal", topic: "reponersemanal" });
+        enviados++;
+        await db.rpc("push_resultado", { p_sus_id: d.sus_id, p_ok: true });
+      } catch (e: any) {
+        const st = Number(e?.statusCode || 0);
+        await db.rpc("push_resultado", { p_sus_id: d.sus_id, p_ok: false, p_error: `${st} ${String(e?.body || e?.message || e).slice(0, 200)}`, p_baja: st === 404 || st === 410 });
+      }
+    }));
+    return json({ ok: true, aviso: "reponer_semanal", destinatarios: (dest || []).length, enviados });
+  }
   const mensajeId = String(body?.mensaje_id || "");
   if (!/^[0-9a-f-]{36}$/i.test(mensajeId)) return json({ ok: false, error: "mensaje_id" }, 400);
   webpush.setVapidDetails("mailto:sterlinr08@gmail.com", k.publica, k.privada);
