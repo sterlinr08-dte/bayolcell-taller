@@ -97,19 +97,49 @@
   }
   window.bcEsimCopiar = function (q) { copiar(q === 'smdp' ? SMDP : CODIGO); };
 
+  // 26-nov-2026 (dueño: «que los técnicos la usen», opción C): la misma ventana sirve para
+  //   · 'equipo' → reacondicionado (guarda en equipos_refurbish + historial),
+  //   · 'orden'  → orden de servicio del cliente (deja una nota en la orden: orden_notas),
+  //   · 'libre'  → cualquier teléfono (solo el QR; no guarda nada).
+  var ctx = null;
+  function ordenDe(id) { try { return (cache.ordenes || []).find(function (o) { return o.id === id; }); } catch (e) { return null; } }
+  function equipoDeOrden(o) { try { return (o && (cache.equipos || []).find(function (x) { return x.id === o.equipo_id; })) || {}; } catch (e) { return {}; } }
+  function modeloOrden(e) { return [e.marca, e.modelo].filter(Boolean).join(' ').trim(); }
+  // Última prueba de eSIM anotada en las notas de la orden (para el botón y el «Repetir»).
+  function pruebaOrden(ordenId) {
+    var ns = []; try { ns = (cache.ordenNotas || []).filter(function (n) { return n.orden_id === ordenId && /^📶 Prueba de eSIM:/.test(n.mensaje || ''); }); } catch (e) {}
+    if (!ns.length) return null;
+    ns.sort(function (a, b) { return String(b.creado_en).localeCompare(String(a.creado_en)); });
+    var m = ns[0].mensaje || '', res = /no funciona/i.test(m) ? 'falla' : /bloqueado/i.test(m) ? 'bloqueado' : 'ok';
+    return { esim_prueba: res, esim_prueba_en: ns[0].creado_en, esim_prueba_por: ns[0].autor_nombre };
+  }
+  window.bcEsimPruebaOrden = pruebaOrden;
+
   // Ventana de la prueba. siguiente(): se llama al guardar (para seguir con «Listo para venta»).
   window.abrirPruebaEsim = function (equipoId, siguiente, cancelar) {
     var eq = eqDe(equipoId); if (!eq) return aviso('Equipo no encontrado.', 'error');
-    abierto = equipoId; alTerminar = typeof siguiente === 'function' ? siguiente : null; alCancelar = typeof cancelar === 'function' ? cancelar : null;
+    abrirVentana({ tipo: 'equipo', id: eq.id, modelo: eq.modelo, imei: eq.imei, color: eq.color, prev: eq.esim_prueba ? eq : null }, siguiente, cancelar);
+  };
+  window.abrirPruebaEsimOrden = function (ordenId) {
+    var o = ordenDe(ordenId); if (!o) return aviso('Orden no encontrada.', 'error');
+    var e = equipoDeOrden(o);
+    abrirVentana({ tipo: 'orden', id: o.id, modelo: modeloOrden(e) || 'Equipo del cliente', imei: e.imei, color: e.color, titulo: 'Orden ' + (o.numero_orden || ''), prev: pruebaOrden(o.id) });
+  };
+  window.abrirPruebaEsimLibre = function () { abrirVentana({ tipo: 'libre', modelo: '' }); };
+
+  function abrirVentana(c, siguiente, cancelar) {
+    var eq = { id: c.id, modelo: c.modelo, imei: c.imei, color: c.color };
+    ctx = c; abierto = c.id || 'libre'; alTerminar = typeof siguiente === 'function' ? siguiente : null; alCancelar = typeof cancelar === 'function' ? cancelar : null;
     var prev = document.getElementById('bcEsim'); if (prev) prev.remove();
-    var lleva = llevaEsim(eq.modelo);
-    var previo = EST[eq.esim_prueba] ? '<div class="es-prev">' + pastilla(eq) + ' <span style="color:#64748b">' + esc(cuando(eq.esim_prueba_en)) + (eq.esim_prueba_por ? ' · ' + esc(eq.esim_prueba_por) : '') + '</span></div>' : '';
+    var lleva = llevaEsim(eq.modelo), p = c.prev;
+    var previo = p && EST[p.esim_prueba] ? '<div class="es-prev">' + pastilla(p) + ' <span style="color:#64748b">' + esc(cuando(p.esim_prueba_en)) + (p.esim_prueba_por ? ' · ' + esc(p.esim_prueba_por) : '') + '</span></div>' : '';
     var box = document.createElement('div');
     box.className = 'modal-backdrop active'; box.id = 'bcEsim'; box.style.zIndex = '700';
     box.onclick = function (ev) { if (ev.target === box) cerrar(); };
-    box.innerHTML = '<div class="modal-box"><div class="modal-header" style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1"><i class="ti ti-sim"></i> Prueba de eSIM</h3>' +
+    box.innerHTML = '<div class="modal-box"><div class="modal-header" style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;flex:1"><i class="ti ti-device-sim"></i> Prueba de eSIM</h3>' +
       (typeof _iAyuda === 'function' ? _iAyuda('esim') : '') + '</div><div class="es-body">' +
-      '<div class="es-eq"><b>' + esc(eq.modelo || 'Equipo') + '</b>' + (eq.imei ? ' · IMEI ' + esc(eq.imei) : '') + (eq.color ? ' · ' + esc(eq.color) : '') + '</div>' +
+      (c.tipo === 'libre' ? '<div class="es-eq">Para cualquier teléfono. Aquí no se guarda nada; para dejarlo anotado, ábrala desde la orden o el equipo.</div>'
+        : '<div class="es-eq">' + (c.titulo ? esc(c.titulo) + ' · ' : '') + '<b>' + esc(eq.modelo || 'Equipo') + '</b>' + (eq.imei ? ' · IMEI ' + esc(eq.imei) : '') + (eq.color ? ' · ' + esc(eq.color) : '') + '</div>') +
       (lleva === false ? '<div class="es-prev" style="margin:0 0 12px"><span class="bces-pill" style="background:#fef3c7;color:#92400e"><i class="ti ti-alert-triangle"></i> Este modelo no lleva eSIM</span></div>' : '') +
       '<div class="es-grid"><div class="es-qr" id="bcEsimQR"></div><div><ol>' +
       (/iphone/i.test(eq.modelo || '') || lleva !== null
@@ -121,9 +151,10 @@
       '<div class="es-link"><a href="' + esc(LINK) + '" target="_blank" rel="noopener"><i class="ti ti-download"></i> Instalar en este iPhone</a> · iOS 17.4 o más nuevo</div>' +
       '<div class="es-man"><button type="button" onclick="bcEsimCopiar(\'smdp\')" title="Copiar">SM-DP+ ' + SMDP + '</button><button type="button" onclick="bcEsimCopiar(\'cod\')" title="Copiar">Código ' + CODIGO + '</button></div>' +
       previo + '</div></div></div>' +
-      '<div class="es-res"><button type="button" class="es-ok" onclick="bcEsimGuardar(\'ok\')"><i class="ti ti-circle-check"></i> Funciona · ya lo borré</button>' +
+      '<div class="es-res">' + (c.tipo === 'libre' ? '' :
+      '<button type="button" class="es-ok" onclick="bcEsimGuardar(\'ok\')"><i class="ti ti-circle-check"></i> Funciona · ya lo borré</button>' +
       '<div class="es-dos"><button type="button" class="es-no" onclick="bcEsimGuardar(\'falla\')"><i class="ti ti-circle-x"></i> No funciona</button>' +
-      '<button type="button" class="es-bl" onclick="bcEsimGuardar(\'bloqueado\')"><i class="ti ti-lock"></i> Bloqueado</button></div>' +
+      '<button type="button" class="es-bl" onclick="bcEsimGuardar(\'bloqueado\')"><i class="ti ti-lock"></i> Bloqueado</button></div>') +
       '<button type="button" class="btn btn-light" style="min-height:44px" onclick="bcEsimCerrar()">' + (alTerminar ? 'Seguir sin probar' : 'Cerrar') + '</button></div></div>';
     document.body.appendChild(box);
     try { if (typeof QRCode === 'function') new QRCode(document.getElementById('bcEsimQR'), { text: LPA, width: 178, height: 178, correctLevel: QRCode.CorrectLevel.M }); else throw 0; }
@@ -132,13 +163,14 @@
   function cerrar(seguir) {
     if (ocupado) return;
     var b = document.getElementById('bcEsim'); if (b) b.remove();
-    var f = alTerminar, c = alCancelar; abierto = null; alTerminar = null; alCancelar = null;
+    var f = alTerminar, c = alCancelar; abierto = null; ctx = null; alTerminar = null; alCancelar = null;
     if (seguir && f) f(); else if (c) c();
   }
   window.bcEsimCerrar = function () { cerrar(true); };
 
   window.bcEsimGuardar = async function (res) {
-    if (ocupado || !abierto) return;
+    if (ocupado || !abierto || !ctx || ctx.tipo === 'libre') return;
+    if (ctx.tipo === 'orden') return guardarOrden(res);
     var eq = eqDe(abierto); if (!eq) return;
     if (res === 'falla' && typeof confirmar === 'function' && !await confirmar('¿El equipo está liberado?\n\nSi está bloqueado de compañía, el eSIM no instala aunque funcione. En ese caso marque «Bloqueado».', { ok: 'Sí, está liberado', peligro: false })) return;
     ocupado = true;
@@ -161,16 +193,81 @@
     }
   };
 
-  // Fila «eSIM» dentro de la ventana de Evaluación.
+  // Orden del cliente: el resultado queda como nota en la orden (lo ve servicio al cliente).
+  async function guardarOrden(res) {
+    var o = ordenDe(ctx.id); if (!o) return;
+    if (res === 'falla' && typeof confirmar === 'function' && !await confirmar('¿El equipo está liberado?\n\nSi está bloqueado de compañía, el eSIM no instala aunque funcione. En ese caso marque «Bloqueado».', { ok: 'Sí, está liberado', peligro: false })) return;
+    ocupado = true;
+    document.querySelectorAll('#bcEsim .es-res button').forEach(function (b) { b.disabled = true; });
+    var por = (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || 'Usuario';
+    var esTec = false; try { esTec = sessionUser.tipo_empleado === 'tecnico' || (!isAdminUser() && !tienePermiso('recepcion_ver')); } catch (e) {}
+    var msg = '📶 Prueba de eSIM: ' + (res === 'ok' ? 'funciona (eSIM de prueba borrado)' : res === 'falla' ? 'no funciona (equipo liberado)' : 'bloqueado de compañía');
+    try {
+      var fila = { orden_id: o.id, mensaje: msg, autor_id: (sessionUser && sessionUser.id) || null, autor_nombre: por, autor_rol: esTec ? 'tecnico' : 'servicio', leida_servicio: !esTec };
+      var r = await supabaseClient.from('orden_notas').insert([fila]);
+      if (r && r.error) throw r.error;
+      try { (cache.ordenNotas = cache.ordenNotas || []).push(Object.assign({ creado_en: new Date().toISOString() }, fila)); } catch (e) {}
+      aviso(res === 'ok' ? '✅ eSIM funciona · anotado en la orden' : 'Anotado en la orden', res === 'ok' ? undefined : 'error');
+      ocupado = false; pintarBotonesOrden(); cerrar(false);
+    } catch (e) {
+      ocupado = false;
+      document.querySelectorAll('#bcEsim .es-res button').forEach(function (b) { b.disabled = false; });
+      try { logError('Prueba de eSIM (orden)', e); } catch (x) {}
+      aviso('No se pudo anotar. ' + ((typeof getFriendlyError === 'function') ? getFriendlyError(e) : ''), 'error');
+    }
+  }
+
+  // Botón «eSIM» al lado de «Pedir pieza» en cada orden (lo ve el técnico que la tiene y el administrador).
+  function pintarBotonesOrden() {
+    document.querySelectorAll('button[onclick^="solicitarPiezaOrden(\'"]').forEach(function (b) {
+      var m = (b.getAttribute('onclick') || '').match(/solicitarPiezaOrden\('([^']+)'/); if (!m) return;
+      var id = m[1], o = ordenDe(id); if (!o) return;
+      var p = pruebaOrden(id), est = p && EST[p.esim_prueba];
+      var html = '<i class="ti ti-device-sim"></i> ' + (est ? (p.esim_prueba === 'ok' ? 'eSIM ✓' : p.esim_prueba === 'falla' ? 'eSIM ✗' : 'eSIM bloq.') : 'Probar eSIM');
+      var x = b.parentNode && b.parentNode.querySelector('button[data-bces-orden="' + id + '"]');
+      if (!x) {
+        if (llevaEsim(modeloOrden(equipoDeOrden(o))) === false) return;
+        x = document.createElement('button'); x.type = 'button'; x.className = 'bces-btn'; x.setAttribute('data-bces-orden', id);
+        x.style.cssText = 'font-size:13px; color:#0369a1;';
+        x.onclick = function () { window.abrirPruebaEsimOrden(id); };
+        b.insertAdjacentElement('afterend', x);
+      }
+      if (x.innerHTML !== html) x.innerHTML = html;
+      if (est) { x.style.color = est.c; x.title = est.t; }
+    });
+  }
+  window.bcEsimPintarBotonesOrden = pintarBotonesOrden;
+
+  // Botón libre «Prueba de eSIM» arriba de Órdenes de Servicio y de Diagnóstico.
+  function botonesLibres() {
+    ['v-ordenes', 'v-diagnostico'].forEach(function (v) {
+      var h = document.querySelector('#' + v + ' > h2'); if (!h || h.querySelector('.bces-libre')) return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'bces-btn bces-libre';
+      b.style.cssText = 'margin-left:auto;font-size:13px;text-transform:none;letter-spacing:normal;white-space:nowrap';
+      b.innerHTML = '<i class="ti ti-device-sim"></i> eSIM'; b.title = 'Prueba de eSIM'; b.setAttribute('aria-label', 'Prueba de eSIM'); b.onclick = function () { window.abrirPruebaEsimLibre(); };
+      if (getComputedStyle(h).display !== 'flex') { h.style.display = 'flex'; h.style.alignItems = 'center'; h.style.gap = '8px'; h.style.flexWrap = 'wrap'; }
+      h.appendChild(b);
+    });
+  }
+
+  // Fila «eSIM» dentro de la ventana de Evaluación y del Panel de reparación.
   function pintarFila(equipoId) {
-    var info = document.getElementById('evalEquipoInfo'); if (!info) return;
-    var id = equipoId || (document.getElementById('eval_equipo_id') || {}).value; var eq = eqDe(id); if (!eq) return;
-    var fila = document.getElementById('bcEsimFila');
-    if (!fila) { fila = document.createElement('div'); fila.id = 'bcEsimFila'; fila.className = 'bces-fila'; info.appendChild(fila); }
+    var id = equipoId || (document.getElementById('eval_equipo_id') || {}).value;
+    pintarFilaEn(document.getElementById('evalEquipoInfo'), 'bcEsimFila', id);
+    var pp = document.querySelector('#modalPanelProceso.active .modal-body > div, #modalPanelProceso .modal-body > div');
+    var pid = (typeof _panelProcesoEquipoId !== 'undefined' && _panelProcesoEquipoId) || window.__bcEsimPanelId;
+    if (pp && pid) pintarFilaEn(pp, 'bcEsimFilaPanel', pid);
+  }
+  function pintarFilaEn(info, filaId, id) {
+    if (!info) return;
+    var eq = eqDe(id); if (!eq) return;
+    var fila = document.getElementById(filaId);
+    if (fila && fila.parentNode !== info) { fila.remove(); fila = null; }
+    if (!fila) { fila = document.createElement('div'); fila.id = filaId; fila.className = 'bces-fila'; info.appendChild(fila); }
     var lleva = llevaEsim(eq.modelo);
     var sub = EST[eq.esim_prueba] ? esc(cuando(eq.esim_prueba_en)) + (eq.esim_prueba_por ? ' · ' + esc(eq.esim_prueba_por) : '') : (lleva === false ? 'No hace falta probarlo' : 'Antes de pasarlo a Listo para venta');
     fila.innerHTML = '<div class="bces-tx">' + pastilla(eq) + '<small>' + sub + '</small></div>' +
-      (lleva === false && !eq.esim_prueba ? '' : '<button type="button" class="bces-btn" onclick="abrirPruebaEsim(\'' + eq.id + '\')"><i class="ti ti-sim"></i> ' + (eq.esim_prueba ? 'Repetir' : 'Probar eSIM') + '</button>');
+      (lleva === false && !eq.esim_prueba ? '' : '<button type="button" class="bces-btn" onclick="abrirPruebaEsim(\'' + eq.id + '\')"><i class="ti ti-device-sim"></i> ' + (eq.esim_prueba ? 'Repetir' : 'Probar eSIM') + '</button>');
   }
   window.bcEsimPintarFila = pintarFila;
 
@@ -183,7 +280,7 @@
       if (!eq || eq.esim_prueba || llevaEsim(eq.modelo) !== true) return orig.apply(self, args);
       return new Promise(function (resolve) {
         window.abrirPruebaEsim(eq.id, function () { resolve(orig.apply(self, args)); }, function () { resolve(undefined); });
-        var titulo = document.querySelector('#bcEsim h3'); if (titulo) titulo.innerHTML = '<i class="ti ti-sim"></i> Antes de Listo: pruebe el eSIM';
+        var titulo = document.querySelector('#bcEsim h3'); if (titulo) titulo.innerHTML = '<i class="ti ti-device-sim"></i> Antes de Listo: pruebe el eSIM';
       });
     };
     f.__bcEsim = true; window[nombre] = f; return true;
@@ -196,8 +293,23 @@
       var g = async function (equipoId) { var r = await ev.apply(this, arguments); try { var v = document.getElementById('bcEsimFila'); if (v) v.remove(); pintarFila(equipoId); } catch (e) {} return r; };
       g.__bcEsim = true; window.abrirModalEvaluacion = g;
     } else if (typeof ev !== 'function') listo = false;
+    var pp = window.abrirPanelProceso;
+    if (typeof pp === 'function' && !pp.__bcEsim) {
+      var h = async function (equipoId) { window.__bcEsimPanelId = equipoId; var r = await pp.apply(this, arguments); try { pintarFila(equipoId); } catch (e) {} return r; };
+      h.__bcEsim = true; window.abrirPanelProceso = h;
+    } else if (typeof pp !== 'function') listo = false;
     return listo;
   }
   var n = 0;
   (function esperar() { if (!instalar() && n++ < 120) setTimeout(esperar, 500); })();
+
+  // Las órdenes se vuelven a dibujar a menudo: se repinta el botón cuando cambia la lista.
+  var tObs = null;
+  function alCambiar() { clearTimeout(tObs); tObs = setTimeout(function () { try { pintarBotonesOrden(); botonesLibres(); } catch (e) {} }, 150); }
+  function observar() {
+    if (!document.body) return setTimeout(observar, 300);
+    try { new MutationObserver(alCambiar).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+    alCambiar();
+  }
+  observar();
 })();
