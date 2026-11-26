@@ -18561,12 +18561,13 @@ Object.assign(AYUDAS, {
           <li>Junta en orden todo lo que el sistema sabe de ese IMEI: <b>compra</b> (proveedor y factura), <b>lote</b> y cada paso del reacondicionado, <b>órdenes</b> de servicio, <b>despachos</b> entre almacenes, <b>prefacturas</b>, <b>financiamiento</b>, <b>diagnóstico</b>, <b>batería</b>, <b>pantalla</b>, <b>conteo físico</b> y los <b>ajustes</b> en Info Plus.</li>
           <li><b>Ahora</b>: dónde lo tiene Info Plus en este momento.</li>
           <li>Los ajustes con IMEI se anotan desde el 25-nov-2026.</li>
-          <li>No salen las <b>ventas</b> de Info Plus (Info Plus no manda el IMEI de cada venta) ni lo que se mueva directo en Info Plus, fuera del taller.</li>
+          <li><b>Venta (deducida)</b>: Info Plus no manda el IMEI de cada venta. Se toma el último almacén donde el taller vio el teléfono y las ventas de ese mismo modelo ahí desde ese día. Si hay una sola, sale como «Venta (deducida)»; si hay varias, como «Posible venta» con las primeras facturas. Si el teléfono sigue en un almacén, no sale.</li>
+          <li>No sale lo que se mueva directo en Info Plus, fuera del taller.</li>
         </ul>` }
 });
 const _HIMEI_ICONO = { compra:'ti-shopping-cart', lote:'ti-package', reacond:'ti-tool', orden:'ti-clipboard-list', despacho:'ti-truck-delivery',
     prefactura:'ti-file-invoice', financiamiento:'ti-credit-card', diagnostico:'ti-stethoscope', bateria:'ti-battery-2', pantalla:'ti-device-mobile',
-    conteo:'ti-list-check', movimiento:'ti-arrows-exchange' };
+    conteo:'ti-list-check', movimiento:'ti-arrows-exchange', venta:'ti-receipt' };
 const _HIMEI_ESTADOS = { en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', tecnico_recibio:'Técnico recibió',
     espera_pieza:'Espera pieza', listo_revision:'Listo revisión', listo_venta:'Listo venta', vendido:'Despachado', reparacion_externa:'Reparación externa',
     reasignado:'Reasignado', completado:'Completado', recibido:'Recibido', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado',
@@ -18601,22 +18602,99 @@ async function _himeiBuscar() {
     ]);
     if(document.getElementById('himeiTxt')?.value.replace(/\D/g, '') !== v) return;   // se buscó otro mientras tanto
     if(h.error) { res.innerHTML = `<div style="color:#b91c1c;font-size:14px;display:flex;align-items:center;gap:8px;">No se pudo leer <button class="btn btn-light" onclick="_himeiBuscar()" style="min-height:44px;"><i class="ti ti-refresh"></i> Reintentar</button></div>`; return; }
-    const ev = Array.isArray(h.data) ? h.data : [];
+    let ev = Array.isArray(h.data) ? h.data : [];
+    // Venta deducida: si Info Plus dice que el IMEI sigue en un almacén, no se vendió (se esconde).
+    if(q && q.ok && q.donde[v]) ev = ev.filter(e => e.tipo !== 'venta');
+    const codArt = ((ev.map(e => (String(e.d || '').match(/Código (\d+)/) || [])[1]).find(Boolean)) || '');
     const ahora = !q ? '' : !q.ok ? '<span style="color:#64748b;">Info Plus no respondió</span>'
         : q.donde[v] ? `<b>${escapeHtml(_nombreAlmacen(q.donde[v]))}</b>` : '<span style="color:#b45309;">No está en ningún almacén</span>';
     const fmt = f => { if(!f) return ''; const d = new Date(f); return isNaN(d) ? '' : d.toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: '2-digit' }) + (/T00:00:00/.test(f) ? '' : ' · ' + d.toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' })); };
     const modelo = (ev.find(e => e.tipo === 'lote' || e.tipo === 'compra') || {}).d || '';
     res.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;font-size:14px;color:#334155;margin-bottom:4px;">
           <span style="font-variant-numeric:tabular-nums;font-weight:800;font-size:15px;color:#0f172a;">${escapeHtml(v)}</span>
-          ${ahora ? `<span>Ahora: ${ahora}</span>` : ''}<span style="color:#64748b;">${ev.length} ${ev.length === 1 ? 'movimiento' : 'movimientos'}</span></div>
+          ${ahora ? `<span>Ahora: ${ahora}</span>` : ''}<span style="color:#64748b;">${ev.length} ${ev.length === 1 ? 'movimiento' : 'movimientos'}</span>${codArt ? `<button type="button" class="btn btn-light" onclick="abrirKardexArticulo('${codArt}')" style="min-height:44px;margin-left:auto;"><i class="ti ti-list-details"></i> Kárdex</button>` : ''}</div>
         ${modelo ? `<div style="font-size:13px;color:#475569;margin-bottom:8px;">${escapeHtml(modelo.split(' · ')[0])}</div>` : ''}
         ${ev.length ? `<ol class="himeiLista" style="list-style:none;margin:0;padding:0;max-height:58vh;overflow:auto;">${ev.slice().reverse().map(e => `
           <li style="display:flex;gap:10px;padding:10px 0;border-top:1px solid #eef2f7;">
             <span style="flex:0 0 36px;height:36px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#334155;"><i class="ti ${_HIMEI_ICONO[e.tipo] || 'ti-point'}"></i></span>
-            <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;color:#0f172a;">${escapeHtml(_himeiLegible(e.t))}</div>
+            <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;color:${e.tipo === 'venta' ? '#1d4ed8' : '#0f172a'};">${escapeHtml(_himeiLegible(e.t))}</div>
               ${e.d ? `<div style="font-size:13px;color:#475569;overflow-wrap:anywhere;">${escapeHtml(_himeiLegible(e.d))}</div>` : ''}
               <div style="font-size:12px;color:#94a3b8;margin-top:2px;">${escapeHtml(fmt(e.f))}</div></div></li>`).join('')}</ol>`
           : '<div style="padding:16px;text-align:center;color:#64748b;font-size:14px;border:1px dashed #cbd5e1;border-radius:12px;">Sin movimientos en el taller</div>'}`;
+}
+
+// ===================== KÁRDEX DEL ARTÍCULO (26-nov-2026) =====================
+// Dueño («las dos»): todas las entradas y salidas de un artículo en Info Plus, por almacén, con su documento (Edge de solo
+// lectura infoplus-kardex → GET /TransaccionInventario). Venta = CO…, Despacho = DA…, Ajuste = AI…, Compra = C…, O.S. = OT…,
+// Devolución = NC….
+Object.assign(AYUDAS, {
+    kardex: { titulo: 'Kárdex del artículo', html: `
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Todas las <b>entradas</b> (+) y <b>salidas</b> (−) de ese artículo en Info Plus, en vivo, con su documento.</li>
+          <li>Tipos: <b>Venta</b> (factura CO…), <b>Despacho</b> entre almacenes (DA…, sale de uno y entra a otro), <b>Ajuste</b> (AI…), <b>Compra</b> (C…), <b>Orden de servicio</b> (OT…) y <b>Devolución</b> (NC…).</li>
+          <li>Arriba, el total de entradas y salidas de cada almacén en el período.</li>
+          <li>Elija el período y, si quiere, un solo almacén.</li>
+        </ul>` }
+});
+const _KDX_TIPO = { 'Factura': 'Venta', 'Almacen Salida': 'Despacho', 'Almacen Entrada': 'Despacho', 'Ajuste': 'Ajuste', 'Compra': 'Compra', 'O.S.': 'Orden de servicio', 'DSV': 'Devolución' };
+let _kdx = { cod: '', dias: 90, alm: '', movs: [], cargando: false, error: false };
+function abrirKardexArticulo(cod) {
+    _kdx = { cod: String(cod || '').replace(/\D/g, ''), dias: 90, alm: '', movs: [], cargando: false, error: false };
+    _ensureInfoplusArticulos();
+    const prev = document.getElementById('modalKardex'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalKardex'; box.style.zIndex = '835';
+    const sel = 'min-height:48px;font-size:16px;padding:9px;border:1px solid #cbd5e1;border-radius:10px;';
+    box.innerHTML = `<div class="modal-box" style="max-width:680px;">
+        <div class="modal-header"><h3 style="margin:0;display:flex;align-items:center;gap:8px;"><i class="ti ti-list-details"></i> Kárdex del artículo ${_iAyuda('kardex')}</h3><button class="modal-close" aria-label="Cerrar" onclick="document.getElementById('modalKardex').remove()">✕</button></div>
+        <div class="modal-body" style="display:grid;gap:12px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <div id="kdxArt" style="flex:1 1 220px;min-width:0;font-weight:700;font-size:14px;color:#0f172a;"></div>
+            <button class="btn btn-blue" onclick="_kdxElegir()" style="min-height:48px;"><i class="ti ti-search"></i> Artículo</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="kdxDias" aria-label="Período" onchange="_kdx.dias=+this.value;_kdxCargar()" style="${sel}flex:1 1 140px;">
+              <option value="30">30 días</option><option value="90" selected>90 días</option><option value="180">6 meses</option><option value="365">1 año</option></select>
+            <select id="kdxAlm" aria-label="Almacén" onchange="_kdx.alm=this.value;_kdxPintar()" style="${sel}flex:1 1 180px;"><option value="">Todos los almacenes</option>${ALMACENES_IP.concat([{ c: 7, n: 'Navarrete' }]).map(a => `<option value="${a.c}">${escapeHtml(a.n)}</option>`).join('')}</select>
+          </div>
+          <div id="kdxRes"></div>
+        </div></div>`;
+    document.body.appendChild(box);
+    if(_kdx.cod) _kdxCargar(); else { _kdxPintar(); _kdxElegir(); }
+}
+function _kdxElegir() {
+    abrirBuscadorArticulos(null, (a) => { if(!a) return; _kdx.cod = String(a.codigo).replace(/\D/g, ''); _kdxCargar(); });
+}
+async function _kdxCargar() {
+    if(!_kdx.cod) return _kdxPintar();
+    const pedido = _kdx.cod + '|' + _kdx.dias;
+    _kdx.cargando = true; _kdx.error = false; _kdx.movs = []; _kdxPintar();
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-kardex', { body: { codproducto: _kdx.cod, dias: _kdx.dias } });
+        if((_kdx.cod + '|' + _kdx.dias) !== pedido) return;
+        if(error || !data || !data.ok) throw new Error('sin datos');
+        _kdx.movs = data.movimientos || [];
+    } catch(e) { if((_kdx.cod + '|' + _kdx.dias) === pedido) _kdx.error = true; }
+    if((_kdx.cod + '|' + _kdx.dias) === pedido) { _kdx.cargando = false; _kdxPintar(); }
+}
+function _kdxPintar() {
+    const art = document.getElementById('kdxArt'), res = document.getElementById('kdxRes'); if(!art || !res) return;
+    const a = _kdx.cod ? (_findInfoplusArt(_kdx.cod) || {}) : null;
+    art.innerHTML = _kdx.cod ? `${escapeHtml(a.descripcion || 'Artículo')}<div style="font-weight:600;font-size:13px;color:#475569;">Código ${escapeHtml(_kdx.cod)}</div>` : '<span style="color:#64748b;font-weight:600;">Elija un artículo</span>';
+    if(!_kdx.cod) { res.innerHTML = ''; return; }
+    if(_kdx.cargando) { res.innerHTML = '<div style="color:#64748b;font-size:14px;padding:10px 0;"><i class="ti ti-loader-2"></i> Leyendo Info Plus…</div>'; return; }
+    if(_kdx.error) { res.innerHTML = `<div style="display:flex;align-items:center;gap:8px;color:#b91c1c;font-size:14px;">No se pudo leer Info Plus <button class="btn btn-light" onclick="_kdxCargar()" style="min-height:44px;"><i class="ti ti-refresh"></i> Reintentar</button></div>`; return; }
+    const movs = _kdx.movs.filter(m => !_kdx.alm || String(m.alm) === String(_kdx.alm));
+    const porAlm = {};
+    movs.forEach(m => { const k = m.almacen || _nombreAlmacen(m.alm); porAlm[k] = porAlm[k] || { e: 0, s: 0 }; if(m.entrada) porAlm[k].e += m.cant; else porAlm[k].s += m.cant; });
+    const fmt = f => { const d = new Date(String(f || '').slice(0, 10) + 'T12:00:00'); return isNaN(d) ? '' : d.toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: '2-digit' }); };
+    res.innerHTML = `${Object.keys(porAlm).length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${Object.entries(porAlm).map(([k, v]) => `<span style="font-size:13px;padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#334155;"><b>${escapeHtml(k)}</b> <span style="color:#15803d;">+${v.e}</span> <span style="color:#b91c1c;">−${v.s}</span></span>`).join('')}</div>` : ''}
+      ${movs.length ? `<ol style="list-style:none;margin:0;padding:0;max-height:52vh;overflow:auto;">${movs.map(m => `
+        <li style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #eef2f7;">
+          <span style="flex:0 0 58px;text-align:right;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;color:${m.entrada ? '#15803d' : '#b91c1c'};">${m.entrada ? '+' : '−'}${m.cant}</span>
+          <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;color:#0f172a;">${escapeHtml(_KDX_TIPO[m.tipo] || m.tipo || 'Movimiento')} · ${escapeHtml(m.doc || '')}</div>
+            <div style="font-size:13px;color:#475569;">${escapeHtml(m.almacen || _nombreAlmacen(m.alm))} · ${escapeHtml(fmt(m.f))}</div></div></li>`).join('')}</ol>`
+        : '<div style="padding:16px;text-align:center;color:#64748b;font-size:14px;border:1px dashed #cbd5e1;border-radius:12px;">Sin movimientos en el período</div>'}`;
 }
 
 // ===================== GARANTÍA CHINA (25-nov-2026) =====================
@@ -18994,6 +19072,7 @@ async function verFichaDespacho(equipoId) {
             <div class="fe-menu">
               <a onclick="_feCerrar();verHistorialEquipoReacond('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
               ${eq.imei ? `<a onclick="abrirHistorialImei('${escapeHtml(String(eq.imei))}')"><i class="ti ti-timeline"></i> Historial del IMEI</a>` : ''}
+              ${eq.articulo_codigo ? `<a onclick="abrirKardexArticulo('${escapeHtml(String(eq.articulo_codigo))}')"><i class="ti ti-list-details"></i> Kárdex del artículo</a>` : ''}
               ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-lock-check"></i> Cerrar salida</a>` : ''}
               ${isAdminUser() ? (_esGarantiaChina(eq) ? `<a onclick="volvioGarantiaChina('${equipoId}')"><i class="ti ti-rotate"></i> Volvió de Garantía China</a>` : `<a onclick="enviarGarantiaChina('${equipoId}')"><i class="ti ti-shield-share"></i> Enviar a Garantía China</a>`) : ''}
             </div>
