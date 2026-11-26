@@ -121,6 +121,8 @@ html.bc-rr #rentabilidadReacondCont .bcrr-pill.desp { color: #0e7490; background
 html.bc-rr #rentabilidadReacondCont .bcrr-pill.inv { color: var(--rr-sec); background: #f1f5f9; }
 html.bc-rr #rentabilidadReacondCont .bcrr-pill.sin { color: var(--rr-avi); background: #fef3c7; }
 html.bc-rr #rentabilidadReacondCont .bcrr-pill.sin i { background: #f59e0b; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pill.sug { color: #1d4ed8; background: #eff6ff; }
+html.bc-rr #rentabilidadReacondCont .bcrr-pill.sug i { background: #3b82f6; }
 html.bc-rr #rentabilidadReacondCont .bcrr-anotar, html.bc-rr #rentabilidadReacondCont .bcrr-pv {
   min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer;
   font-variant-numeric: tabular-nums; transition: transform .16s cubic-bezier(.22,1,.36,1);

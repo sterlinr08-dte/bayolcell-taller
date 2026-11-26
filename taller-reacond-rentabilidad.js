@@ -16,6 +16,25 @@
 
   var abiertos = {};            // lotes desplegados (se recuerdan al repintar)
   var filtro = { q: '', sinPrecio: false };
+  // 26-nov-2026 (dueño «1B»): precio sugerido de la venta deducida (rpc reacond_precios_sugeridos: una sola factura posible y
+  // que vendió al menos tantas unidades como teléfonos esperaban). Antes de mostrarlo se revisa en vivo que el IMEI ya no
+  // esté en ningún almacén de Info Plus; si esa revisión falla, no se sugiere nada. Solo se guarda con «Guardar».
+  var sug = null, sugCargando = false;
+  async function cargarSug() {
+    if (sugCargando || sug) return;
+    sugCargando = true;
+    var m = new Map();
+    try {
+      var r = await supabaseClient.rpc('reacond_precios_sugeridos');
+      var filas = (r && !r.error && Array.isArray(r.data)) ? r.data : [];
+      if (filas.length && typeof _ipDondeEstanImei === 'function') {
+        var q = await _ipDondeEstanImei(filas.map(function (f) { return f.imei; }));
+        if (q && q.ok) filas.forEach(function (f) { if (!q.donde[f.imei]) m.set(f.equipo_id, f); });
+      }
+    } catch (e) { /* sin sugerencias */ }
+    sug = m; sugCargando = false;
+    pintar();
+  }
   var ESTADOS = { pendiente: 'Pendiente', en_evaluacion: 'En evaluación', evaluado: 'Evaluado', en_proceso: 'En reparación',
     tecnico_recibio: 'En reparación', espera_pieza: 'Espera pieza', reparacion_externa: 'Taller externo', reasignado: 'En reparación',
     listo_revision: 'En revisión', listo_venta: 'Listo para venta' };
@@ -75,6 +94,10 @@
   function ventaHTML(k) {
     if (!k.desp) return '<span class="bcrr-nada" aria-label="No aplica">—</span>';
     if (k.pv != null) return '<button type="button" class="bcrr-pv" data-precio="' + esc(k.e.id) + '" aria-label="Cambiar precio de venta">' + plata(k.pv) + '</button>';
+    var sg = sug && sug.get(k.e.id);
+    if (sg) return '<span class="bcrr-pill sug"><i></i>Sugerido ' + plata(sg.precio) + '</span>' +
+      info('Venta deducida por el IMEI: factura ' + sg.factura_id + ' del ' + String(sg.fecha || '').split('-').reverse().join('-') + ' en Info Plus (precio de la línea; el ITBIS va aparte). Toque Usar y confirme con Guardar.') +
+      '<button type="button" class="bcrr-anotar" data-usar="' + esc(k.e.id) + '">Usar</button>';
     return '<span class="bcrr-pill sin"><i></i>Sin precio de venta</span><button type="button" class="bcrr-anotar" data-precio="' + esc(k.e.id) + '">Anotar</button>';
   }
   function margenHTML(m, p) {
@@ -157,6 +180,7 @@
       cont.innerHTML = '<div class="bcrr"><div class="bcrr-card bcrr-vacio"><i class="ti ti-lock" aria-hidden="true"></i><p>Solo para administradores.</p></div></div>';
       return;
     }
+    if (!sug) cargarSug();
     var todos = c('refurb').map(costeo);
     // KPI del período (por fecha de salida)
     var desp = todos.filter(function (k) { return k.desp && enPeriodo(k.e); });
@@ -219,7 +243,7 @@
 
   // ── Ventana «Precio de venta» ──
   function cerrarDlg() { var d = doc.getElementById('bcrrDlg'); if (d) { var v = d._volver; d.remove(); if (v && v.focus) try { v.focus(); } catch (e) {} } }
-  function abrirPrecio(id, desde) {
+  function abrirPrecio(id, desde, sg) {
     if (!esAdmin()) { try { toast('Solo el administrador.', 'error'); } catch (e) {} return; }
     var e = c('refurb').find(function (x) { return x.id === id; });
     if (!e) return;
@@ -233,7 +257,8 @@
         '<div class="eqd"><b>' + esc(modelo(e)) + '</b><span>' + esc(e.imei || e.serial || 'Sin IMEI') + '</span></div>' +
         '<div class="fila"><span>Costo final</span><b>' + plata(k.fin) + '</b></div>' +
         '<label for="bcrrPv">Precio de venta</label>' +
-        '<input id="bcrrPv" type="text" inputmode="decimal" autocomplete="off" placeholder="RD$ 0.00" value="' + (actual != null ? actual.toFixed(2) : '') + '">' +
+        '<input id="bcrrPv" type="text" inputmode="decimal" autocomplete="off" placeholder="RD$ 0.00" value="' + (actual != null ? actual.toFixed(2) : (sg ? Number(sg.precio).toFixed(2) : '')) + '">' +
+        (sg ? '<div class="fila"><span>Info Plus</span><b>Factura ' + esc(sg.factura_id) + '</b></div>' : '') +
         '<div class="fila prev" id="bcrrPrev"><span>Margen</span><b>—</b></div>' +
         '<p class="err" id="bcrrErr" role="alert"></p>' +
       '</div>' +
@@ -270,12 +295,13 @@
         var quien = (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || 'Admin';
         var r = await supabaseClient.from('equipos_refurbish').update(n === null
           ? { precio_venta_real: null, precio_venta_fuente: null, precio_venta_por: null, precio_venta_en: null }
-          : { precio_venta_real: n, precio_venta_fuente: 'manual', precio_venta_por: quien, precio_venta_en: new Date().toISOString() }).eq('id', id);
+          : { precio_venta_real: n, precio_venta_fuente: (sg && n === Number(sg.precio)) ? 'infoplus' : 'manual', precio_venta_por: quien, precio_venta_en: new Date().toISOString() }).eq('id', id);
         if (r && r.error) throw r.error;
         e.precio_venta_real = n;
+        if (sug) sug.delete(id);
         try {
           await _histInsert([{ equipo_id: id, estado_anterior: e.estado_evaluacion || null, estado_nuevo: e.estado_evaluacion || null,
-            accion: n === null ? 'Precio de venta quitado (antes ' + plata(actual) + ')' : 'Precio de venta anotado: ' + plata(n) + (actual != null ? ' (antes ' + plata(actual) + ')' : ''),
+            accion: n === null ? 'Precio de venta quitado (antes ' + plata(actual) + ')' : 'Precio de venta anotado: ' + plata(n) + (sg && n === Number(sg.precio) ? ' (Info Plus, factura ' + sg.factura_id + ')' : '') + (actual != null ? ' (antes ' + plata(actual) + ')' : ''),
             usuario: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || 'Admin' }]);
         } catch (x) {}
         cerrarDlg();
@@ -309,6 +335,7 @@
     cont._bcrr = true;
     cont.addEventListener('click', function (ev) {
       var b = ev.target.closest('.bcrr-i'); if (b) { ev.preventDefault(); ev.stopPropagation(); abrirTip(b); return; }
+      var us = ev.target.closest('[data-usar]'); if (us) { var idU = us.getAttribute('data-usar'); abrirPrecio(idU, us, sug && sug.get(idU)); return; }
       var pv = ev.target.closest('[data-precio]'); if (pv) { abrirPrecio(pv.getAttribute('data-precio'), pv); return; }
       if (ev.target.closest('[data-accion="sinprecio"]')) { filtro.sinPrecio = !filtro.sinPrecio; pintar(); }
     });
