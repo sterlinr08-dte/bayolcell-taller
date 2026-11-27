@@ -163,6 +163,8 @@ function esTimeout(e: unknown): boolean {
 }
 
 type ResultadoZernio = { ok: boolean; data: any; status: number };
+// La llave viaja como parámetro en cada envío (nunca en una variable global: dos envíos a la vez se cruzarían).
+const conLlave = (h: Record<string, string>, llave?: string | null) => (llave ? { ...h, "Idempotency-Key": llave } : h);
 
 // Ver "Fix 2026-09-05" arriba: se conserva el reintento como red de seguridad
 // (un 404 es inequivoco, Zernio nunca proceso el envio), pero desde el fix del
@@ -189,12 +191,12 @@ async function reintentarSiConversacionNoEncontrada(
   return actual;
 }
 
-async function mandarAZernio(conversationId: string, accountId: string, campos: Record<string, unknown>, replyTo?: string | null): Promise<ResultadoZernio> {
+async function mandarAZernio(conversationId: string, accountId: string, campos: Record<string, unknown>, replyTo?: string | null, llave?: string | null): Promise<ResultadoZernio> {
   const body: Record<string, unknown> = { accountId, ...campos };
   if (replyTo) body.replyTo = replyTo;
   const resp = await fetch(`https://zernio.com/api/v1/inbox/conversations/${encodeURIComponent(conversationId)}/messages`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${ZERNIO_API_KEY}`, "Content-Type": "application/json" },
+    headers: conLlave({ Authorization: `Bearer ${ZERNIO_API_KEY}`, "Content-Type": "application/json" }, llave),
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(ZERNIO_TIMEOUT_MS),
   });
@@ -205,7 +207,7 @@ async function mandarAZernio(conversationId: string, accountId: string, campos: 
 // Notas de voz: SIEMPRE via multipart (ver comentario de arriba). Descarga el
 // archivo que el navegador ya subio a Storage (su signed URL) y lo reenvia a
 // Zernio como form-data, dejando que transcodifique a ogg/Opus.
-async function mandarAZernioNotaVoz(conversationId: string, accountId: string, audioUrl: string, replyTo?: string | null): Promise<ResultadoZernio> {
+async function mandarAZernioNotaVoz(conversationId: string, accountId: string, audioUrl: string, replyTo?: string | null, llave?: string | null): Promise<ResultadoZernio> {
   const audioResp = await fetch(audioUrl, { signal: AbortSignal.timeout(ZERNIO_TIMEOUT_MS) });
   if (!audioResp.ok) throw new Error(`No se pudo descargar el audio subido (status ${audioResp.status})`);
   const blob = await audioResp.blob();
@@ -218,7 +220,7 @@ async function mandarAZernioNotaVoz(conversationId: string, accountId: string, a
     method: "POST",
     // Sin Content-Type a mano: fetch arma "multipart/form-data; boundary=..."
     // solo cuando el body es un FormData. Fijarlo manualmente rompe el boundary.
-    headers: { Authorization: `Bearer ${ZERNIO_API_KEY}` },
+    headers: conLlave({ Authorization: `Bearer ${ZERNIO_API_KEY}` }, llave),
     body: form,
     signal: AbortSignal.timeout(ZERNIO_TIMEOUT_MS),
   });
@@ -252,6 +254,10 @@ Deno.serve(async (req: Request) => {
   const hiloId = body.hilo_id as string;
   const mensaje = (body.mensaje as string || "").trim();
   const respondeAId = (body.responde_a_id as string) || null;
+  // 27-nov-2026 (dueño: «B, hazlo smart» tras el 502 de Meta del 27-nov): llave de envío por mensaje. Con la misma llave,
+  // Zernio no duplica un envío que ya salió (doble toque, corte de internet). Ojo: si Meta falla, Zernio suelta la llave
+  // y reenviar con ella SÍ puede duplicar → por eso aquí nunca se reintenta solo (ver «envio_dudoso» más abajo).
+  const LLAVE_ENVIO = /^[0-9a-f-]{36}$/i.test(String(body.envio_id || "")) ? String(body.envio_id) : null;
   const adjunto = (body.adjunto || null) as { url: string; path: string; tipo: string; nombre?: string; es_nota_voz?: boolean } | null;
   const ubicacion = (body.ubicacion || null) as { lat: number; lng: number } | null;
   const contacto = (body.contacto || null) as { nombre: string; telefono?: string } | null;
@@ -363,13 +369,13 @@ Deno.serve(async (req: Request) => {
         resultado = await reintentarSiConversacionNoEncontrada(resultado, enviarPlantilla);
       }
     } else if (adjunto?.es_nota_voz) {
-      resultado = await mandarAZernioNotaVoz(conversationId, linea.zernio_account_id, adjunto.url, replyToWaId);
+      resultado = await mandarAZernioNotaVoz(conversationId, linea.zernio_account_id, adjunto.url, replyToWaId, LLAVE_ENVIO);
       if (!resultado.ok && replyToWaId && resultado.status >= 400 && resultado.status < 500 && !esConversacionNoEncontrada(resultado)) {
         console.error("Nota de voz con replyTo fallo (4xx), reintentando sin citar:", resultado.status, JSON.stringify(resultado.data));
-        resultado = await mandarAZernioNotaVoz(conversationId, linea.zernio_account_id, adjunto.url, null);
+        resultado = await mandarAZernioNotaVoz(conversationId, linea.zernio_account_id, adjunto.url, null, null);
       }
       resultado = await reintentarSiConversacionNoEncontrada(resultado, () =>
-        mandarAZernioNotaVoz(conversationId, linea.zernio_account_id, adjunto.url, replyToWaId)
+        mandarAZernioNotaVoz(conversationId, linea.zernio_account_id, adjunto.url, replyToWaId, LLAVE_ENVIO)
       );
     } else {
       const campos: Record<string, unknown> = {};
@@ -388,16 +394,16 @@ Deno.serve(async (req: Request) => {
       } else {
         campos.message = texto;
       }
-      resultado = await mandarAZernio(conversationId, linea.zernio_account_id, campos, replyToWaId);
+      resultado = await mandarAZernio(conversationId, linea.zernio_account_id, campos, replyToWaId, LLAVE_ENVIO);
       if (!resultado.ok && replyToWaId && resultado.status >= 400 && resultado.status < 500 && !esConversacionNoEncontrada(resultado)) {
         // el campo replyTo pudo ser lo que Zernio rechazo (4xx) — reintenta sin el.
         // Un 5xx/timeout NO reintenta: es ambiguo, el mensaje pudo haberse
         // enviado igual, y reintentar arriesgaba un doble envio real al cliente.
         console.error("Envio con replyTo fallo (4xx), reintentando sin citar:", resultado.status, JSON.stringify(resultado.data));
-        resultado = await mandarAZernio(conversationId, linea.zernio_account_id, campos, null);
+        resultado = await mandarAZernio(conversationId, linea.zernio_account_id, campos, null, null);
       }
       resultado = await reintentarSiConversacionNoEncontrada(resultado, () =>
-        mandarAZernio(conversationId, linea.zernio_account_id, campos, replyToWaId)
+        mandarAZernio(conversationId, linea.zernio_account_id, campos, replyToWaId, LLAVE_ENVIO)
       );
     }
   } catch (e) {
@@ -424,6 +430,14 @@ Deno.serve(async (req: Request) => {
         }, 502);
       }
       return json({ ok: false, error: "zernio_error", mensaje: "Zernio todavia no reconoce esta conversacion. Espera unos segundos y vuelve a intentar.", detalle: resultado.data }, 502);
+    }
+    // 27-nov-2026: 409 = la misma llave todavía se está procesando (doble toque); no es un fallo.
+    if (resultado.status === 409 && LLAVE_ENVIO && /idempot/i.test(JSON.stringify(resultado.data || ""))) {
+      return json({ ok: false, error: "envio_dudoso", motivo: "en_proceso", mensaje: "Ese mensaje todavía se está enviando. Revise el chat en unos segundos antes de reenviar." }, 409);
+    }
+    // 5xx de Zernio/Meta («Something went wrong»): Meta no dice si llegó. Puede haber llegado → NO reintentar solo.
+    if (resultado.status >= 500) {
+      return json({ ok: false, error: "envio_dudoso", motivo: "meta", mensaje: "WhatsApp dio un error y puede que el mensaje sí haya llegado. Revise el chat antes de reenviar.", detalle: resultado.data }, 502);
     }
     return json({ ok: false, error: "zernio_error", detalle: resultado.data }, 502);
   }
