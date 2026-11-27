@@ -32808,7 +32808,43 @@ function _waBurbujaRowHTML(m, nombre, porId) {
 }
 // 10-nov-2026: un envío que falló o venció queda en el chat con su texto y un botón para volver a intentarlo.
 function _waNoEnviadoHTML(m) {
+    if(m && m._dudoso) {
+        return `<div class="wa-motivo-fallo" style="font-size:12px; color:#92400e; margin-top:3px; text-align:left; display:flex; align-items:center; gap:4px; flex-wrap:wrap;"><span><i class="ti ti-alert-triangle"></i> Sin confirmar · puede que sí haya llegado ·</span><button type="button" class="wa-reintentar" onclick="_waReenviarDudoso('${escapeHtml(m.id)}')" style="min-height:44px; min-width:44px; padding:0 8px; border:0; background:none; color:#92400e; font:inherit; font-size:13px; font-weight:700; text-decoration:underline; cursor:pointer;">Reenviar</button></div>`;
+    }
     return `<div class="wa-motivo-fallo" style="font-size:12px; color:#b91c1c; margin-top:3px; text-align:left; display:flex; align-items:center; gap:4px; flex-wrap:wrap;"><span><i class="ti ti-alert-circle"></i> No enviado ·</span><button type="button" class="wa-reintentar" onclick="_waReintentarEnvio('${escapeHtml(m.id)}')" style="min-height:44px; min-width:44px; padding:0 8px; border:0; background:none; color:#b91c1c; font:inherit; font-size:13px; font-weight:700; text-decoration:underline; cursor:pointer;">Reintentar</button></div>`;
+}
+// 27-nov-2026: reenviar un mensaje «sin confirmar» espera 10 s (para que llegue la confirmación) y pide permiso,
+// porque si el primero sí llegó el cliente lo recibe doble.
+let _waEnvioIdReintento = null;
+async function _waReenviarDudoso(tempId) {
+    const opt = _waMensajesOptimistas.get(tempId);
+    if(!opt || !opt._dudoso) return;
+    const falta = Math.ceil((10000 - (Date.now() - (opt._dudosoT || 0))) / 1000);
+    if(falta > 0) { toast(`Espere ${falta} s y revise el chat del cliente antes de reenviar.`, 'warning'); return; }
+    if(!await confirmar('¿Reenviar este mensaje?\n\nWhatsApp no confirmó si el primero llegó. Si sí llegó, el cliente lo recibirá doble.', { ok: 'Reenviar', peligro: false })) return;
+    if(!_waMensajesOptimistas.has(tempId)) return;   // se confirmó mientras preguntaba
+    return _waReintentarEnvio(tempId);
+}
+// Revisa solo a los 8, 20 y 45 s si el mensaje «sin confirmar» apareció en el chat (llegó de verdad). Si aparece, quita el aviso.
+function _waVigilarDudoso(tempId, hiloDestino, idsAntes) {
+    [8000, 20000, 45000].forEach(ms => setTimeout(async () => {
+        const opt = _waMensajesOptimistas.get(tempId);
+        if(!opt || !opt._dudoso) return;
+        try {
+            const { data } = await supabaseClient.from('whatsapp_mensajes').select('*').eq('hilo_id', hiloDestino).eq('direccion', 'out')
+                .gt('creado_en', new Date(opt._t0 - 120000).toISOString()).order('creado_en', { ascending: false }).limit(10);
+            const fila = (data || []).find(n => !(idsAntes && idsAntes.has(n.id)) && _waEsFilaDeMiEnvio(opt, n));
+            if(!fila || !_waMensajesOptimistas.has(tempId)) return;
+            _waMensajesOptimistas.delete(tempId);
+            _waMensajes = _waMensajes.filter(m => m.id !== tempId);
+            if(_waHiloId === hiloDestino) {
+                const caja = document.getElementById('waTexto');
+                if(caja && caja.value.trim() === String(opt._original || opt.cuerpo || '').trim()) { caja.value = ''; _waActualizarBotonEnvio(); }
+                await cargarMensajesHilo(hiloDestino); if(_waHiloId === hiloDestino) await _crmRepintarWhatsappSilencioso();
+            }
+            toast('✅ Confirmado: el mensaje sí llegó.');
+        } catch(e) { logError('_waVigilarDudoso', e); }
+    }, ms));
 }
 function _waReintentarEnvio(tempId) {
     const opt = _waMensajesOptimistas.get(tempId);
@@ -32819,6 +32855,7 @@ function _waReintentarEnvio(tempId) {
     const fallido = String(opt.cuerpo || '');
     const otro = (input.value.trim() && input.value.trim() !== fallido.trim()) ? input.value : '';
     input.value = fallido;
+    _waEnvioIdReintento = opt._envioId || null;   // misma llave: si el primero sí salió, Zernio no lo duplica
     const p = enviarMensajeWhatsapp();
     const caja = document.getElementById('waTexto');
     if(otro && caja && !caja.value) { caja.value = otro; _waActualizarBotonEnvio(); }
@@ -34567,8 +34604,13 @@ async function enviarMensajeWhatsapp() {
         if(_waEnviosEnVuelo.has(hiloDestino)) { toast('Enviando el mensaje anterior…'); return; }
     }
     const tempId = `wa-temp-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    // 27-nov-2026 (dueño «B, hazlo smart»): llave de envío. Reintentar la MISMA burbuja reusa su llave → si el primer
+    // envío sí salió (corte de internet, doble toque), Zernio devuelve el mismo mensaje en vez de mandarlo otra vez.
+    const envioId = _waEnvioIdReintento || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : null);
+    _waEnvioIdReintento = null;
     const optimista = {
         id: tempId,
+        _envioId: envioId,
         hilo_id: hiloDestino,
         direccion: 'out',
         tipo_contenido: 'text',
@@ -34615,7 +34657,7 @@ async function enviarMensajeWhatsapp() {
     };
 
     // sinRespuesta = venció la espera: no se sabe si el mensaje salió.
-    const marcarFallo = (textoError, sinRespuesta) => {
+    const marcarFallo = (textoError, sinRespuesta, dudoso) => {
         let opt = _waMensajesOptimistas.get(tempId);
         if(rapido && !opt) {
             // La fila definitiva ya llegó por tiempo real y sustituyó a la provisional: el mensaje sí salió.
@@ -34625,13 +34667,18 @@ async function enviarMensajeWhatsapp() {
             _waMensajesOptimistas.set(tempId, opt);
             if(_waHiloId === hiloDestino && !_waMensajes.includes(opt)) _waMensajes.push(opt);
         }
-        if(opt) { opt.estado = 'fallido'; if(sinRespuesta) opt._sinRespuesta = true; }
+        if(opt) {
+            opt.estado = 'fallido'; if(sinRespuesta) opt._sinRespuesta = true;
+            if(dudoso) { opt._dudoso = true; opt._dudosoT = Date.now(); _waVigilarDudoso(tempId, hiloDestino, idsAntes); }
+        }
         if(_waHiloId === hiloDestino) {
             const actual = document.getElementById('waTexto');
-            if(actual && !actual.value) actual.value = mensaje;
+            // Si puede haber llegado, el texto NO vuelve a la caja: así nadie lo reenvía sin querer con «Enviar».
+            if(actual && !actual.value && !dudoso) actual.value = mensaje;
             pintar();
         }
-        toastError(textoError || 'No se pudo enviar el mensaje.');
+        if(dudoso) toast('⚠️ ' + (textoError || 'Puede que el mensaje sí haya llegado. Revise antes de reenviar.'), 'warning');
+        else toastError(textoError || 'No se pudo enviar el mensaje.');
     };
     // Venció el tiempo límite. Antes de decir «no enviado» se mira si el mensaje llegó a guardarse: así no se
     // invita a reenviar algo que el cliente ya recibió.
@@ -34648,7 +34695,7 @@ async function enviarMensajeWhatsapp() {
                 return;
             }
         } catch(e) { logError('enviarMensajeWhatsapp/alVencer', e); }
-        marcarFallo('El servidor no respondió', true);
+        marcarFallo('El servidor no respondió. Puede que sí haya llegado.', true, true);
     };
     let control = null, limite = null;
     try {
@@ -34661,7 +34708,7 @@ async function enviarMensajeWhatsapp() {
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', Object.assign({
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hilo_id: hiloDestino, mensaje, responde_a_id: respondeA })
+            body: JSON.stringify({ hilo_id: hiloDestino, mensaje, responde_a_id: respondeA, envio_id: envioId || undefined })
         }, control ? { signal: control.signal } : {}));
         let j;
         if(rapido) {
@@ -34706,6 +34753,9 @@ async function enviarMensajeWhatsapp() {
             marcarFallo(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
             await cargarHilosWhatsapp();
             await _crmRepintarWhatsappSilencioso();
+        } else if(j && (j.error === 'envio_dudoso' || j.error === 'zernio_timeout')) {
+            // Meta falló sin decir si entregó (27-nov-2026): puede haber llegado. Nunca se reintenta solo.
+            marcarFallo(j.error === 'zernio_timeout' ? 'WhatsApp no respondió a tiempo. Puede que sí haya llegado.' : (j.mensaje || 'Puede que el mensaje sí haya llegado.'), true, true);
         } else {
             marcarFallo(j?.mensaje || 'No se pudo enviar el mensaje.');
         }
